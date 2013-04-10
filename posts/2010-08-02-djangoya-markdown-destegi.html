@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Django'ya Markdown desteği</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Django'ya Markdown desteği</h1>
+
+<p><strong>August  2, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/django.html">django</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Bir süredir blog sayfam için yazı girmemi kolaylaştıracak bazı düzenlemeler yapıyorum. Öncelikle <a href="http://www.apress.com/book/view/1590599829">Beginning Python: From Novice to Professional</a> kitabındaki “instant markup” örneğini uygulamaya çalıştım, düz yazı yazacaksanız gayet kullanışlı, fakat eğer kod yayınlayacaksanız sapıtıyor. Daha sonrdan BBCode tarzı birşeyler oluşturmayı denedim, fakat o sırada <a href="http://daringfireball.net/projects/markdown/">Markdown</a>’ı keşfettim.</p>
+<blockquote>
+<p>Markdown is a text-to-HTML conversion tool for web writers. Markdown allows you to write using an easy-to-read, easy-to-write plain text format, then convert it to structurally valid XHTML (or HTML).</p>
+</blockquote>
+<p>Python modülünü <a href="http://pypi.python.org/pypi/Markdown/2.0.3">http://pypi.python.org/pypi/Markdown/2.0.3</a> adresinden indirebilirsiniz.</p>
+<p>Henüz isteğim doğrultusunda nasıl geliştirebileceğimi bulamasam da ilk haliyle bile çok yardımcı oluyor. Django’yla kullanmak için iki farklı yol izleyebilirsiniz. Birincisi, hangi modelinizde uygulamak istiyorsanız, onun save metodunu override edersiniz. Örneğin modelimdeki “post” alanına uygulamak istiyorsam, markdown modülünü import ettikten sonra şöyle yapıyorum:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> save(<span class="ot">self</span>, *args, **kargs):
+    <span class="ot">self</span>.post = markdown.markdown(<span class="ot">self</span>.post)
+    <span class="dt">super</span>(Post, <span class="ot">self</span>).save()</code></pre>
+<p>Bu yöntemin kötü yanı, eğer o yazıyı bir daha düzenlemek isterseniz, size markdown’ın eklediği html taglarıyla beraber gelecek. Yani yazıyı bir kere eklediniz mi, düzenlemek için yine html ile uğraşmanız gerekir. Kötü bir yöntem yani.</p>
+<p>İkinci yöntem de, markdown fonksiyonu için bir template tag’ı oluşturup, istediğiniz yere uygulamanız. Bu yöntem her yönden çok daha mantıklı gözüküyor, hem istediğiniz şeye uygulayabilirsiniz. Bunun için markdown’u proje klasörüne kopyaladıktan sonra ayar dosyanızdan markdown’u ISTALLED_APPS altında eklemeniz gerekiyor. Daha sonra <a href="http://docs.djangoproject.com/en/dev/howto/custom-template-tags/">şu belgedeki</a> adımları izlemelisiniz. Ya da:</p>
+<ul>
+<li>markdown klasörünün altında templatetags klasörü oluşturursunuz.</li>
+<li>markdown.py diye bir dosya açarsınız. İçine şu kodu yapıştırırsınız:</li>
+</ul>
+<pre class="sourceCode python"><code class="sourceCode python">    <span class="ch">from</span> django <span class="ch">import</span> template
+    <span class="ch">from</span> ..markdown <span class="ch">import</span> markdown <span class="ch">as</span> Markdown
+    <span class="ch">from</span> django.template.defaultfilters <span class="ch">import</span> stringfilter
+    register = template.Library()
+    <span class="ot">@register.filter</span> <span class="co"># detayli bilgi icin http://docs.djangoproject.com/en/dev/howto/custom-template-tags/</span>
+    <span class="ot">@stringfilter</span> <span class="co"># sadece stringlerle calissin</span>
+    <span class="kw">def</span> markdown(value):
+        <span class="co">&quot;String'i Markdown'dan gecirir.&quot;</span>
+        <span class="kw">return</span> Markdown(value)</code></pre>
+<ul>
+<li>Daha sonra template tagımızı kullanmak istediğimiz templateimize <code>{% load markdown %}</code> satırını ekleyip, hangi string’de kullanmak istiyorsak ona markdown filter’ını uygularsınız. Örneğin <code>{{ post|markdown|safe|escape }}</code>.</li>
+</ul>
+<p>Daha sonra <a href="http://daringfireball.net/projects/markdown/syntax">http://daringfireball.net/projects/markdown/syntax</a> adresindeki gibi yazarsınız. Eklenti desteği sayesinden markdown’a tablo bile çizdirebilirsiniz(eklenti klasörüne bakın).</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

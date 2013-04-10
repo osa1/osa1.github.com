@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>osa1.net - Posts tagged box2d</title>
+    <link href="http://osa1.net/tags/box2d.xml" rel="self" />
+    <link href="http://osa1.net" />
+    <id>http://osa1.net/tags/box2d.xml</id>
+    <author>
+        <name>Ömer Sinan Ağacan</name>
+        <email>omeragaca@gmail.com</email>
+    </author>
+    <updated>2013-03-06T00:00:00Z</updated>
+    <entry>
+    <title>Quick Box2d tips: Terrains, jump behavior and bodies with multiple shapes</title>
+    <link href="http://osa1.net/posts/2013-03-06-box2dtips-1.html" />
+    <id>http://osa1.net/posts/2013-03-06-box2dtips-1.html</id>
+    <published>2013-03-06T00:00:00Z</published>
+    <updated>2013-03-06T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>After wasting enough time implementing my own half-baked physics engine and never having an efficiently implemented collision resolution code, I’ve decided to go on with <a href="https://www.love2d.org/wiki/love.physics">physics module</a> my game library of choice provides. It’s based on <a href="http://box2d.org/">Box2d</a> and the API is mostly the same.</p>
+<p>My first try of using it was last weekend, me and my brother did a super short(12 hours) game jam, and I used Box2d for the first time. We finished our game, but it was so buggy that I don’t even mention it to anybody. Still, I learned so much about Box2d physics.</p>
+<p>After several days, I could finally spare some time and fixed the bugs. I also wrote a simple demo app to demonstrate my points in this post. You can see the code <a href="https://gist.github.com/osa1/5102171">here</a>. It’s a full program, just paste it somewhere and run with Löve2d(the code about chained shapes are based one someone else’s code from Löve2d forums, I don’t remember whose code is this).</p>
+<h2 id="implementing-terrains-with-box2d">Implementing terrains with Box2d</h2>
+<p>Main bug source of my game was terrain implementation. It was reading the map info from a binary file and then creating lots of <a href="https://www.love2d.org/wiki/love.physics.newRectangleShape">RectangleShapes</a>. The problem with this approach was that other dynamic entities in my game was getting stuck between two RectangleShapes, even though each shape was in touch with other so there was no space between them. Later I realized that this behavior is actually <a href="http://www.box2d.org/manual.html#_Toc258082970">documented</a>(see <em>edge shapes</em> section).</p>
+<p>There are two solution mentioned in Box2d manual. Now I’m using ChainShapes in my code and it’s working as expected. In the example game I linked above, you can see that my terrain is implemented with some artificial shapes:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">worldShape</span> <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newChainShape<span class="ot">(</span><span class="st">&quot;false&quot;</span><span class="ot">,</span>
+    <span class="dv">80</span><span class="ot">,</span> <span class="ot">-</span><span class="dv">100</span><span class="ot">,</span>
+    <span class="dv">80</span><span class="ot">,</span> <span class="dv">680</span><span class="ot">,</span>
+    <span class="dv">120</span><span class="ot">,</span> <span class="dv">680</span><span class="ot">,</span>
+    <span class="ot">...</span>
+    <span class="dv">620</span><span class="ot">,</span> <span class="dv">680</span><span class="ot">,</span>
+    <span class="dv">620</span><span class="ot">,</span> <span class="ot">-</span><span class="dv">100</span><span class="ot">)</span></code></pre>
+<p>But still none of the dynamic bodies get stuck.</p>
+<h2 id="bodies-with-multiple-shapes-and-jump-behavior">Bodies with multiple shapes and jump behavior</h2>
+<p>Being able to bind multiple shapes to a body is just an awesome feature. It helps having a more accurate shape of an entity, and also having multiple fixtures mean you can change properties of each fixture and get a more accurate behavior of friction or some other things.</p>
+<p>For instance, in my game, I wanted 2 things; 1) I don’t want my main character’s left and right side to have friction, so that it should slide without getting slowed down when left/right side is collided and 2) I want to check if my character is collided in bottom side.</p>
+<p>Having multiple fixtures helped for both cases. My character consists of 4 shapes and fixtures:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">o</span><span class="ot">.</span><span class="kw">shapeLeft</span>   <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(-</span><span class="dv">20</span><span class="ot">,</span> <span class="dv">0</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">shapeTop</span>    <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(</span><span class="dv">0</span><span class="ot">,</span> <span class="ot">-</span><span class="dv">50</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">shapeRight</span>  <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(</span><span class="dv">20</span><span class="ot">,</span> <span class="dv">0</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">shapeBottom</span> <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(</span><span class="dv">0</span><span class="ot">,</span> <span class="dv">50</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureLeft</span>   <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeLeft</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureTop</span>    <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeTop</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureRight</span>  <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeRight</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeBottom</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span></code></pre>
+<p>Then I set each fixtures a different friction factor:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureLeft</span>:setFriction<span class="ot">(</span><span class="dv">0</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureTop</span>:setFriction<span class="ot">(</span><span class="dv">0</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureRight</span>:setFriction<span class="ot">(</span><span class="dv">0</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureBottom</span>:setFriction<span class="ot">(</span><span class="dv">100</span><span class="ot">)</span></code></pre>
+<p>And for jump behavior, I’m just checking if <code>fixtureBottom</code> is collided, with the help of <code>beginContact</code> and <code>endContact</code> callbacks:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> beginContact<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="kw">b</span><span class="ot">,</span> <span class="kw">coll</span><span class="ot">)</span>
+    <span class="kw">if</span> <span class="kw">a</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">or</span> <span class="kw">b</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">then</span>
+        <span class="kw">char</span><span class="ot">.</span><span class="kw">jumpEnabled</span> <span class="ot">=</span> <span class="kw">true</span>
+    <span class="kw">end</span>
+<span class="kw">end</span>
+
+<span class="kw">function</span> endContact<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="kw">b</span><span class="ot">,</span> <span class="kw">coll</span><span class="ot">)</span>
+    <span class="kw">if</span> <span class="kw">a</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">or</span> <span class="kw">b</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">then</span>
+        <span class="kw">char</span><span class="ot">.</span><span class="kw">jumpEnabled</span> <span class="ot">=</span> <span class="kw">false</span>
+    <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+<p>With this features implemented, I think I have a good-enough platformer engine. Can’t wait for the next jam. Maybe we can build a game that we can actually mention to people ;-)</p>]]></summary>
+</entry>
+
+</feed>

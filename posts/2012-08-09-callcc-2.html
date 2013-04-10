@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - call/cc [2]</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">call/cc [2]</h1>
+
+<p><strong>August  9, 2012</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Scheme çok ilginç bir dil. Çok küçük olmasına rağmen(R5RS 50 sayfa, R6RS 90 sayfa, aradaki fark büyük oranda kütüphanelerden kaynaklanıyor) programlama dilleri camiasından sürekli tartışma konusu, ve bir sonraki standard konusundaki tartışmalar neredeyse hiçbir zaman bitmiyor. Çok fazla tartışmalı özelliği var. Kendisine göre devasa boyutlardaki dillerde bile Scheme’inkiler kadar tartışılan özellikler yoktur büyük ihtimalle(gerçi bu biraz da Scheme camiasının çok sayıda programlama dili meraklısı içermesi ile alakalı olabilir).</p>
+<p><code>call/cc</code> bu özelliklerden biri, hakkında buralarda birşeyler yazmıştım. <code>call/cc</code> benim gözümde, birazdan bahsedeceğim yazıdaki tabiriyle, “ultimate abstraction of control” idi. Kendi dilime de call/cc’yi programın kontrol akışı üzerinde değişiklikler gerektiren yapıları implement etmek için kullnacaktım.</p>
+<p>Bugün internetteki favori sayfalarımdan <a href="http://okmij.org/ftp/">okmij</a>de <a href="http://okmij.org/ftp/continuations/against-callcc.html">“An argument against call/cc”</a> adlı yazıya denk geldim. Meraklısı olan varsa kaçırmasın.</p>
+<p>call/cc’nin neden kötü bir soyutlama olduğunu 7 madde halinde incelemiş. Benim anladığım, tüm bu problemleri delimited continuationlarla çözebiliriz. Delimited continuationlara giriş için <a href="http://pllab.is.ocha.ac.jp/~asai/cw2011tutorial/main-e.pdf">Introduction to Programming with Shift and Reset</a>e bakabilirsiniz. Ben epey anlaşılır buldum(OchaCaml’ı yükleyip denemedim gerçi, içinde yama uygulamayı da içeren birkaç maddelik kurulum komutu var, şaka gibi). Bir maddede <code>dynamic-wind</code>den bahsetmiş. <code>dynamic-wind</code> ile ilk kez bu yazıda karşılaştım, ve anladığım kadarıyla delimited continuationlar buna olan ihtiyacı ortadan kaldırmıyor. Sonuçta örneğin bir dosyaya erişim yapıldığı durumda, continuation dosyanın referansını içerecektir ve daha sonradan bu continuation kullnıldığında, delimited olsa da olmasa da, aynı kaynakların alınıp(dosyanın açılması, sunucuya bağlanılması vs.), işlem sonrasında kapatılması gerekir.</p>
+<p>Static bir tip sistemi ve lexical scope ile call/cc implementasyonu benim için zaten yeterince zor bir problem. Belki de tamamen kaldırıp, Lua usulü biraz daha genelleştirilmiş generatorlar<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>ile yola devam etmeliyim.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><a href="http://dl.acm.org/citation.cfm?id=1462167&amp;CFID=125136476&amp;CFTOKEN=41020401">Revisiting coroutines</a><a href="#fnref1">↩</a></p></li>
+</ol>
+</div>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

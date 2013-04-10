@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Django'ya Pygments desteği</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Django'ya Pygments desteği</h1>
+
+<p><strong>August 26, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/django.html">django</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Daha önceden <a href="http://test.osa1.net/djangoya-markdown-destegi/">burada</a> Django’ya <a href="http://daringfireball.net/projects/markdown/">Markdown</a> desteği eklenmesinden bahsetmiştim(Django’nun Markdown eklentisi olduğunu farkettim çok sonradan). Bu sefer de syntax renklendirme için <a href="http://pygments.org/">Pygments</a> desteği ekledim. Pygments’den önce <a href="http://code.google.com/p/syntaxhighlighter/">syntaxhighlighter</a> kullanıyordum benim amacım için biraz fazla gelişmiş ve kompleks kaçıyordu.</p>
+<p>Öncelikle django’ya pygments desteği için 2 tane çok iyi kaynak var(<a href="http://www.saltycrane.com/blog/2008/08/django-blog-project-12-adding-pygments-syntax-highlighting/">1</a>, <a href="http://djangosnippets.org/snippets/360/">2</a>), fakat bu kaynaklardaki yöntemlerden ilki, veritabanına gerekli html tagları eklenmiş bir şekilde yazıyor, dolayısıyla bir daha düzenlemek istediğinizde kodunuz okunmaz bir halde oluyor. Benim yapmak istediğim şey, daha önceden markdown için de yaptığım gibi, bir <a href="http://docs.djangoproject.com/en/dev/howto/custom-template-tags/">template filter</a> oluşturup istediğim yerde kullanabilmek. Hem bu şekilde daha esnek olabilirim. İkinci yöntem ise, açıkçası ne yaptığını anlamaya çalışmadım, markdown ve pygments’i beraber uyguluyor. Bu da benim istediğim şey değil. Benim amacım, istediğim yere markdown, istediğim yere pygments, istediğim yere de ikisini beraber uygulamak.</p>
+<p>Bunun için verdiğim ilk kaynaktaki kodu kullandım aslında. Tek farkı, sonucu veritabanına yazdırmak yerine, fonksiyonu template filter haline getirdim.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="co"># pygmentsf.py</span>
+<span class="ch">from</span> django <span class="ch">import</span> template
+<span class="ch">from</span> BeautifulSoup.BeautifulSoup <span class="ch">import</span> BeautifulSoup <span class="co">#saka gibi</span>
+<span class="ch">from</span> pygments <span class="ch">import</span> lexers, highlight, formatters
+<span class="ch">from</span> django.template.defaultfilters <span class="ch">import</span> stringfilter
+register = template.Library()
+<span class="ot">@register.filter</span>
+<span class="ot">@stringfilter</span>
+<span class="kw">def</span> pygmentsf(html):
+    <span class="co">&quot;String'i Pygments'den gecirir. BeautifulSoup ile pre taglarini ayristirir.&quot;</span>
+    soup = BeautifulSoup(html)
+    preblocks = soup.findAll(<span class="st">'pre'</span>)
+    <span class="kw">for</span> pre in preblocks:
+        <span class="kw">if</span> pre.has_key(<span class="st">'class'</span>):
+            <span class="kw">try</span>:
+                code = <span class="st">''</span>.join([<span class="dt">unicode</span>(item) <span class="kw">for</span> item in pre.contents])
+                code = unescape_html(code)
+                preclass = pre[<span class="st">'class'</span>]
+                <span class="co"># syntaxhighlighter icin yazilmis kodlar icin</span>
+                <span class="kw">if</span> preclass == <span class="st">'brush: python'</span> or preclass == <span class="st">'brush; python'</span>:
+                    preclass = <span class="st">'python'</span>
+                lexer = lexers.get_lexer_by_name(preclass)
+                formatter = formatters.HtmlFormatter()
+                code_hl = highlight(code, lexer, formatter)
+                pre.replaceWith(BeautifulSoup(code_hl))
+            <span class="kw">except</span>:
+                <span class="kw">pass</span>
+    <span class="kw">return</span> <span class="dt">unicode</span>(soup)
+<span class="kw">def</span> unescape_html(html):
+    html = html.replace(<span class="st">'&amp;lt;'</span>, <span class="st">'&lt;'</span>)
+    html = html.replace(<span class="st">'&amp;gt;'</span>, <span class="st">'&gt;'</span>)
+    html = html.replace(<span class="st">'&amp;amp;'</span>, <span class="st">'&amp;'</span>)
+    <span class="kw">return</span> html</code></pre>
+<p>Ayrıca küçük bir düzenlemeyle daha önceden syntaxhighlighter için yazdığım yazılarla da uyumlu olmasını sağladım. Bu dosyayı uygulamanız altında eğer templatetags klasörüne attıktan sonra template dosyanızdan <code>{% load pygmentsf %}</code> dedikten sonra, istediğiniz değişkene uygulayabilirsiniz. <code>{{ blog.body|pygmentsf|safe|escape }}</code> gibi. Ya da isterseniz markdown yazımdaki template filter ile beraber <code>{{ blog.body|markdown|pygmentsf|safe|escape }}</code> şeklinde kullanabilirsiniz.</p>
+<p>Unutmadan, HTML’i ayrıştırmak için <a href="http://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> kullanılıyor. Mükemmel bir kütüphane.</p>
+<div class="alert">
+Eğer <a href="http://osa1.net/djangoya-markdown-destegi/">markdown</a> ile beraber kullanacaksanız, bu yöntem pek de iyi değil. <a href="http://osa1.net/djangoda-markdown-ve-pygments-kullanmak-2/">Şuraya</a> bakın.
+</div>
+
+
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

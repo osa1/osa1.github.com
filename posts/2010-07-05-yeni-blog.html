@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Yeni blog</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Yeni blog</h1>
+
+<p><strong>July  5, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/django.html">django</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>
+Bir süredir Django öğreniyorum ve öğrendiklerimi uygulamaya koyma amacıyla basit bir blog şeysi yazmıştım. Daha sonra bir tasarım uydurdum ona ve bundan sonra buraya yazmaya devam edeceğim. Wordpress kadar rahat olmasa da, en azından bana Python kullanarak istediğim gibi geliştirme ve kendimi geliştirme imkanı sağlıyor.
+</p>
+
+<p>
+Biraz altyapıdan bahsetmek gerekirse, Python 2.4 ve Django kullandım. Yönetim için Django’nun kendi admin eklentisini, yorumlar için yine Django’nun kendi yorum eklentisini kullandım. Programlama açısından geriye kalanları kendim programladım. Başlangıç için <a href="http://www.amazon.com/Definitive-Guide-Django-Development-Right/dp/1590597257/ref=sr_1_1?ie=UTF8&amp;s=books&amp;qid=1278315002&amp;sr=8-1" rel="external">The Definitive Guide to Django(Apress)</a> kitabından faydalandım, birkaç bölümden sonra Django’nun <a href="http://www.djangoproject.com/" rel="external">kendi belgelerinden</a> yararlandım.
+</p>
+
+<p>
+Tasarım kısmına gelince, o kadar çok yerden o kadar çok şey çaldım ki, ben bile hatırlayamıyorum. Aslında genel olarak altyapıyı ben yaptım fakat daha sonra geriye kalan detayları civardan çaldım. Aklıma geldiği kadarıyla kaynak belirteceğim:
+<ul>
+<li>
+<a href="http://www.bioneural.net/2006/04/01/create-a-valid-css-alert-message/" rel="external">http://www.bioneural.net/2006/04/01/create-a-valid-css-alert-message/</a> adresinden mesaj kutusunu kullandım.
+</li>
+<li>
+<a href="http://www.smileycat.com/miaow/archives/000230.php" rel="external">http://www.smileycat.com/miaow/archives/000230.php</a> adresinden menüleri yaptım.
+</li>
+<li>
+Tabii ki olmazsa olmazlardan, <a href="http://www.smashingmagazine.com/2007/01/19/53-css-techniques-you-couldnt-live-without/" rel="external">Smashing Magazine’deki şu yazıdan</a> yararlandım. Artık tüm kaynakları hatırlayamıyorum
+</li>
+<li>
+Bir de <a href="http://tympanus.net/codrops/2010/01/31/fresh-set-of-css-only-menus/" rel="external">http://tympanus.net/codrops/2010/01/31/fresh-set-of-css-only-menus/</a> adresinden üst menüyü yaptım.
+</li>
+<li>
+Ve en önemlisi, altyapı için <a href="http://960.gs/" rel="external">960 grid system</a>’ı kullandım, işimi çok kolaylaştırdı, yoksa onu yapacak CSS bilgisine sahip değilim.
+</li></ul></p>
+
+<p>
+Daha çok geliştirilmesi gerekiyor tabii ki, şimdilik aklıma gelenler, etiket bulutu, yazının içeriğine göre otomatik etiketleme, etiketlere göre alakalı yazıları bulabilme, yazı eklemek için daha gelişmiş bir editor(örneğin linkleri tanıyıp gerekli html kodlarını ekleyebilen).. Aslında bunların hiçbiri zor şeyler değil fakat Django bilgim henüz yeterli değil, Python kısmı kolay..
+</p>
+
+<p>
+Yazı eklemeyi daha kolay hale getirebilmek için öncelikle yönetici panelinden girdiğim bir yazının veritabanına eklenmeden önce nasıl bir fonksiyona sokulabilir, çıktının veritabanına yazılabileceğini öğrenmem lazım. Yapabilirsem resim ve dosya ekleme özelliği de eklemek istiyorum. İşin arkaplanında düzenlenecek bir sürü kod var aslında, templatelerimin düzenlenmeye ihtiyacı var, view fonksiyonlarımda da pek çok kod tekrarı vs. var. Bir değişiklik yapmam gerektiğimde zorlanacağım.
+</p>
+
+<p>
+Onun dışında, gördüğünüz hataları yorumlar kısmında belirtirseniz çok iyi olur..
+</p>
+
+<p>
+Son olarak Python destekli sunucusunu kullanmama izin veren arkadaşım <a href="http://muhammetcan.net" rel="external">Muhammet</a>’e teşekkürler..
+</p>
+
+
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Pygame ve basit bir fizik motoru 2, çarpışma tespiti ve yansıma</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Pygame ve basit bir fizik motoru 2, çarpışma tespiti ve yansıma</h1>
+
+<p><strong>April 11, 2011</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/pygame.html">pygame</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Geçen yazıda <a href="http://www.wildbunny.co.uk/blog/2011/04/06/physics-engines-for-dummies/">şurdaki</a> örnekleri Pygame’de yazmaya çalıştığımdan bahsetmiştim ve ilk örnek için mouse pozisyonuna göre yönü ayarlanabilen bir çerçeve çizmek için birkaç bilgi vermiştim(kaynaklar github’da).</p>
+<p>Bugün çarpışma tespiti ve yansımaları da hallettim. Çarpışma tespiti için çok fazla yöntem var, ben Stack Overflow’da gördüğüm <a href="http://stackoverflow.com/questions/1073336/circle-line-collision-detection">şu yazıdakilerden</a> birinden esinlendim.</p>
+<p>Yaptığım şey kısaca şu:</p>
+<p>vm1, çarpacak cismimizin merkezinden, 1. yüzeyin merkezine vektör olsun. m1b, 1. yüzeyin merkezinden düzlem merkezini gösteren birim vektör olsun vm1’in m1b izdüşümü(<a href="http://en.wikipedia.org/wiki/Vector_projection">projection</a>) yeterince küçükse(örneğin cisim topsa, yarıçapından küçükse), çarpışacaklar demektir.</p>
+<p>Kendi yazdığım Vector sınıfıyla beraber kod şöyle birşey oluyor:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> <span class="dt">abs</span>((m1b*vm1.dot_product(m1b)).length) &lt; <span class="dv">5</span>:
+        <span class="co"># carpisma!</span></code></pre>
+<p>Bu yöntemi başka bir yöntemden esinlenerek kendim ürettiğimden, pek sağlıklı olmayabilir. Bu uygulama için gayet güzel çalışıyor ama. Zaten çarptıracağınız yüzeye ve çarpan cisme göre farklı algoritmalar daha mantıklı oluyor.</p>
+<p>Yansıma için de <a href="http://pfirth.co.uk/Reflection.html">reflection vector</a> kullandım. Şöyle birşey:</p>
+<p>R = V - 2<em>N</em>(V DOT N) . Bizim şartlar altında, R yansıyan hız vektörü, V gelen hız, N de yüzeyin normal vektörü. Yine kendi yazdığım Vector sınıfımla beraber şöyle birşey yani:</p>
+<pre class="sourceCode python"><code class="sourceCode python">ref_v = v_hiz - m1b*<span class="dv">2</span>*(v_hiz.dot_product(m1b))</code></pre>
+<p>Programdaki küçük(ya da bir daha düşündüm de, büyük) hata ise, toplar yüzeylere çarpmak üzereyken yüzeyleri hareket ettirirseniz, toplar alandan dışarı çıkıyorlar. Ekranın dışına çıktıklarında diğer taraftan tekrar girmelerini sağladığımdan, tekrardan alan içerisine alabiliyorum, ehaeuhe. Neden olduğu hakkında az da olsa fikrim var, bir şekilde çözeceğiz artık.</p>
+<div class="figure">
+<img src="../images/collision.png" />
+</div>
+<p>Bundan sonra 3. örnek, zıplayan toplar var. Önce topların alandan dışarı çıkmasını engellemeye çalışacağım sanırım.</p>
+<p>Bu arada tüm kodlar <a href="http://github.com/osa1">github</a>’da.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

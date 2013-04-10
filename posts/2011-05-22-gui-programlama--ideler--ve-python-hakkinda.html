@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - GUI programlama, IDEler, ve Python hakkında</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">GUI programlama, IDEler, ve Python hakkında</h1>
+
+<p><strong>May 22, 2011</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/java.html">java</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Son birkaç gündür yoğun bir şekilde GUI programlama ve Java ile uğraştım. İlk başta 2 arkadaşımla beraber basit bir chat sunucu/istemcisi yazmaya başladık(<a href="https://github.com/osa1/simple-chat">kaynak koda</a> github depomuzdan erişebilirsiniz). Daha önceki tecrübelerimden (lisede web tasarım, daha sonra Python + GTK/QT ile arayüz denemelerim) arayüz tasarımından ne kadar nefret ettiğimi bildiğimden, bu projede ben sunucu ve istemci altyapısını hazırlamakla uğraştım. Fakat sonra bir ödev gereği, arayüz tasarımıyla da kendim uğraşmam gerekti.</p>
+<p>Ödev Java ile yapılacaktı ve dolayıyısla arayüz olarak Swing kullandım. Başlangıç için Eclipse için <a href="http://code.google.com/javadevtools/wbpro/index.html">WindowBuilder</a> eklentisi ile ana çerçeve + layoutları oluşturup daha sonra elle yazdım. Bu süreçte şunu farkettim, adam gibi bir IDE, işleri daha önce tahmin edemeyeceğim kadar kolaylaştırıyor. Asıl olarak Python ile yazan biri olarak, birkaç gün öncesine kadar her işimde VIM kullanıyordum ve çok da memnundum(arayüz tasarımı yapmıyorum). Şu birkaç gün(sadece ödev için 1460 satır kod) bazı şeyleri farketmemi sağladı.</p>
+<p>Onlarca sınıf, her sınıf için onlarca method, ve bu sınıflar arasında karışık ilişkilerin olduğu bir işle uğraşıyorsanız, iyi bir IDE şart. Dökümantasyonda geçirdiğiniz çok kısaltıyor.</p>
+<p>Static typing çok hoş bir olay. Okula başladıktan sonra bol miktarda C(programlama yarışması) ve Java(ödevler) uğraşmam gerekti. Henüz sadece birkaç dili birşeyler üretebilecek seviyede biliyorum ve bu konuda çok da bilgili değilim, ama Python ile en çok dökümantasyon ve IDE sıkıntısı çekiyorum. Ücretli IDEleri denemedim ama denediğim tüm ücretsiz Python IDEleri Autocomplete konusunda çaresiz kalıyorlar. Python’da aşağıdaki gibi birşey görebilmek için herşeyimi(?!) verirdim:</p>
+<div class="figure">
+<img src="../images/eclipse_autocomplete.png" />
+</div>
+<p>Hatta mesela şöyle birşey yapabilseydim:</p>
+<div class="figure">
+<img src="../images/eclipse_autocomplete1.png" />
+</div>
+<p>Ama yok, örneğin PyDev daha aşağıdaki kodda çakılıyor:</p>
+<pre class="sourceCode python"><code class="sourceCode python">cls = Class1()
+cls.</code></pre>
+<p>Daha burda bile, Class1’in methodlarını gösteremiyor. Direkt olarak <code>Class1.</code> şeklinde yazıp, autocomplete çalıştırırsak, methodları gösteriyor, bu iyi, fakat bu sefer de bound-unbound method farkını anlayamıyor ve bound methodları da gösteriyor. Ki bound methodlar bu şekilde çağırılamaz. Fail.</p>
+<p>WingIDE diyenler için, personal sürümü, sanki “öyle gerekli özellikler çıkaralım ki, kimse almasın” diye düşünülerek hazırlanmış. O kısıtlı özellikleri çıkardığımızda, Vim ile de yapıyorum zaten geri kalanları. <a href="https://wingware.com/wingide/features/personal">Burdan bakın</a>. Professional sürümü de çok pahalı.</p>
+<p>PyCharm diyenler için, Open Source lisansı ücretsiz, fakat <a href="http://www.opensource.org/docs/osd">Open Source Definition</a>’a uyan bir projeniz olmalı. Benim yok.</p>
+<p>Eclipse, Java’nın verdiği acıyı inanılmaz derecede hafifletiyor. Yoksa sınıflar arasındaki saçma derecede karmaşık ilişkiler başka türlü çözülemez. Python’da ise, benzer karışıklıkta tasarlanmış(muhtemelen başka bir dilde, örneğin QT için C++) bir kütüphane ile çalışıyorsanız, acınızı hafifletecek hiçbir şey yok.</p>
+<p>Konudan biraz sapacağım ama, Python hakkında beni sinirlendiren bir başka konu da, threading ve socket olayları. Ne zaman socket veya threading kullansam, mutlaka bir problemle karşılaşıyorum ve bunu ne zaman IRC’de sorsam, mutlaka birileri Twisted kullanmamı söylüyor. Kötü alışkanlıklardan, yanlış programlamadan vs bahsedip duruyorlar. Sanki Freenode #python kanalında, içinde şöyle bir kod olan bir sürü bot varmış gibi:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> <span class="st">&quot;socket&quot;</span> in msg or <span class="st">&quot;thread&quot;</span> in msg:
+    <span class="ot">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</code></pre>
+<p>Java’da yaklaşık bir hafta kadar önce kullanılabilr bir hale getirdiğimiz chat istemci/sunucusu, dilin kendi thread ve socketlerini kullanıyor. Thread ve socket kullanımı ile alakalı dökümantasyon hariç hiçbir yere baktığımı hatırlamıyorum. Python’dan gelen birisi olarak şaşırtıcı derecede kolay ve stabil oldu.</p>
+<hr />
+<p>Bir süredir kafamda kendi IRC istemcimi yazma fikri var. Şu anda yazabilmek için gerekli herşeyi biliyorum. Dün oturdum, Java ve Python’da IRC sunucusuna bağlanabilmek için gerekli en küçük kodu yazmaya karar verdim(arayüz ile beraber). Java’da, kendi socket ve thread sınıfları ve Swing ile kolayca yazdım(bu arada Swing’in ne kadar kötü gözüktüğüne dikkat, platform bağımsız olarak iğrenç gözüken bir arayüz kütüphanesi kendisi, ehehe):</p>
+<div class="figure">
+<img src="../images/irc_client_java.png" />
+</div>
+<p>Python’da QT kullandım. Fakat garip bir şekilde, ne zaman sunucudan bir mesaj gelse, QT segmentation fault veriyor:</p>
+<pre><code>QObject::connect: Cannot queue arguments of type 'QTextCursor'
+(Make sure 'QTextCursor' is registered using qRegisterMetaType().)
+Segmentation fault</code></pre>
+<p>IRC’de sorduğumda aldığım yanıtı tahmin edersiniz zaten.</p>
+<p>Şimdi oturup düşünüyorum, bir yanda Java, sadece dilin kütüphaneleri ile sunucuya bağlanıp, mesaj gönderip aldığım kod, arayüz ile beraber hazır bile. Elimin altında Eclipse gibi bir IDE var. Python ile yapmak istersem, ekstra olarak uğraşmam gerekecek şeyler: PyQT’nin dökümantasyonu, Twisted’ın dökümantasyonu, Twisted’ı öğrenmek, QT Designer ile tasarımı koda çevirmek için ekstra bir işlem yapmak, daha sonra bir daha QT Designer ile değişiklik yapamamak(Eclipse + WindowBuilder ile tasarım/kod arasında değiştirmek tek tuş).</p>
+<p>Adil olmak lazım, Java ile başta bahsettiğim projeye girişmeden önce, bunların farkında değildim. Python ile ise bu boyutta bir proje yapmadım. Küçük küçük bir sürü script(ki her biri, yazdığım satır sayısına göre işimi abartı derecede kolaylaştırıyor), en büyük projem kendi blogum.</p>
+<p>Python bana programlamaya ilk başladığım günlerde bile birşeyler üretme imkanı verdi. Programlamaya başladığım sene(lisede yaptığım web tasarım + programlamayı saymıyorum), ilk önce kendi blogumu, daha sonra <a href="http://osa1.net/osa1-arsiv-duzenleme-scriptcigi-nautilus-scripti/">arşiv düzenleyici</a>yi yapabildim. Başka bir dille yapamazdım.</p>
+<p>Şu anda static typed bir dilin bana sağladıklarını biliyorum(en azından bu projeleri yapmaya başlamadan öncekine göre çok daha iyi biliyorum). Şimdi dynamic typed bir dilin avantajlarını görmem lazım.</p>
+<p>O yüzden IRC istemcimi her şeye rağmen Python ile yazacağım. Java ile yazarsam, kendimi tekrar etmekten başka birşey yapmamış olacağım. Twisted’ı ihtiyacım olduğu kadarıyla öğrenmeye bugün başlıyorum. Çalıştırılabilir bir hale gelir gelmez yorumlarımı buraya yazacağım.</p>
+<p>(Bu arada Twisted’da IRC istemci protokolü hazır olarak var)</p>
+<h3 id="vim-hakkında">VIM hakkında</h3>
+<p>Vim hakkında da birkaç birşey söyleyeyim hazır IDE/Editor muhabbetine girmişken. Yaklaşık 7-8 aydır(sanırım) Vim kullanıyorum, ve şu dakikadan sonra Vim’siz hiçbir şey yazamaz oldum. Maillerimi Vim ile yazıyorum(sylpheed), bloga yazıları Vim ile giriyorum(kendi eklentim), Eclipse’de <a href="http://www.viplugin.com/viplugin/">Vim eklentisi</a> kullanıyorum(o olmasa Eclipse kullanamazdım), Lisp ile uğraştığımda, Emacs kullanmam gerekiyor ve Emacs’i <a href="http://www.emacswiki.org/emacs-es/Vimpulse">vimpulse</a> ile kullanıyorum. Şöyle iyi böyle güzel diye anlatmayacağım, resmen bağımlı oldum. Arkadaşların, normal IDE/Editorlerde nasıl yazdıklarını görünce duygulu anlar yaşıyorum.</p>
+<p>Bu yüzden IDE seçerken dikkat ettiğim konulardan biri de Vim desteği(veya eklentileri) oluyor. Eclipse o açıdan(viPlugin sağolsun) çok başarılı. Söz konusu Java olduğunda düşünüyorum da, Eclipse olmasa herhalde hiçbir şey yazamazdım.(bu arada WingIDE Vim tuşlarını destekliyormuş, ne kadar başarılıdır bilmiyorum)</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

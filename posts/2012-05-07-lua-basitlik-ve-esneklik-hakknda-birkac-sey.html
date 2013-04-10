@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Lua - basitlik ve esneklik hakkında birkaç şey</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Lua - basitlik ve esneklik hakkında birkaç şey</h1>
+
+<p><strong>May  7, 2012</strong> - Tagged as: <a href="../tags/lua.html">lua</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Programlama dillerini incelediğimi buraları okuyanlar farketmiştir herhalde :) . Bir süredir Lua ile alakalı birşeyler okuyordum. Beni epey etkiledi. İlk yorumlayıcısı ve performansı etkilemişti<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> Daha sonradan kaynağını kurcalamış ve ne kadar küçük ve düzenli olduğunu görüp şaşırmıştım. Dilin desteklediği Tail-call optimization ve <a href="https://plus.google.com/112211667397241192219/posts/QE1noJjQYwz">lexical scope</a>’un(ve dolayısıyla closureların) zaten hastasyım. Sonralardan SO gibi ortamlarda “mühendislik harikası” şeklinde nitelendirildiğini gördüm. Henüz bu kısımları değerlendirebilecek seviyede değilim. Ben dilin sadeliği ve bu sadeliğe rağmen nasıl kolayca esneklik sağlayabildiği hakkında birşeyler yazacağım.</p>
+<p>Dildeki tek veri yapısı tablolar. Arrayler, mapler, modüller ve dil ile gelen tüm yapılar direkt olarak tablo. Bir veri yapısı yazmak istediğiniz de de tabloları kullanmak zorundasınız. Nasıl Python’da herşey nesneyse, Lua’da da <em>neredeyse</em> herşey tablo<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup> Sınıflarla sağlanan bir nesne tabanlı programlama desteği yok. Ama çok basit ve güzel bir özellik sayesinde, multiple inheritance bile sağlayabiliyorsunuz.</p>
+<p>Tüm tablolara <code>metatable</code> denilen bir tablo atayabiliyorsunuz. Bu metatablolar(ne diyeyim bilemedim bunlara) tablolar operatörlerle işleme sokulduğunda çağırılacak fonksiyonları tutuyorlar. Örneğin bir tablonun metatablosu <code>__add</code> gibi bir fonksiyona sahipse, bu tabloyu toplama işlemine sokabiliyoruz. Aynı <a href="http://docs.python.org/reference/datamodel.html#object.__add__">Python’daki <code>__add__</code> methodu</a> gibi. Eğer tabloda olmayan bir değer erişmek istersek de, benzer bir şekilde metatablodaki <code>__index</code> fonksiyonuna, eğer tabloda olmayan bir değer eklemeye çalışırsak(mevcut bir değeri değiştirme değil de farklı anahtara sahip bir değer ekleme yani) da <code>__newindex</code> fonksiyonu çağırılıyor. Bunlar aynı Python’daki <a href="http://docs.python.org/reference/datamodel.html#object.__getattr__"><code>__getattr__</code></a> ve <a href="http://docs.python.org/reference/datamodel.html#object.__setattr__"><code>__setattr__</code></a> gibiler.</p>
+<p>Bugün yazdığım uygulamada şöyle bir sorun yaşadım. <em>Rect</em> adlı bir tablo tutuyorum ve bu tabloyu metatablo olarak kullanan başka tablolar oluşturuyorum. Sanki <em>Rect</em> diye bir sınıfım varmış da nesneler oluşturuyormuşum gibi. Bir yerden sonra bu tablonun implementasyonunda ciddi bir değişiklik yapıyorum ve <code>x</code> ve <code>y</code> özellikleri yerine artık bir <code>center</code> ve <code>angle</code> diye iki özellik ekliyorum. Ama bu tablonun bazı <code>x</code> ve <code>y</code> özelliklerini kullanan fonksiyonlarımı teker teker değiştirmemem gerek. Python konuşanlara bunu şöyle özetleyebiliriz, sınıfımdan iki özellik siliyorum, bunların artık sınıftaki diğer özelliklerden hesaplanması gerek. Ama kodumu refactor etmek istemiyorum. Bu durumda Python’da yapılacak işlem bariz: <code>x</code> ve <code>y</code>yi <a href="http://docs.python.org/library/functions.html#property"><code>property</code></a> decoratorü içerisinde methodlar olarak tanımlamak<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup> Lua’da bunu şöyle yaptım:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">Rect</span> <span class="ot">=</span> <span class="ot">{</span> <span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
+         <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
+         <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
+         <span class="kw">width</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
+         <span class="kw">height</span> <span class="ot">=</span> <span class="dv">0</span> <span class="ot">}</span>
+<span class="kw">function</span> Rect_indexfn <span class="ot">(</span><span class="kw">table</span><span class="ot">,</span> <span class="kw">key</span><span class="ot">)</span>
+    <span class="kw">local</span> <span class="kw">f</span><span class="ot">,</span> <span class="kw">o</span>
+    <span class="kw">if</span> <span class="kw">key</span> <span class="ot">==</span> <span class="st">'x'</span> <span class="kw">then</span>
+        <span class="kw">f</span> <span class="ot">=</span> <span class="fu">math.cos</span>
+        <span class="kw">o</span> <span class="ot">=</span> <span class="kw">table</span><span class="ot">.</span><span class="kw">centerx</span>
+    <span class="kw">elseif</span> <span class="kw">key</span> <span class="ot">==</span> <span class="st">'y'</span> <span class="kw">then</span>
+        <span class="kw">f</span> <span class="ot">=</span> <span class="fu">math.sin</span>
+        <span class="kw">o</span> <span class="ot">=</span> <span class="kw">table</span><span class="ot">.</span><span class="kw">centery</span>
+    <span class="kw">end</span>
+    <span class="kw">if</span> <span class="kw">f</span> <span class="kw">then</span>
+        <span class="kw">return</span> <span class="kw">o</span><span class="ot">-</span><span class="fu">math.abs</span><span class="ot">(</span>f<span class="ot">(</span><span class="fu">math.rad</span><span class="ot">(</span><span class="kw">table</span><span class="ot">.</span><span class="kw">angle</span><span class="ot">)))*</span><span class="kw">math</span><span class="ot">.</span>pow<span class="ot">(</span><span class="kw">math</span><span class="ot">.</span>pow<span class="ot">(</span><span class="kw">table</span><span class="ot">.</span><span class="kw">height</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">)+</span><span class="kw">math</span><span class="ot">.</span>pow<span class="ot">(</span><span class="kw">table</span><span class="ot">.</span><span class="kw">width</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">),</span> <span class="dv">0.5</span><span class="ot">)/</span><span class="dv">2</span>
+    <span class="kw">end</span>
+<span class="kw">end</span>
+<span class="kw">function</span> <span class="kw">Rect</span>:new<span class="ot">()</span>
+    <span class="fu">setmetatable</span><span class="ot">(</span><span class="kw">self</span><span class="ot">,</span> <span class="ot">{</span> <span class="kw">__index</span> <span class="ot">=</span> <span class="kw">Rect_indexfn</span> <span class="ot">})</span>
+    <span class="kw">return</span> <span class="kw">self</span>
+<span class="kw">end</span>
+<span class="kw">a</span> <span class="ot">=</span> <span class="kw">Rect</span><span class="ot">.</span>new<span class="ot">({</span><span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> <span class="kw">width</span> <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> <span class="kw">height</span> <span class="ot">=</span> <span class="dv">8</span><span class="ot">})</span>
+<span class="kw">b</span> <span class="ot">=</span> <span class="kw">Rect</span><span class="ot">.</span>new<span class="ot">({</span><span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> <span class="kw">width</span> <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> <span class="kw">height</span> <span class="ot">=</span> <span class="dv">8</span><span class="ot">})</span>
+<span class="kw">b</span><span class="ot">.</span><span class="kw">angle</span> <span class="ot">=</span> <span class="dv">60</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">x</span><span class="ot">)</span> <span class="co">-- -4.3301270189222</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">b</span><span class="ot">.</span><span class="kw">y</span><span class="ot">)</span> <span class="co">-- -4.3301270189222</span></code></pre>
+<p>Tek yaptığım, yeni bir Rect oluşturuğum tablonun metatablosunu daha önceden belirlediğim <code>Rect_indexfn</code> fonksiyonunun <code>__index</code> fonksiyonu olarak tutan bir tablo olarak belirlemek. Bundan ne zaman kendisinin sahip olmadığı bir değere erişilmeye çalışsa, bu fonksiyon çalışarak erişilmek istenen değere göre işlemler yapıyor. Bu arada <code>:</code> ile tanımladığım fonksiyonların aldığı ilk parametre <code>self</code> değerine atanıyor. <code>Rect:new()</code> fonksiyonum hiçbir parametre almıyormuş gibi gözüksede, <code>self</code> adlı bir parametre alıyor yani aslında.</p>
+<p>Şimdi normalde bunu gösterip bitirecektim ama multiple inheritance implementasyonu da o kadar kolay ki atlayamadım:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="kw">Rect</span>:new<span class="ot">(</span><span class="kw">ps</span><span class="ot">)</span>
+    <span class="co">-- lua'da vararglar biraz sorunlu oldugundan superclasslari</span>
+    <span class="co">-- bir array olarak alacagim. detaylar icin: http://lua-users.org/wiki/VarargTheSecondClassCitizen</span>
+    <span class="kw">local</span> <span class="kw">function</span> indexfn <span class="ot">(</span><span class="kw">table</span><span class="ot">,</span> <span class="kw">key</span><span class="ot">)</span>
+        <span class="kw">local</span> <span class="kw">v</span> <span class="ot">=</span> Rect_indexfn<span class="ot">(</span><span class="kw">table</span><span class="ot">,</span> <span class="kw">key</span><span class="ot">)</span>
+        <span class="kw">if</span> <span class="kw">v</span> <span class="kw">then</span>
+            <span class="kw">return</span> <span class="kw">v</span>
+        <span class="kw">end</span>
+        <span class="kw">for</span> <span class="kw">i</span><span class="ot">,</span><span class="kw">v</span> <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span><span class="kw">ps</span><span class="ot">)</span> <span class="kw">do</span>
+            <span class="kw">v</span> <span class="ot">=</span> <span class="kw">v</span><span class="ot">[</span><span class="kw">key</span><span class="ot">]</span>
+            <span class="kw">if</span> <span class="kw">v</span> <span class="kw">then</span>
+                <span class="kw">return</span> <span class="kw">v</span>
+            <span class="kw">end</span>
+        <span class="kw">end</span>
+    <span class="kw">end</span>
+    <span class="fu">setmetatable</span><span class="ot">(</span><span class="kw">self</span><span class="ot">,</span> <span class="ot">{</span> <span class="kw">__index</span> <span class="ot">=</span> <span class="kw">indexfn</span> <span class="ot">})</span>
+    <span class="kw">return</span> <span class="kw">self</span>
+<span class="kw">end</span>
+<span class="co">-- bu ikisi superclass gorevinde</span>
+<span class="kw">st1</span> <span class="ot">=</span> <span class="ot">{</span> <span class="kw">attr1</span> <span class="ot">=</span> <span class="st">&quot;st1 attr1&quot;</span> <span class="ot">}</span>
+<span class="kw">st2</span> <span class="ot">=</span> <span class="ot">{</span> <span class="kw">attr1</span> <span class="ot">=</span> <span class="st">&quot;st2 attr1&quot;</span><span class="ot">,</span> <span class="kw">attr2</span> <span class="ot">=</span> <span class="st">&quot;st2 attr2&quot;</span> <span class="ot">}</span>
+<span class="kw">a</span> <span class="ot">=</span> <span class="kw">Rect</span><span class="ot">.</span>new<span class="ot">({</span><span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> <span class="kw">width</span> <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> <span class="kw">height</span> <span class="ot">=</span> <span class="dv">8</span><span class="ot">},</span> <span class="ot">{</span> <span class="kw">st1</span><span class="ot">,</span> <span class="kw">st2</span> <span class="ot">})</span>
+<span class="kw">b</span> <span class="ot">=</span> <span class="kw">Rect</span><span class="ot">.</span>new<span class="ot">({</span><span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> <span class="kw">width</span> <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> <span class="kw">height</span> <span class="ot">=</span> <span class="dv">8</span><span class="ot">},</span> <span class="ot">{</span> <span class="kw">st2</span> <span class="ot">})</span>
+<span class="kw">b</span><span class="ot">.</span><span class="kw">angle</span> <span class="ot">=</span> <span class="dv">60</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">x</span><span class="ot">)</span>     <span class="co">-- -4.3301270189222</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">b</span><span class="ot">.</span><span class="kw">y</span><span class="ot">)</span>     <span class="co">-- -4.3301270189222</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">attr1</span><span class="ot">)</span> <span class="co">-- st1 attr1</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">attr2</span><span class="ot">)</span> <span class="co">-- st2 attr2</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">b</span><span class="ot">.</span><span class="kw">attr1</span><span class="ot">)</span> <span class="co">-- st2 attr1</span></code></pre>
+<p>Constructoru bu şekilde değiştirdim. <code>__index</code> fonksiyonunun yeni haline bakarsanız, ilk başta <code>Rect_indexfn</code>yi çağırıyor, eğer hala gerekli değerler bulunamıyorsa, soldan itibaren superclassları aramaya başlıyor. Burda ben en basit implementasyonu yapmaya çalıştım, eğer superclasslar da bu şekilde tanımlanmış metatabloya sahiplerse, arama işlemi ilk superclassın superclasslarıyla devam edecek. Kolayca farklı davranışlar tanımlanabilir, tüm algoritma <code>indexfn</code> fonksiyonundan ibaret. Hayal gücünüzce geliştirip, <a href="http://en.wikipedia.org/wiki/Diamond_problem">diamond problem</a> ile karşılaşıp, kendi çözümünüzü uydurabilirsiniz :) .</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>İlgili makaleler: <a href="http://www.lua.org/doc/jucs05.pdf">Implementation of Lua 5.0</a>, <a href="http://www.lua.org/spe.html">Lua - an extensible extension language</a>, <a href="http://www.lua.org/doc/hopl.pdf">The Evolution of Lua</a>.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Neredeyse. Sayılar(<code>number</code>) değil. Başka tablo olmayan var mı şu anda aklıma gelmiyor. Tablo implementasyon detayları için “Implementation of Lua 5.0” yazısına bakabilirsiniz.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>Java’cılar zaten tüm özellikleri private yapıp, bir refleks olarak getter/setterlar tanımladıkları için onlar için sorun yok ehuaehe.<a href="#fnref3">↩</a></p></li>
+</ol>
+</div>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

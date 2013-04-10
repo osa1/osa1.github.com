@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Çalışan bir Python programına mesaj gönderme ve PyGTK</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Çalışan bir Python programına mesaj gönderme ve PyGTK</h1>
+
+<p><strong>March 17, 2011</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Bloguma vim ile yazı yazma projemin bir parçası(aslında vim ile python scripti çağırmak ile alakalı yaptığım deneylerin bir sonucu olan) olan <a href="https://github.com/osa1/vim-markdown-preview">vim-markdown-preview</a> scriptin sayesinde birkaç şey farkettim.</p>
+<p>Vim için bir script yazacaksanız ve bu scriptin tek yapacağı buffer’daki metini alıp onunla birşeyler yapmaksa, bunun en basit yolu bir vimscriptiyle buffer’ı başka bir python scriptine göndermek sanırım. En azından ben öyle yaptım. Şu kadar basit:</p>
+<pre class="sourceCode python"><code class="sourceCode python">function! MarkdownPreview()
+
+python &lt;&lt; EOF
+
+<span class="ch">import</span> vim
+<span class="ch">import</span> subprocess
+
+gr = <span class="st">&quot;/home/osa1/Desktop/vim-markdown-preview/GeckoRenderer.py&quot;</span>
+subprocess.Popen([<span class="st">&quot;python&quot;</span>, gr, <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>.join(vim.current.<span class="dt">buffer</span>[:])])
+
+EOF
+endfunction</code></pre>
+<p>Burda farkedebileceğiniz gibi bufferı çekip, <code>subprocess.Popen</code> ile istediğiniz Python scriptine gönderebiliyorsunuz. Çok kolay, bundan sonrası da normal Python zaten.</p>
+<p>Fakat burda şöyle bir problem oluşuyor, bu fonksiyonu her çağırdığınızda Python scripti bir daha çalışıyor. Benim yapmak istediğim, eğer script zaten çalışıyorsa onu güncellemek.</p>
+<p>Burda iki problem var, birincisi, programın zaten çalışıp çalışmadığını tespit etmek, ikincisi de eğer zaten çalışıyorsa ona mesaj göndermek. İkisi hakkında da nette bir sürü çözüm var(dbus, pid, multiprocess, pipe, alakalı SO mesajları: <a href="http://stackoverflow.com/questions/2261997/how-can-i-detect-what-other-copy-of-python-script-is-already-running">1</a>, <a href="http://stackoverflow.com/questions/2853682/multiple-python-scripts-sending-messages-to-a-single-central-script">2</a>, <a href="http://stackoverflow.com/questions/568271/check-if-pid-is-not-in-use-in-python">3</a>, <a href="http://stackoverflow.com/questions/2959474/making-a-python-script-only-be-able-to-run-once-at-a-time">4</a>).</p>
+<p>Fakat benim uyguladığım ve sanırım en basit yöntem, programın çalışmadan önce bir dosyayı kontrol etmesi, o varsa çalışmak yerine gerekli sunucunun(localhost) gerekli portuna mesaj göndermesi. Mesajlaşma olayını socketlerle hallettim yani. Çok kolay ve anlaşılır oldu. Fakat işin içine arayüz girince bir problem daha ortaya çıktı: bir socket dinlerken arayüzü güncellemek.</p>
+<p>Aşağıdaki program herşeyi özetliyor:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> os
+<span class="ch">import</span> gtk
+<span class="ch">import</span> socket
+<span class="ch">import</span> gobject
+<span class="ch">from</span> sys <span class="ch">import</span> argv
+
+<span class="co"># dosya adi farketmez, programimiza ait oldugu belli olsun</span>
+PIDFILE = <span class="st">&quot;ohnoes.pid&quot;</span>
+PORT = <span class="dv">8081</span> <span class="co"># dinleyecegimiz port, musait bir port olsun yeter</span>
+DELAY = <span class="dv">1</span>
+
+<span class="kw">def</span> run(text):
+    <span class="co"># burda birseyler yapilacak</span>
+    port = PORT
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) <span class="co"># udp</span>
+    s.bind((<span class="st">&quot;&quot;</span>, port)) <span class="co"># localhost'da 8081'i dinleyecegiz</span>
+    <span class="co"># burasi onemli, DELAY surede bir dinlemeyi birakip,</span>
+    <span class="co"># arayuzu guncellenmeye zorlayacagiz</span>
+    s.settimeout(DELAY)
+    <span class="kw">while</span> <span class="ot">True</span>:
+        <span class="kw">try</span>:
+            data, addr = s.recvfrom(<span class="dv">1024</span>)  <span class="co"># dinleme</span>
+        <span class="kw">except</span> socket.timeout:  <span class="co"># delay sure bekledik, birsey yok</span>
+            <span class="kw">print</span> <span class="st">&quot;timeout&quot;</span>
+        <span class="kw">else</span>:
+            <span class="kw">print</span> <span class="st">&quot;got data&quot;</span>, <span class="dt">str</span>(data)  <span class="co"># veriyi aldik</span>
+            update(data)  <span class="co"># guncelleme fonksiyonumuzu cagirdik</span>
+
+        <span class="co"># bu sekilde gtk'yi guncellenmeye zorluyoruz</span>
+        <span class="kw">while</span> gtk.events_pending():
+            gtk.main_iteration()
+        <span class="co"># surekli True dondurerek gtk'ya islemin bitmedigini soyluyoruz</span>
+        <span class="co"># musait oldugunda yine bu fonksiyonu cagirsin</span>
+        <span class="kw">yield</span> <span class="ot">True</span>
+
+<span class="kw">def</span> is_running():
+    <span class="co"># Pid'e falan hic gerek yok,</span>
+    <span class="co"># bir dosya olusturup, onu kontrol edecegiz</span>
+    <span class="co"># program acilirken o dosyayi olusturacak,</span>
+    <span class="co"># kapanirken silecek, sorun yok</span>
+    <span class="kw">if</span> os.path.isfile(PIDFILE):
+        <span class="kw">return</span> <span class="ot">True</span> <span class="co"># program zaten calisiyor</span>
+    <span class="kw">with</span> <span class="dt">file</span>(PIDFILE, <span class="st">&quot;w&quot;</span>) <span class="ch">as</span> f:
+        f.write(<span class="st">&quot;running&quot;</span>)  <span class="co"># dosyanin icerigi onemli degil</span>
+    <span class="kw">return</span> <span class="ot">False</span>
+
+<span class="kw">if</span> <span class="dt">__name__</span> == <span class="st">&quot;__main__&quot;</span>:
+    text = argv[^<span class="dv">1</span>]    <span class="kw">if</span> is_running(): <span class="co"># program calisiyor</span>
+        port = PORT
+        host = <span class="st">&quot;localhost&quot;</span>
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) <span class="co"># udp</span>
+        s.bind((<span class="st">&quot;&quot;</span>, <span class="dv">0</span>))
+        s.sendto(text, (host, port))  <span class="co"># veriyi gonder</span>
+    <span class="kw">else</span>:
+        <span class="co"># bu asamaya gelindiginde, is_running() zaten gerekli</span>
+        <span class="co"># dosyayi olusturmus oluyor</span>
+        task = run(text)  <span class="co"># program calistiriliyor</span>
+        gobject.idle_add(task.<span class="dt">next</span>)  <span class="co"># gtk musait oldugunda bunu cagiracak</span>
+        gtk.main()</code></pre>
+<p>Kodda bulunmayan ama dikkat edilmesi gerek bir nokta da, gui’nin kapanma fonksiyonuna(<code>close</code> sinyali gönderildiğinde çağırılan fonksiyon) <code>os.remove(PIDFILE)</code> satırını eklenmesi. Ha unutmadan, dosya konumu değiştirilmeli tabii ki, bu halde program halgi dizinden çağırılıyorsa oraya bakıyor ve gerekiyorsa dosyayı oluşturuyor.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Nautilus için FTP upload scripti</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Nautilus için FTP upload scripti</h1>
+
+<p><strong>August 28, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<div class="information">
+30-08-2010. Biraz daha geliştirdim, artık eğer bilgisayarınızda pynotify kuruluysa(eğer nautilus kullanıyorsanız büyük ihtimalle gnome kullanıyorsunuzdur, dolayısıyla sorun yok) script çalışmaya başladığında ve çalışmayı bitirdiğinde bir uyarı veriyor(kaç dosya upload ettiği yazıyor). Arkaplanda ne olduğunu göremesek de, hiç yoktan iyidir.
+</div>
+<div class="figure">
+<img src="../media/uploadbitti.png" alt="Upload bitti!" /><p class="caption">“Upload bitti!”</p>
+</div>
+<p>Nautilus scriptleri işimi acayip kolaylaştırıyor, yazımı da çok kolay, bir gün içerisinde bir şeyi birden fazla kez yapıyorsam, o işlemi nautilus scripti aracılığıyla yapmaya çalışıyorum artık. Python ile tabii ki..</p>
+<p>Bu seferki seçtiğiniz dosyaları(veya klasörleri)(birden fazla seçebilirsiniz), FTP sunucunuzda belirttiğiniz klasöre gönderiyor. Harici bir kütüphane kullanmadım, FTP işlemleri için <a href="http://docs.python.org/library/ftplib.html">ftplib</a> kullandım. ftplib neredeyse bir kütüphane değil istemci, çok basit birkaç komutla her işinizi halledebilirsiniz.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="co">#!/usr/bin/env python</span>
+<span class="co"># -*- coding: utf-8 -*-</span>
+<span class="ch">import</span> ftplib, os, sys
+<span class="kw">try</span>:
+    <span class="ch">import</span> pynotify
+<span class="kw">except</span> <span class="ot">ImportError</span>:
+    uyar = <span class="ot">False</span>
+<span class="kw">else</span>:
+    uyar = <span class="ot">True</span>
+sayac = <span class="dv">0</span>
+<span class="co"># Debug icin, silinebilir</span>
+<span class="co"># sys.stderr = open('/home/osa1/Desktop/stderr.txt', 'w')</span>
+<span class="co"># sys.stdout = open('/home/osa1/Desktop/stdout.txt', 'w')</span>
+ftp = ftplib.FTP(<span class="st">'ftp sunucunuz'</span>)
+ftp.login(user=<span class="st">'kullanici adiniz'</span>, passwd=<span class="st">'sifreniz'</span>)
+yerler = [f.strip() <span class="kw">for</span> f in os.environ[<span class="st">'NAUTILUS_SCRIPT_SELECTED_URIS'</span>].split(<span class="st">'file://'</span>) <span class="kw">if</span> <span class="dt">len</span>(f) &gt; <span class="dv">0</span>]
+
+<span class="kw">def</span> gonder(local, baslangic=<span class="st">'/media'</span>): <span class="co"># upload edilecek klasor</span>
+    <span class="kw">global</span> sayac
+    <span class="kw">if</span> os.path.isdir(local):
+        basename = os.path.basename(local)
+        sunucuKlasor = <span class="st">'</span><span class="ot">%s</span><span class="st">/</span><span class="ot">%s</span><span class="st">'</span> % (baslangic, basename)
+        
+        <span class="kw">try</span>:
+            ftp.mkd(sunucuKlasor)
+        <span class="kw">except</span> ftplib.error_perm:
+            <span class="kw">pass</span>
+        
+        <span class="kw">for</span> dosya in os.listdir(local):
+            localYeni = <span class="st">'</span><span class="ot">%s</span><span class="st">/</span><span class="ot">%s</span><span class="st">'</span> % (local, dosya)
+            gonder(localYeni, baslangic=sunucuKlasor)
+    <span class="kw">else</span>:
+        dosyalar = ftp.nlst(baslangic)
+        <span class="kw">if</span> os.path.basename(local) in baslangic:
+            ftp.delete(os.path.basename(local))
+        ftp.storbinary(<span class="st">'STOR </span><span class="ot">%s</span><span class="st">/</span><span class="ot">%s</span><span class="st">'</span> % (baslangic, os.path.basename(local)),
+                       <span class="dt">open</span>(local, <span class="st">'rb'</span>))
+        sayac += <span class="dv">1</span>
+
+<span class="kw">if</span> uyar:
+    n = pynotify.Notification(<span class="st">&quot;Upload basladi&quot;</span>,
+                              <span class="co">&quot;%s dosya ve/veya klasor&quot;</span> % <span class="dt">len</span>(yerler))
+    n.show()
+<span class="kw">for</span> yer in yerler:
+    gonder(yer)
+<span class="kw">if</span> uyar:
+    n = pynotify.Notification(<span class="st">&quot;Upload bitti&quot;</span>,
+                              <span class="co">&quot;%s dosya upload edildi&quot;</span> % sayac,
+                              <span class="co">&quot;gnome-netstatus-txrx&quot;</span>)
+    n.show()
+ftp.close()</code></pre>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

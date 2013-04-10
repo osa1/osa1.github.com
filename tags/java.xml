@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>osa1.net - Posts tagged java</title>
+    <link href="http://osa1.net/tags/java.xml" rel="self" />
+    <link href="http://osa1.net" />
+    <id>http://osa1.net/tags/java.xml</id>
+    <author>
+        <name>Ömer Sinan Ağacan</name>
+        <email>omeragaca@gmail.com</email>
+    </author>
+    <updated>2011-12-31T00:00:00Z</updated>
+    <entry>
+    <title>ctpop ve bitmapler</title>
+    <link href="http://osa1.net/posts/2011-12-31-ctpop-ve-bitmapler.html" />
+    <id>http://osa1.net/posts/2011-12-31-ctpop-ve-bitmapler.html</id>
+    <published>2011-12-31T00:00:00Z</published>
+    <updated>2011-12-31T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Bugün çok fantastik birşey gördüm, anlatmazsam ölürüm(uygun bir başlık düşünmem tüm yazıyı yazmamdan daha uzun sürdü o yüzden idare edin hehe).</p>
+<p>Diyelim ki bir veri yapısı tasarlıyoruz, bir nodedan bir sürü başka nodea veya elemana pointerlar olacak. Bir yandan da bellek kullanımını minimum tutmak istiyoruz. Pointerları tutan arrayimizde hiç boş yer olmamalı.</p>
+<p>Bir bitmap tutuyoruz. Büyük ihtimalle integer oluyor(Java primitive int tipi 32bit olmak zorunda mesela). Diyelim ki bu node’un n. indexine bir eleman/pointer ekleyeceksiniz. Bitmap ilk başta 0 tabii. Şu şekilde bitmap’de ilgili elemanı 1 yapıyoruz:</p>
+<pre><code>bmp = bmp | 1 &lt;&lt; n</code></pre>
+<p>Buraya kadar herşey çok basit. Bu noktadan sonra bu bitmape göre 30. elemanın arrayde nereye denk geldiğini bulmamız lazım. Bunun için şu formülü kullanıyoruz:</p>
+<pre><code>ctpop(bmp &amp; ((1&lt;&lt;n)-1))</code></pre>
+<p><code>ctpop</code>, population count fonksiyonu, yani bir sayının iki tabanında gösterilişindeki 1 bitleri sayıyor. Bu Java’da <code>Integer.bitCount</code> fonksiyonu(öhm, static methodu) ile bulunabilir.</p>
+<p>Birkaç deneme yaparak nasıl yaptığını anlayabilir ve kendimizi ikna edebiliriz:</p>
+<pre class="sourceCode python"><code class="sourceCode python">In [^<span class="dv">2</span>]: bmp = <span class="dv">0</span>
+In [^<span class="dv">3</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">15</span>
+In [^<span class="dv">4</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
+Out[^<span class="dv">4</span>]: <span class="dv">0</span>
+In [^<span class="dv">5</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">21</span>
+In [^<span class="dv">6</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">10</span>
+In [^<span class="dv">7</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>)-<span class="dv">1</span>))
+Out[^<span class="dv">7</span>]: <span class="dv">0</span>
+In [^<span class="dv">8</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
+Out[^<span class="dv">8</span>]: <span class="dv">1</span>
+In [^<span class="dv">9</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">21</span>)-<span class="dv">1</span>))
+Out[^<span class="dv">9</span>]: <span class="dv">2</span></code></pre>
+<p>Eğer arraydeki n. yere bir eleman ekliyorsak, n’den itibaren arrayi bir kaydırmamız lazım. En büyük index her zaman arrayde de daha sonda oluyor.</p>
+<p>Ne yaptığına bakalım. 25. elemanın arraydeki yerine bakarken, <code>1 &lt;&lt; 25</code>i hesaplıyorum ki bu aslında (2 tabanında) 1 ve yanına 25 tane 0 koymak demek. Daha sonra bu sayıdan 1 çıkararak, en sağdan itibaren(en anlamsız bitten itibaren) tüm 0ları 1 yapıyorum, ilk gördüğüm 1’i 0 yapıyorum, gerisine dokunmuyorum(bu şartlar altında geriye kalan tüm bitler 0 oluyor). Daha sonra bu sayı ile bitmap’i logical and(bazı yerlerde bitwise and diyor, aynı şeyler sanırım?) işlemine sokup ctpop yaptığımda, bitmap’de (1 &lt;&lt; n)’den itibaren kaç tane 1 olduğunu saymış oluyorum ve bu da bana array’deki indeximi veriyor. Çok mantıklı.</p>
+<p>Bu arada kullandığınız dile göre bu işlemi daha kolay bir şekilde yapabilirsiniz. Bazı diller(Java’da <code>Integer.bitcount</code>, Common Lisp’de <code>logcount</code> gibi) direkt olarak <code>bitCount</code> gibi fonksiyonlar sunuyor. Bir de ben Common Lisp’de hiç kaydır 1 çıkart falan demeden direkt “şu bitle şu bit arasında kaç 1 olduğunu say” şeklinde bir fonksiyon yazdım, bitwise trickler yapmadan, şöyle:</p>
+<pre><code>(defun ctpop (bitmap &amp;key (start 0) (end 32))
+  (logcount (ldb (byte (- end start) start) bitmap)))</code></pre>]]></summary>
+</entry>
+<entry>
+    <title>GUI programlama, IDEler, ve Python hakkında</title>
+    <link href="http://osa1.net/posts/2011-05-22-gui-programlama--ideler--ve-python-hakkinda.html" />
+    <id>http://osa1.net/posts/2011-05-22-gui-programlama--ideler--ve-python-hakkinda.html</id>
+    <published>2011-05-22T00:00:00Z</published>
+    <updated>2011-05-22T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Son birkaç gündür yoğun bir şekilde GUI programlama ve Java ile uğraştım. İlk başta 2 arkadaşımla beraber basit bir chat sunucu/istemcisi yazmaya başladık(<a href="https://github.com/osa1/simple-chat">kaynak koda</a> github depomuzdan erişebilirsiniz). Daha önceki tecrübelerimden (lisede web tasarım, daha sonra Python + GTK/QT ile arayüz denemelerim) arayüz tasarımından ne kadar nefret ettiğimi bildiğimden, bu projede ben sunucu ve istemci altyapısını hazırlamakla uğraştım. Fakat sonra bir ödev gereği, arayüz tasarımıyla da kendim uğraşmam gerekti.</p>
+<p>Ödev Java ile yapılacaktı ve dolayıyısla arayüz olarak Swing kullandım. Başlangıç için Eclipse için <a href="http://code.google.com/javadevtools/wbpro/index.html">WindowBuilder</a> eklentisi ile ana çerçeve + layoutları oluşturup daha sonra elle yazdım. Bu süreçte şunu farkettim, adam gibi bir IDE, işleri daha önce tahmin edemeyeceğim kadar kolaylaştırıyor. Asıl olarak Python ile yazan biri olarak, birkaç gün öncesine kadar her işimde VIM kullanıyordum ve çok da memnundum(arayüz tasarımı yapmıyorum). Şu birkaç gün(sadece ödev için 1460 satır kod) bazı şeyleri farketmemi sağladı.</p>
+<p>Onlarca sınıf, her sınıf için onlarca method, ve bu sınıflar arasında karışık ilişkilerin olduğu bir işle uğraşıyorsanız, iyi bir IDE şart. Dökümantasyonda geçirdiğiniz çok kısaltıyor.</p>
+<p>Static typing çok hoş bir olay. Okula başladıktan sonra bol miktarda C(programlama yarışması) ve Java(ödevler) uğraşmam gerekti. Henüz sadece birkaç dili birşeyler üretebilecek seviyede biliyorum ve bu konuda çok da bilgili değilim, ama Python ile en çok dökümantasyon ve IDE sıkıntısı çekiyorum. Ücretli IDEleri denemedim ama denediğim tüm ücretsiz Python IDEleri Autocomplete konusunda çaresiz kalıyorlar. Python’da aşağıdaki gibi birşey görebilmek için herşeyimi(?!) verirdim:</p>
+<div class="figure">
+<img src="/images/eclipse_autocomplete.png" />
+</div>
+<p>Hatta mesela şöyle birşey yapabilseydim:</p>
+<div class="figure">
+<img src="/images/eclipse_autocomplete1.png" />
+</div>
+<p>Ama yok, örneğin PyDev daha aşağıdaki kodda çakılıyor:</p>
+<pre class="sourceCode python"><code class="sourceCode python">cls = Class1()
+cls.</code></pre>
+<p>Daha burda bile, Class1’in methodlarını gösteremiyor. Direkt olarak <code>Class1.</code> şeklinde yazıp, autocomplete çalıştırırsak, methodları gösteriyor, bu iyi, fakat bu sefer de bound-unbound method farkını anlayamıyor ve bound methodları da gösteriyor. Ki bound methodlar bu şekilde çağırılamaz. Fail.</p>
+<p>WingIDE diyenler için, personal sürümü, sanki “öyle gerekli özellikler çıkaralım ki, kimse almasın” diye düşünülerek hazırlanmış. O kısıtlı özellikleri çıkardığımızda, Vim ile de yapıyorum zaten geri kalanları. <a href="https://wingware.com/wingide/features/personal">Burdan bakın</a>. Professional sürümü de çok pahalı.</p>
+<p>PyCharm diyenler için, Open Source lisansı ücretsiz, fakat <a href="http://www.opensource.org/docs/osd">Open Source Definition</a>’a uyan bir projeniz olmalı. Benim yok.</p>
+<p>Eclipse, Java’nın verdiği acıyı inanılmaz derecede hafifletiyor. Yoksa sınıflar arasındaki saçma derecede karmaşık ilişkiler başka türlü çözülemez. Python’da ise, benzer karışıklıkta tasarlanmış(muhtemelen başka bir dilde, örneğin QT için C++) bir kütüphane ile çalışıyorsanız, acınızı hafifletecek hiçbir şey yok.</p>
+<p>Konudan biraz sapacağım ama, Python hakkında beni sinirlendiren bir başka konu da, threading ve socket olayları. Ne zaman socket veya threading kullansam, mutlaka bir problemle karşılaşıyorum ve bunu ne zaman IRC’de sorsam, mutlaka birileri Twisted kullanmamı söylüyor. Kötü alışkanlıklardan, yanlış programlamadan vs bahsedip duruyorlar. Sanki Freenode #python kanalında, içinde şöyle bir kod olan bir sürü bot varmış gibi:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> <span class="st">&quot;socket&quot;</span> in msg or <span class="st">&quot;thread&quot;</span> in msg:
+    <span class="ot">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</code></pre>
+<p>Java’da yaklaşık bir hafta kadar önce kullanılabilr bir hale getirdiğimiz chat istemci/sunucusu, dilin kendi thread ve socketlerini kullanıyor. Thread ve socket kullanımı ile alakalı dökümantasyon hariç hiçbir yere baktığımı hatırlamıyorum. Python’dan gelen birisi olarak şaşırtıcı derecede kolay ve stabil oldu.</p>
+<hr />
+<p>Bir süredir kafamda kendi IRC istemcimi yazma fikri var. Şu anda yazabilmek için gerekli herşeyi biliyorum. Dün oturdum, Java ve Python’da IRC sunucusuna bağlanabilmek için gerekli en küçük kodu yazmaya karar verdim(arayüz ile beraber). Java’da, kendi socket ve thread sınıfları ve Swing ile kolayca yazdım(bu arada Swing’in ne kadar kötü gözüktüğüne dikkat, platform bağımsız olarak iğrenç gözüken bir arayüz kütüphanesi kendisi, ehehe):</p>
+<div class="figure">
+<img src="/images/irc_client_java.png" />
+</div>
+<p>Python’da QT kullandım. Fakat garip bir şekilde, ne zaman sunucudan bir mesaj gelse, QT segmentation fault veriyor:</p>
+<pre><code>QObject::connect: Cannot queue arguments of type &#39;QTextCursor&#39;
+(Make sure &#39;QTextCursor&#39; is registered using qRegisterMetaType().)
+Segmentation fault</code></pre>
+<p>IRC’de sorduğumda aldığım yanıtı tahmin edersiniz zaten.</p>
+<p>Şimdi oturup düşünüyorum, bir yanda Java, sadece dilin kütüphaneleri ile sunucuya bağlanıp, mesaj gönderip aldığım kod, arayüz ile beraber hazır bile. Elimin altında Eclipse gibi bir IDE var. Python ile yapmak istersem, ekstra olarak uğraşmam gerekecek şeyler: PyQT’nin dökümantasyonu, Twisted’ın dökümantasyonu, Twisted’ı öğrenmek, QT Designer ile tasarımı koda çevirmek için ekstra bir işlem yapmak, daha sonra bir daha QT Designer ile değişiklik yapamamak(Eclipse + WindowBuilder ile tasarım/kod arasında değiştirmek tek tuş).</p>
+<p>Adil olmak lazım, Java ile başta bahsettiğim projeye girişmeden önce, bunların farkında değildim. Python ile ise bu boyutta bir proje yapmadım. Küçük küçük bir sürü script(ki her biri, yazdığım satır sayısına göre işimi abartı derecede kolaylaştırıyor), en büyük projem kendi blogum.</p>
+<p>Python bana programlamaya ilk başladığım günlerde bile birşeyler üretme imkanı verdi. Programlamaya başladığım sene(lisede yaptığım web tasarım + programlamayı saymıyorum), ilk önce kendi blogumu, daha sonra <a href="http://osa1.net/osa1-arsiv-duzenleme-scriptcigi-nautilus-scripti/">arşiv düzenleyici</a>yi yapabildim. Başka bir dille yapamazdım.</p>
+<p>Şu anda static typed bir dilin bana sağladıklarını biliyorum(en azından bu projeleri yapmaya başlamadan öncekine göre çok daha iyi biliyorum). Şimdi dynamic typed bir dilin avantajlarını görmem lazım.</p>
+<p>O yüzden IRC istemcimi her şeye rağmen Python ile yazacağım. Java ile yazarsam, kendimi tekrar etmekten başka birşey yapmamış olacağım. Twisted’ı ihtiyacım olduğu kadarıyla öğrenmeye bugün başlıyorum. Çalıştırılabilir bir hale gelir gelmez yorumlarımı buraya yazacağım.</p>
+<p>(Bu arada Twisted’da IRC istemci protokolü hazır olarak var)</p>
+<h2 id="vim-hakkında">VIM hakkında</h2>
+<p>Vim hakkında da birkaç birşey söyleyeyim hazır IDE/Editor muhabbetine girmişken. Yaklaşık 7-8 aydır(sanırım) Vim kullanıyorum, ve şu dakikadan sonra Vim’siz hiçbir şey yazamaz oldum. Maillerimi Vim ile yazıyorum(sylpheed), bloga yazıları Vim ile giriyorum(kendi eklentim), Eclipse’de <a href="http://www.viplugin.com/viplugin/">Vim eklentisi</a> kullanıyorum(o olmasa Eclipse kullanamazdım), Lisp ile uğraştığımda, Emacs kullanmam gerekiyor ve Emacs’i <a href="http://www.emacswiki.org/emacs-es/Vimpulse">vimpulse</a> ile kullanıyorum. Şöyle iyi böyle güzel diye anlatmayacağım, resmen bağımlı oldum. Arkadaşların, normal IDE/Editorlerde nasıl yazdıklarını görünce duygulu anlar yaşıyorum.</p>
+<p>Bu yüzden IDE seçerken dikkat ettiğim konulardan biri de Vim desteği(veya eklentileri) oluyor. Eclipse o açıdan(viPlugin sağolsun) çok başarılı. Söz konusu Java olduğunda düşünüyorum da, Eclipse olmasa herhalde hiçbir şey yazamazdım.(bu arada WingIDE Vim tuşlarını destekliyormuş, ne kadar başarılıdır bilmiyorum)</p>]]></summary>
+</entry>
+<entry>
+    <title>Arşiv düzenleyici klasör dinleme özelliği ve tatilde yapılanlar</title>
+    <link href="http://osa1.net/posts/2011-03-13-arsiv-duzenleyici-klasor-dinleme-ozelligi-ve-tatilde-yapilanlar.html" />
+    <id>http://osa1.net/posts/2011-03-13-arsiv-duzenleyici-klasor-dinleme-ozelligi-ve-tatilde-yapilanlar.html</id>
+    <published>2011-03-13T00:00:00Z</published>
+    <updated>2011-03-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Çarşamba ve perşembe günleri kardan dolayı tatildi, cuma günü 2 saat derse girdim, cumartesi ve pazarla beraber 5 gün tatil yapmış gibi oldum. Birkaç fikrimi koda dökmek için fazlasıyla zamanım vardı.</p>
+<p>Arşiv düzenleyiciye klasör dinleme özelliğini sonunda ekledim. Bir süredir üzerinde düşünüyordum ama birkaç şeyden dolayı bir türlü başlayamamıştım. Birincisi, kaynak kod aşırı derecede karışık, yeniden geliştirilebilir bir şekilde yazılmamıştı. Birşey eklemeyi bırak, birkaç gün sonra kendim okuduğumda kodda ne olup bittiğini anlamıyordum. Tüm programı neredeyse yeniden yazdım.</p>
+<p>Çok daha esnek ve anlaşılabilir bir yapı oluşturdum. Büyük ihtimalle bundan sonraki güncellemeler çok daha kolay olacak. Tüm yapıyı değiştirmemin bir sebebi de klasör dinleme özelliğinin bazı şeylere ihtiyaç duymasıydı.</p>
+<p>Klasör dinleme demişken, bu konuda şaşırtıcı derecede fazla alternatif var. <a href="https://github.com/seb-m/pyinotify">inotify</a>, fam, <a href="http://people.gnome.org/~veillard/gamin/">gamin</a>, <a href="http://pypi.python.org/pypi/watchdog">watchdog</a>, <a href="https://github.com/shaurz/fsmonitor">fsmonitor</a>, pyfilesystem .. Bunların hepsini az çok kurcaladım. En son istediğim basitlikte/yeterlilikte fsmonitor kullandım.(FF’de yardımcı olan herkese teşekkürler. <a href="http://ff.im/zbSag">İlgili feed.</a>)</p>
+<p>Yeni sürümde henüz arayüz yok, tüm yapıyı değiştirince arayüz kısmı problem oldu bu sefer. Eğer arayüz yaparsam, gtk ile değil de wx ile yapacağım sanırım. gtk’da arkaplanda bir işlem yaparken arayüzü güncelleme konusunda çok sıkıntı yaşadım. Çalışan fonksiyon arayüzü güncellemek için başka fonksiyonları çağırsa bile, fonksiyon çalışmasını bitirmeden arayüz güncellenmiyor. Arayüzü güncellemek için, belirli aralıklarla fonksiyonu durdurmak gerekiyor(örneğin döngüdeki her bir adımda, yield ile bir değer döndürüp, <code>gobject.idle_add(task)</code> ile döngünün ilerlemesi sağlanabilir). Belki wx’de daha kolaydır.</p>
+<p><a href="http://github.com/osa1">Github alanımdan</a> indirebilirsiniz. System tray’de duracak basit bir arayüzden sonraki adım, yanlış etiketleri düzenlemek ve eksik etiketleri tamamlamak olacak sanırım.</p>
+<h2 id="design-patterns">Design patterns</h2>
+<p>Öğrenmek istediğim birkaç konu, başlamak istediğim birkaç kitap vardı. Hazır esnek, geliştirilebilir, anlaşılabilir program yazmakta sıkıntı yaşıyorken, <a href="http://www.amazon.com/First-Design-Patterns-Elisabeth-Freeman/dp/0596007124/ref=sr_1_1?ie=UTF8&amp;qid=1300026654&amp;sr=8-1">Head First Design Patterns</a>’a başladım ve şunu farkettim, OOP belki yeni başlayanlar için FP kadar zor değil fakat yeterince esnek/anlaşılır/geliştirilebilir bir yapı kurmak zor bir olay. Design patterns ile ilgilendikçe şunu farkettim, bu patternlar OOP’de çok karşılaşılan problemler için üretilmiş<a href="http://stackoverflow.com/questions/327955/does-functional-programming-replace-gof-design-patterns">*</a> ve aslında heryerdeler(böyle mi yazılıyor). Örneğin daha önce birkaç blog/feed’de sövdüğüm java.io decorator dolu. Twisted factory/reactor kullanıyor vs. Ben de son arşiv düzenleyicinin dosya izleme ve gerekli sinyalleri gönderme kısmında observer kullandım(daha çok öğrenme amaçlıydı ama güzel oldu).</p>
+<p>Fonksiyonel programlamaya karşı sebebini açıklayamadığım bir ilgim var. Neredeyse her gün OO programlama yapmama rağmen(dersler gereği, halbuki hiç FP yapmıyoruz) OOP bilmiyormuşuz bunu farkettim. Aynı FP gibi, prensipleri vs. varmış. C ile uğraştığımız bu dönem OOP’in bir teknoloji değil, teknik olduğunun az da olsa farkına varmıştım ama design patterns ile küçük çaplı bir aydınlanma yaşadım resmen.</p>
+<p>Design patterns, oop vs. demişken, python’da tip kontrolleri ver encapsulation ile alakalı: <a href="http://stackoverflow.com/questions/1549801/differences-between-isinstance-and-type-in-python#">differences between isinstance() and type() in python</a>, <a href="http://stackoverflow.com/questions/378927/what-is-the-best-idiomatic-way-to-check-the-type-of-a-python-variable">what is the best way to check the type of a python variable?</a>, <a href="http://www.aleax.it/gdd_pydp.pdf">alex martelli’nin design patterns in python sunumu</a>.</p>
+<h2 id="vim-için-markdown-önizleme">Vim için markdown önizleme</h2>
+<p>Vim için python ile eklenti yazma olayını biraz kurcalamıştım, geçen aklıma geldi, bloga vim ile yazı nasıl ekleyebilirim?</p>
+<p>Aslında genel olarak, vim ile <code>subprocess.Popen()</code> fonksiyonunu çağırabildikten ve <code>vim.current.buffer[:]</code> ile buffer’ı alabildikten sonra, gerisi Python. Şimdilik yazı eklemeyi yapamadım ama markdown için önizleme eklentisi yaptım.</p>
+<p>Henüz kurulum için hazır değil ama, <code>so: markdownpreview.vim</code> ile ekledikten sonra, <code>:call MarkdownPreview()</code> ile önizlemeyi görebilirsiniz. Birkaç problem var, birincisi, buffer’dan türkçe karakterler garip bir şekilde geliyor. Onunla uğraşmak lazım. İkincisi de, bir preview ekranını kapatmadan bir daha çalıştırırsanız, bir ekran daha açılıyor. Bir ara düzelteceğim. Önizleme ekranı gtk ile yapıldı.</p>
+<p>Kaynak kod github alanımda. Bu arada, vim’e python ile eklenti yazma hakkında <a href="http://vimdoc.sourceforge.net/htmldoc/if_pyth.html">resmi kaynak</a>.</p>
+<hr />
+<p>Bunların dışında blogda da birkaç iyileştirme yaptım ama önemli bir değişiklik yok.</p>
+<p>Bundan sonra yazmayı planladıklarım: Editor(vim) vs. IDE muhabbeti ve Pardus pisi paket yapımı ile alakalı birkaç şey. Okunacaklar: <a href="http://www.dabeaz.com/coroutines/index.html">A Curious Course on Coroutines and Concurrency</a>(evet hala okuyamadım), <a href="http://abhishek.geek.nz/docs/lisp-answers/">Before you start learning Lisp</a>, <a href="http://python.net/~goodger/projects/pycon/2007/idiomatic/handout.html#command-line-processing">Code like a pythonista: Idiomatic Pytohn</a>, <a href="http://ivory.idyll.org/articles/advanced-swc/">Intermediate and Advanced Software Carpentry in Python</a>, <a href="http://weblog.raganwald.com/2007/03/why-why-functional-programming-matters.html">Why why functional programming matters matters</a>.</p>]]></summary>
+</entry>
+<entry>
+    <title>Bil113 finale hazırlık</title>
+    <link href="http://osa1.net/posts/2010-12-23-bil113-finale-hazirlik.html" />
+    <id>http://osa1.net/posts/2010-12-23-bil113-finale-hazirlik.html</id>
+    <published>2010-12-23T00:00:00Z</published>
+    <updated>2010-12-23T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Bugün bil113 final için birkaç satır birşeyler yazdım, Deitel’den Java: How to Program’a baktım biraz. Deitel’in Python kitabı rezaletti, ama bu iyiymiş(Amazon’dan da çılgın puanlar almış zaten). Recursion, searching and sorting bölümlerinin alıştırmalarını falan çözdüm. Kağıt üzerinde yine bildiğimizden çok az puanlar alacağız ama, neyse..</p>
+<p>Hazırlık için çözülebilecek bazı klasik basit problemler:</p>
+<ul>
+<li><a href="http://en.wikipedia.org/wiki/Bubble_sort">Bubblesort</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Selection_sort">Selection sort</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Insertion_sort">Insertion sort</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Merge_sort">Merge sort</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Bucket_sort">Bucket sort</a> (bunu sanırım yapmıycam, sıkıldım zaten, garip birşey)</li>
+<li><a href="http://en.wikipedia.org/wiki/Quicksort">Quicksort</a> (Java’da yap(a)madım henüz)</li>
+<li><a href="http://en.wikipedia.org/wiki/Linear_search">Linear search</a> (ehehe, bu da algoritma sayılıyormuş. az da olsa zorlaştırmak için, recursive olarak çözülebilir)</li>
+<li><a href="http://en.wikipedia.org/wiki/Binary_search">Binary search</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Euclidean_algorithm">Recursive ebob(gcd)</a> tespiti</li>
+<li>Recursive olarak string’i ters çevirme</li>
+<li>Recursive palindrome tespiti</li>
+<li><a href="http://en.wikipedia.org/wiki/8_queens_puzzle">8 queens puzzle</a></li>
+<li>Labirentten çıkışı bulan bir program (bitti sayılır, küçük bir düzenlemeden sonra buraya yazacağım)</li>
+</ul>
+<p>Aksini belirttiklerim hariç, çözümlerim <a href="http://osa1.net/media/bil113final/Calisma.java">bu</a> ve <a href="http://osa1.net/media/bil113final/Sort.java">şu</a> dosyalarda(main methodları testlerim için). Sort.java dosyasındaki düzenleme methodların ilk bakışta arrayi değiştirmesi gerekirken aslında neden değiştirmediği(ya da hangi arrayi değiştirdiği) de düşünülebilir. İlk başta anlam verememiştim. Tam sınav sorusu bence.</p>
+<p>Bunların dışında, codingbat’deki sorular güzel. Hepsi bittikten sonra çözümlerini yazacağım buraya.</p>
+<p>Bu arada, biraz konu dışı olacak ama, Python’da tek satırda quicksort, ibretlik:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> qsortr(<span class="dt">list</span>):
+    <span class="kw">return</span> [] <span class="kw">if</span> <span class="dt">list</span>==[]  <span class="kw">else</span> qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &lt; <span class="dt">list</span>[^<span class="dv">0</span>]) + [<span class="dt">list</span>[^<span class="dv">0</span>] + qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &gt;= <span class="dt">list</span>[^<span class="dv">0</span>])</code></pre>
+<p>Bu arada(2), bu yazıyı aşağıda ekran görüntüsünü görebileceğiniz programla ekliyorum: <img src="/images/screenshot-yaziekle.png" alt="lol" /></p>
+<p>Bunu da yine fizik finalinden önce yazmıştım. Burda, adres satırı Django admin’de olduğu gibi, yazı başlığından otomatik olarak üretiliyor. Henüz bazı durumlarda yanlış sonuçlar verebiliyor. Tek tuşla yazılı django development server’da ekliyorum, kontrol edip, web’e tıklıyorum ve bir daha gönderiyorum. Çok pratik oldu. Normalde localde admin panelinden yazıyı ekleyip, herşey tamamsa, webe kopyalıyordum. Şimdilik sadece benim yönetici panelimde çalışsa da, biraz düzenlemeyle istediğim esnekliğe getireceğim programı. Daha sonra birkaç ekleme daha yapıp burada yayınlayacağım yine.(örneğin dosya upload işini daha kolaylaştıracak birşeyler ekledikten sonra)</p>
+<p>Yazı eklemeyi daha da kolay hale getirebilmek için önceki projelerimden bkz. <a href="http://www.osa1.net/nautilus-icin-ftp-upload-scripti/">nautilus için ftp upload scripti</a></p>]]></summary>
+</entry>
+<entry>
+    <title>Bil113 ödev5, grafik üzerinde verilen 2 nokta arasında ulaşım</title>
+    <link href="http://osa1.net/posts/2010-12-16-bil113-odev5-grafik-uzerinde-verilen-2-nokta-arasinda-ulasim.html" />
+    <id>http://osa1.net/posts/2010-12-16-bil113-odev5-grafik-uzerinde-verilen-2-nokta-arasinda-ulasim.html</id>
+    <published>2010-12-16T00:00:00Z</published>
+    <updated>2010-12-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Ödevi kısaca başlıktaki gibi özetleyebiliriz. Bir yol haritamız var, verilen iki nokta arasındaki tüm yolları bulup, yolun ne kadar sürdüğünü hesaplamamız istendi.</p>
+<p>Ödev hakkında daha detaylı bilgi, girdi formatı, vs. için föyü <a href="http://ocsert.etu.edu.tr/bil113/odev/sorular/Odev5.pdf">şurdan</a> indirebilirsiniz.</p>
+<p>Benim uyguladığım iki yöntem vardı, iki şekilde çözdüm yani ödevi. Bir tanesi, <a href="http://en.wikipedia.org/wiki/Breadth-first_search">breadth-first search</a> algoritmasıydı. Wikipedia’daki kodu ödeve uyarladım. İkinci yöntem de, kendi “recursive” yöntemdi.</p>
+<p>Ödevi asistanlara gönderdiğim haliyle <a href="http://osa1.net/media/OmerSinanAgacanOdev5.rar">burdan</a> indirilebilir.</p>
+<p>Onun dışında, 2. lab sınavındaki 4. sorunun çözümü de <a href="http://osa1.net/media/Soru3.java">burda</a>. Bence bu sınavdaki en/tek zor ve zevkli soruydu. Kısaca, belirtilen dosyanın içinden belirtilen kelimelerin kaç kere geçtiğini bulan bir program. Girdi formatı tam olarak sorudaki gibi olmalı, fakat soru elimde olmadığından formatı yazamıyorum, hueahea.</p>
+<p>Bu arada unutmadan, kullanılan dil Java.</p>]]></summary>
+</entry>
+<entry>
+    <title>Java ile Conway's Game of Life</title>
+    <link href="http://osa1.net/posts/2010-12-05-java-ile-conways-game-life.html" />
+    <id>http://osa1.net/posts/2010-12-05-java-ile-conways-game-life.html</id>
+    <published>2010-12-05T00:00:00Z</published>
+    <updated>2010-12-05T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Bil113 dersi için 4. ödev Java ile biraz değiştirilmiş(basitleştirilmiş anlamında değil) Conway’s Game of Life yazmaktı. Ödev föyünü <a href="http://ocsert.etu.edu.tr/bil113/odev/sorular/Odev4.pdf">buradan</a> indirebilirsiniz.</p>
+<p>Conway’s Game of Life’ın ne olduğu hakkında [Wikipedia](http://en.wikipedia.org/wiki/Conway’s_game_of_life)ya bakabilirsiniz. Ben bu ödevde daha önce denemediğim birşey denedim ve çok faydasını gördüm. Ara ara Haskell ve Lisp çalışıyorum, tabii ki fonksiyonel programlama denemez ama, Haskell ve Lisp’den öğrendiğim kadarıyla bazı fonksiyonel programlama yöntemlerini uygulamaya karar verdim. <a href="http://osa1.net/java-ile-2-kisilik-super-dandik-satranc-oyunu/">Bundan önceki satranç ödevi</a>nde oyunu test etme kısmında çok sıkıntı çekmiştim, bu oyunda da acayip kolay oldu. Uygulamaya çalıştığım fonksiyonel programlam yöntemleri şunlardı:</p>
+<ul>
+<li>Programımı mümkün olduğunca fazla parçaya bölmeliyim.</li>
+<li>Bu parçaların her biri diğerlerinden ve programdan bağımsız çalışabilmeli.</li>
+<li>Parçalar, dışarıdaki hiçbir veriye ulaşamamalı, ve dışarıdaki hiçbir veriyi değiştirmemeli. Bu sayede tam olarak bağımsız olabilirler.</li>
+</ul>
+<p>Dolayısıyla programımın parçaları, sadece parametre alıp, birşey döndürdüler. Testleri inanılmaz kolay oldu, aynı parametreleri yollayıp, döndürdükleri değerleri inceledim. Bu yöntemi daha sonra, 2 gün önceki Bil113 lab sınavında uyguladım, ve yine testlerim inanılmaz kolay oldu. Sınavın en zor sorusunun her parçasını sadece 1 kere test ettiğimi hatırlıyorum. Sınav cevaplarımı da birkaç güne yayınlayacağım.</p>
+<p>Bu arada, ödevde ödev verilmeden önceki son derslerde öğrendiğimiz, inheritance, interface ve polymorphism gibi konuları uygulamamız için midir nedir, hoca orjinal oyunu biraz değiştirmiş, ve hiç gereği olmamasına rağmen bizi inheritance kullanmak zorunda bıraktı. O yüzden bazı kısımlar saçma gelebilir, onları inheritance(veya polymorphism) kullanmış olmak için yaptım.</p>
+<p>Ödevi asistanlara gönderdiğim haliyle <a href="http://www.osa1.net/media/OmerSinanAgacanOdev4.rar">buradan</a> indirebilirsiniz.</p>]]></summary>
+</entry>
+<entry>
+    <title>Java ile 2 kişilik süper dandik satranç oyunu</title>
+    <link href="http://osa1.net/posts/2010-11-15-java-ile-2-kisilik-super-dandik-satranc-oyunu.html" />
+    <id>http://osa1.net/posts/2010-11-15-java-ile-2-kisilik-super-dandik-satranc-oyunu.html</id>
+    <published>2010-11-15T00:00:00Z</published>
+    <updated>2010-11-15T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Programlamaya giriş dersi için son ödevimiz Java ile 2 kişilik bir satranç oyunu yazmaktı. Ama bazı kısıtlamalarla. Ödevi gönderdiğimize göre kodumu yayınlayabilirim sanırım..</p>
+<p>Öncelikle kısıtlamalar ve özellikler için <a href="http://ocsert.etu.edu.tr/bil113/odev/sorular/Odev3.pdf">ödev metni</a>ne bakabilirsiniz. Kısaca bahsetmek gerekirse:</p>
+<ul>
+<li>Rok, en passant(piyonun ileri çıkarken çarprazındakini yemesi)gibi bazı hareketler yok.</li>
+<li>Oyun şahın yenilmesi ile bitiyor.</li>
+<li>Tanımlanması gereken bazı methodlar var ve bu methodların aldığı parametreleri bile değiştiremiyoruz.</li>
+<li>Inheritance, polymorphism, exception handling gibi konuları ödevin verildiği tarihte görmediğimizden kullanamıyoruz.</li>
+<li>Piyonlar terfi edebilir. Yani karşı tarafa varan piyon başka bir taşa dönüşebiliyor. Bunda sorun yok.</li>
+</ul>
+<p>Bu kısıtlamalar kodumuzu çok kötü hale getirdi aslında. Özellikle polymorphism. Tüm taş tipleir için sınıf oluşturmamız gerekiyor, fakat polymorphism kullanamadığımızdan bunları ortak bir array’de toplayamıyoruz örneğin. Çok fazla kod tekrarı ve gereksiz kod oldu bu yüzden.</p>
+<p>Benim bir sorunum da, ödevin başında kısıtlamalara dikkat etmeden kafama göre kod yazmam, daha sonra yazdığım kodu kısıtlamalara uydurmaya çalışmam oldu. Bu yüzden kod ekstra kötü oldu. Kodu okursanız, muhtemelen bazı yerler çok saçma gelecektir, oralar bu yüzden işte :) . Herşey bittikten sonra kodu belli bir formata uydurmaya çalışmak çok sıkıcı bir olay.</p>
+<p>Bu arada merak edenler için, benim kodum toplam 876 satır. <a href="http://www.osa1.net/media/OmerSinanAgacanOdev3.tar">Buradan</a> indirebilirsiniz.</p>]]></summary>
+</entry>
+<entry>
+    <title>Bil113 arasınav ve kağıt üzerinde kod yazmak</title>
+    <link href="http://osa1.net/posts/2010-10-31-bil113-arasinav-ve-kagit-uzerinde-kod-yazmak.html" />
+    <id>http://osa1.net/posts/2010-10-31-bil113-arasinav-ve-kagit-uzerinde-kod-yazmak.html</id>
+    <published>2010-10-31T00:00:00Z</published>
+    <updated>2010-10-31T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Bugün olduğumuz Bil113 arasınavında gördük ki, “hello world”ü bile Eclipse, Netbeans vs. ile yazan bizler, iş kağıt kalem ile yazmaya gelince çakılıyoruz(ben öyle değil ama yine de çakıldım gerçi). Aslında sınavın kağıt kalemle çözmek için biraz zor olduğunu düşünüyorum. Sınavda onlarca dakika uğraştığım soruları bilgisayar karşısında 5 dakikada çözebildim.</p>
+<p>Asal sayıları tespit etme gibi kolay soruları değil de, değişik bir şekilde çözdüğümü düşündüğüm üçgen sorusunu yazayım. Soru: verilen 3 kenarla bir üçgen oluşturulup oluşturulamayacağını döndür(boolean):</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">kontrol</span>(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) {
+    <span class="kw">return</span> (a &lt; b+c &amp;&amp; a &gt; Math.<span class="fu">abs</span>(b-c) &amp;&amp; b &lt; a+c &amp;&amp; b &gt; Math.<span class="fu">abs</span>(a-c) &amp;&amp; c &lt; a+b &amp;&amp; c &gt; Math.<span class="fu">abs</span>(a-b));
+}</code></pre>
+<p>Bu tek satırı kağıt üzerinde yazmak bayaa zor oluyor gerçi. Neyse. Sınavın sanırım en zor sorusu olan farklı tabanlarda sayıları kaydedip kendi aralarında işleme sokabildiğimiz soru:</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> Sayi {
+
+    String s;
+    <span class="dt">int</span> d;
+    
+    <span class="kw">public</span> <span class="fu">Sayi</span>(String s, <span class="dt">int</span> d) {
+        
+        <span class="kw">this</span>.<span class="fu">s</span> = s;
+        <span class="kw">this</span>.<span class="fu">d</span> = d;
+    }
+    
+    <span class="kw">public</span> <span class="dt">int</span> <span class="fu">onluk</span>() {
+        <span class="co">// this.s&#39;i 10 tabanında döndür            </span>
+        <span class="dt">int</span> r = <span class="dv">0</span>;
+        
+        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>(); i++) {
+            r += Integer.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i<span class="dv">+1</span>)) * Math.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i<span class="dv">-1</span>);
+        }
+        
+        <span class="kw">return</span> r;
+    }
+    
+    
+    <span class="kw">public</span> <span class="dt">static</span> String <span class="fu">taban</span>(<span class="dt">int</span> s, <span class="dt">int</span> d) {
+        <span class="co">// Girilen s sayısını d tabanında döndür</span>
+
+        String r1 = <span class="st">&quot;&quot;</span>;
+        String r2 = <span class="st">&quot;&quot;</span>;
+        
+        
+        <span class="kw">while</span> (s &gt;= d) {
+            r1 += s % d;
+            s = s / d;
+        }
+        r1 += s;
+        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; r1.<span class="fu">length</span>(); i++) {
+            r2 += r1.<span class="fu">substring</span>(r1.<span class="fu">length</span>()-i<span class="dv">-1</span>, r1.<span class="fu">length</span>()-i);
+        }
+        <span class="kw">return</span> r2;
+        
+    }
+    
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+        
+        Sayi deneme = <span class="kw">new</span> <span class="fu">Sayi</span>(<span class="st">&quot;134125&quot;</span>, <span class="dv">6</span>);
+        System.<span class="fu">out</span>.<span class="fu">println</span>(deneme.<span class="fu">onluk</span>());
+        System.<span class="fu">out</span>.<span class="fu">println</span>(Sayi.<span class="fu">taban</span>(<span class="dv">987652</span>, <span class="dv">2</span>));
+    }
+}</code></pre>
+<p>Sorunun tamamı bu kadar değil de, bu kısımdan sonrası ıvır zıvır. Sınavda yaptım bu soruyu aslında da, muhtemelen bir sürü yanlışım çıkacaktır(yeterince detaylı incelenirse, hatta belki de kodum derlenemez bile).</p>
+<p>Kağıt-kalem olduğumuz bu programlama sınavından öğrenilenler:</p>
+<ul>
+<li><p>Java’da String’lerle intler birbirlerine eklenebiliyor(concatenate yani, String’in yanına int’i String’e çevirerek ekleme). Sınavda int’i String’e çevirmeyi bulamadığım için eklenebildikleirini varsayarak yapmıştım. Gerçekten de öyleymiş.</p></li>
+<li><p><code>this</code> kelimesi tam olarak Python’daki <code>self</code>e eşit değilmiş. Hala çözemedim tam olarak ama, bununla alakalı bir yazı yazacağım.</p></li>
+<li><p>Kodu izlemek çok zor bir olay(değişkenlerin değerleri, ekrana yazdırılanlar vs). Scope, class ve instance değişkenlerinin özelliklerini vs. çok iyi bilmek gerekiyor. <code>this</code>e Python’daki <code>self</code> muamelesi yaptım, bakalım sonuç ne olacak.</p></li>
+<li><p>IDLE, ipython gibi araçlardan mıdır nedir, test etmeden hiçbir şeyi düzgün yazamadığımı farkettim. Python’da ne zaman bir şeyden emin olmasam test ederek doğru yolu buluyordum. Java’da bu çok daha zor olduğundan, hatta kağıt kalem ile imkansız olduğundan, zor anlar yaşadım diyebiliriz.</p></li>
+<li><p>Yine sanırım eski alışkanlıklardan, kodu okuyup takip etmek yerine, merak ettiğin yerlere print’ler yerleştirerek kodu takip ettiğimden, kağıt üzerinde etkili olamadım(?!) diyebilirim. Çok sinir bozucu bir iş.</p></li>
+</ul>
+<h2 id="ekleme">Ekleme</h2>
+<p>Sınavdan birkaç dakika önce ‘ya çıkarsa’ diye bir arkadaşla yazdığımız, bir matrisin karesini alan kod:</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> MatrisDeneme {
+    
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+        
+        <span class="dt">int</span>[][] matris ={{<span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">9</span>},
+                         {<span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">1</span>},
+                         {<span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">10</span>}};
+        
+        <span class="dt">int</span>[][] yeni ={{<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>},
+                        {<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>},
+                        {<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>}};
+            
+        <span class="kw">if</span> (matris.<span class="fu">length</span> != matris[^<span class="dv">0</span>]length) {
+            <span class="co">// yapilamaz</span>
+        } <span class="kw">else</span> {
+            <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; matris.<span class="fu">length</span>; i++) {
+                <span class="co">// 0 1 2</span>
+                <span class="kw">for</span> (<span class="dt">int</span> j = <span class="dv">0</span>; j &lt; matris.<span class="fu">length</span>; j++) {
+                    <span class="co">// 00 01 02 10 11 12 20 21 22</span>
+                    <span class="kw">for</span> (<span class="dt">int</span> k = <span class="dv">0</span>; k &lt; matris.<span class="fu">length</span>; k++) {
+                        yeni[i][j] += matris[k][j]*matris[j][k];
+                    }
+                }
+            }
+        }
+        
+        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">2</span>]<span class="dv">2</span>]);
+        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">0</span>]<span class="dv">1</span>]);
+    }
+
+}</code></pre>]]></summary>
+</entry>
+<entry>
+    <title>Bil113 ödev2 çözüm</title>
+    <link href="http://osa1.net/posts/2010-10-26-bil113-odev2-cozum.html" />
+    <id>http://osa1.net/posts/2010-10-26-bil113-odev2-cozum.html</id>
+    <published>2010-10-26T00:00:00Z</published>
+    <updated>2010-10-26T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Bil113 dersi 2. ödev için benim çözümümü <a href="/media/Odev2.java">buradan</a> indirebilirsiniz. 212 satır olduğundan sayfaya yapıştırmıyorum.</p>
+<p>Problemi <a href="http://ocsert.etu.edu.tr/bil113/odev/sorular/Odev2.pdf">buradan</a> indirebilirsiniz. Kısaca, bir alan üzerine av ve avcı çizdirip, avcının avı yakalamasını sağlıyoruz. Tabii bazı şartlar var.</p>
+<p>Avcım pek zeki olmadı, çok fazla ihtimal var ve bir yerden sonra sıktı açıkçası. Programın bazı özellikleri:</p>
+<p>Yorumlarla beraber toplam satır sayısı: 212</p>
+<p>Değerlendirilen ihtimaller:</p>
+<ul>
+<li><p>Her durumda av hareket eder, bir sonraki el oyun bitecek olsa da, köşeye sıkışmış olsa da. Sadece üst üste doğma durumunda hareket etmez. Üst üste doğma durumunda oyun 0 turda bitmiş olur.</p></li>
+<li><p>Av veya avcı grid alanı dışında oluşturulamaz, öyle bir durumda kullanıcıdan yeni koordinatlar istenir.</p></li>
+<li><p>Av gridin sınırlarına olan uzaklığını bilmez. Eğer avcı ona çarprazdan yaklaşmışsa, önce Y ekseninde kaçmaya çalışır, kaçacak yeri kalmadığında X ekseninde eğer gideibliyorsa sağa, gidemiyorsa sola kaçar. Avın yakalanma süresini kısaltmak için herhangi birşey yapmaz. Sadece öncelikleri vardır, onlara göre hareket eder, bu, duruma göre yakalanma süresini bazen kısaltır, bazen de uzatır. Random kütüphanesi falan kullanmadım.</p></li>
+<li><p>Grid çizme işlemi static gridCiz methodu ile yapılmaktadır. Bu method 6 arg alır, grid’in X ve Y uzunluğu, prey’in X ve Y koordinatı, hunter’ın X ve Y koordinatı.</p></li>
+</ul>]]></summary>
+</entry>
+<entry>
+    <title>Bil113 Lab 1. arasınav cevapları</title>
+    <link href="http://osa1.net/posts/2010-10-18-bil113-lab-1-arasinav-cevaplari.html" />
+    <id>http://osa1.net/posts/2010-10-18-bil113-lab-1-arasinav-cevaplari.html</id>
+    <published>2010-10-18T00:00:00Z</published>
+    <updated>2010-10-18T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Birkaç güne dersin sayfasında cevaplar açıklanır muhtemelen, en azından alternatif olarak, sınavda benim yazdığım cevaplar:</p>
+<p>Soru 1: Girilen iki kesiri toplayıp çarpıp yine a/b şeklinde ifade etme:</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
+<span class="kw">public</span> <span class="kw">class</span> Soru1 {
+
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    
+        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
+        System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İlk kesirin pay ve paydasını giriniz : &quot;</span>);
+        <span class="dt">int</span> pay1 = girdi.<span class="fu">nextInt</span>();
+        <span class="dt">int</span> payda1 = girdi.<span class="fu">nextInt</span>();
+        System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İkinci kesirin pay ve paydasını giriniz : &quot;</span>);
+        <span class="dt">int</span> pay2 = girdi.<span class="fu">nextInt</span>();
+        <span class="dt">int</span> payda2 = girdi.<span class="fu">nextInt</span>();
+    
+        <span class="dt">int</span> sonucToplamPay, sonucToplamPayda, sonucCarpimPay, sonucCarpimPayda;
+    
+        sonucToplamPayda = payda1 * payda2;
+        sonucToplamPay = pay1*payda2 + pay2*payda1;
+    
+        sonucCarpimPay = pay1*pay2;
+        sonucCarpimPayda = payda1*payda2;
+    
+        System.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; + &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucToplamPay + <span class="st">&quot;/&quot;</span> + sonucToplamPayda);
+        System.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; * &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucCarpimPay + <span class="st">&quot;/&quot;</span> + sonucCarpimPayda);
+    }
+}</code></pre>
+<p>Soru 2: Girilen 3 sayıyı küçükten büyüğe sıralama. Aşağıdaki kod eşitlik durumunda da düzgün çalışıyor(<em>daha kısa bir şekilde çözen var mı?</em>):</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
+<span class="kw">public</span> <span class="kw">class</span> Soru2 {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    
+        <span class="dt">boolean</span> devam = <span class="kw">true</span>;
+    
+        <span class="kw">while</span> (devam) {
+            Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
+            <span class="dt">int</span> a = girdi.<span class="fu">nextInt</span>();
+            <span class="dt">int</span> b = girdi.<span class="fu">nextInt</span>();
+            <span class="dt">int</span> c = girdi.<span class="fu">nextInt</span>();
+        
+            <span class="kw">if</span> (a &gt; b) {
+                <span class="kw">if</span> (b &gt; c) {
+                    System.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + a);
+                } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; b veya b == c durumu</span>
+                    <span class="kw">if</span> (a &gt; c) {
+                        System.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + a);
+                    } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; a veya a == c durumu</span>
+                        System.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + c);
+                    }
+                }
+            } <span class="kw">else</span> { <span class="co">// b &gt; a veya b == a durumu</span>
+                <span class="kw">if</span> (a &gt; c) { <span class="co">// b &gt; a &gt; c</span>
+                    System.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + b);
+                } <span class="kw">else</span> { <span class="co">// b &gt; a, c &gt; a veya a == c</span>
+                    <span class="kw">if</span> (b &gt; c) { <span class="co">// b &gt; c &gt; a</span>
+                        System.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + b);
+                    } <span class="kw">else</span> { <span class="co">// c &gt; b &gt; a veya c == b &gt; a</span>
+                        System.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + c);
+                    }
+                }
+            }
+        
+            System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Devam?&quot;</span>);
+            girdi.<span class="fu">nextLine</span>(); <span class="co">// bug gibi birşey</span>
+            <span class="kw">if</span> (girdi.<span class="fu">nextLine</span>().<span class="fu">equals</span>(<span class="st">&quot;hayır&quot;</span>)) {
+                devam = <span class="kw">false</span>;
+            }
+        }
+    }
+}</code></pre>
+<p>Soru 3: Girilen cümledeki büyük harfleri küçük, küçük harfleri büyük harfe çevirme(türkçe karakter girilmeyecek). Her harf için, eğer harfin büyültülmüş hali kendisine eşitse, harfi küçülttüm, değilse büyülttüm. Bir arkadaş da ASCII tablosundan küçük ve büyük harflerin aralığını tespit edip yapmış.</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
+<span class="kw">public</span> <span class="kw">class</span> Soru3 {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    
+        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
+        String str = girdi.<span class="fu">nextLine</span>();
+        String harf;
+    
+        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; str.<span class="fu">length</span>(); i++) {
+            harf = str.<span class="fu">substring</span>(i, i<span class="dv">+1</span>);
+            <span class="kw">if</span> (harf.<span class="fu">equals</span>(harf.<span class="fu">toLowerCase</span>())) { <span class="co">// harf zaten kucuk</span>
+                System.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toUpperCase</span>());
+            } <span class="kw">else</span> { <span class="co">// harf buyuk</span>
+                System.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toLowerCase</span>());
+            }
+        }
+    }
+}</code></pre>
+<p>Soru 4: Guess my number. 1 ile 100 arasında bir sayı tutulacak.</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Random;</span>
+<span class="kw">import java.util.Scanner;</span>
+<span class="kw">public</span> <span class="kw">class</span> Soru4 {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    
+        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
+    
+        Random r = <span class="kw">new</span> Random();
+        <span class="dt">int</span> randomNumber = Math.<span class="fu">abs</span>(r.<span class="fu">nextInt</span>());
+        randomNumber = (randomNumber % <span class="dv">100</span>) + <span class="dv">1</span>;
+    
+        <span class="dt">int</span> tahminSayisi = <span class="dv">1</span>;
+        <span class="dt">int</span> tahmin = -<span class="dv">1</span>;
+    
+        System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Bilgisayar 1 ile 100 arasında bir sayı tuttu.&quot;</span>);
+    
+        <span class="kw">while</span> (!(tahmin == randomNumber)) {    
+            System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Tahmininiz? &quot;</span>);
+            tahmin = girdi.<span class="fu">nextInt</span>();
+            <span class="kw">if</span> (tahmin &lt; randomNumber) {
+                System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi arttırın.&quot;</span>);
+            } <span class="kw">else</span> <span class="kw">if</span> (tahmin &gt; randomNumber) {
+                System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi azaltın.&quot;</span>);
+            } <span class="kw">else</span> {
+                System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tebrikler, &quot;</span> + tahminSayisi + <span class="st">&quot; tahminde sayıyı bildiniz.&quot;</span>);
+            }
+            tahminSayisi++;
+        } <span class="co">// while biter</span>
+    }
+}</code></pre>
+<p>Alternatif çözümü olan var mı?</p>]]></summary>
+</entry>
+
+</feed>

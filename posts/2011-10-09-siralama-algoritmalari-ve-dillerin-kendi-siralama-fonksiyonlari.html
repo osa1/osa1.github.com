@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Sıralama algoritmaları ve dillerin kendi sıralama fonksiyonları</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Sıralama algoritmaları ve dillerin kendi sıralama fonksiyonları</h1>
+
+<p><strong>October  9, 2011</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Uzun uzun kod örnekleri yazmıştım ama bir yerden sonra sıkıldım. Bugün öğrendiğim birkaç şeyi özet geçeyim:</p>
+<ul>
+<li><p>Sort işlemini lazy olarak yapmak süper. Çoğu zaman tüm dizinin sıralı haline ihtiyaç duymuyoruz ve bu şekilde arama yapmak karşılaştırma/fonksiyon çağrı sayısnı çok azaltıyor. Yine önce dilin sağladığı imkanları denemekte yarar var. Örneğin kendi yaptığım testlerde, 1000 elemanlı bir diziyi Python’ın <code>sorted()</code> fonksiyonu ile sıralamam, lazy bir quicksort(generator ile) yazıp az hesap yapmamdan 10 kat daha hızlı oldu. İnanılmaz(bu fark tabii ki eleman sayısı arttıkça açılacaktır).</p></li>
+<li><p>Aynı şey Clojure için de geçerli. Lazy sort yazacağım diye uğraşmaktansa, builtin <code>sort</code> fonksiyonu ile sıralayabilirsiniz. Kendi yaptığım testlerde, içi Integer dolu diziyi Clojure’un <code>sort</code> fonksiyonuyla çok bariz bir şekilde daha hızlı sıraladım(tabii bu biraz da sıraladığım elemanların Integer olmasıyla alakalıydı sanırım, kodu takip ettiğimde, bu seq’in önce Object[] array’ine dönüştürülüp, karşılaştırma sorasında da her bir elemanın double’a cast edilerek karşılaştırdığını gördüm, bunların çoğu Clojure ile değil Java ile yapılıyor).</p></li>
+<li><p><a href="http://en.wikipedia.org/wiki/Timsort">Timsort</a> diye bir sıralama algoritması var. İlk olarak Python için yazılmış. Şu anda Python, Java SE 7 ve Android’de kullanılıyor. Bu hızın kaynağı sanırım bu algoritma.</p></li>
+<li><p>Python’da fonksiyon çağrıları çok masraflı. Denemek için bir quicksort algoritmasını binlerce elemanlı bir listede, her karşılaştırma için bir fonksiyon çağırarak ve bir bir builtin Python operatorunu kullanarak(bu operatorlerin de sonuca __gt__ veya __lt__ gibi fonksiyonları çağırdıklarının farkındayım, ama sonuçta testlerimde fonksyion çağrı sayısını arttırdım) denedim. Performans farkı çok bariz. Filter, map gibi higher-order fonksiyonlar list comprehension’lardan performans açısından çok farklı değiller ama(bkz. <a href="http://stackoverflow.com/questions/1247486/python-list-comprehension-vs-map">ilgili SO</a> başlığı). <strong>Haftalar sonra gelen düzenleme:</strong> Dropbox ekibi bloglarında küçük bir Python kodunun hızlandırılması hakkında <a href="http://tech.dropbox.com/?p=89">şöyle</a> güzel bir yazı yazmış. Sadece fonksiyon çağrısını kaldırarak %15 performans artışı elde etmişler. Bunun gibi daha bir sürü ipucu var. Mutlaka okuyun.</p></li>
+</ul>
+<p>Şimdilik bu kadar.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

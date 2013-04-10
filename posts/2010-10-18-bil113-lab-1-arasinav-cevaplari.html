@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Bil113 Lab 1. arasınav cevapları</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Bil113 Lab 1. arasınav cevapları</h1>
+
+<p><strong>October 18, 2010</strong> - Tagged as: <a href="../tags/java.html">java</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Birkaç güne dersin sayfasında cevaplar açıklanır muhtemelen, en azından alternatif olarak, sınavda benim yazdığım cevaplar:</p>
+<p>Soru 1: Girilen iki kesiri toplayıp çarpıp yine a/b şeklinde ifade etme:</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
+<span class="kw">public</span> <span class="kw">class</span> Soru1 {
+
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    
+        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
+        System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İlk kesirin pay ve paydasını giriniz : &quot;</span>);
+        <span class="dt">int</span> pay1 = girdi.<span class="fu">nextInt</span>();
+        <span class="dt">int</span> payda1 = girdi.<span class="fu">nextInt</span>();
+        System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İkinci kesirin pay ve paydasını giriniz : &quot;</span>);
+        <span class="dt">int</span> pay2 = girdi.<span class="fu">nextInt</span>();
+        <span class="dt">int</span> payda2 = girdi.<span class="fu">nextInt</span>();
+    
+        <span class="dt">int</span> sonucToplamPay, sonucToplamPayda, sonucCarpimPay, sonucCarpimPayda;
+    
+        sonucToplamPayda = payda1 * payda2;
+        sonucToplamPay = pay1*payda2 + pay2*payda1;
+    
+        sonucCarpimPay = pay1*pay2;
+        sonucCarpimPayda = payda1*payda2;
+    
+        System.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; + &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucToplamPay + <span class="st">&quot;/&quot;</span> + sonucToplamPayda);
+        System.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; * &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucCarpimPay + <span class="st">&quot;/&quot;</span> + sonucCarpimPayda);
+    }
+}</code></pre>
+<p>Soru 2: Girilen 3 sayıyı küçükten büyüğe sıralama. Aşağıdaki kod eşitlik durumunda da düzgün çalışıyor(<em>daha kısa bir şekilde çözen var mı?</em>):</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
+<span class="kw">public</span> <span class="kw">class</span> Soru2 {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    
+        <span class="dt">boolean</span> devam = <span class="kw">true</span>;
+    
+        <span class="kw">while</span> (devam) {
+            Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
+            <span class="dt">int</span> a = girdi.<span class="fu">nextInt</span>();
+            <span class="dt">int</span> b = girdi.<span class="fu">nextInt</span>();
+            <span class="dt">int</span> c = girdi.<span class="fu">nextInt</span>();
+        
+            <span class="kw">if</span> (a &gt; b) {
+                <span class="kw">if</span> (b &gt; c) {
+                    System.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + a);
+                } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; b veya b == c durumu</span>
+                    <span class="kw">if</span> (a &gt; c) {
+                        System.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + a);
+                    } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; a veya a == c durumu</span>
+                        System.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + c);
+                    }
+                }
+            } <span class="kw">else</span> { <span class="co">// b &gt; a veya b == a durumu</span>
+                <span class="kw">if</span> (a &gt; c) { <span class="co">// b &gt; a &gt; c</span>
+                    System.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + b);
+                } <span class="kw">else</span> { <span class="co">// b &gt; a, c &gt; a veya a == c</span>
+                    <span class="kw">if</span> (b &gt; c) { <span class="co">// b &gt; c &gt; a</span>
+                        System.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + b);
+                    } <span class="kw">else</span> { <span class="co">// c &gt; b &gt; a veya c == b &gt; a</span>
+                        System.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + c);
+                    }
+                }
+            }
+        
+            System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Devam?&quot;</span>);
+            girdi.<span class="fu">nextLine</span>(); <span class="co">// bug gibi birşey</span>
+            <span class="kw">if</span> (girdi.<span class="fu">nextLine</span>().<span class="fu">equals</span>(<span class="st">&quot;hayır&quot;</span>)) {
+                devam = <span class="kw">false</span>;
+            }
+        }
+    }
+}</code></pre>
+<p>Soru 3: Girilen cümledeki büyük harfleri küçük, küçük harfleri büyük harfe çevirme(türkçe karakter girilmeyecek). Her harf için, eğer harfin büyültülmüş hali kendisine eşitse, harfi küçülttüm, değilse büyülttüm. Bir arkadaş da ASCII tablosundan küçük ve büyük harflerin aralığını tespit edip yapmış.</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
+<span class="kw">public</span> <span class="kw">class</span> Soru3 {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    
+        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
+        String str = girdi.<span class="fu">nextLine</span>();
+        String harf;
+    
+        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; str.<span class="fu">length</span>(); i++) {
+            harf = str.<span class="fu">substring</span>(i, i<span class="dv">+1</span>);
+            <span class="kw">if</span> (harf.<span class="fu">equals</span>(harf.<span class="fu">toLowerCase</span>())) { <span class="co">// harf zaten kucuk</span>
+                System.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toUpperCase</span>());
+            } <span class="kw">else</span> { <span class="co">// harf buyuk</span>
+                System.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toLowerCase</span>());
+            }
+        }
+    }
+}</code></pre>
+<p>Soru 4: Guess my number. 1 ile 100 arasında bir sayı tutulacak.</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Random;</span>
+<span class="kw">import java.util.Scanner;</span>
+<span class="kw">public</span> <span class="kw">class</span> Soru4 {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    
+        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
+    
+        Random r = <span class="kw">new</span> Random();
+        <span class="dt">int</span> randomNumber = Math.<span class="fu">abs</span>(r.<span class="fu">nextInt</span>());
+        randomNumber = (randomNumber % <span class="dv">100</span>) + <span class="dv">1</span>;
+    
+        <span class="dt">int</span> tahminSayisi = <span class="dv">1</span>;
+        <span class="dt">int</span> tahmin = -<span class="dv">1</span>;
+    
+        System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Bilgisayar 1 ile 100 arasında bir sayı tuttu.&quot;</span>);
+    
+        <span class="kw">while</span> (!(tahmin == randomNumber)) {    
+            System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Tahmininiz? &quot;</span>);
+            tahmin = girdi.<span class="fu">nextInt</span>();
+            <span class="kw">if</span> (tahmin &lt; randomNumber) {
+                System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi arttırın.&quot;</span>);
+            } <span class="kw">else</span> <span class="kw">if</span> (tahmin &gt; randomNumber) {
+                System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi azaltın.&quot;</span>);
+            } <span class="kw">else</span> {
+                System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tebrikler, &quot;</span> + tahminSayisi + <span class="st">&quot; tahminde sayıyı bildiniz.&quot;</span>);
+            }
+            tahminSayisi++;
+        } <span class="co">// while biter</span>
+    }
+}</code></pre>
+<p>Alternatif çözümü olan var mı?</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

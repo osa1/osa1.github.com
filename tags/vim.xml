@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>osa1.net - Posts tagged vim</title>
+    <link href="http://osa1.net/tags/vim.xml" rel="self" />
+    <link href="http://osa1.net" />
+    <id>http://osa1.net/tags/vim.xml</id>
+    <author>
+        <name>Ömer Sinan Ağacan</name>
+        <email>omeragaca@gmail.com</email>
+    </author>
+    <updated>2013-02-14T00:00:00Z</updated>
+    <entry>
+    <title>Quick Vim Tip for OCaml programmers: Fix OCamlYacc comment syntax</title>
+    <link href="http://osa1.net/posts/2013-02-14-quick-vim-tip-for-ocaml.html" />
+    <id>http://osa1.net/posts/2013-02-14-quick-vim-tip-for-ocaml.html</id>
+    <published>2013-02-14T00:00:00Z</published>
+    <updated>2013-02-14T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been editing OCaml with Vim for several months now, one problem that annoys me with Vim’s built-in OCaml syntax highlighter is it behaves OCamlYacc files like it’s a normal OCaml file.</p>
+<p>It generally works fine but OCamlYacc’s comment syntax is different from OCaml’s. When working on big OCamlYacc files this quickly becomes annoying.</p>
+<p>I’m not proficient in VimL but I could manage to write a simple solution. I replaced this line in Vim’s built-int OCaml syntax highlighter:</p>
+<pre><code>&quot; Comments 
+syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo</code></pre>
+<p>with:</p>
+<pre><code>&quot; Comments
+if expand(&quot;%:e&quot;) == &quot;mly&quot;
+  syn region   ocamlComment start=&quot;/\*&quot; end=&quot;\*/&quot; contains=ocamlComment,ocamlTodo
+else
+  syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo
+end</code></pre>
+<p>(You can find you Vim’s built-in files’ folders by runing <code>:echo $VIMRUNTIME</code> inside Vim. On my machine, <code>ocaml.vim</code>s path is <code>/usr/share/vim/vim73/syntax/ocaml.vim</code>)</p>
+<p>Works great. It can be further simplified but requires a variable declaration and I don’t want to mess with Vim variables without understanding the consequences(scope rules etc.)</p>]]></summary>
+</entry>
+<entry>
+    <title>Okudukarım, okunacaklar</title>
+    <link href="http://osa1.net/posts/2013-02-12-okuduklarim-okunacaklar.html" />
+    <id>http://osa1.net/posts/2013-02-12-okuduklarim-okunacaklar.html</id>
+    <published>2013-02-12T00:00:00Z</published>
+    <updated>2013-02-12T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Son ciddi yazımdan beri epey vakit geçmiş. Henüz buradan duyuramadım ama, bir süredir 2. 14 haftalık stajımı yapıyorum. Detaylar için ayrı bir yazı yazmayı planlıyorum ama şimdilik türkiyedeki tek PLT işinde çalıştığımı söyleyebilirim sanırım(abartmış olabilirim, PLT üzerine çalışan insanlar varsa söyleyin, ben de merak ediyorum). Birkaç ay önce imkansız gibi gözüken bazı şeylerin bu kadar çabuk normalleşmesi ne garip.</p>
+<p>Neyse, kısaca şu anda üzerinde çalıştığım proje için okuduğum ve okumakta olduğum makalelerden bahsedeceğim biraz.</p>
+<h2 id="okuduklarım">Okuduklarım</h2>
+<pre><code>* A polymorphic modal type system for lisp-like multi-staged languages.
+
+Multi-staged programming ile tanıştığım makale bu oldu. Aslında giriş için hiç iyi bir makale değil, kullandığı dil çok büyük, bir tam kolon big-step [operational semantics](http://en.wikipedia.org/wiki/Operational_semantics) verilmiş. Tip ve çıkarım kuralları da buna bağlı olarak kompleks.
+
+Multi-staged programming&#39;i kısaca Lisp macroları benzeri bir meta-programming araçları gibi düşünebiliriz. Daha detaylı bilgiyi üzerinde çalıştığım yorumlayıcı bittiğinde, kendisi ile örneklerle vermek istiyorum. Şimdilik şöyle özet geçebilirim: Programların çalıştırılması birden fazla stage&#39;e ayrılmış oluyor ve her iki stage arası bir miktar evaluation yapılıyor. Örnek olarak bir matris çarpımı yapacaksanız, matrislerin uzunluğu belli olduğunda bir miktar evaluation yaparak matris uzunluk kontrolü ve iterasyon içermeyen, girdi olarak verdiğiniz iki matris boyutundaki matrisler için çarpma yapan bir kod üretebilirsiniz. Daha sonra çarpma işlemi nispeten daha hızlı olacaktır.
+
+Bir miktar [partial evaluation](http://en.wikipedia.org/wiki/Partial_evaluation) ile de alakalı. Partial evaluation çok fantastik bir konu, bu yazıyı okuyan herkesin en azından wikipedia sayfasına bakmasını tavsiye ederim(özellikle Futamura projections kısmı fantastik).
+
+* Static analysis of multi-staged programs via unstaging translation.
+
+Multi-staged programların statik analizlerinin daha zor olduğu gözlemlendikten sonra, multi-staged bir programın anlam korunarak unstaged bir hale tercüme edilebileceğinin farkedilmesi üzerine, multi-staged programların bu tercüme ile statik olarak analiz edilebileceğini söylüyor. Staged expressionlar bir çeşit record-calculus(lambda calculus + recordlar)a tercüme ediliyor ve statik tip sistemi verilmiş.
+
+Bir önceki makaledekine göre çok küçük bir multi-staged dil tanımlıyor ve bu yüzden okuması/anlaması daha kolay. Tip sistemi de daha az farklı olduğundan(hatta makalede tip sistemi anlamında yeni birşey yok) onun da anlaşılması daha kolay olabilir. (benim için farketmedi, benzer bir tip sistemi üzerinde hiç çalışmamıştım)
+
+Tercüme sonrası analizler, tercüme öncesindeki hal ile eşleştiriliyor.
+
+
+* A modern eye on ML type inference.
+
+Damas-Hindley-Milner tip sisteminin bir özeti niteliğinde. Pek çok detay bilindiği varsayılarak atlanmış, ve 2. ve 3. bölümleri &quot;gelecek&quot; denmesine rağmen, 2005&#39;den beri, gelmemiş.
+
+Tip çıkarımından bahsedildikten sonra, constraint solving ile alakasından bahsediyor. W ve J algoritmaları ve parametrik HM(X) algoritmasından bahsediliyor. Tip çıkarımı ile constraint oluşturma/çözme arasındaki ilişkiyi anlamak için çok iyi.
+
+Hatırladığım bir başka güzel yanı da constraint oluşturma ve çözme kısımlarının nasıl birbirlerinden ayrılabileceği ve bunun getirdiklerinden bahsetmesiydi. Ayrıca constraintler yardımıyla çıkarımı polymorphism&#39;i anlatmadan önce anlatması da ayrı bir güzellik bence.
+
+* Record polymorphism yazıları
+
+Refined subtyping and row variables for record types(Didier Remy), Type inference for records in a natural extension of ML(Didier Remy), Extensible records with scoped labels(Daan Leijen), A polymorphic type system for extensible records and variants(Gaster, Jones)
+
+Hepsini tamamen okumasam da, bir göz gezdirdim. Leijen makalesi özellikle çok hoş ve okuması kolay. [Elm](http://elm-lang.org/) dilinin [recordları](http://elm-lang.org/blog/announce/version-0.7.elm) temel olarak bu makalede anlatılanların bir implementasyonu. Ben de başka bir projem için benzer bir record yapısı planlıyorum.
+
+Bu makalelerden benim çıkardığım en önemli şey şu oldu: Derleme zorluğu önemsenmediğinde, çok güzel record tipleri elde etmek mümkün.
+
+İkinci olarak, aynı kısıtları tanımlamanın farklı yolları var ve çoğu zaman &quot;en iyi&quot; diyebileceğimiz bir yola sahip değiliz. Duruma göre alternatifleri değerlendirmek zorundayız.
+
+Polymorphic recordlar söz konusu olduğunda, bir recordda bir t tipinde bir labelın bulunduğunu veya bulunmadığını belirtmenin birden fazla yolu var. Kind seviyesinde tanımlayabilirsiniz ki kompleks bir kind tipi gerektirir(daha sonra bir de kindların well-formed olduğunu kontrol etmek gerekebiliyor, kind-inference algoritmaları falan var). Ohori&#39;nin makalelerinde bu kullanıyor sanırım. Direkt olarak row field tiplerine gerekli bilgiği yerleştirebilirsiniz ki Remy&#39;nin makalelerinde yapılan bu. Veya constraint oluşturabilirsiniz ki bu benim en sevdiğim yöntem, Jones&#39;un makalesinde kullanılmış(aslında _constraint_ değil de _predicate_ denmiş).
+
+Yani recordlar gibi elinizde nispeten kompleks bir tip olduğunda(en basitinden, label-type ikililerinden oluşan bir kümeden bahsediyoruz ve bazı makalelerdeki sistemlerde birden fazla label olabiliyor), teorik kısıtları ifade etmek için çeşitli yollar var ve elinizdeki mevcut sisteme hangisi daha iyi gidiyorsa onu seçme şansınız var. </code></pre>]]></summary>
+</entry>
+<entry>
+    <title>Quick Vim Tip: Disable cursorline</title>
+    <link href="http://osa1.net/posts/2013-01-16-quick-vim-tip-2.html" />
+    <id>http://osa1.net/posts/2013-01-16-quick-vim-tip-2.html</id>
+    <published>2013-01-16T00:00:00Z</published>
+    <updated>2013-01-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I wouldn’t believe how much this seemingly simple feature can affect rendering performance. Vim is being almost unusable when this is enabled. For more details, you can see <a href="https://github.com/dag/vim2hs/issues/28#issuecomment-12208866">my post</a> at vim2hs’s issue tracker.</p>
+<p>I used this feature for my entire life spent using vim, but after a few hours without it I realized I actually don’t need it.</p>
+<p>In short, disable <code>cursorline</code> (or <code>cul</code> for short) if your vim renders/highlights text too slow.</p>]]></summary>
+</entry>
+<entry>
+    <title>Quick Vim Tip: Add Left Margin To Buffers</title>
+    <link href="http://osa1.net/posts/2013-01-16-quick-vim-tip-1.html" />
+    <id>http://osa1.net/posts/2013-01-16-quick-vim-tip-1.html</id>
+    <published>2013-01-16T00:00:00Z</published>
+    <updated>2013-01-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I almost always work in fullscreen, and when I do that, text in vim starts just where my laptop monitor’s frame ends and it’s really annoying. And even if I don’t use vim in fullscreen, generally I want some margin(empty space) on the left side of vim window.</p>
+<p>One way to achieve this is enabling line numbers. But I don’t like this solution because line numbers cause unnecessary noise in the screen.</p>
+<p>As a solution, I was using <code>foldcolumn</code>, which, like line numbers, puts some space on the left side to show some folding information. It’s a nice solution if you never use folding in your code, and I wasn’t using folding in my code, but now I’m using folding and foldcolumn looks horrible:</p>
+<div class="figure">
+<img src="http://osa1.net/media/vimtip1/foldmethodmarker1.png" />
+</div>
+<p>A nasty trick to make this folding guides hidden is making folding guides’ foreground and background color the same, and same as you colorscheme’s background color:</p>
+<pre class="vimscript"><code>autocmd Colorscheme * highlight FoldColumn guifg=bg guibg=bg</code></pre>
+<p>Put this in your .vimrc, somewhere before setting your colorscheme(ie. before <code>colorscheme ...</code> line) and whenever you change color colorscheme, foldcolumn’s colors will be set and folding guides will be hidden.</p>
+<div class="figure">
+<img src="http://osa1.net/media/vimtip1/foldmethodmarker2.png" />
+</div>
+<p>How does it work: <code>bg</code> and <code>fg</code> are two special variables that will be set by vim automagically whenever you set <code>Normal</code> colors by calling <code>:highlight Normal [options]</code> and all colorschemes do that because that’s the way to set vim’s background color and default text color.</p>
+<p><code>autocmd Colorscheme *</code> makes this command run whenever you set your colorscheme by calling <code>:colorscheme ...</code> command. And now you have clear left margin. Enjoy.</p>]]></summary>
+</entry>
+<entry>
+    <title>Vim için Clojure çalışma ortamı(vimclojure + SLIMV)</title>
+    <link href="http://osa1.net/posts/2011-07-01-vim-icin-clojure-calisma-ortamivimclojure-slimv.html" />
+    <id>http://osa1.net/posts/2011-07-01-vim-icin-clojure-calisma-ortamivimclojure-slimv.html</id>
+    <published>2011-07-01T00:00:00Z</published>
+    <updated>2011-07-01T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Islah olmaz bir Vim kullanıcısı olduğumdan(yine de Vim ile Java yazmayı denemiyorum, heh), her işimi Vim ile görmeye çalışıyorum. Şu ana kadar kullandığım diller arasında, Java’yı saymazsak, beni en çok uğraştıran Clojure oldu.</p>
+<p>Genel olarak 2 yol var. Birincisi, Emacs’in SLIME klonu olan <a href="http://www.vim.org/scripts/script.php?script_id=2531">SLIMV</a>. Common Lisp, Scheme ve Clojure için kullanılabiliyor. Fakat Clojure desteğinde bazı sorunlar var. İkincisi, <a href="https://bitbucket.org/kotarak/vimclojure">vimclojure</a>. Clojure düzenleme yetenekler SLIMV’e göre çok daha iyi, ama REPL kısmı biraz sıkıntılı. Lein REPL kullanamıyorsunuz, Nailgun kullanıyor. Yavaş çalışıyor. Göçtüğünde bir daha başlatması, bir işlemde takıldığında durdurması vb. şeyler zor.</p>
+<p>Benim izlediğim yol, SLIMV üzerine vimclojure syntax renklendirme ve indentation scriptlerini kullanmak oldu. Normalde SLIMV’in Clojure indentation kısmında birkaç problemi var. Clojure keyword’lerini de tanıymıyor.</p>
+<p>Bunu yapmanın en kolay yolu, benim vim ayar dosyalarımı çekip(<a href="https://github.com/osa1/rcbackup">github</a>) veya ayar dosyalarımdan <code>/bundles/slimv/</code>i çekip gerekli yerlere atmak. Onun dışında, bir hata durumunda bana sövmeyin diye ne yaptığımı da açıklayayım. Standart SLIMV(0.8.4 kullandım, 0.8.5 REPL ekranı daha yavaş çalıştı nedense, yazarı olmaması gerektiğini söyledi ama, bir daha kurcalayacağım bir ara) altına, autoload klasörü oluşturup vimclojure autoload scriptini kopyaladım. Bu bana vimclojure fonksiyonlarını sağladı(syntax renklendirme ve indentation için gerekecek). Daha sonra <code>slimv/indent/clojure.vim</code> ve <code>slimv/syntax/clojure/slimv-syntax-clojure.vim</code> dosyalarının içeriğini vimclojure scriptlerininkiyle değiştirdim. Bu kadar.</p>
+<p><a href="http://osa1.net/media/slimv1.png"><img src="/images/slimv1k.png" /></a></p>
+<p>SLIMV’in eksikleri var. Geliştiricisiyle stackoverflow’da karşılaştım ve şu anda birkaç eksikliği düzeltmek için uğraşıyor. Birincisi, <code>lein repl</code> kullanmasına rağmen, <code>javadoc</code> <code>source</code> gibi bazı fonksiyonları <code>(use '[clojure.repl :only (source apropos dir pst doc find-doc)])</code> ile kullanmanız gerekiyor. Normalde terminalden <code>lein repl</code> ile çalıştırırsanız bunları direkt kullanabiliyorsunuz ama. İkincisi, program bir noktada takılırsa(uzun bir işlem vs) durdurmanın bir yolu yok(ya da ben bulamadım).</p>
+<p>Aslında SLIMV varken sıfırdan bir Clojure scripti yazmak çok saçma geldi bana. Vimclojure yazılacağına SLIMV Clojure desteği üzerinde uğraşılsaymış çok daha güzel birşey olacakmış. Şimdi ben kendim ikisinin güzel özelliklerini kullanmaya çalışıyorum mesela.</p>]]></summary>
+</entry>
+<entry>
+    <title>Pardus'ta dropbox, VIM + exuberant ctags ve bir hata kaydı</title>
+    <link href="http://osa1.net/posts/2011-04-13-pardusta-dropbox-vim-exuberant-ctags-ve-bir-hata-kaydi.html" />
+    <id>http://osa1.net/posts/2011-04-13-pardusta-dropbox-vim-exuberant-ctags-ve-bir-hata-kaydi.html</id>
+    <published>2011-04-13T00:00:00Z</published>
+    <updated>2011-04-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>~20 gün boyunca Pardus’tan başka işletim sistemi kullanmama gibi çılgın bir karar aldım ve bugün uygulamaya başladım(dün gece temiz kurulum + devel deposu güncellemelerini yapmıştım). İlk günün sonundan birkaç not düşelim:</p>
+<ul>
+<li><p>Dropbox kullanmak isteyenler için, paket şu adreste: <a href="http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/dropbox/">http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/dropbox/</a> . <code>sudo pisi bi http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/dropbox/pspec.xml</code> ile build eder, <code>sudo pisi it dropbox*.pisi</code> ile kurarsınız. Daha sonra ne işe yaradığını tam bilmesem de(ben direkt ikisini beraber kurduğumdan farkı gözlemleyemedim) <a href="http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/kde-servicemenu-dropbox/">http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/kde-servicemenu-dropbox/</a> adresinden KDE servicemenu eklentisini kursanız hoş olur. Yöntem aynı.</p></li>
+<li><p>Vim ile ctags kullanmak isterseniz, package manager ile kurduğunuz ctags’ı görmüyor vim. Ctags paketini incelediğimde şöyle birşey satır gördüm: (satır 24) <code>pisitools.rename(&quot;/usr/bin/ctags&quot;, &quot;exuberant-ctags&quot;)</code>. Farkedilebileceği gibi /usr/bin altındaki ctags çalıştırılabilirinin adı exuberant-ctags olarak değiştiriliyor. Bunu eski haline getirirseniz vim ile gayet düzgün çalışıyor.(ben adını değiştirmek yerine kopyaladım, iki tane oldu, heheh)</p></li>
+<li><p>Hayırlısıyla bir de şöyle bir hata kaydımız oldu ilk günden: <a href="http://bugs.pardus.org.tr/show_bug.cgi?id=17765">http://bugs.pardus.org.tr/show_bug.cgi?id=17765</a></p></li>
+</ul>
+<p>Bu 20 gün içerisinde Emacs için SLIME pisi paketi hazırlama gibi çılgın bir hedefim var ayrıca. Başarabilirsem paket hazırlama olayını çözdüğüm anlamına gelecek.</p>]]></summary>
+</entry>
+<entry>
+    <title>Osa1 arşiv düzenleyici yeni sürüm</title>
+    <link href="http://osa1.net/posts/2011-01-03-osa1-arsiv-duzenleyici-yeni-surum.html" />
+    <id>http://osa1.net/posts/2011-01-03-osa1-arsiv-duzenleyici-yeni-surum.html</id>
+    <published>2011-01-03T00:00:00Z</published>
+    <updated>2011-01-03T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Sıkıldıkça geliştirdim arşiv düzenleyiciye sonunda albüm kapağı indirme özelliğini ekledim. Arşiv düzenleyicinin ne olduğu hakkında bilgi almak için <a href="">scriptin sayfası</a>na bakabilirsiniz.</p>
+<p>Henüz nautilus için olanına eklemedim, onu da muhtemelen yarın eklerim, şimdilik arayüzlü halinde albüm kapağı indiriyor sadece. Ek olarak, albüm kapaklarının indirilebilmesi için <a href="http://wwwsearch.sourceforge.net/mechanize/">mechanize</a> kütüphanesine ihtiyaç duyuyor. Ubuntu (ve sanırım Debian) kullanıcıları <code>sudo apt-get install python-mechanize</code> komutuyla indirebilirler, PyPI veya pip aracılığıyla da indirilebilir.</p>
+<p>Eğer mechanize yüklü değilse, kapak indirme seçeneği aktif olmuyor. Onun dışında program aynı şekilde çalışmaya devam ediyor.</p>
+<p>Bu arada programın albüm kapaklarını nasıl bulduğundan bahsedeyim biraz. Mechanize’dan <a href="http://osa1.net/nautilus-icin-cleancss-scripti/">daha önce</a> biraz bahsetmiştim. Yine mechanize ile, google resimler’e giriyorum, formu sanatçı adı + albüm adı ile dolduruyorum, sayfadan, kendi yazdığım regex deseni ile arama yapıyorum(ilk başta BeautifulSoup ile resimleri ayırıyordum, fakat onlarca sayfa için tekrarlayınca performans kaybı ço koldu), sonuçlardan birkaç kritere göre eleme yaparak, kalan ilk sonucu indirip kaydediyorum.</p>
+<p>İndirme işlemlerini threading ile yapıyorum(bu tip işlemlerde çok bariz performans artışı sağlıyor). Aşağıda programı test ederken yaptığım bir denemenin sonucunu görebilirsiniz. Genel olarak oldukça isabetli resimler indiriyor. Arama cümlesi değiştirilerek (sanatçı adı + albüm adı + &quot; album cover&quot; gibi mesela) daha uygun sonuçlar da elde edilebilir.</p>
+<div class="figure">
+<img src="http://www.osa1.net/media/script_yeni.png" />
+</div>
+<p>Yarın muhtemelen nautilus scriptine de ekleyeceğim bu özelliği, aslında ben zaten sadece nautilus scriptini kullanıyorum(aracı bir script ile, düzenleyip arşivimin olduğu yere kopyalıyor, onu da bir ara yazacağım sanırım).</p>
+<p>Bu arada, sanırım tüm kodlarımı github veya benzeri bir yere koyacağım. Bu şekilde çok zor olmaya başladı, her güncellemeden sonra tar dosyasını oluşturmak bile zor geliyor artık, bir yolunu bulmam lazım. Daha düzenli olacak sanırım öyle. Django admin scriptini de bayaa geliştirdim, örneğin artık programın üzerine sürüklediğim dosya veya klasörleri alanıma upload ediyor. Sadece bu programı kullanarak her işimi görebiliyorum. Kodlarımı bir yerde topladıktan sonra, Django admin programını da koyacağım. Nasıl birşey olduğunu merak edenler için, <a href="http://127.0.0.1:8000/bil113-finale-hazirlik/">şu yazımda</a> bir ekran görüntüsü koymuştum.</p>
+<p>Unutmadan, program için hata raporlarınızı ve tercüme desteğinizi bekliyorum. Tam olarak tercüme edebilsem, Ubuntu veya Pardus için paketler hazırlanabilir aslında.</p>
+<p>Bir sonraki hedef, klasör izleme ve eklemeleri otomatik düzenleme özelliği. Asıl hedefim de <a href="http://www.tidysongs.com/">TidySongs</a>’daki tüm özellikleri eklemek :)</p>
+<p><a href="http://www.osa1.net/media/duzenleyici_gui.tar">Şurdan</a> indirebilirsiniz. Not: paketleme, distutils vs. ile uğraşmamak için programı tek bir dosyaya sığdırmaya çalıştım. Kod biraz kötü durumda yani :) . Bir sonraki sefer ciddi bir temizlik/düzenleme yapmam gerekecek sanırım.</p>
+<p>Ekleme: Benim etiket sistemi tamamen sapıtmış, daha mantıklı bir algoritma lazım sanırım.</p>]]></summary>
+</entry>
+<entry>
+    <title>Yeni başlayanlar için Python IDE/editor sorunsalı</title>
+    <link href="http://osa1.net/posts/2010-11-15-yeni-baslayanlar-icin-python-ideeditor-sorunsali.html" />
+    <id>http://osa1.net/posts/2010-11-15-yeni-baslayanlar-icin-python-ideeditor-sorunsali.html</id>
+    <published>2010-11-15T00:00:00Z</published>
+    <updated>2010-11-15T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Python’da IDE/editor olayı çok sıkıntılı geliyor bana. Aslında bir sürü alternatif var ama hepsi bazı sebeplerden dolayı çok kötü geliyor bana. Örneğin Eclipse/Pydev çok ağır geliyor, sahip olduğu özelliklerinin çoğunu <em>en azından şimdilik</em> kullanmıyorum. NetBeans aynı şekilde, üstelik Python için neredeyse hiçbir şey sağlamıyor. Sadece Aptana Studio işime yarıyor, o da HTML/CSS desteği ile PyDev’i buluşturduğu için, Django’da çok yardımcı oluyor.</p>
+<p>Editor deyince, Gedit, Kate gibi araçlar için bir sürü eklentiler var, fakat emin olabilirsiniz, neredeyse tüm eklentileri denedim, hiçbir türlü işe yarar hale gelmiyorlar.. Aradığım özelliker: syntax renklendirme, otomatik indentation(düzgün çalışacak, return’den sonra diğer bloka geçmeli mesela), açtığım <code>[ ( { &quot;</code> gibi karakterleri nerde kapatığımı görmeliyim, tek tuşla programımı çalıştırabilmeliyim, hatta gerekirse parametreler ekleyip onları başka kısayollara atayabilmeliyim, mümkünse file browser..</p>
+<p>Vim, Emacs gibi araçlar en baştan beri aklımdaydı fakat öğrenmesi/kurulumları çok zaman aldığından bir türlü başlayamıyordum, Emacs öğreneceğim vakitle Common Lisp öğrenmek daha mantıklı geliyor örneğin. Üstelik bu araçlar için tüm detayların olduğu, tek bir tutorial gibi birşey yok. Araştırıp öğrenmek gerekiyor.</p>
+<p>Common Lisp ve Haskell ile ilgilenmeye başlayınca farkettim ki, belki de dünyadaki tüm diller için ortak 2 tane editor var, Vim ve Emacs. Haskell yazacaksınız, IDE/editor arıyorsunuz, ama Eclipse gibi devasa araçlara ihtiyacınız yok, hızlı, pratik bir çözüm arıyorsunuz. 2 alternatifiniz var: Vim ve Emacs. Common Lisp için aynısını isteseniz, bu sefer tek alternatif, Emacs. Ki yeterince öğrendikten sonra Java için bile kullanılabiliyorlar(<em>Java için bile</em> diyorum, çünkü Java’da gerçekten gelişmiş IDE özelliklerinize ihtiyacınız oluyor, yeni başlayan ben bile Eclipse’in özelliklerini kullanıyorum).</p>
+<p>Python’da da basit, hızlı, kullanışlı bir editor ararken <a href="http://www.activestate.com/komodo-edit">Komodo Edit</a>’i keşfettmiştim. Aslında bayaa kullanışlı bir araç, kendi çalıştırma komutlarınızı kolayca tanımlayabilir, çalıştırırkenki çevre değişkenlerinizi belirleyebiliyorsunuz falan. Kullanışlı ve küçük bir araç, ama çok büyük bir sorunu var; çok yavaş. Birkaç yüz satırlık kodda bile rahatlıkla gezinemiyorum, her nedense çok yavaş çalışıyor.</p>
+<p>Dolayısıyla bu sabah yine Vim’e bir şans vermeye karar verdim. Emacs bana hep Vim’den daha karışık gibi gelmiştir. Ayarlarıyla, kısayollarıyla falan. GVim kurulumu yaptım, sıfırdan başlamak yerine birkaç farklı kaynaktan vim ayar dosyalarını incelemeye başladım(.vimrc). Neticede birkaç yerden derlediğim ve kendi kattığım birkaç satırla kendi Vim’imi oluşturdum(bu arada resimdeki arşiv düzenleyinin arayüzünün son hali):</p>
+<div class="figure">
+<img src="http://www.osa1.net/media/vim.png" />
+</div>
+<p>Henüz Vim’in çoğu özelliğinden faydalanamıyorum ve metin düzenlerken sıkıntılar yaşıyorum(hatta bu yazıyı yazdığım sırada nasıl tüm kelimeyi sileceğimi, ve kopyaladığım bir metini nasıl yapıştıracağımı bile bilmiyordum), ama en azından tam istediğim özelliklere sahip bir Python editorum oldu.</p>
+<p>Oturup vimtutor çalışarak öğrenmek yerine, işimi yaparken öğreneceğim artık. .vimrc dosyamı <a href="http://www.osa1.net/media/.vimrc">buradan</a> indirebilirsiniz. Çoğu satırda açıklama var zaten, kısayollar genelde bana ait. Eski alışkanlıklarımdan kurtulamadığımdan, alt+w, alt+s, tab değiştirmek için alt+oklar gibi kısayollar ekledim.</p>
+<p>Bu arada, Google ile kolaylıkla binlerce kaynak bulunabilir tabii ki, ama ben yine de kendi faydalandığım kaynakları vereyim:</p>
+<ul>
+<li><a href="http://vim.wikia.com/wiki/Vim_Tips_Wiki">Vim tips wiki</a></li>
+<li><a href="http://www.tuxfiles.org/linuxhelp/vimcheat.html">Vim cheat sheet</a></li>
+<li><a href="http://stackoverflow.com/questions/164847">Stackoverflor vimrc başlığı</a></li>
+</ul>]]></summary>
+</entry>
+
+</feed>

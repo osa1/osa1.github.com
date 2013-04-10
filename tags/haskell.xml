@@ -1,0 +1,962 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>osa1.net - Posts tagged haskell</title>
+    <link href="http://osa1.net/tags/haskell.xml" rel="self" />
+    <link href="http://osa1.net" />
+    <id>http://osa1.net/tags/haskell.xml</id>
+    <author>
+        <name>Ömer Sinan Ağacan</name>
+        <email>omeragaca@gmail.com</email>
+    </author>
+    <updated>2013-04-08T00:00:00Z</updated>
+    <entry>
+    <title>Go channel examples ported to Haskell</title>
+    <link href="http://osa1.net/posts/2013-04-08-go-ported-haskell.html" />
+    <id>http://osa1.net/posts/2013-04-08-go-ported-haskell.html</id>
+    <published>2013-04-08T00:00:00Z</published>
+    <updated>2013-04-08T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been skimming over <a href="http://tour.golang.org/">gotour</a> recently. I think it’s great introduction to language; it’s short, but concise and it shows some of the interesting features of language.</p>
+<p>Last part of the tour is about goroutines and channels. My concurrent programming experience is very limited, and since Haskell is my favorite language, I decided to port goroutine examples to Haskell as a learning exercise.</p>
+<p>Any criticism would be appreciated.</p>
+<h2 id="goroutines"><a href="http://tour.golang.org/#62">62 - Goroutines</a></h2>
+<p>This is a very basic example of a program creating two threads and printing some strings.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+<span class="kw">import</span> Control.Monad
+
+<span class="ot">say ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+say s <span class="fu">=</span> forM_ [<span class="dv">1</span><span class="fu">..</span><span class="dv">5</span>] <span class="fu">$</span> \ _ <span class="ot">-&gt;</span> <span class="kw">do</span>
+  threadDelay <span class="dv">100000</span>
+  <span class="fu">putStrLn</span> s
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  forkIO <span class="fu">$</span> say <span class="st">&quot;world&quot;</span>
+  say <span class="st">&quot;hello&quot;</span></code></pre>
+<h2 id="channels"><a href="http://tour.golang.org/#63">63 - Channels</a></h2>
+<p>Simple channels example</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+
+<span class="ot">sum&#39; ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Chan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+sum&#39; ints chan <span class="fu">=</span> writeChan chan (<span class="fu">sum</span> ints)
+<span class="co">-- alternative, `pointfree` style: </span>
+<span class="co">-- sum&#39; = flip writeChan . sum</span>
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  <span class="kw">let</span> lst <span class="fu">=</span> [<span class="dv">7</span>, <span class="dv">2</span>, <span class="dv">8</span>, <span class="fu">-</span><span class="dv">9</span>, <span class="dv">4</span>, <span class="dv">0</span>]
+  chan <span class="ot">&lt;-</span> newChan
+  <span class="kw">let</span> (l1, l2) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">floor</span> <span class="fu">$</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> lst) <span class="fu">/</span> <span class="dv">2</span>) lst
+  forkIO <span class="fu">$</span> sum&#39; l1 chan
+  forkIO <span class="fu">$</span> sum&#39; l2 chan
+  x <span class="ot">&lt;-</span> readChan chan
+  y <span class="ot">&lt;-</span> readChan chan
+  <span class="fu">putStrLn</span> <span class="fu">$</span> <span class="fu">unwords</span> [ <span class="fu">show</span> x, <span class="fu">show</span> y, <span class="fu">show</span> <span class="fu">$</span> x <span class="fu">+</span> y ]</code></pre>
+<h2 id="buffered-channels"><a href="http://tour.golang.org/#64">64 - Buffered Channels</a></h2>
+<p>This is where porting started getting tricky. Haskell channels are basically linked lists, and do not have length or size. In order to get a similar effect, I created a new channel type:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span>
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+
+<span class="co">-- Buffered chan</span>
+<span class="kw">data</span> <span class="dt">BChan</span> a <span class="fu">=</span> <span class="dt">BChan</span> {<span class="ot"> chan ::</span> <span class="dt">Chan</span> a,<span class="ot"> size ::</span> <span class="dt">MVar</span> <span class="dt">Int</span>,<span class="ot"> limit ::</span> <span class="dt">Int</span> }
+
+<span class="ot">newBChan ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">BChan</span> a)
+newBChan bufsize <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> newChan
+  bvar <span class="ot">&lt;-</span> newMVar <span class="dv">0</span>
+  <span class="fu">return</span> <span class="dt">BChan</span>{chan<span class="fu">=</span>chan, size<span class="fu">=</span>bvar, limit<span class="fu">=</span>bufsize}
+
+<span class="ot">readBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
+readBChan <span class="dt">BChan</span>{chan, size, limit} <span class="fu">=</span> <span class="kw">do</span>
+  ret <span class="ot">&lt;-</span> readChan chan
+  modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">-</span><span class="dv">1</span>)
+  <span class="fu">return</span> ret
+
+<span class="ot">writeBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+writeBChan bchan<span class="fu">@</span><span class="dt">BChan</span>{chan, size, limit} val <span class="fu">=</span> <span class="kw">do</span>
+  size&#39; <span class="ot">&lt;-</span> readMVar size
+  <span class="kw">if</span> size&#39; <span class="fu">==</span> limit
+    <span class="kw">then</span> <span class="kw">do</span>
+      threadDelay <span class="dv">100000</span>
+      writeBChan bchan val
+    <span class="kw">else</span> <span class="kw">do</span>
+      modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">+</span><span class="dv">1</span>)
+      writeChan chan val
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> newBChan <span class="dv">2</span>
+  writeBChan chan <span class="dv">1</span>
+  writeBChan chan <span class="dv">2</span>
+
+  v1 <span class="ot">&lt;-</span> readBChan chan
+  <span class="fu">print</span> v1
+
+  v2 <span class="ot">&lt;-</span> readBChan chan
+  <span class="fu">print</span> v2</code></pre>
+<p>Here one difference is that Haskell doesn’t fail with a “deadlock!!” error when an extra <code>writeBChan</code> operation is added(or one of them is removed), but just waits forever(like in a <em>real</em> deadlock :-P ). I wonder whether there is a way to get an exception like that, it’s awesome.</p>
+<h2 id="range-and-close"><a href="http://tour.golang.org/#65">65 - Range and Close</a></h2>
+<p>Same as above, Haskell channels are not working like Go channels. I had to simulate Go channels’ behavior.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns, MultiWayIf #-}</span>
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+<span class="kw">import</span> Control.Monad (liftM)
+
+<span class="co">-- Closable channel</span>
+<span class="kw">data</span> <span class="dt">CChan</span> a <span class="fu">=</span> <span class="dt">CChan</span> (<span class="dt">MVar</span> ([a], <span class="dt">Int</span>, <span class="dt">Bool</span>))
+
+<span class="ot">newCChan ::</span> <span class="dt">IO</span> (<span class="dt">CChan</span> a)
+newCChan <span class="fu">=</span> liftM <span class="dt">CChan</span> (newMVar ([], <span class="dv">0</span>, <span class="kw">False</span>))
+
+<span class="ot">readCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Maybe</span> a)
+readCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span> <span class="kw">do</span>
+  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
+  <span class="kw">if</span> <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="fu">&amp;&amp;</span> <span class="fu">not</span> closed <span class="ot">-&gt;</span> <span class="kw">do</span>
+         putMVar mvar (contents, size, closed)
+         readCChan (<span class="dt">CChan</span> mvar)
+     <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+         putMVar mvar (contents, size, closed)
+         <span class="fu">return</span> <span class="kw">Nothing</span>
+     <span class="fu">|</span> <span class="fu">otherwise</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+         <span class="kw">let</span> r <span class="fu">=</span> <span class="fu">head</span> contents
+         putMVar mvar (<span class="fu">tail</span> contents, size<span class="fu">-</span><span class="dv">1</span>, closed)
+         <span class="fu">return</span> <span class="fu">$</span> <span class="kw">Just</span> r
+
+<span class="ot">writeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+writeCChan (<span class="dt">CChan</span> mvar) val <span class="fu">=</span> <span class="kw">do</span>
+  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
+  <span class="kw">if</span> closed
+    <span class="kw">then</span> <span class="fu">error</span> <span class="st">&quot;writing to a closed chan&quot;</span>
+    <span class="kw">else</span> putMVar mvar (val <span class="fu">:</span> contents, size<span class="fu">+</span><span class="dv">1</span>, closed)
+
+<span class="ot">forChan_ ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+forChan_ cchan f <span class="fu">=</span> <span class="kw">do</span>
+  v <span class="ot">&lt;-</span> readCChan cchan
+  <span class="kw">case</span> v <span class="kw">of</span>
+    <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">return</span> ()
+    <span class="kw">Just</span> v&#39; <span class="ot">-&gt;</span> f v&#39; <span class="fu">&gt;&gt;</span> forChan_ cchan f
+
+<span class="ot">closeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+closeCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span>
+    modifyMVar_ mvar <span class="fu">$</span> \(contents, size, closed) <span class="ot">-&gt;</span> <span class="fu">return</span> (contents, size, <span class="kw">True</span>)
+
+<span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">CChan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+fib i chan <span class="fu">=</span> <span class="kw">do</span>
+    iter i <span class="dv">0</span> <span class="dv">1</span>
+    closeCChan chan
+  <span class="kw">where</span> iter <span class="dv">1</span> x y <span class="fu">=</span> writeCChan chan x
+        iter n x y <span class="fu">=</span> <span class="kw">do</span>
+          writeCChan chan x
+          iter (n<span class="fu">-</span><span class="dv">1</span>) y (x<span class="fu">+</span>y)
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> newCChan
+  forkIO <span class="fu">$</span> fib <span class="dv">10</span> chan
+  forChan_ chan <span class="fu">print</span></code></pre>
+<p>This example still doesn’t quite work like Go code. This is because I used a stack instead of a queue. It should be trivial to fix this code though.</p>
+<h2 id="select-and-67---default-selection"><a href="http://tour.golang.org/#66">66 - Select</a> and <a href="http://tour.golang.org/#67">67 - Default Selection</a></h2>
+<p>Now this is hard. In 66, example program listens multiple channels, and runs some code when any of the channels is ready. If multiple channels are ready at the same time, one of them is chosen randomly. 67 is similar, only difference is when none of the channels are ready, some default action is taken.</p>
+<p>I’m actually not sure if it’s implementable with Haskell Chans, <a href="http://hackage.haskell.org/packages/archive/base/4.6.0.1/doc/html/Control-Concurrent-Chan.html#v:isEmptyChan"><code>isEmptyChan :: Chan a -&gt; IO Bool</code></a> is deprecated, and users are directed to TChans(I think it’s mostly same as a Chan, but working on STM).</p>
+<p>Anyway, that’s it for now. I’ll go learn(pun intended) some STM, why we need them and what’s different about them, and then maybe I can implement this last two examples.</p>]]></summary>
+</entry>
+<entry>
+    <title>ADTler ve sınıflar: bir örnek</title>
+    <link href="http://osa1.net/posts/2013-02-31-adtler-siniflar.html" />
+    <id>http://osa1.net/posts/2013-02-31-adtler-siniflar.html</id>
+    <published>2013-02-28T00:00:00Z</published>
+    <updated>2013-02-28T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Bu yazı, <a href="/rowlar-kindlar/">bir önceki yazım</a> gibi, yine bir mail için yazıldı. Birkaç düzenleme ve eklemeden sonra blog yazısı olarak yayınlıyorum.</p>
+<hr />
+<p>Bir programlama dili meraklısı olarak sık sık yorumlayıcılar ve nadiren derleyiciler yazıyorum. Derleyici/yorumlayıcı yazarken çok sık yapılan işlemlerden biri şudur:</p>
+<p>Programda(derleyici/yorumlayıcıda) kod üzerinde çalışabilmek için son kullanıcı tarafından metin olarak girilmiş kodun üzerinde çalışılabilinecek bir veri yapısına dönüştürülmesi gerekir. Buna “parsing” işlemi diyoruz ve yaptığı iş kısaca metni alıp, abstract syntax tree(AST) dediğimiz bir çeşit ağaç yapısına dönüştürmektir.</p>
+<p>Bu aşamadan sonra elimizde bir ağaç yapısı olmuş olur. Fakat burdaki ağaç yapısını veri yapıların dersinde gösterilen “binary tree” vs. yapılarla karıştırmamak lazım, burda çok çeşitli nodelar oluyor ve her bir node farklı özelliklere sahip, her birine ayrı muameleler yapılacak oluyor. (kod örnekleri vereceğim)</p>
+<p>Bir yorumlayıcı/derleyicinin bu ağaç yapısı üzerinde defalarca gezinmesi gerekir ve genelde her bir gezinmede farklı işlemler yapılır. Bir tur sonrası ağaç üzerinde değişiklikleri yapılabilir ve bir sonraki turda bu yeni ağaç üzerinden devam edilir vs.</p>
+<p>Örnek: Statically typed bir dil için yorumlayıcı yazdığımızda, ilk başta type checker ağaç üzerinde gezerek programın type-safe olduğundan emin olur. Program type-safe ise, ağacın biraz değiştirilmiş hali üzerinde(örneğin type annotationları silinmiş, veya ağacın tagless bir hali) yorumlayıcı çalışır.</p>
+<p>Derleyicilerde ise ağaç çok daha fazla sayıda adımlanır. Her bir adımlamada ağaç yapısı değiştirilebilir.<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup></p>
+<p>Yani kısaca problem şu: Elimde farklı tiplerde ağaçlar var(örnek: tip bilgilerini içeren, type checking/inference için oluşturulmuş bir ağaç ve tip bilgilerinin büyük oranda silindiği, yorumlama/derleme için kullanılan bir ağaç vs.), bu ağaçlar üzerinde turlar atacağım fakat tur atarken farklı işler yapacağım.</p>
+<p>Katkı yaptığım bir derleyici kodundan birkaç örnek vereceğim: Fay, bir Haskell alt kümesinden JavaScript’e derleyici.</p>
+<p><a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Compiler/Exp.hs#L21"><code>compileExp</code></a> fonksiyonu, <a href="http://hackage.haskell.org/packages/archive/haskell-src-exts/1.13.5/doc/html/Language-Haskell-Exts-Syntax.html#g:8"><code>Exp</code></a> ağacı üzerinde gezinir çıktı olarak <a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Types.hs#L242"><code>JsExp</code></a> (yine başka bir ağaç) üretir. Bu bir ağaç üzerinde gezinip farklı işlemler yapıp farklı bir ağaçlar üreten fonksiyonlara bir örnek.</p>
+<p><a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Compiler/Optimizer.hs"><code>Optimizer</code></a> modulü çeşitli ağaçlar üzerinde gezinip başka ağaçlar üreten 13 tane fonksiyondan oluşur ve bunların 5-6 tanesi <a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Types.hs#L227"><code>JsStmt</code></a> ağacını dolaşır. Bu da aynı ağaç üzerinde gezinip farklı işlemler yapan fonksiyonlara örnek.</p>
+<p>Algebraic data typelara ve pattern matchinge sahip olan fonksiyonel dillerde(yani belki de tüm statically typed fonksiyonel dillerde) bunu yapmanın bir yolunu göstermek için hemen hiçbir işlevi olmayan çok basit bir aritmetik ifade dili oluşturalım:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Exp</span>
+    <span class="fu">=</span> <span class="dt">Add</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
+    <span class="fu">|</span> <span class="dt">Mul</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
+    <span class="fu">|</span> <span class="dt">Number</span> <span class="dt">Float</span></code></pre>
+<p>Bu kadar işlevsiz bir dil olamaz. Şimdi bu ağaç üzerinde iki farklı işlem yapan iki fonksiyon:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">run ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">Float</span>
+run (<span class="dt">Add</span> e1 e2) <span class="fu">=</span> run e1 <span class="fu">+</span> run e2
+run (<span class="dt">Mul</span> e1 e2) <span class="fu">=</span> run e1 <span class="fu">*</span> run e2
+run (<span class="dt">Number</span> f)  <span class="fu">=</span> f</code></pre>
+<p><code>run</code> programı çalıştırıp sonucu dönüyor.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">stringOfExp ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
+stringOfExp (<span class="dt">Add</span> e1 e2) <span class="fu">=</span>
+    <span class="fu">concat</span> [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; + &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
+stringOfExp (<span class="dt">Mul</span> e1 e2) <span class="fu">=</span>
+    <span class="fu">concat</span> [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; * &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
+stringOfExp (<span class="dt">Number</span> f) <span class="fu">=</span> <span class="fu">show</span> f</code></pre>
+<p><code>stringOfExp</code> ise programın string halini dönüyor. Örnek:</p>
+<pre><code>ghci&gt; let prog1 = Add (Number 10) (Mul (Number 20) (Add (Number 30) (Number 40)))
+ghci&gt; run prog1
+1410.0
+ghci&gt; stringOfExp prog1
+&quot;(10.0 + (20.0 * (30.0 + 40.0)))&quot;</code></pre>
+<p>Yarın ağaca yeni bir node eklediğimde ağaç üzerinde çalışan tüm fonksiyonları güncellemem gerekecek.</p>
+<p>Herkes için son derece basittir sanıyorum. Şimdi aynısını ADT’lara sahip olmayan, OO bir dil ile yazalım.</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
+<span class="kw">public</span>:
+  <span class="kw">virtual</span> ~Exp() {}
+};
+
+<span class="kw">class</span> AddExp : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  AddExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
+    : e1(e1), e2(e2) {}
+};
+
+<span class="kw">class</span> MulExp : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  MulExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
+    : e1(e1), e2(e2) {}
+};
+
+<span class="kw">class</span> Number : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> <span class="dt">float</span> f;
+  Number(<span class="dt">const</span> <span class="dt">float</span> f) : f(f) {}
+};</code></pre>
+<p>Örnek programımız da şu şekilde yazılabilir:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Exp *prog1 = <span class="kw">new</span> AddExp(
+    <span class="kw">new</span> Number(<span class="dv">10</span>), <span class="kw">new</span> MulExp(
+      <span class="kw">new</span> Number(<span class="dv">20</span>), <span class="kw">new</span> AddExp(
+        <span class="kw">new</span> Number(<span class="dv">30</span>), <span class="kw">new</span> Number(<span class="dv">40</span>))));</code></pre>
+<p>Peki bu ağaç üzerinde gezinmek nasıl mümkün olabilir ? Bir kere, tüm nodelar alt node olarak <code>Exp</code> tipinde bir nesne tutuyor, kesin tip bilgisine sahip değiliz ve bu tip bilgisine sahip olmadan da yorumlamak mümkün değil mi, yorumladığımız node <code>Number</code> mı, <code>MulExp</code> mi vs. bilmemiz gerekir.</p>
+<p>Bunu yapmanın çeşitli yolları var, ama güzel bir çözümü yok. Örneğin <code>Exp</code> sınıfında nodeların tipini tutan bir enum tutabiliriz ve <code>Exp *</code>leri gerekli tiplere cast ederiz. Veya Java gibi bir dilde <code>instanceof</code> kontrolü yapılıp cast edilebilir. Başka çözümler de bulunabilir.</p>
+<p>Bu gibi durumlarda kabul edilen en yaygın çözüm visitor design patternı. Biraz aradığınızda onlarca tutorial bulabilirsiniz ki tutoriala ihtiyaç duyması bile aslında fonksiyonel dildeki çözümümüzden ne kadar kötü olduğunun bir göstergesi sayılabilir(8 satır son derece basit ve açık bir Haskell koduna denk bir iş yapmaya çalışıyoruz şu anda)</p>
+<p>Bu probleme <em>double dispatch</em> problemi de deniyor. Sebebi yapacağımız işleme hem yorumlayıcıya, hem de ağaca göre karar vermek istiyoruz fakat bir yandan da ağaçlara ve yorumlayıcılara aynı muameleyi yapabilmeliyiz. C++ örneğinde her bir node’un bir ağaç oluşturduğuna dikkat.<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> AddExp;
+<span class="kw">class</span> MulExp;
+<span class="kw">class</span> Number;
+
+<span class="kw">class</span> ExpVisitor {
+<span class="kw">public</span>:
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+
+  <span class="kw">virtual</span> ~ExpVisitor() {};
+};
+
+<span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
+<span class="kw">public</span>:
+  <span class="kw">virtual</span> ~Exp() {}
+  <span class="kw">virtual</span> <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> = <span class="dv">0</span>;
+};
+
+<span class="kw">class</span> AddExp : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  AddExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
+    : e1(e1), e2(e2) {}
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+};
+
+<span class="kw">class</span> MulExp : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  MulExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
+    : e1(e1), e2(e2) {}
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+};
+
+<span class="kw">class</span> Number : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> <span class="dt">float</span> f;
+  Number(<span class="dt">const</span> <span class="dt">float</span> f) : f(f) {}
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+};</code></pre>
+<p>Detaylara çok fazla girmek istemiyorum, kısaca, virtual methodların yardımıyla artık bir nesneyi <code>Exp</code> tipine cast etsek de doğru <code>visit</code> methodları çağırılacak. Buna göre ilk yorumlayıcımızı şu şekilde yazabiliyoruz:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Run : <span class="kw">public</span> ExpVisitor {
+<span class="kw">public</span>:
+  <span class="dt">float</span> result;
+  Run() : result(<span class="dv">0</span>) {}
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) {
+    Run v1;
+    exp-&gt;e1-&gt;accept(&amp;v1);
+
+    Run v2;
+    exp-&gt;e2-&gt;accept(&amp;v2);
+
+    result = v1.result + v2.result;
+  }
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) {
+    Run v1;
+    exp-&gt;e1-&gt;accept(&amp;v1);
+
+    Run v2;
+    exp-&gt;e2-&gt;accept(&amp;v2);
+
+    result = v1.result * v2.result;
+  }
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) {
+    result = exp-&gt;f;
+  }
+};</code></pre>
+<p>Bu arada nesnesel çözümümüzün fonksiyonel çözümümüzden bir başka farkı da burda belli oluyor. Visitorlar arası değer dönmenin bir yolu yok ve bu yüzden buradaki <code>result</code> member değişkeni gibi bir mutable değişken kullanmak zorunda kalıyoruz.</p>
+<p>İkinci yorumlayıcımız:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> StringOfExp : <span class="kw">public</span> ExpVisitor {
+<span class="kw">public</span>:
+  std::string result;
+  StringOfExp() : result(<span class="kw">new</span> std::string()) {}
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) {
+    StringOfExp v1;
+    exp-&gt;e1-&gt;accept(&amp;v1);
+
+    StringOfExp v2;
+    exp-&gt;e2-&gt;accept(&amp;v2);
+
+    result = <span class="st">&quot;(&quot;</span> + v1.result + <span class="st">&quot; + &quot;</span> +  v2.result + <span class="st">&quot;)&quot;</span>;
+  }
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) {
+    StringOfExp v1;
+    exp-&gt;e1-&gt;accept(&amp;v1);
+
+    StringOfExp v2;
+    exp-&gt;e2-&gt;accept(&amp;v2);
+
+    result = <span class="st">&quot;(&quot;</span> + v1.result + <span class="st">&quot; * &quot;</span> +  v2.result + <span class="st">&quot;)&quot;</span>;
+  }
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) {
+    std::ostringstream ss;
+    ss &lt;&lt; exp-&gt;f;
+    result = ss.str();
+  }
+};</code></pre>
+<p><code>result</code> member değişkeninin tipinin farklı olduğuna dikkat. Buradaki farklılık Haskell fonksiyonlarındaki dönüş tiplerinin farklılığı ile aynı.</p>
+<p>Son olarak programı şu şekilde çalıştırabiliyoruz:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Run r;
+prog1-&gt;accept(&amp;r);
+std::cout &lt;&lt; <span class="st">&quot;return value Run: &quot;</span> &lt;&lt; r.result &lt;&lt; std::endl;
+
+StringOfExp s;
+prog1-&gt;accept(&amp;s);
+std::cout &lt;&lt; <span class="st">&quot;return value of StringOfExp: &quot;</span> &lt;&lt; s.result &lt;&lt; std::endl;</code></pre>
+<p>Çıktı:</p>
+<pre><code>➜  cpp  clang++ arith.cpp -g
+➜  cpp  ./a.out
+return value Run: 1410
+return value of StringOfExp: (10 + (20 * (30 + 40)))</code></pre>
+<p>Burda 14 satır Haskell kodu ile aynı işi yapan 125 satır C++ kodundan bahsediyoruz. Tabii kodun aynı özelliğe sahip olduğunu sadece aynı sonuca ulaşmasına bakarak karar vermiyoruz. Yapı olarak da oldukça benzerler.</p>
+<p>Haskell programında ağaca yeni bir node eklemek için ilk başta <code>Exp</code> tipine yeni bir constructor eklememiz gerekecek ve daha sonra tüm yorumlayıcılarda match edilecek bir pattern daha eklenecek.</p>
+<p>C++ programında, <code>Exp</code> sınıfından yeni bir sınıf türeteceğiz ve tamamen aynı <code>accept</code> methoduna sahip olacak. <code>ExpVisitor</code> sınıfına da bir <code>visit</code> methodu daha eklememiz gerek. Daha sonra yorumlayıcılara teker teker alakalı <code>visit</code> methodunun eklenmesi gerek.</p>
+<p>Haskell fonksiyonlarının dönüş değerleri, Visitor sınıflarının <code>result</code> değişkeni ile eşleşiyor.</p>
+<p>Aslında aynı şeylerden bahsediyoruz yani.</p>
+<p>C++ kodunun çalışan bir haline <a href="https://gist.github.com/osa1/5005037">şuradan</a> ulaşabilirsiniz.</p>
+<p>Alıştırma: Hem Haskell hem C++ programı için, ağaç üzerinde gezinerek “x + 0” ifadesini “x” haline, “x * 1” ifadesini “x” haline, “x * 0” ifadesini “0” haline getirecek yorumlayıcılar yazın. Anlamı koruyacak şekilde daha küçük bir ağaç elde etmiş olacağız. (bu optimizasyonlar gerçek derleyiciler tarafından yapılıyor)</p>
+<h1 id="ifade-problemi">İfade problemi</h1>
+<p>Yukarıda anlattıklarımın ifade problemi diye tercüme ettiğim <a href="http://en.wikipedia.org/wiki/Expression_problem">expression problem</a> ile de alakalı.</p>
+<p>Problemimiz şu, program iki boyutta gelişebiliyor, 1.si veri yapısı boyutunda, yani ağaca yeni nodelar eklemek, 2.si operasyonlar boyutunda, yani yeni yorumlayıcılar eklemek.</p>
+<p>Yukarıdaki çözümler aslında birbirlerine denk: İkisinde de veri yapısını değiştirdiğimizde kodu yeniden derlememiz gerekiyor(dolayısıyla kodun elimizde olması gerekiyor), fakat koda sahip olmadan ve yeniden derleme yapmadan yeni operasyon(yani yorumlayıcı ekleyebiliyoruz).</p>
+<p>Bu yazının amacı ifade problemi değil, o yüzden en azından şimdilik bahsetmeyeceğim(yazının orjinalinde bu kısım hiç yoktu), fakat aslında oldukça ilginç bir konu ve Haskell’ın ve Lisp dillerinin getirdiği ilginç çözümler var. OO dillerin çözümleri hakkında pek bir bilgim yok.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Aslında tabii yorumlayıcı bir çeşit byte-code üzerinden değil de, AST üzerinden yorumlama yapıyorsa, program çalıştığı sürece AST’yi geziyor demektir ve bu durumda bir derleyiciden çok daha fazla sayıda tur atmış olur. Benim burada kastettiğim çalıştırılmadan önce ön işlem anlamında yapılan gezinmeler.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Haskell örneğinde yorumlayıcıların tipleri farklı olduğundan ikisine aynı muameleyi yapamıyoruz, farkındayım. Tamamen aynı tipte yorumlayıcılar için Fay için verdiğim linklere göz atabilirsiniz.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
+    <title>Separating lexing and parsing stages in Parsec</title>
+    <link href="http://osa1.net/posts/2012-08-30-separating-lexing-and-parsing-in-parsec.html" />
+    <id>http://osa1.net/posts/2012-08-30-separating-lexing-and-parsing-in-parsec.html</id>
+    <published>2012-08-30T00:00:00Z</published>
+    <updated>2012-08-30T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I really love Parsec. After using it several months now, I can’t think of parsing anything other than Parsec.</p>
+<p>After I started working on more complex grammars, I thought maybe it could be good idea to separate lexing stage, since it may lead parser with simpler code. After some experimenting, a SO question, and reading some part of Parsec’s source, I finally managed to separate lexing and parsing. Now I’ll explain how to do that.</p>
+<p>In lexing stage, other than writing ordinary token parsers, we also need to handle token positions. Each token moves the cursor, and saving this is needed for error reporing(and maybe some other reasons). In our case, simplest tokens are characters, and since we’re using Parsec’s built-in <code>Char</code> token, we don’t need to handle characters’ positions. But we need to save each token’s positions because we won’t be using Char tokens in parsing stage, we will be using our custom tokens.</p>
+<p>You can see the full source <a href="https://gist.github.com/3507011">here</a>.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Token</span> <span class="fu">=</span> <span class="dt">Ide</span> <span class="dt">String</span>
+           <span class="fu">|</span> <span class="dt">LBrack</span>
+           <span class="fu">|</span> <span class="dt">RBrack</span>
+           <span class="fu">|</span> <span class="dt">LBrace</span>
+           <span class="fu">|</span> <span class="dt">RBrace</span>
+           <span class="fu">|</span> <span class="dt">Keyword</span> <span class="dt">String</span>
+    <span class="kw">deriving</span> (<span class="kw">Show</span>, <span class="kw">Eq</span>)</code></pre>
+<p>Token types should be instances of <code>Eq</code> to be able to test for equality while parsing, and <code>Show</code> to be able to print in error situations(actually you can use any function for testing for equality and printing, but I find this way easier).</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">TokenPos</span> <span class="fu">=</span> (<span class="dt">Token</span>, <span class="dt">SourcePos</span>)</code></pre>
+<p>So we will be using <code>(Token, SourcePos)</code> pairs for tokens with positions of them in source. Now parsers are simple:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ide ::</span> <span class="dt">Parser</span> <span class="dt">TokenPos</span>
+ide <span class="fu">=</span> <span class="kw">do</span>
+    pos <span class="ot">&lt;-</span> getPosition
+    fc  <span class="ot">&lt;-</span> oneOf firstChar
+    r   <span class="ot">&lt;-</span> optionMaybe (many <span class="fu">$</span> oneOf rest)
+    spaces
+    <span class="fu">return</span> <span class="fu">$</span> <span class="fu">flip</span> (,) pos <span class="fu">$</span> <span class="kw">case</span> r <span class="kw">of</span>
+                 <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">Ide</span> [fc]
+                 <span class="kw">Just</span> s  <span class="ot">-&gt;</span> <span class="dt">Ide</span> <span class="fu">$</span> [fc] <span class="fu">++</span> s
+  <span class="kw">where</span> firstChar <span class="fu">=</span> [<span class="ch">&#39;A&#39;</span><span class="fu">..</span><span class="ch">&#39;Z&#39;</span>] <span class="fu">++</span> [<span class="ch">&#39;a&#39;</span><span class="fu">..</span><span class="ch">&#39;z&#39;</span>] <span class="fu">++</span> <span class="st">&quot;_&quot;</span>
+        rest      <span class="fu">=</span> firstChar <span class="fu">++</span> [<span class="ch">&#39;0&#39;</span><span class="fu">..</span><span class="ch">&#39;9&#39;</span>]</code></pre>
+<p>This is a simple identifier parser(or lexer). Note the <code>pos &lt;- getPosition</code> part.</p>
+<p>After more lexers like this, we need a <code>tokenize</code> function to generate token stream:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">tokenize ::</span> <span class="dt">SourceName</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">ParseError</span> [<span class="dt">TokenPos</span>]
+tokenize <span class="fu">=</span> runParser tokens ()</code></pre>
+<p>In parsing stage, we have several problems. One is that now we can’t use Parsec’s <code>parseTest</code> function, which I almost always use for testing purposes. Because now we need to pass the string to lexer, and then pass it’s output to parser. So I wrote this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Text.Parsec <span class="kw">as</span> P
+<span class="fu">...</span>
+<span class="ot">parseTest  ::</span> <span class="kw">Show</span> a <span class="ot">=&gt;</span> <span class="dt">Parsec</span> [<span class="dt">TokenPos</span>] () a <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+parseTest p s <span class="fu">=</span>
+    <span class="kw">case</span> tokenize <span class="st">&quot;test&quot;</span> s <span class="kw">of</span>
+        <span class="kw">Left</span> e    <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="fu">$</span> <span class="fu">show</span> e
+        <span class="kw">Right</span> ts&#39; <span class="ot">-&gt;</span> P.parseTest p ts&#39;</code></pre>
+<p><code>satisfy</code> gets a predicate on token, and return a token parser using Parsec’s <code>tokenPrim</code> function, which takes 3 functions as parameters, one for printing the token(to be used in error reporting), one for updating the current position, and one for returning the result after calling predicate. I adapted this function from Parsec’s string parsers:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">advance ::</span> <span class="dt">SourcePos</span> <span class="ot">-&gt;</span> t <span class="ot">-&gt;</span> [<span class="dt">TokenPos</span>] <span class="ot">-&gt;</span> <span class="dt">SourcePos</span>
+advance _ _ ((_, pos) <span class="fu">:</span> _) <span class="fu">=</span> pos
+advance pos _ [] <span class="fu">=</span> pos
+<span class="ot">satisfy ::</span> (<span class="dt">TokenPos</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Token</span>
+satisfy f <span class="fu">=</span> tokenPrim <span class="fu">show</span>
+                      advance
+                      (\c <span class="ot">-&gt;</span> <span class="kw">if</span> f c <span class="kw">then</span> <span class="kw">Just</span> (<span class="fu">fst</span> c) <span class="kw">else</span> <span class="kw">Nothing</span>)</code></pre>
+<p>Last function, <code>tok</code>, takes a token and returns a token parser:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">tok ::</span> <span class="dt">Token</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Token</span>
+tok t <span class="fu">=</span> (satisfy <span class="fu">$</span> (<span class="fu">==</span> t) <span class="fu">.</span> <span class="fu">fst</span>) <span class="fu">&lt;?&gt;</span> <span class="fu">show</span> t</code></pre>
+<p><code>.. &lt;?&gt; show t</code> part is required for error reporting. See my <a href="http://stackoverflow.com/questions/12167329/haskell-parsec-error-messages-are-less-helpful-while-using-custom-tokens">SO question</a> for details.</p>
+<p>Now, when using Parsec, generally there’s no need to separate lexing stage. Because as you can see above, it just makes code more complex, and adds no more flexibility. Instead of writing <code>tok $ Ide &quot;some-identifier&quot;</code>, you can always write <code>ide &quot;some-identifier&quot;</code> with a <code>ide</code> parser.</p>
+<p>Still, I think understanding how to make this helps for at least two reasons. First, now you can work on any streams, not just character streams using Parsec’s <code>Char</code> token. And second, writing lexers can still help in some situations, like parsing indentation-based grammars. In that case, you can generate indent-dedent tokens in lexing stage, and make parser code more clean because it will be less <em>context-dependent</em> (I never tried that with Parsec, though) .</p>]]></summary>
+</entry>
+<entry>
+    <title>Some GHC extensions I use</title>
+    <link href="http://osa1.net/posts/2012-07-31-some-ghc-extensions.html" />
+    <id>http://osa1.net/posts/2012-07-31-some-ghc-extensions.html</id>
+    <published>2012-07-31T00:00:00Z</published>
+    <updated>2012-07-31T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>GHC is a huge compiler. On GHC 7.4.1, I can see 85 optional language extensions<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> Some of them are just adding some syntactic sugar(<code>NamedFieldPuns</code>, <code>RecordWildCards</code>), and some of them are extensions to type system(<code>GADTs</code>, <code>Rank2Types</code>). As a new Haskeller, I only know and use a small subset of this features, and in this post I’ll write about it.</p>
+<h3 id="namedfieldpuns-and-recordwildcards">NamedFieldPuns and RecordWildCards</h3>
+<p>This is some really simple syntactic sugar for pattern matching some names in records. Normally you’d do:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)
+someFun <span class="dt">T</span>{n2<span class="fu">=</span>n2, n3<span class="fu">=</span>n3} <span class="fu">=</span> (n2, n3)</code></pre>
+<p>But instead of assigning some names to members of a record with same names, with help of <code>NamedFieldPuns</code>, you could just write:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)
+someFun <span class="dt">T</span>{n3, n2} <span class="fu">=</span> (n2, n3)</code></pre>
+<p>It’s that simple. <code>RecordWildCards</code> doing something similar. Instead of writing <code>someFun T{n1,n2,n3}</code>, you just write <code>someFun T{..}</code>.</p>
+<p>These are purely syntactic, so they can be used for any place that you can use pattern matching or destructuring(ie. <code>let .. in ..</code> or <code>where</code> clauses). Really helpful when working on data constructors that have 4+ members.</p>
+<p>Most interesting use of <code>RecordWildCards</code> I’ve seen was <a href="http://hpaste.org/71626">this implementation</a> of localised module imports(I think this implementation can also be used for first-class modules).</p>
+<h3 id="overloadedstrings">OverloadedStrings</h3>
+<p>This really helps when working on <a href="http://hackage.haskell.org/package/text-0.11.2.2"><code>Text</code></a> data. When you are passing a function a <code>Text</code> data, instead of using <code>pack &quot;some string&quot;</code>, you can just use <code>&quot;some string&quot;</code> and compiler resolves the type of the string, adds required code etc.</p>
+<p>Basically it provides a way to create instances of <code>class IsString a where fromString :: String -&gt; a</code> using string syntax. It’s mostly used with <code>Data.Text</code>, <code>ByteString.Text</code> etc.</p>
+<h3 id="gadts">GADTs</h3>
+<p>This is by far my favorite type system extension. This is mostly because I’m working on an interpreter, and GADTs are great for representing syntax trees.</p>
+<p>To understand advantages of GADTs, first let’s think about how we can represent syntax tree for a simple language. Let some part of our sytax be(in a BNF-like format):</p>
+<pre><code>&lt;var&gt;   = String
+&lt;abst&gt;  = &quot;(&quot; &quot;λ&quot; &quot;(&quot; {&lt;var&gt; [&quot; &quot;]}* &quot;)&quot; &lt;term&gt; &quot;)&quot;
+&lt;app&gt;   = &quot;(&quot; &lt;term&gt; {&lt;term&gt; [&quot; &quot;]}* &quot;)&quot;
+&lt;term&gt;  = &lt;var&gt; | &lt;abst&gt; | &lt;app&gt;</code></pre>
+<p>So, variables, lambda abstractions, and applications. Just like in untyped lambda calculus. Now let’s try to encode this format in Haskell:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="dt">Var</span> <span class="dt">String</span>
+          <span class="fu">|</span> <span class="dt">Abst</span> [<span class="fu">??</span>] <span class="dt">Term</span>
+          <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Term</span> <span class="dt">Term</span></code></pre>
+<p>What should we write in place of <code>??</code> ? Writing <code>Term</code> is obviously wrong, since then we could be ill-formed data(for instance, think about a syntax like that: <code>(λ ((λ (a) ..)) ...)</code> we used lambda abstraction in place of lambda parameter names).</p>
+<p>If the term <code>var</code> just consists of a String, then we can directly use String as a first member of <code>Abst</code> constructor, but think term <code>var</code> as a really complex constructor. I’m trying to make examples as clear and simple as possible.</p>
+<p>One way to fix that is to use “smart constructors”. What this really means is that we can hide some data constructors in our module(ie. write exported names in module explicitly) and export some constructor function in place of them. With the help of a trick we can give users a more controlled way of creating data(in our case this means that we can prevent caller from creating ill-formed syntax tree).</p>
+<p>First, let’s see the data type trick:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T1</span>
+<span class="kw">data</span> <span class="dt">T2</span>
+<span class="kw">data</span> <span class="dt">SomeData</span> a <span class="fu">=</span> <span class="dt">Data1</span> <span class="dt">String</span> <span class="fu">|</span> <span class="dt">Data2</span> <span class="dt">Int</span>
+  <span class="kw">deriving</span> <span class="kw">Show</span></code></pre>
+<p>This is interesting because data types T1 and T2 don’t have any constructors. So there is literally no way to create data in that types. Second interesting point in <code>SomeData a</code> is, the <code>a</code> variable is not used by data constructors(<code>Data1</code> and <code>Data2</code>). This code still works:</p>
+<pre><code>ghci&gt; :t Data1 &quot;ok&quot;
+Data1 &quot;ok&quot; :: SomeData a
+ghci&gt; :t Data2 123
+Data2 123 :: SomeData a
+ghci&gt; Data1 &quot;ok&quot; :: SomeData Int
+Data1 &quot;ok&quot;
+ghci&gt; Data1 &quot;ok&quot; :: SomeData Char
+Data1 &quot;ok&quot;</code></pre>
+<p>If we could find a way to distinguish types of data created with <code>Data1</code> and <code>Data2</code>, we’re done. This is where smart constructors take place:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">data1 ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T1</span>
+data1 <span class="fu">=</span> <span class="dt">Data1</span>
+<span class="ot">data2 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T2</span>
+data2 <span class="fu">=</span> <span class="dt">Data2</span></code></pre>
+<p>We’re telling to compiler that data created with <code>data1</code> constructor will be the type of <code>SomeData T1</code>. Now if we hide <code>Data1</code> and <code>Data2</code> data constructors and export <code>data1</code> and <code>data2</code> functions, there is no way for user create ill-formed data types like <code>Data1 &quot;ok&quot; :: SomeData SomeUnrelatedType</code> like we done in past example.</p>
+<pre><code>ghci&gt; data1 &quot;ok&quot; :: SomeData Int
+
+&lt;interactive&gt;:48:1:
+    Couldn&#39;t match expected type `Int&#39; with actual type `T1&#39;
+    Expected type: SomeData Int
+      Actual type: SomeData T1
+    In the return type of a call of `data1&#39;
+    In the expression: data1 &quot;ok&quot; :: SomeData Int</code></pre>
+<p>Now we can encode our syntax in Haskell like this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Var</span>
+<span class="kw">data</span> <span class="dt">Abst</span>
+<span class="kw">data</span> <span class="dt">App</span>
+<span class="kw">data</span> <span class="dt">AnyTerm</span>
+<span class="kw">data</span> <span class="dt">Term</span> a <span class="fu">=</span> <span class="dt">Var</span> <span class="dt">String</span>
+            <span class="fu">|</span> <span class="dt">Abst</span> [<span class="dt">Term</span> <span class="dt">Var</span>] (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)
+            <span class="fu">|</span> <span class="dt">App</span> (<span class="dt">Term</span> <span class="dt">AnyTerm</span>) (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)
+<span class="ot">var ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span>
+var <span class="fu">=</span> <span class="dt">Var</span>
+<span class="ot">abst ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span>
+abst <span class="fu">=</span> <span class="dt">Abst</span>
+<span class="ot">app ::</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span>
+app <span class="fu">=</span> <span class="dt">App</span>
+anyTerm <span class="fu">=</span> <span class="fu">id</span></code></pre>
+<p>Now I’m omitting some parts without explaining since this post is already long enough. But the point should be clear by now. Let’s see this in action:</p>
+<pre><code>ghci&gt; abst [(abst [var &quot;p1&quot;] (anyTerm (var &quot;p1&quot;)))] (anyTerm (var &quot;somevar&quot;))
+
+&lt;interactive&gt;:63:8:
+    Couldn&#39;t match expected type `Var&#39; with actual type `Abst&#39;
+    Expected type: Term Var
+      Actual type: Term Abst
+    In the return type of a call of `abst&#39;
+    In the expression: (abst [var &quot;p1&quot;] (anyTerm (var &quot;p1&quot;)))</code></pre>
+<p>Nice! Just like what we wanted. GADTs help for creating smart “data constructors” so that we don’t have to hide data constructors and export some smart constructor functions. Here’s the same code with GADTs:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Var</span>
+<span class="kw">data</span> <span class="dt">Abst</span>
+<span class="kw">data</span> <span class="dt">App</span>
+<span class="kw">data</span> <span class="dt">Term</span> a <span class="kw">where</span>
+    <span class="dt">Var</span><span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span>
+    <span class="dt">Abst</span><span class="ot"> ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span>
+    <span class="dt">App</span><span class="ot"> ::</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span>
+<span class="kw">data</span> <span class="dt">AnyTerm</span> <span class="kw">where</span>
+    <span class="dt">AnyTerm</span><span class="ot"> ::</span><span class="dt">Term</span> a <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span></code></pre>
+<p>This code should be clear. All we do is to specify constructor’s return type.</p>
+<p>This is really great improvement. Think of a more complex syntax tree, with a lot more constructors. The parser already checks for invalid syntax, so actually there’s no way to create ill-formed syntax tree since parser rejects the code.</p>
+<p>If you don’t use GADTs or phantom types, you have to check for ill-formed syntax in your evaluator(or reducer or compiler or whatever) even if there’s no way for parser to generate ill-formed syntax tree. For instance, you’d have to check for <code>Var [(App ..)] ...</code> in your <code>eval :: Env -&gt; Term -&gt; Val</code> function.</p>
+<p>The worst part of GADTs is that you can’t use <code>deriving</code> clause in data type declaration(can anyone explain why?). In my case, that means I have to write some big amounts of code just to be able to print out the data for debugging purposes. For instance, I had to write some repetitive code like this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Show</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>
+    <span class="fu">...</span>
+    <span class="fu">show</span> (<span class="dt">Lambda</span> params ret body) <span class="fu">=</span> <span class="st">&quot;(lambda (&quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> params) <span class="fu">++</span> <span class="st">&quot;) : &quot;</span> <span class="fu">++</span> <span class="fu">show</span> ret <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> body) <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+    <span class="fu">show</span> (<span class="dt">If</span> ifE thenE elseE) <span class="fu">=</span> <span class="st">&quot;(&quot;</span> <span class="fu">++</span> intercalate <span class="st">&quot;,&quot;</span> [<span class="fu">show</span> ifE, <span class="fu">show</span> thenE, <span class="fu">show</span> elseE] <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+    <span class="co">-- same repetitive code for each data constructor, it&#39;s really pain when the syntax grows bigger and when you frequently make some changes on it.</span></code></pre>
+<p>I also had to write same amount of code just to be able to run tests on my parser(ie. I need to compare hand-written syntax tree with parser generated syntax tree).</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Eq</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>
+    <span class="fu">...</span>
+    <span class="dt">Lambda</span> p1 b1 <span class="fu">==</span> <span class="dt">Lambda</span> p2 b2 <span class="fu">=</span> p1 <span class="fu">==</span> p2 <span class="fu">&amp;&amp;</span> b1 <span class="fu">==</span> b2
+    <span class="dt">If</span> i1 t1 e1 <span class="fu">==</span> <span class="dt">If</span> i2 t2 e2 <span class="fu">=</span> i1 <span class="fu">==</span> i2 <span class="fu">&amp;&amp;</span> t1 <span class="fu">==</span> t2 <span class="fu">&amp;&amp;</span> e1 <span class="fu">==</span> e2
+    <span class="fu">...</span>
+    _ <span class="fu">==</span> _ <span class="fu">=</span> <span class="kw">False</span></code></pre>
+<h3 id="further-reading">Further reading:</h3>
+<ul>
+<li><a href="http://www.haskell.org/haskellwiki/Phantom_type">Phantom type on Haskell wiki</a>. Phantom types are data types without constructors, like we’ve used in examples. I first met with this concept in <a href="http://vimeo.com/14313378">Yaron Minsky’s great talk on effective ML</a>. I highly recommend it.</li>
+<li><a href="http://www.haskell.org/ghc/docs/latest/html/users_guide/data-type-extensions.html#gadt">GHC user’s guide on GADTs</a>.</li>
+<li><a href="http://www.haskell.org/haskellwiki/GADT">GADTs on Haskell wiki</a>.</li>
+</ul>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>To list all extensions, I run GHCi, type <code>:set -X</code> and then run auto-complete, it says “Display all 167 possibilities?” on GHC 7.4.1, 82 of them are starting with <code>-XNo</code>.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
+    <title>Gramerlerde bağlam bağımsızlık ve indentation-based gramerlerin çözümlenmesi</title>
+    <link href="http://osa1.net/posts/2012-06-12-gramerlerde-baglam-bagmszlk-ve-indentation-based-gramerlerin-cozumlenmesi.html" />
+    <id>http://osa1.net/posts/2012-06-12-gramerlerde-baglam-bagmszlk-ve-indentation-based-gramerlerin-cozumlenmesi.html</id>
+    <published>2012-06-12T00:00:00Z</published>
+    <updated>2012-06-12T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>(Yazıda terimleri Türkçe kullanmaya çalıştım, bağlam bağımsız = context-free, çözümleme = parsing, indentation-based ve lexing/lexer için güzel bir Türkçe karşılık bulamadım, önerilere açığım.)</p>
+<p>Indentation-based gramerlerin çözümlenmesi her zamankinden biraz daha zor. Sebebi bunların aslında bağlam bağımsız(bu kelime grubu bana çok anlamsız geliyor, context-free yani) olmaması. Birazdan bunun ne anlama geldiğinden bahsedeceğim. <code>lex</code> programının Haskell karşılığı olan Alex için kod örnekleri vereceğim. Şu anda elimde çalışan bir derleyici olsa da, kaynak kodunu açmam için epey bir vakit var sanırım.</p>
+<p>Çoğu ayrıştırıcı kütüphane/programlar aslında bağlam bağımsız gramerlerin bazı alt kümelerini ayrıştırabiliyor(yeterince esnek olanlarıyla bağlam bağımsız olmayan bazı örnekleri de çözümleyebiliyorsunuz, örneğin çözümleme aşamasında bazı durum değişkenleri tutarak). Örneğin aşağıdan yukarı(bottom-up) veya yukarıdan aşağı(top-down) bir yol izlemelerine göre, LL(n), LR(n), LALR, SLR, PEG(packrat çözümleyiciler) gibi. Genel olarak tüm bağlam bağımsız gramerleri(BNF şeklinde gösterilebildikleri sürece, ve tüm bağlam bağımsız gramerler BNF formunda gösterilebiliyorlar) çözümleyebilen algoritmalar olsa da(örneğin CYK, Unger algoritmaları), bu yöntemler zaman ve bazen bellek kullanımı açısından verimsiz olduklarındaın ve aslında programlama dilleri gramerlerinde çoğu zaman bağlam bağımsız gramerlerin bazı özelliklere sahip olabilen alt kümelerini kullandığımızdan, çözümleyiciler de bağlam-bağımsız gramerlerin çeşitli alt kümeleri üzerinde çalışıyorlar.</p>
+<p>Bir dilin bağlam bağımsız olduğunu bağlam bağımsız bir gramerle ifade edilip edilemeyeceğinden anlıyoruz. Bağlam bağımsız gramerde şu anlama geliyor: tüm dönüşümler, <code>A</code> bir değişken ve <code>a</code> değişkenler ve terminaller dizisi olmak üzere, <code>A -&gt; a</code> şeklinde olmalı. Dönüşümün sol tarafında sadece bir değişken oluyor yani. Bu aslında şu anlama geliyor: <code>A</code> gördüğümüz her yerde, herhangi bir başka duruma(yani <em>context</em>e) bakmaksızın dönüşümü yapabiliyorz. Bağlam bağımlı olma durumda ise örneğin şöyle oluyor: <code>xAb -&gt; xab</code>. Burda <code>A</code>yı dönüştürebilmek için, etrafını da kontrol etmemiz, yani durum/içerikten haberdar olmamız gerekiyor.</p>
+<p>Peki indentation-based gramerlerle ne alakası var? Bu tip gramerleri kullanan bir dil düşünelim, Python veya YAML mesela. Bu dillerde bir blokun bittiğini anlamamız için, önceki satır hakkında bilgi sahibi olmamız gerekiyor. Örneğin bir önceki satırın kaç birim girintilenmiş olduğunu bilmemiz lazım. Eğer şu anda incelemdiğimiz satır ondan çok girintilenmişse, yeni bir blok başlangıcı, az girintilenmişse bir veya birde fazla blok bitişi anlamına geliyor.</p>
+<p>Bu da indentation-based gramerleri <em>bağlam bağımlı</em> yapıyor. Yani şu anda kullanılan neredeyse hiçbir çözümleyici kütüphane/programla bunu ayrıştıramazsınız<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> Çoğu zaten tüm bağlam bağımsız gramerleri bile çözümleyemiyor.</p>
+<p>İşin sırrı lexing aşamasında, satır satır girintilemeleri takip edip, satır başlarında ne kadar değişiklik olduğuna göre gerekli <code>indent</code> ve <code>dedent</code> tokenlarını oluşturmak. Çözümleme aşamasında yapamayıp, daha güçsüz olmasına rağmen(bkz. düzenli diller, DFA) lexing aşamasında bunu yapabilmemizin sebebi şu, çözümleme aşaması daha kompleks olduğundan, kütüphaneler kullanıcıya daha az imkan veriyor. Çoğunda BNF formuna yakın bir formda(dilin izin verdiği ölçüde, veya kimisi farklı bir formattan programlama diline derleme yapıyor, mesela Bison, ANTLR, bu yazıda bahsettiğim Happy) ifade edilmiş bağlam bağımlı gramerlerden direkt olarak parse tree oluşturuyor ve bu sürece çok fazla müdahele edemiyoruz. Lexing aşamasında bunu çözdüğümüzde çözümleme aşamasına bağlam bağımsız bir gramer ile çözümleyebileceğimiz bir dil sunmuş oluyoruz.</p>
+<p>Algoritma şu: Tamamen boşluk karakterlerinden oluşmayan her satır için, eğer bir önceki satırdaki girintileme daha azsa, bir tane <em>indent</em> tokenı oluştur, eğer daha azsa, ne kadar daha az olduğuna göre, bir veya birkaç tane <em>dedent</em> tokenı oluştur. Bu tokenlar aslında <code>{</code> ve <code>}</code> kullanan dillerdeki bu karakterlerle tamamen aynı anlama geliyor yani(veya Pascal tarzı syntax kullanılıyorsa, <em>begin/do</em> ve <em>end</em> kelimeleri).</p>
+<p>Alex’de bu işi şöyle yapıyorum(kodun sadece alakalı kısımlarını koyuyorum):</p>
+<pre><code>...
+$whitespace = [\ \t\b]
+...
+\n $whitespace* \n { skip }
+\n $whitespace*    { setIndent }
+$whitespace+       { skip }
+...</code></pre>
+<p>İkinci satır tamamen boşluklardan oluşan satırı hiç hesaba katmıyor. Üçüncü satır eğer satırda boşluklardan başka karakter varsa, girintilemeyi hesap ediyor ve gerekli işlemleri yapıyor(birazdan geleceğiz). 3. satır da satır içindeki normal boşluk karakterleri.</p>
+<p>Bir önceki satırın girintileme sayısını tutmak istediğimizden, wrapper olarak <code>monadUserState</code> kullanmamız gerekiyor. Bu durumda Alex bir veri tipi ve veri tipi için bir başlangıç durumu istiyor:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">AlexUserState</span> <span class="fu">=</span> <span class="dt">AlexUserState</span> {<span class="ot"> indent ::</span> <span class="dt">Int</span> }
+<span class="ot">alexInitUserState ::</span> <span class="dt">AlexUserState</span>
+alexInitUserState <span class="fu">=</span> <span class="dt">AlexUserState</span> <span class="dv">0</span></code></pre>
+<p>Artık burda başka ne gibi durumlara ihtiyacınız varsa eklersiniz. Bu durum(state) üzerinde çalışmak için 2 tane yardımcı fonksiyon tanımlayacağım:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getLexerIndentLevel ::</span> <span class="dt">Alex</span> <span class="dt">Int</span>
+getLexerIndentLevel <span class="fu">=</span> <span class="dt">Alex</span> <span class="fu">$</span> \s<span class="fu">@</span><span class="dt">AlexState</span>{alex_ust<span class="fu">=</span>ust} <span class="ot">-&gt;</span> <span class="kw">Right</span> (s, indent ust)
+<span class="ot">setLexerIndentLevel ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Alex</span> ()
+setLexerIndentLevel i <span class="fu">=</span> <span class="dt">Alex</span> <span class="fu">$</span> \s<span class="fu">@</span><span class="dt">AlexState</span>{alex_ust<span class="fu">=</span>ust} <span class="ot">-&gt;</span> <span class="kw">Right</span> (s{alex_ust<span class="fu">=</span>(<span class="dt">AlexUserState</span> i)}, ())</code></pre>
+<p>Ne yaptıkları sanırım barizdir. Bu aşamadan sonra asıl işi <code>setIndent</code> fonksiyonu yapıyor. Bu fonksiyon İlk verdiğim kod parçasındaki regex ne zaman bir eşleşse, eşlesen karakter dizisi ile çağırılacak:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">...</span>
+<span class="kw">data</span> <span class="dt">LexemeClass</span>
+    <span class="fu">...</span>
+    <span class="fu">|</span> <span class="dt">LTIndent</span> <span class="dt">Int</span>
+    <span class="fu">|</span> <span class="dt">LTDedent</span> <span class="dt">Int</span>
+    <span class="fu">|</span> <span class="dt">LIndent</span>
+    <span class="fu">|</span> <span class="dt">LDedent</span>
+    <span class="fu">...</span>
+    <span class="kw">deriving</span> (<span class="kw">Show</span>, <span class="kw">Eq</span>)
+<span class="fu">...</span>
+<span class="ot">setIndent ::</span> <span class="dt">AlexInput</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Alex</span> <span class="dt">Lexeme</span>
+setIndent input<span class="fu">@</span>(p, _, _, str) i <span class="fu">=</span> <span class="kw">do</span>
+    <span class="co">--let !x = unsafePerformIO $ putStrLn str</span>
+    lastIndent <span class="ot">&lt;-</span> getLexerIndentLevel
+    currIndent <span class="ot">&lt;-</span> countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) <span class="dv">0</span> <span class="co">-- first char is always \n</span>
+    <span class="kw">if</span> (lastIndent <span class="fu">&lt;</span> currIndent) <span class="kw">then</span>
+        <span class="kw">do</span> setLexerIndentLevel currIndent
+           mkL (<span class="dt">LTIndent</span> (currIndent <span class="fu">-</span> lastIndent)) input i
+    <span class="kw">else</span> <span class="kw">if</span> (lastIndent <span class="fu">&gt;</span> currIndent) <span class="kw">then</span>
+        <span class="kw">do</span> setLexerIndentLevel currIndent
+           mkL (<span class="dt">LTDedent</span> (lastIndent <span class="fu">-</span> currIndent)) input i
+    <span class="kw">else</span> alexMonadScan
+  <span class="kw">where</span>
+    countIndent str total
+        <span class="fu">|</span> <span class="fu">take</span> <span class="dv">1</span> str <span class="fu">==</span> <span class="st">&quot;\t&quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">1</span>
+                                  countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
+        <span class="fu">|</span> <span class="fu">take</span> <span class="dv">4</span> str <span class="fu">==</span> <span class="st">&quot;    &quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">4</span>
+                                    countIndent (<span class="fu">drop</span> <span class="dv">4</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
+        <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="fu">return</span> total</code></pre>
+<p>Burda bir problem, aslında bir eşleşmede birden fazla token oluşturamadığımızdan(Alex’in bir kısıtlaması, belki de bir yolu vardır ama ben bulamamışımdır), ben <code>LTDedent</code> adlı bir lexeme oluşturuyorum, burdaki <code>T</code> temporary, yani geçici anlamına geliyor. Çünkü daha sonra token listesinden bu elemanları silip başka tokenlar ekleyeceğim. Bu tokenların her biri ne kadar <em>indent</em> veya <em>dedent</em> olduğunu tutuyor. Yani örneğin bir önceki satıra göre 2 birim dışarı çıkmışsa, <code>LTIndent 2</code> ile bir <code>LexemeClass</code> oluşturuyorum. Daha sonra bunu 2 ayrı <code>LIndent</code>e dönüştürmeliyim ki, dilimin <code>{</code> ve <code>}</code> gibi karakterler kullanan dillerden hiçbir farkı kalmasın(bu arada şimdi farkettim, <code>LTIndent</code> diye bir sınıfa ihtiyacım yok, çünkü zaten bir önceki satırdan daha fazla girintilenmişse kesin olarak bir yeni blok oluşmuştur, bir ara düzeltirim artık :).</p>
+<p><code>runAlex</code> fonksiyonu yardımıyla <code>Lexeme</code> listesini elde ettikten sonra şu şekilde bu tokenları ayrı ayrı girintileme tokenları ile değiştiriyorum(kod tekrarı için kusura bakmayın :P )</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addIndentations ::</span> [<span class="dt">Lexeme</span>] <span class="ot">-&gt;</span> [<span class="dt">Lexeme</span>]
+<span class="co">-- ML style pattern matching for patterns with same cases or maybe view patterns</span>
+<span class="co">-- could be useful here</span>
+addIndentations (lex<span class="fu">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTIndent</span> c) _)<span class="fu">:</span>ls) <span class="fu">=</span>
+    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]
+  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
+                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LIndent</span> <span class="kw">Nothing</span>)<span class="fu">:</span>(iter <span class="fu">lex</span> (c<span class="fu">-</span><span class="dv">1</span>))
+addIndentations (lex<span class="fu">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTDedent</span> c) _)<span class="fu">:</span>ls) <span class="fu">=</span>
+    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]
+  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
+                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LDedent</span> <span class="kw">Nothing</span>)<span class="fu">:</span>(iter <span class="fu">lex</span> (c<span class="fu">-</span><span class="dv">1</span>))
+addIndentations (l<span class="fu">:</span>ls) <span class="fu">=</span> l<span class="fu">:</span>(addIndentations ls)
+addIndentations [] <span class="fu">=</span> []</code></pre>
+<p>Ve böylece bağlam bağımlı bir grameri, lexing aşamasında basit bir hileyle bağlam bağımsız hale getirmiş oluyoruz. Indentation-based gramerlerde yapılabilecek en mantıklı iş bu gibi. Bağlam bağımlı gramerleri çözümlemek için bilinen çok iyi algoritmalar/kütüphaneler/programlar var ve bu iş lexing aşamasında çok kolay yapılabiliyor.</p>
+<p>Değişik olduğunu düşündüğüm bir programlama dili üzerinde çalışıyorum, beklemede kalın :P .</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Tabii ki istisnalar olabilir. Bunu yapabilen kütüphanelerin nasıl yapabildiğini birazdan anlatacağım, bağlam bağımsızlığın dışına çıkıyorlar.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
+    <title>IO monadında hayat, monad transformerlar ve XMonad</title>
+    <link href="http://osa1.net/posts/2012-04-22-io-monadinda-hayat-xmonad.html" />
+    <id>http://osa1.net/posts/2012-04-22-io-monadinda-hayat-xmonad.html</id>
+    <published>2012-04-22T00:00:00Z</published>
+    <updated>2012-04-22T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Bir süredir Haskell yazan biri olarak kafama takılan birkaç şeyden bahsedeceğim.</p>
+<p>IO monadının içerisi yan etkilerle dolu, neredeyse imperative bir dünya. Her türlü mutable değişkenleri değiştirebilir(<a href="http://www.haskell.org/ghc/docs/latest/html/libraries/base/Data-IORef.html">IORef</a>, <a href="http://www.haskell.org/ghc/docs/latest/html/libraries/base/Control-Concurrent-MVar.html">MVar</a>, <a href="http://hackage.haskell.org/packages/archive/stm/2.3/doc/html/Control-Concurrent-STM-TMVar.html">TMVar</a>, <a href="http://www.haskell.org/ghc/docs/latest/html/libraries/array-0.4.0.0/Data-Array-MArray.html">MArray</a>, ve benim aklıma gelmeyen/bilmediğim dahası), threadlar oluşturabilir, dosyalardan okuma/dosyalara yazma yapabilir, exception atıp yakalyabilir, ve bunlar gibi fonksiyonel programlarda kısıtlı ve fonksiyonel koddan ayrı tutulmaya çalışılan bir sürü şey yapabilirsiniz.</p>
+<p>Haskell’de bir IO işleminin sonucunu, IO işleminden ayıramıyorsunuz. Tüm IO işlemini bir başlangıç durumu ve bunun üzerine yapılacak hareketlerin sıralı bir listesi gibi düşünebiliriz. Tüm Haskell programları <code>IO ()</code> tipine sahip bir <code>main</code> fonksiyonu ile çalıştırılır ve tüm IO işlemleri bu <code>main</code> fonksiyonunun parametre olarak aldığı<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>bu IO monadı üzerinde çalışmak zorunda. Programın ömrü boyunca tek bir IO monadı olabiliyor ve bu da <code>main</code> fonnksiyonunda kullanılan IO monadı. Bu şu anlama geliyor, başka bir fonksiyondan IO işlemi yapacaksanız, bu <code>main</code>den çağırılmak zorunda, veya <code>main</code>den çağırılan başka bir IO fonksiyonundan.</p>
+<p>Bu iki pratikte şu anlama geliyor: Hiçbir saf fonksiyondan IO yapamazsınız ve IO yapan fonksiyonları çağıramazsınız. Saf fonksiyonlarla yan etkilere sahip fonksiyonları birbirinden ayırmak zorundasınız yani<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<p>Bu bir yandan kullanıcıyı kısıtlarken bir yandan daha fonksiyonel programlar yapmamızı sağlıyor. Yani zaten örneğin ML dillerinde veya Scheme gibi fonksiyonel bir yol izleyen dillerde fonksiyonel kısmı yan etkilerden ayırmak beklenen bir davranış. Haskell ile bir oyun yaptığınızda, çizim yapan tüm fonksiyonlarınız, diğer fonksiyonlardan ayrı olmak zorunda. Oyun durumuyla alakalı birşeyler hesapladığınız bir fonksiyonda ekrana birşeyler çizdiremezsiniz.</p>
+<p>Aslında iş biraz daha abartı, monadları bir “içerik”(state, reader, writer monadlarındaki gibi) veya bir başlangıç durumu + “hareketler”(IO monadındaki gibi) tuttuğunu düşünün. Monadlar ile çalışan fonksiyonlar genelde monadın o anki içeriğini alıp, yeni bir içerik ile beraber bir değer dönen fonksiyonlar oluyor. Bu fonksiyonların birden fazla monad ile çalışmasını daha zor bir hale getiriyor ve farkında olmadan, örneğin oyun durumunu güncelleyen, state monadı ile çalışan fonksiyonlarınızla list monadı ile non-deterministic hesaplamalar yaptığınız fonksiyonları birbirinden ayırmış oluyorsunuz.</p>
+<p>Bu ilk başta güzel gözükse de, birden fazla monad ile çalışmak isteyebileceğiniz çok fazla durum var, ve bu durumlar için çok güzel bir çözüm var aslında.</p>
+<h2 id="monad-transformerlar">Monad transformerlar</h2>
+<p>Neden “transformer” dendiğini anlamadığım bu şeyler aslında<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup> yukarıda bahsettiğim monad tanımındaki “içerik” kısmında, içerik olarak bir de başka bir monadı daha tutan monadlar oluyor. Bu sayede bu içerikdeki monad üzerinde de işlemler yapabiliyorsunuz. Bu arada monad transformer aslında normal bir monad, hiçbir farkı yok. Yani 4-5 tane monadı bu şekilde iç içe koyabilir, bir fonksiyonda bu monadlar ile çalışabilirsiniz.</p>
+<p>Bunun çok da mantıklı olmadığı bariz, bizim yapmaya çalıştığımız zaten fonksiyonları sorumluluklarına göre birbirinden ayırıp, programı daha modüler, anlaşılır, hatasız bir hale getirmek ve bu yaptığımız tam tersi olmuş oluyor. Reddit ortamında bu son zamanlarda <a href="http://www.reddit.com/r/haskell/comments/rd2t5/i_love_rwst_r_w_s_io_a_to_ease_the_transition/">şöyle bir mesajda</a> tartışıldı.</p>
+<p>Yine de bazı durumlarda gerekli ve alternatifiniz olmayabiliyor. Örneğin XMonad’daki gibi.</p>
+<p>XMonad’da programın değişken durumu <code>XState</code>, çalışma süresi boyunca değişmeyecek bazı ayarları <code>XConf</code> veri yapısında tutuluyor. Bilmeyenler için, kendisi bir <a href="http://en.wikipedia.org/wiki/Tiling_window_manager">tiling window manager</a>, ve bu da sürekli IO yapması(çizimler vs.) gerektiği anlamına geliyor. <a href="http://www.haskell.org/haskellwiki/All_About_Monads#The_Reader_monad">Reader</a> monadı tam olarak<code>XConf</code>un tüm fonksyonlara açıkça parametre olarak göndermeden fonksiyonlar arasında paylaşılması için, <a href="http://www.haskell.org/haskellwiki/All_About_Monads#The_State_monad">State</a> monadı da tam olarak <code>XState</code>i paylaşma ve değiştirme işi için uygun. Çizim için de IO monadı gerekiyor. XMonad fonksiyonları çoğu zaman bu 3ünü birden kullandığından, şöyle bir transformer oluşturmuşlar:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">X</span> a <span class="fu">=</span> <span class="dt">X</span> (<span class="dt">ReaderT</span> <span class="dt">XConf</span> (<span class="dt">StateT</span> <span class="dt">XState</span> <span class="dt">IO</span>) a)
+    <span class="kw">deriving</span> (<span class="kw">Functor</span>, <span class="kw">Monad</span>, <span class="dt">MonadIO</span>, <span class="dt">MonadState</span> <span class="dt">XState</span>, <span class="dt">MonadReader</span> <span class="dt">XConf</span>, <span class="dt">Typeable</span>)</code></pre>
+<p>Üç monadı da içeren bir transformer<sup><a href="#fn4" class="footnoteRef" id="fnref4">4</a></sup> Buna da X adını vermişler(süper isim değil mi :) . Bu sayede örneğin <code>(WindowSet -&gt; WindowSet) -&gt; X ()</code> tipinde bir fonksiyondan, <code>ask</code> gibi bir reader monad fonksiyonu, <code>modify</code> gibi bir state monad fonksiyonu ve IO fonksiyonları çağırabiliyorlar.</p>
+<p>Aslında bunun gibi içerisinde IO monadı bulunan transformerlarda IO yapabilmeyi kolaylaştırmak için bir typeclass bile var, MonadIO:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">MonadIO</span> m <span class="kw">where</span>
+<span class="ot">    liftIO ::</span> <span class="dt">IO</span> a <span class="ot">-&gt;</span> m a</code></pre>
+<p>Tam detaylarını bilmesem de, benim anladığım, <code>GeneralizedNewtypeDeriving</code> eklentisi ile GHC’de IO monadını sahip herhangi bir monad transformerı otomatik olarak <code>MonadIO</code> haline getirebiliyorsunuz. Detaylar <a href="http://www.haskell.org/ghc/docs/7.4.1/html/users_guide/deriving.html">şurda</a>.</p>
+<p>XMonad kodunu okumaya devam ediyorum, öğrenilecek çok şey var. Ben şunu söyleyecektim aslında, eğer kontrollü bir şekilde yapılmazsa, transformerlar ve özellikle IO çok tehlikeli olabiliyor.</p>
+<p>Bir süredir geliştirdiğim bir server var, tüm socket işlemleri IO monadı ile çalıştğından çoğu fonksiyonum IO monadı ile çalışıyor. Sunucu multi-threaded, ve threadlar arasında senkronizasyonu sağlamak için tuttuğum <code>MVar</code>lar IO monadında değiştirilebiliyor. Bu durumda çoğu fonksiyonumda <code>MVar</code>ları değiştirip, yeni threadlar oluşturabiliyor, file IO vb. her türlü yan etkili şeyler yapabiliyorum.</p>
+<p>Kodun bu kısmını azaltmak için epey uğraştım, fonksiyonel bir çekirdek oluşturmaya çalıştım ama sonuç olarak sunucunun en temel işlemleri, threadlar arasında senkronize bir şekilde bazı durumları tutmak ve socket üzerinden okuyup yazmak. Her türlü IO monadı ile çalışmak zorundayım.</p>
+<p>Programın kaynağını muhtemelen bir haftaya açmış olurum. Bu sırada Haskell ile yazılmış başka sunucuların kodlarını inceleyeceğim. GHC hackerlarından <a href="http://research.microsoft.com/en-us/people/simonpj/">Simon P. Jones</a>un <a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/marktoberdorf/">Tackling the awkward squad: monadic input/output, concurrency, exceptions, and foreign-language calls in Haskell</a> makalesi tam olarak bu konulardan bahsediyor ve süper yazılmış. Haskell ile uğraşıyorsanız veya en azından yan etkilerin Haskell dünyasında nasıl karşılandığını merak ediyorsanız en azından ilk bölümü mutlaka okuyun.</p>
+<hr />
+<p>Applicative functorlar için sorun yok, typeclass şu şekilde:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> (<span class="kw">Functor</span> f) <span class="ot">=&gt;</span> <span class="kw">Applicative</span> f <span class="kw">where</span>
+<span class="ot">    pure  ::</span> a <span class="ot">-&gt;</span> f a
+<span class="ot">    (&lt;*&gt;) ::</span> f (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b</code></pre>
+<p>Her applicative functor’un functor olması burda sağlanmış. Fakat monadlar için bu geçerli değil:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Monad</span> m <span class="kw">where</span>
+<span class="ot">    return ::</span> a <span class="ot">-&gt;</span> m a
+<span class="ot">    (&gt;&gt;=)  ::</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b</code></pre>
+<p>Bu tanım, <a href="http://www.haskell.org/haskellwiki/Typeclassopedia#Monad">Typeclassopedia</a>da belirtildiği gibi, şu şekilde olabilirdi:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> (<span class="kw">Applicative</span> m) <span class="ot">=&gt;</span> <span class="kw">Monad</span> m <span class="kw">where</span>
+<span class="ot">    (&gt;&gt;=) ::</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b</code></pre>
+<p>Bir kere her nedense bu böyle yapılmamış ve şimdi bu hale getirdiğimizde mevcut kodlardaki tüm <code>return</code>leri <code>pure</code> ile, tüm <code>liftM</code>leri <code>fmap</code> ile, tüm <code>ap</code>ları <code>&lt;*&gt;</code> ile değiştirmek gerekiyor.</p>
+<p>Bu bir de şu anlama geliyor, eğer bir monad yazmışsanız, birkaç satırda bunu applicative functor haline de getirebilirsiniz. Ve bunu yapmanız applicative tarzda programlamak isteyen birine kolaylık sağlamış olur, veya applicativelar üzerinde çalışan fonksiyonları kullanabilirsiniz. X monadında yaptıkları gibi:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Applicative</span> <span class="dt">X</span> <span class="kw">where</span>
+    pure <span class="fu">=</span> <span class="fu">return</span>
+    (<span class="fu">&lt;*&gt;</span>) <span class="fu">=</span> ap</code></pre>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Aslında parametre olarak mı alıyor, yoksa başka bir şekilde mi bilmiyorum. IO monad implementasyonu standartda belirtilmemiş, implementasyon detayı.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p><code>unsafePerformIO</code> ve benzerlerinin farkındayım.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>Monad stack falan daha uygun olurmuş sanki, ortada bir “dönüştürme” işlemi yok sonuçta.<a href="#fnref3">↩</a></p></li>
+<li id="fn4"><p>Bu arada hazır denk gelmişken ilginç birşeyden bahsedeceğim. Matematiksel olarak, tüm monadlar aslında applicative functor, ve tüm applicative functorlar aslında functor. Fakat Haskell’de, bazı geriye uyumluluk sorunları yüzünden bu tam olarak sağlanamıyor.<a href="#fnref4">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
+    <title>Ramblings on monads</title>
+    <link href="http://osa1.net/posts/2012-04-09-ramblings-monads.html" />
+    <id>http://osa1.net/posts/2012-04-09-ramblings-monads.html</id>
+    <published>2012-04-09T00:00:00Z</published>
+    <updated>2012-04-09T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I had written a short post about Haskell and monads to <a href="http://nathansuniversity.com/">Nathan’s University</a> forum as a first homework, and I wanted to add it to my blog too:</p>
+<hr />
+<p>I know lots of people here have already given Haskell as an example, but I want to mention to a different point of Haskell. Monads and DSL capabilities.</p>
+<p>Every monad in Haskell is potentially a DSL. You can define commands(ie. functions) in a syntax that looks almost like syntax in imperative languages even if you’re doing a purely functional computation(for imperative computations, see IO monad). When you write a monad and some functions working with this monad, you basically write operations of a kind of computations, and a way to combine this computations(with <code>&gt;&gt;=</code> function, read as bind).</p>
+<p>This gives you two great advantages. First, monads give you an elegant way to separate combination and calculation logic, and second, it gives you an opportunity to create syntactic abstractions.</p>
+<p>For example, you don’t have to pass some states around functions thank to monads. You can just create a monad with functions getting a state and returning some values and the new state. Then you can define your combination logic(bind functions) and with the help of <code>do</code> notation, you can write almost imperative looking code, passing states automatically. See example:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Monad.State
+<span class="kw">import</span> Control.Monad
+<span class="kw">type</span> <span class="dt">AvgState</span> <span class="fu">=</span> <span class="dt">State</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="dt">Int</span>
+state0 <span class="fu">=</span> (<span class="dv">0</span>, <span class="dv">0</span>)
+ 
+<span class="ot">addAvg ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">AvgState</span>
+addAvg x <span class="fu">=</span> <span class="kw">do</span>
+    (count, total) <span class="ot">&lt;-</span> get
+    put (count<span class="fu">+</span><span class="dv">1</span>, total<span class="fu">+</span>x)
+    <span class="fu">return</span> <span class="fu">$</span> (total<span class="fu">+</span>x) <span class="ot">`div`</span> (count<span class="fu">+</span><span class="dv">1</span>)
+ 
+<span class="ot">test ::</span> <span class="dt">AvgState</span>
+test <span class="fu">=</span> <span class="kw">do</span>
+    addAvg <span class="dv">10</span>
+    addAvg <span class="dv">20</span>
+    addAvg <span class="dv">30</span>
+ 
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+    <span class="fu">print</span> <span class="fu">$</span> evalState test state0</code></pre>
+<p>Here I’m calculating arithmetic average of some integers. <code>type AvgState</code> is my data type representing the sum of the numbers I give and the total count of numbers. Here I don’t write a new monad, instead I use Haskell’s State monad, contained in <code>Control.Monad.State</code> package.</p>
+<p><code>addAvg</code> functions is the main logic. If you look at it, it almost looks like an imperative program, I’m reading some values and changing them by adding them one, and returning a new value(note that I’m not returning any new states, it’s being handled my the monad itself), but still it’s purely functional.</p>
+<p>Now how’s that a DSL? Look at <code>test</code> function and hopefully you’ll see :) .</p>
+<p>I want to give another example about DSL-like monads: <code>Parsec</code>.</p>
+<p>I’ve been working on a Websocket based chat protocol written in Haskell lately and this code is directly from my project:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">chanName ::</span> <span class="dt">Parser</span> <span class="dt">ChanName</span>
+chanName <span class="fu">=</span> many1 (letter <span class="fu">&lt;|&gt;</span> oneOf <span class="st">&quot;-&quot;</span> <span class="fu">&lt;|&gt;</span> digit)
+ 
+<span class="ot">msgCmd ::</span> <span class="dt">Parser</span> <span class="dt">Cmd</span>
+msgCmd <span class="fu">=</span> <span class="kw">do</span>
+    string <span class="st">&quot;msg&quot;</span>
+    spaces
+    chan <span class="ot">&lt;-</span> chanName
+    spaces
+    msg <span class="ot">&lt;-</span> many1 anyChar
+    eof
+    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">MsgCmd</span> chan msg</code></pre>
+<p>I’m using Parsec’s <code>Parser</code> monads with <code>do</code> notation and it looks almost like Backus–Naur Form. chanName mathes list of letters, ‘-’ character, or digits with at least one element. This is a parser. And then I’m using this parser in my <code>msgCmd</code> parser. It matches a string “msg”, then arbitrary number of spaces, then <code>chanName</code>, then spaces again, and at last any characters.</p>]]></summary>
+</entry>
+<entry>
+    <title>Finger Tree I</title>
+    <link href="http://osa1.net/posts/2012-03-14-finger-tree-i.html" />
+    <id>http://osa1.net/posts/2012-03-14-finger-tree-i.html</id>
+    <published>2012-03-14T00:00:00Z</published>
+    <updated>2012-03-14T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>As a part of my journey of understanding functional programming and functional languages’ internals, I’m reading some classical papers about functional data structures. In this series of posts, I’ll be explaining Finger Trees, which I learned so much from.</p>
+<p>At first I had tried to write about finger trees in one post but later I realized that it was too long and it contained lots of different concepts. So I decided to split it into 3-4 posts, each of them explaining a different concept. In each post, we’re going to implement a different data structure. First post is going to be about implementing a functional <em>deque</em> with Finger Trees. Second is going to be about <em>priority queues</em>, in which I also am going to explain an use of <em>monoid</em> s. Third is going to be about vectors, with efficient concatenation and slicing. And at last, I’m going to explain Clojure’s persistent vector’s internals, which I think it’s somewhat related with finger tree’s. Oh, and somewhere in between I’m going to write something about <em>Peano numbers</em>.</p>
+<p>So, let’s start. AFAIK, the first paper about finger trees was <a href="http://www.soi.city.ac.uk/~ross/papers/FingerTree.html">Finger Trees: A Simple General-purpose Data Structure</a>. I read the paper a couple of times and I found it too .. complex. So I’ll explain most of the stuff in my own words. Some part of the code will be different from code in the paper.</p>
+<p>The problem finger trees are trying to solve is, since in functional setting we can’t mutate any structures, to form our structures in a way that making some specific changes on them should cost us minimum number of copying operations. This idea is similar to zippers. With zippers, we convert our structures to a form that make changes in some specific places cost us less copying operations, which means we can make changes more efficiently. And with finger trees, we have a structure that make modifications on two(or maybe more, depending on your implementation) places are really efficient. For instance, we can create <em>deque</em> with finger trees with efficient <code>push_back</code>, <code>push_front</code>, <code>pop_back</code> and <code>pop_front</code> operations.</p>
+<p>Let’s assume a 2-3 tree, which we use as a <em>deque</em>. In order to make modifications on ends of the tree, we need to copy all nodes on it’s way to end. So we change the structure, like in zippers, create a new structure which looks like this:</p>
+<div class="figure">
+<img src="/images/fingertree/finger.png" />
+</div>
+<p>For those who have already read the original paper, this example is the same with the paper. But I change the look of it. I found drawing of this example in paper confusing. It shows different nodes with same shapes, then gives a definition of the structure, which I found completely unrelated with the drawing.</p>
+<p>This is a deque contains characters of “thisisnotatree”. To make some changes in front or back of the deque, all we need to change is the nodes containing “th” and “ree”, which are just ordinary arrays, and the root node. When arrays get bigger, we shift some elements from arrays to our tree structures. Let’s make some definitions(most of my ADTs are deriving from <code>Show</code>, I found it better to see internals of structures that I’m working on):</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Node</span> s <span class="fu">=</span> <span class="dt">Node2</span> s s <span class="fu">|</span> <span class="dt">Node3</span> s s s
+  <span class="kw">deriving</span> (<span class="kw">Show</span>)
+<span class="kw">data</span> <span class="dt">FingerTree</span> a <span class="fu">=</span> <span class="dt">Empty</span>
+                  <span class="fu">|</span> <span class="dt">Single</span> a
+                  <span class="fu">|</span> <span class="dt">Deep</span> (<span class="dt">Digit</span> a) (<span class="dt">FingerTree</span> (<span class="dt">Node</span> a)) (<span class="dt">Digit</span> a)
+  <span class="kw">deriving</span> (<span class="kw">Show</span>)
+<span class="kw">type</span> <span class="dt">Digit</span> a <span class="fu">=</span> [a]</code></pre>
+<p>In my drawing, blue nodes are FingerTrees, black nodes which characters inside are Digits<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup></p>
+<p>So let’s see how we can add new Digits to the structure. In my examples, Digits will be <code>[Char]</code>, which are the same with <code>String</code>. Later we’ll see we can use any types that provide some operations.</p>
+<p>Let’s define <code>addl</code> and <code>addr</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addl ::</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a</code></pre>
+<p>We have 4 cases, if we add to an empty finger tree, it’s obvious:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a <span class="dt">Empty</span> <span class="fu">=</span> <span class="dt">Single</span> a</code></pre>
+<p>If we add to a finger tree with only one element(<code>Single a</code>), we just shift old element to right part of the structure and put new element to left:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Single</span> b) <span class="fu">=</span> <span class="dt">Deep</span> [a] <span class="dt">Empty</span> [b]</code></pre>
+<p>When we add to a tree with left side contains 4 elements, we push two of this elements to subtree part, and push new element to new left part:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Deep</span> [b,c,d,e] m sf) <span class="fu">=</span> <span class="dt">Deep</span> [a, b] (addl (<span class="dt">Node3</span> c d e) m) sf</code></pre>
+<p>And lastly, if our left part contains less than 4 elements, we just add a new element to the left part:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span> <span class="dt">Deep</span> ([a] <span class="fu">++</span> pr) m sf</code></pre>
+<p>The number of maximum elements in our left and right part of trees are arbitrary. When we come to Clojure’s persistent vector implementation, we’ll see that it could be 32, depending on your needs.</p>
+<p>We can easily track our structure when creating a tree of “thisisnotatree”:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Empty</span>
+<span class="dt">Single</span> <span class="ch">&#39;e&#39;</span>
+<span class="dt">Deep</span> [<span class="ch">&#39;e&#39;</span>] <span class="dt">Empty</span> [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;r&#39;</span>, <span class="ch">&#39;e&#39;</span>] <span class="dt">Empty</span> [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;r&#39;</span>, <span class="ch">&#39;e&#39;</span>] <span class="dt">Empty</span> [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;a&#39;</span>, <span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;r&#39;</span>, <span class="ch">&#39;e&#39;</span>] <span class="dt">Empty</span> [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;a&#39;</span>] (<span class="dt">Single</span> (<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)) [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;o&#39;</span>, <span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;a&#39;</span>] (<span class="dt">Single</span> (<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)) [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;n&#39;</span>, <span class="ch">&#39;o&#39;</span>, <span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;a&#39;</span>] (<span class="dt">Single</span> (<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)) [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;s&#39;</span>, <span class="ch">&#39;n&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;i&#39;</span> ,<span class="ch">&#39;s&#39;</span>, <span class="ch">&#39;n&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;s&#39;</span>, <span class="ch">&#39;i&#39;</span> ,<span class="ch">&#39;s&#39;</span>, <span class="ch">&#39;n&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;i&#39;</span>, <span class="ch">&#39;s&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;i&#39;</span> <span class="ch">&#39;s&#39;</span> <span class="ch">&#39;n&#39;</span>), (<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;h&#39;</span>, <span class="ch">&#39;i&#39;</span>, <span class="ch">&#39;s&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;i&#39;</span> <span class="ch">&#39;s&#39;</span> <span class="ch">&#39;n&#39;</span>), (<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
+<span class="dt">Deep</span> [<span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;h&#39;</span>, <span class="ch">&#39;i&#39;</span>, <span class="ch">&#39;s&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;i&#39;</span> <span class="ch">&#39;s&#39;</span> <span class="ch">&#39;n&#39;</span>), (<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]</code></pre>
+<p>When I first saw the definition of <code>FingerTree</code> in the paper, I had no idea what was this all about, and tracing the structure while adding characters one by one helped me a lot. Notice that we have only one element in the right part. This is because we made all changes to the left part of the structure so right part remained unchanged.</p>
+<p><code>push_right</code> is just the mirror of <code>push_left</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addr ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
+addr <span class="dt">Empty</span> a                 <span class="fu">=</span> <span class="dt">Single</span> a
+addr (<span class="dt">Single</span> b) a            <span class="fu">=</span> <span class="dt">Deep</span> [b] <span class="dt">Empty</span> [a]
+addr (<span class="dt">Deep</span> pr m [e,b,c,d]) a <span class="fu">=</span> <span class="dt">Deep</span> pr (addr m (<span class="dt">Node3</span> e d c)) [b,a]
+addr (<span class="dt">Deep</span> pr m sf) a        <span class="fu">=</span> <span class="dt">Deep</span> pr m (sf <span class="fu">++</span> [a])</code></pre>
+<p>So, the structure of FingerTree’s and add operations should be clear now. To create FingerTrees from other collections, we need <code>fold</code> operations:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Foldable</span> <span class="dt">Node</span> <span class="kw">where</span>
+  <span class="fu">foldr</span> f z (<span class="dt">Node2</span> a b) <span class="fu">=</span> a <span class="ot">`f`</span> (b <span class="ot">`f`</span> z)
+  <span class="fu">foldr</span> f z (<span class="dt">Node3</span> a b c) <span class="fu">=</span> a <span class="ot">`f`</span> (b <span class="ot">`f`</span> (c <span class="ot">`f`</span> z))
+  <span class="fu">foldl</span> f z (<span class="dt">Node2</span> a b) <span class="fu">=</span> (z <span class="ot">`f`</span> a) <span class="ot">`f`</span> b
+  <span class="fu">foldl</span> f z (<span class="dt">Node3</span> a b c) <span class="fu">=</span> ((z <span class="ot">`f`</span> a) <span class="ot">`f`</span> b) <span class="ot">`f`</span> c
+<span class="kw">instance</span> <span class="kw">Foldable</span> <span class="dt">FingerTree</span> <span class="kw">where</span>
+  <span class="fu">foldr</span> _ z <span class="dt">Empty</span> <span class="fu">=</span> z
+  <span class="fu">foldr</span> f z (<span class="dt">Single</span> x) <span class="fu">=</span> x <span class="ot">`f`</span> z
+  <span class="fu">foldr</span> f z (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span>
+    <span class="fu">foldr</span> f (<span class="fu">foldr</span> (<span class="fu">flip</span> (<span class="fu">foldr</span> f)) (<span class="fu">foldr</span> f z sf) m) pr
+  <span class="fu">foldl</span> _ z <span class="dt">Empty</span> <span class="fu">=</span> z
+  <span class="fu">foldl</span> f z (<span class="dt">Single</span> x) <span class="fu">=</span> z <span class="ot">`f`</span> x
+  <span class="fu">foldl</span> f z (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span>
+    <span class="fu">foldl</span> f (<span class="fu">foldl</span> (<span class="fu">foldl</span> f) (<span class="fu">foldl</span> f z pr) m) sf</code></pre>
+<p><code>Foldable</code> typeclass is in <code>Data.Foldable</code> package. Only part that is not so trivial in this definitions is folding over a <code>Deep</code> structure. When we <code>foldr</code> over a <code>Deep</code> structure, we first <code>foldr</code> over it’s right part(<code>sf</code>), then <code>foldr</code> it over it’s subtree part, and then <code>foldr</code> it to right part. I don’t know how can I explain it more but if you inspect functions a little bit you’ll see that it’s just a recursive fold operation, and it really makes sense.</p>
+<p>With help of this fold functions, we define some helpers:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addl&#39; ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
+addl&#39; <span class="fu">=</span> <span class="fu">flip</span> <span class="fu">$</span> <span class="fu">foldr</span> addl
+<span class="ot">addr&#39; ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
+addr&#39; <span class="fu">=</span> <span class="fu">flip</span> <span class="fu">$</span> <span class="fu">foldl</span> addr</code></pre>
+<p>Those are not really necessary, just helpers. Now we can define a function to create FingerTrees from lists:</p>
+<pre><code>toTree :: [a] -&gt; FingerTree a
+toTree s = addl&#39; s Empty</code></pre>
+<p>So now we can create FingerTree from a String with just <code>toTree &quot;thisisnotatree&quot; Empty</code>. From now on, we need some operations to pop each side of the <em>deque</em> . For this, authors of the original paper use a structure called <code>view</code>. I’m not sure if I’d do it the same way, but I’ll stick with the authors’ idea.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">LeftView</span> s a <span class="fu">=</span> <span class="dt">LeftNil</span> <span class="fu">|</span> <span class="dt">LeftCons</span> a (s a)
+  <span class="kw">deriving</span> (<span class="kw">Show</span>)</code></pre>
+<p>With this structure, we can easily create <code>first</code> and <code>tail</code> operations of FingerTree. But first we need to convert our FingerTrees to LeftView:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">leftView ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">LeftView</span> <span class="dt">FingerTree</span> a
+leftView <span class="dt">Empty</span> <span class="fu">=</span> <span class="dt">LeftNil</span>
+leftView (<span class="dt">Single</span> x) <span class="fu">=</span> <span class="dt">LeftCons</span> x <span class="dt">Empty</span>
+leftView (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span> <span class="dt">LeftCons</span> (<span class="fu">head</span> pr) (leftDeep (<span class="fu">tail</span> pr) m sf)</code></pre>
+<p>This code is trivial other than the last part. It just splits our structure to <code>head</code> and <code>tail</code>. With this, we can work on finger trees just like we work on any list. In the last case, we are calling <code>leftDeep</code> on tail of the left part, this is because we don’t want our <code>tail</code> tree’s left part to be empty. So if we call <code>tail</code> with the tree with one element in it’s left part, we get a new tree, with a left part not empty:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">leftDeep ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> (<span class="dt">Node</span> a) <span class="ot">-&gt;</span> <span class="dt">Digit</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
+leftDeep [] m sf <span class="fu">=</span> <span class="kw">case</span> leftView m <span class="kw">of</span>
+                     <span class="dt">LeftNil</span>       <span class="ot">-&gt;</span> toTree sf
+                     <span class="dt">LeftCons</span> a m&#39; <span class="ot">-&gt;</span> <span class="dt">Deep</span> (toList a) m&#39; sf
+leftDeep pr m sf <span class="fu">=</span> <span class="dt">Deep</span> pr m sf</code></pre>
+<p>With the help of this view functions, we can easily define <code>head</code>, <code>tail</code> and <code>isEmpty</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">isEmpty ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+isEmpty x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span>
+              <span class="dt">LeftNil</span>      <span class="ot">-&gt;</span> <span class="kw">True</span>
+              <span class="dt">LeftCons</span> _ _ <span class="ot">-&gt;</span> <span class="kw">False</span>
+<span class="ot">leftHead ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> a
+leftHead x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span> <span class="dt">LeftCons</span> a _ <span class="ot">-&gt;</span> a
+<span class="ot">leftTail ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
+leftTail x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span> <span class="dt">LeftCons</span> _ x&#39; <span class="ot">-&gt;</span> x&#39;</code></pre>
+<p>And that’s it. I’m omitting definitions of <code>rightHead</code>, <code>rightTail</code> and right view functions because they’re just mirrors of lefts. Now let’s talk about efficiency. I’m not experienced in that stuff so don’t expect a detailed explanation :) .</p>
+<p>Since Haskell is a lazy language, when we call head function on left or right views, we only create head part of the view structures. <em>Deque</em> operations take more than constant time only when we have 4 elements in the left/right part of the tree. Also, changes affect next level of the tree only when we have 4 elements in the subtree’s left/right part. Which means, at most half of the operations descend to second level, and at most quarter of the operations descent to the third level. All of this gives us a great <em>deque</em> structure implemented as a FingerTree. You can refer to the paper for some detailed analysis :) .</p>
+<p>BTW, Haskell’s <code>Data.Sequence</code> is just a FingerTree, implemented by the paper’s authors. Next, we’ll implement a priority queue based on ideas explained in this post. I’ll also talk about monoids.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Digit name here used for compatibility with the paper.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
+    <title>Fonksiyonel Zipper</title>
+    <link href="http://osa1.net/posts/2012-02-27-fonksiyonel-zipper.html" />
+    <id>http://osa1.net/posts/2012-02-27-fonksiyonel-zipper.html</id>
+    <published>2012-02-27T00:00:00Z</published>
+    <updated>2012-02-27T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Fonksiyonel programlamanın sorunlarından birine getirilmiş güzel bir çözümden bahsedeceğim biraz. Fonksiyonel programlamada veri yapılarımız immutable olduğundan güncelleme işlemleri problemli olabiliyor. Örneğin derin bir ağacı güncellemek gibi. En iyi ihtimalle root’dan itibaren eklediğiniz yeni node’a giden yoldaki tüm nodeları yeniden oluşturmanız(structural sharing deniyordu sanırım, şekil 1), en kötü ihtimalle de tüm ağacı yeniden oluşturmanız gerekir(şekil 2). Şekillerde kesikli çizgiyle belirtilmiş node’u eklemek için yeşil nodeları yeniden oluşturmamız gerek, kırmızılar ise aynı kalır.</p>
+<div class="figure">
+<img src="/images/sekil12.png" />
+</div>
+<p>Fonksiyonel programlamada bu kopyalama işlemlerinin önüne geçmek mümkün değil tabii ki ama çok güzel optimizasyonlar mümkün. Hakkında bir sürü makale var, yazıda yeri geldikçe linklerini vereceğim.</p>
+<p>Yapılabilecek optimizasyonlardan biri, ağacı mümkün olduğunda sığ tutup, genişliğini fazla tutmak. Örneğin Clojure persistent map yapısı için böyle yapıyor<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> Vector yapısı için de aynı şeyler geçerli ama concatenation gibi işlemler için başka optimizasyonlar da işin içine girdiği için işler biraz daha karışık<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<p>Zipper yapısının yardımcı olduğu nokta, bir veri yapısında istenilen noktada minimum miktarda kopyalama işlemi yaparak değişiklik yapmak. Herhangi bir büyüklükte ve derinlikte bir ağaçta sadece tek bir node’u değiştirerek güncelleme yapabiliyoruz. Aynı imperative dillerdeki gibi.</p>
+<p>Bunu şu şekilde yapıyoruz, şekil 1’deki ağacı şu hale getirdiğimizi düşünelim:</p>
+<div class="figure">
+<img src="/images/g2y.png" />
+</div>
+<p>6. node root konumuna geldi ve bunda yapacağımız değişiklikler için sadece 6. nodeu kopyalamamız yeterli. İşte veri yapılarında değişiklik yapacağımız yeri root pozisyonuna getirmeye zip veya unzip, tekrar eski haline getirmeye de buna ne deniyorsa diğeri deniyor hehe. Bu hale getirdikten sonra eski haline getirmemiz için bu hale getirirken hangi yolu izlediğimizi kaydetmemiz gerek. Örneğin bu problem için ilk başta root’u 3. node yaptık, bir kere sağa gitmiş olduk yani:</p>
+<div class="figure">
+<img src="/images/g2y1.png" />
+</div>
+<p>Burda kesikli edge 3.node’a hangi node’dan geldiğimizi gösteriyor. Yapıyı bu hale getirmek için bir kere sağa gittiğimizi bildiğimize göre, eski haline getirirken şu anki root’un, kesikli node ile gösterilen node’un sağında olması gerektiğini biliyor olacağız. Daha sonra bir kere sola giderek 6. node’u root yapıyoruz, ki o da 2 üstteki resimde gösterilen durum. Bu aşamadan sonra 6. node’dan itibaren yaptığımız değişiklikler için sadece 6. node ve onun aşağısını değiştirmemiz gerekecek.</p>
+<p>Güncellemelerden sonra veri yapısını ilk haline getirmek kolay, bu hale getirmek için sağa ve sonra sola gittiğimizi biliyoruz, 6. node’a hangi node’dan ve o node’a hangi node’dan geldiğimizi biliyoruz. 2 kopyalama işlemiyle eski haline getirebiliriz(6. node’a 3. node’dan geldik ve 6. node 3. node’un solunda olmalı vs. gibi).</p>
+<p>(Burası pek açık olmadı gibi geldi ve ekleme yapmak istedim, yapıyı eski haline getirmemiz için bilmemiz gereken 2 şey var, bu haline getirirken her bir adım için hangi node’dan bu başka bir node’a geçtik(şekillerde kesikli oklarla gösterdim), ve geçmeden önce bu node’a göre geçtiğimiz node hangi pozisyondaydı, örneğin sağında mıydı solunda mıydı vs.)</p>
+<p>Zipperlar hakkında farkedilmesi gereken birşey, kendilerinin ağaç formunda bir yapıya ihtiyaç duymuyor olması. Gerekli olan, bir yapıda değişiklik yapılmak istenen yeri minimum sayıda kopyalama yapabileceğimiz hale getirip, daha sonra eski haline getirebilmek. Bu normal bir liste de olur. Ben listelerden ve ağaçlardan zor/farklı olsun diye Haskell ile Trie yapısı için implement edeceğim.<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="kw">Ord</span> c <span class="ot">=&gt;</span> <span class="dt">Node</span> c <span class="fu">=</span> <span class="dt">Node</span> {<span class="ot"> wordp     ::</span> <span class="dt">Bool</span>
+                            ,<span class="ot"> nodeMap   ::</span> <span class="dt">Map.Map</span> c (<span class="dt">Node</span> c)
+                            }</code></pre>
+<p>Trie yapımızın her bir node’u bir Map tutuyor, bu map’ler benim kullanımım için her bir karakteri bir başka Node’a eşliyor, ama aslında karakter yerine Haskell’in <code>Ord</code> typeclass’ının herhangi bir instance’ı kullanılabilir.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">insert ::</span> <span class="kw">Ord</span> c <span class="ot">=&gt;</span> [c] <span class="ot">-&gt;</span> <span class="dt">Node</span> c <span class="ot">-&gt;</span> <span class="dt">Node</span> c
+insert [] (<span class="dt">Node</span> _ nodeMap) <span class="fu">=</span> <span class="dt">Node</span> <span class="kw">True</span> nodeMap
+insert (x<span class="fu">:</span>xs) (<span class="dt">Node</span> wordp nodeMap) <span class="fu">=</span>
+  <span class="dt">Node</span> wordp <span class="fu">$</span> Map.insert x (insert xs (lookupMap x nodeMap)) nodeMap</code></pre>
+<p>Yeni bir kelime eklerken, kelimedeki her bir karakter için eğer yoksa bir node oluşturuluyor ve bu nodelar birbirlerine bağlanıyor. Klasik Trie implementasyonu. Kodun geri kalanının Zipperlar ile alakası olmadığı için buraya koymacağım, <a href="https://gist.github.com/1926563">gist</a>’den bakabilirsiniz.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="kw">Ord</span> c <span class="ot">=&gt;</span> <span class="dt">Zipper</span> c <span class="fu">=</span> <span class="dt">Zipper</span> [<span class="dt">Node</span> c] (<span class="dt">Node</span> c) [c]</code></pre>
+<p>Zipper veri yapımız, ilk elemanı, şu anda root olan node’a gelene kadar gezdiğimiz nodeları(yukarıdaki şekillerde kesikli oklarla gösterilen nodelar yani), ikinci eleman şu anda root olan nodeu, üçüncü eleman da bu nodea gelene kadar takip ettiğimiz yolu tutuyor. Burda yolun sağ-sol olarak değil de bir karakter olarak tutulduğuna dikkat. Yani “önce c sonra a sonra d” harflerini gezerek gelmiş oluyor mesela.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">currentNode ::</span> <span class="kw">Ord</span> c <span class="ot">=&gt;</span> <span class="dt">Zipper</span> c <span class="ot">-&gt;</span> <span class="dt">Node</span> c
+currentNode (<span class="dt">Zipper</span> _ n _) <span class="fu">=</span> n</code></pre>
+<p>Basit bir yardımcı fonksiyon, Zipper yapısından root node’u dönüyor.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">go ::</span> <span class="kw">Ord</span> c <span class="ot">=&gt;</span> c <span class="ot">-&gt;</span> <span class="dt">Zipper</span> c <span class="ot">-&gt;</span> <span class="dt">Zipper</span> c
+go c zip<span class="fu">@</span>(<span class="dt">Zipper</span> vNodes trie<span class="fu">@</span>(<span class="dt">Node</span> _ nodeMap) cs) <span class="fu">=</span>
+  <span class="kw">case</span> cnode <span class="kw">of</span>
+    <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">zip</span>
+    <span class="kw">Just</span> x  <span class="ot">-&gt;</span> <span class="dt">Zipper</span> (trie<span class="fu">:</span>vNodes) x (c<span class="fu">:</span>cs)
+  <span class="kw">where</span> cnode <span class="fu">=</span> Map.lookup c nodeMap</code></pre>
+<p>Buraya dikkat, gitmek istediğim karakteri şu anki root’un mapinden arıyorum, eğer o karaktere ait bir node yoksa kaldığım yerde kalıyorum(bu davranış isteğe bağlı, hata da verilebilir mesela), eğer varsa, şu anda bulunduğum node’u daha önce gezilmiş nodeların bulunduğu listeye bağlıyorum(kesikli okların olduğu liste), gittiğim karakteri de daha önce gezilmiş karakterler listesine ekliyorum, ve bulduğum node yeni root nodeum olacak şekilde yeni bir Zipper oluşturuyorum.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">goUp ::</span> <span class="kw">Ord</span> c <span class="ot">=&gt;</span> <span class="dt">Zipper</span> c <span class="ot">-&gt;</span> <span class="dt">Zipper</span> c
+goUp z<span class="fu">@</span>(<span class="dt">Zipper</span> [] _ []) <span class="fu">=</span> z
+goUp (<span class="dt">Zipper</span> ((<span class="dt">Node</span> wordp nodeMap)<span class="fu">:</span>nodes) node (c<span class="fu">:</span>cs)) <span class="fu">=</span>
+  <span class="dt">Zipper</span> nodes (<span class="dt">Node</span> wordp (Map.insert c node nodeMap)) cs</code></pre>
+<p>Geri dönmek istediğimde de, hangi harften buraya gelmişsem, o harfe bu node’u ekliyorum ve yeni root’um, gezilmiş node’ların olduğu listenin ilk elemanı oluyor. Eğer zaten en üst nodeda isem kaldığım yerde kalıyorum.</p>
+<pre><code>insert :: Ord c =&gt; [c] -&gt; Zipper c -&gt; Zipper c
+insert c zipper@(Zipper vnodes node cs) =
+  Zipper vnodes (Trie.insert c node) cs</code></pre>
+<p>Bu da Zipper için insert fonksiyonu, Zipper’ın root node’una ekleme yapmak için.</p>
+<p>Modüllerin tam haline <a href="https://gist.github.com/1926563">gist</a>den bakabilirsiniz.</p>
+<p>Bir <code>ghci</code> ateşleyip test yapalım:</p>
+<pre><code>Prelude&gt; :load TrieZipper.hs 
+[1 of 2] Compiling Trie             ( Trie.hs, interpreted )
+[2 of 2] Compiling TrieZipper       ( TrieZipper.hs, interpreted )
+Ok, modules loaded: TrieZipper, Trie.
+*TrieZipper&gt; let t1 = Trie.insert &quot;asdf&quot; Trie.empty
+*TrieZipper&gt; let t2 = Trie.insert &quot;blaaaaah&quot; t1
+*TrieZipper&gt; t2
+fromList [&quot;asdf&quot;,&quot;blaaaaah&quot;]
+*TrieZipper&gt; let z1 = Zipper [] t2 []
+*TrieZipper&gt; currentNode $ goUp $ goUp $ TrieZipper.insert &quot;ikinciekleme&quot; $ TrieZipper.insert &quot;ilkekleme&quot; $ go &#39;l&#39; $ go &#39;b&#39; z1
+fromList [&quot;asdf&quot;,&quot;blaaaaah&quot;,&quot;blikinciekleme&quot;,&quot;blilkekleme&quot;]</code></pre>
+<p>Süper! Ne yaptığıma bakalım, ilk önce bir Trie oluşturup iki tane kelime ekledim, daha sonra Trie’da önce <code>b</code> sonra <code>l</code> harfine ilerledim. Yeni root artık burası, burada yaptığım değişiklikler için sadece bu node kopyalanacak. Buraya iki kelime ekledim ve iki kere yukarı çıkıp yapıyı eski haline getirdim ve değişikliklere baktım.</p>
+<p>Zipper olayı budur. Bu arada asıl makalenin linkini vermemişim: <a href="http://www.st.cs.uni-sb.de/edu/seminare/2005/advanced-fp/docs/huet-zipper.pdf">Functional Pearl: The Zipper, Gérard Huet</a>. <a href="http://en.wikibooks.org/wiki/Haskell/Zippers">Şurda</a> da meraklısı için Zipperlarla alakalı güzel bir hikaye var :) .</p>
+<p>Bundan sonra bir <a href="http://en.wikipedia.org/wiki/Finger_tree">finger tree</a> implementasyonu yapacağım sanırım. Bu arada, fonksiyonel programlamaya ve fonksiyonel veri yapılarına meraklı olan varsa diye, süper kaynaklar keşfettim: <a href="http://www.haskell.org/haskellwiki/Research_papers/Functional_pearls">Functional pearls</a>, <a href="http://www.eecs.usma.edu/webs/people/okasaki/pubs.html">Purely Functional Data Structures ve Okasaki’nin diğer makaleleri</a>(<a href="http://www.eecs.usma.edu/webs/people/okasaki/pfds-haskell.tar.gz">PFDS haskell kaynak kodu</a>) ve tam olarak FP ile ne kadar alakalı olduğunu bilmesem de genelde FP dillerinde görmeye alışkın olduğumus continuationlarla alakalı <a href="http://library.readscheme.org/page6.html">yazılar</a></p>
+<p>Dün eklemeyi unutmuşum: <a href="http://clojure.github.com/clojure/clojure.zip-api.html">Clojure Zipper veri yapısı</a>,Scala için de <a href="http://szeiger.de/blog/2009/12/27/a-zipper-for-scala-xml/">şöyle birşey</a> varmış.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><a href="https://github.com/clojure/clojure/blob/master/src/jvm/clojure/lang/PersistentHashMap.java">Kaynak kod</a>. İlgili makaleler: <a href="http://lampwww.epfl.ch/papers/idealhashtrees.pdf">Ideal hash trees: Phil Bagwell</a>, <a href="http://www.cs.cmu.edu/~sleator/papers/another-persistence.pdf">Making data structures persistent: J. R. Driscoll, N. Sarnak, D. D. Sleator, R. E. Tarjan</a>. Makaleleri okurken bir yanda Clojure kaynak kodunu açarsanız çok yardımcı olacaktır, ben öyle yapıyorum hep.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p><a href="https://github.com/clojure/clojure/blob/master/src/jvm/clojure/lang/PersistentVector.java">Kaynak kod</a>. İlgili makale: <a href="http://infoscience.epfl.ch/record/64410/files/techlists.pdf">Fast Functional Lists, Phil Bagwell</a>. Clojure’dan sık sık bahsediliyor bu yazıda.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>Haskell’siz FP yazısı mı olurmuş :P . Bu arada <a href="http://en.wikipedia.org/wiki/Trie">trie</a> yapısını ne kadar sevdiğimi söylemiş miydim? Bir yıl kadar önce <a href="http://osa1.net/finaldeyiz/">şu</a> yazıdaki çözümlerden biri için C ile implement etmiştim, daha sonra bugüne kadar sürekli bu yapıdan farklı yapılar türeterek farklı amaçlar için kullandım.<a href="#fnref3">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+
+</feed>

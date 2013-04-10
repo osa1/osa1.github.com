@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Az da olsa git sürüm kontrol sistemini anlamak</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Az da olsa git sürüm kontrol sistemini anlamak</h1>
+
+<p><strong>December 19, 2011</strong> - Tagged as: <a href="../tags/git.html">git</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Aslında uzun süredir yazdığım kodları github’da tutuyor olsam da git’i son birkaç günde çok daha iyi anladığımı söyleyebilirim. Şu ana kadar yaptığım, sürekli tek bir branch üzerinden çalışarak, diğer bilgisayar geçeceğim zaman veya çalışan bir sonraki sürümü yayınlamak istediğimde <code>push</code> yapmaktı. Pardus’da geliştirdiğimiz web projesinde bile sadece stajın son gününde, tek bir commit yaptık hehe(neredeyse tüm projeyi tek bir bilgisayarda pair-programming ile geliştirdiğimizden ihtiyaç duymamıştık, değişiklikleri göstermek istediğimde makinamda kurulu apache’yi çalıştırıyordum ve ağ üzerinden test ediyorlardı. tüm dosya sistemim zaten ağ üzerinden paylaşıma açıktı).</p>
+<p>Son günlerde büyük oranda deneyse bir 2d platform oyunu üzerinde çalışıyorum ve sık sık eski haline dönmeyi isteyebileceğim ciddi değişiklikler yapıyorum. Git bana bu konuda nasıl yardımcı olabilir diye biraz araştırdım ve şu ana kadar bunları nasıl farketmedim diye kızdım kendime :P .</p>
+<p>Kendime not niteliğinde, bazı olmazsa olmaz(benim için) komutları açıklayacağım.</p>
+<h3 id="başlangıç-depo-oluşturma-veya-mevcut-depoyu-ekleme">Başlangıç, depo oluşturma veya mevcut depoyu ekleme</h3>
+<p>Anladığım kadarıyla bir depoya yazma izninin belirlenmesi biraz da sunucu tarafıyla alakalı. Bizim yapmamız gereken <code>git config --global user.name &quot;isim&quot;</code> ve <code>git config --global user.email &quot;email&quot;</code> ile commitlerimizde gözükecek ismi ve maili belirlemek(mail nerede gözüküyor bilmiyorum). Daha sonra eğer github kullanıyorsak ssh anahtarı oluşturup github’a ekliyoruz. Github’da anladığım kadarıyla ssh key’den kullanıcı adına bakıp depoya yazıp yazamayacağımıza karar veriyor. Bu kısımdan emin değilim açıkçası ama aklıma benim neden Clojure github deposuna push yapamadığımı açıklayacak başka bir senaryo gelmedi aehueah.</p>
+<p>Git sunucunuzda depoyu bir şekilde oluşturduktan sonra(Github’da web sayfasından tıklayarak falan) <code>git init</code> ile bilgisayarımızda git deposu oluşturup, buna uzak sunucudaki depoyu <code>git remote add</code> ile ekliyoruz:</p>
+<pre><code>➜  ~  mkdir git-test
+➜  ~  cd git-test 
+➜  git-test  git init
+Initialized empty Git repository in /home/sinan/git-test/.git/
+➜  git-test git:(master) git remote add git-test git@github.com:osa1/git-tests.git</code></pre>
+<p>(Bu arada not: zsh kullanıyorum, <a href="https://github.com/robbyrussell/oh-my-zsh">oh-my-zsh</a>da süper eklentiler var, örneğin benim kullandığım git eklentisinde yukarıda da görebileceğiniz gibi bulunduğum branch’ı gösteriyor, commitlenmemiş değişiklikler varsa bir sembolle belli ediyor, <code>git &lt;tab&gt;</code> yaptığınızda komutları, komutlardan sonra <code>&lt;tab&gt;</code> yaptığınızda branch adlarını vs. tamamlıyor, mükemmel birşey, bir sürü de tema var ayrıca.)</p>
+<p>Depoyu oluşturduktan sonra hiç branch’ımız yok aslında. Ama eğer branch oluşturmadan direkt commit yaparsak <code>master</code> diye bir branch oluşturuyor. <code>master</code> adının bir esprisi yok anladığım kadarıyla. Direkt olarak başka isimli bir branch da oluşturulabilir.</p>
+<p><code>git-status</code> ile commitlenmemiş değişiklik olup olmadığını görebiliyoruz. <code>git-log</code> tüm branchlara yapılan tüm commitleri bir <code>53ea667012c2741e7620e093e05132cd08265c06</code> benzeri kodla gösteriyor. Bu kodun tam olarak ne olduğunu anlamasam da, önceki bir commit’e dönmem gerektiğinde kullanıyorum.</p>
+<h3 id="branchlar-ile-alakalı-işlemler">Branchlar ile alakalı işlemler</h3>
+<pre><code>➜  git-test git:(master) git checkout -b &quot;branch2&quot;
+Switched to a new branch 'branch2'
+➜  git-test git:(branch2) git branch           
+* branch2
+  master</code></pre>
+<p><code>checkout</code> normalde zaten olan bir brancha geçer. Ama eğer “yeni oluştur ve hemen geç” diyorsanız, <code>-b</code> ile bu şekilde kullanılıyor. <code>git branch</code> ile de hangi branchda olduğunuzu görürsünüz(benim yaptığım gibi bir zsh eklentisi kullanıyorsanız zaten gözüküyor gerçi).</p>
+<p>Branchlar hakkında yazmak istediğim birkaç şey var. Bir tanesi hangi branchda olursanız olun, başka bir brancha merge yapmadan da o brancha push yapabilirsiniz. Şu şekilde:</p>
+<pre><code>➜  git-test git:(branch2) git push git-test branch2:master</code></pre>
+<p>Bu syntax’a dikkat: branch2’yi master’a pushla diyorum. Gerekli merge’leri kendisi yapıyor, yapamıyorsa push da yapmıyor. Tabii sonra master branch’ına geçip fetch(master) + merge veya direkt merge(branch2’den) yapmak lazım.</p>
+<p>Bunu kullanarak şöyle bir çakallık yapabiliyorsunuz, diyelim ki sunucudan bir branchı uçurmak istiyorsunuz:</p>
+<pre><code>➜  git-test git:(branch2) git push git-test :branch2</code></pre>
+<p>Bu aslında “branch2’ye hiçbir şeyi pushla” gibi bir anlama geliyor(ben uydurdum aehuaeh). branch2’yi sunucudan siliyor yani. Bilgisayarınızdaki depodan da şu şekilde siliyoruz:</p>
+<pre><code>➜  git-test git:(master) git branch -D branch2</code></pre>
+<p>Ha neden bir branch’ı sunucudan silmek isteyesiniz bilmiyorum. Geri dönmek isteyebilirsiniz belki, sunucuda durmasında bir zarar yok gibi.</p>
+<h3 id="push-ve-pull">Push ve pull</h3>
+<p>Şimdi, yukarıda bir branchdan başka bir brancha push yapılabildiğinden bahsetmiştim. Ama pratikte bu bir kolaylık sağlamıyor(sonuçta diğer brancha geçtiğinizde yine <code>fetch</code> + <code>merge</code>(veya sadece <code>merge</code>) yapmanız lazım.</p>
+<p><code>pull</code> ve <code>fetch</code> + <code>merge</code>’den bahsetmek lazım. <code>fetch</code>in yaptığı aslında sunucunuzdaki depodaki istediğiniz branchı <code>depo-adi/branch-adi</code> adlı bir brancha çekmek. Daha sonra bunu <code>branch-adi</code> ile merge etmek istiyorsanız <code>git merge depo-adi/branch-adi</code> ile merge ediyorsunuz. İşte <code>git pull depo-adi branch-adi</code> tam olarak bunu yapıyor.</p>
+<pre><code>➜  git-test git:(master) git fetch git-test master
+From github.com:osa1/git-tests
+ * branch            master     -&gt; FETCH_HEAD
+➜  git-test git:(master) git merge git-test/master 
+Auto-merging test.markdown
+CONFLICT (content): Merge conflict in test.markdown
+Automatic merge failed; fix conflicts and then commit the result.</code></pre>
+<p>İşte şu anda yaptığım <code>git pull</code>un yapacağının aynısı.</p>
+<p>Yanlız burda anlamadığım bir nokta, eğer bu <code>depo-adi/branch-adi</code> branchına geçersek şöyle bir mesaj alıyoruz:</p>
+<pre><code>➜  git-test git:(master) git checkout git-test/master 
+Note: checking out 'git-test/master'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by performing another checkout.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -b with the checkout command again. Example:
+
+  git checkout -b new_branch_name
+
+HEAD is now at 53ea667... Merge remote branch 'git-test/master'</code></pre>
+<p>Ne demeye çalıştığını çözemedim.</p>
+<p>Son olarak hayatımda gördüğüm en güzel şey(abarttım), eski commite geri dönme:</p>
+<pre><code>➜  git-test git:(branch3) git checkout 692832aa7a4a3a092e35f6955676be3c6e54e89e -b branch4 
+Switched to a new branch 'branch4'</code></pre>
+<p>Burdaki commit kodundan ilk başta bahsetmiştim. Yeni bir branch oluşturup eski commite dönüyorum.</p>
+<h3 id="commit-hakkında-birkaç-şey">Commit hakkında birkaç şey</h3>
+<p><code>commit -a</code>, daha önceden takipe aldığınız(<code>git add</code> ile) dosyalardan değişiklik olanları otomatik olarak commite ekler. Teker teker yeniden <code>git add</code> yapmanıza gerek kalmaz(ben ilk başta -a tüm dosyaları ekliyor sanıyordum mesela). <code>commit -m</code>, commit mesajı için $EDITOR çevre değişkenindeki editorü çalıştırmak yerine(bu kısım sanırım sadece bash için geçerli) komut satırından mesaj girmenizi sağlar. Ben commitlerimi şöyle yapıyorum yani:</p>
+<pre><code>➜  git-test git:(master) git commit -a -m &quot;mesaj&quot;</code></pre>
+<h3 id="stash">Stash</h3>
+<p>Bu özellik yeni başlayanlar için çok kritik değil sanırım, ama bir arkadaşla bir proje üzerinde çalışırken(ne yaptığımız hakkında hiçbir fikrimiz yok tabi aehueah) git bize “git stash yap istersen” gibi uyarılar veriyordu. Biz de anlam veremiyorduk.</p>
+<p><code>stash</code>ın olayı şuymuş, diyelim ki bir branchda değişiklikler yaptınız, bir bug gözünüze çarptı düzelteceksiniz, sadece o kısım düzelmiş olarak commit yapacaksınız. Hemen <code>git stash save</code> ile o ana kadar yaptığınız commitlenmemiş değişiklikleri kaydediyorsunuz ve hemen son commitli haline dönüyor branch. Bugfix yapıp commit/pushluyorsunuz, sonra <code>git stash pop</code> ile son kaydettiğiniz <code>stash</code>e dönüyorsunuz. Birden fazla stash olabiliyor, <code>git stash list</code> ile listeliyorsunuz. İşiniz bittiyse <code>git stash drop</code> ile stashı siliyorsunuz falan. Henüz kullanma fırsatım olmadı, okuduklarımı yazıyorum. Kullandığımda örneklerle düzenleyebilirim.</p>
+<hr />
+<p>Biraz dağınık oldu sanırım, amacım burda git’e veya sürüm kontrolüne yeni başlayanlara öğretmek değil de(o kadar bilmiyorum zaten), benim gibi bazı şeylerin ne kadar kolay/kullanışlı olduğunun farkında olmayanlara birşeyler göstermek ve kendime not düşmekt, o yüzden idare edin :P .</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Bil113 arasınav ve kağıt üzerinde kod yazmak</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Bil113 arasınav ve kağıt üzerinde kod yazmak</h1>
+
+<p><strong>October 31, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/java.html">java</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Bugün olduğumuz Bil113 arasınavında gördük ki, “hello world”ü bile Eclipse, Netbeans vs. ile yazan bizler, iş kağıt kalem ile yazmaya gelince çakılıyoruz(ben öyle değil ama yine de çakıldım gerçi). Aslında sınavın kağıt kalemle çözmek için biraz zor olduğunu düşünüyorum. Sınavda onlarca dakika uğraştığım soruları bilgisayar karşısında 5 dakikada çözebildim.</p>
+<p>Asal sayıları tespit etme gibi kolay soruları değil de, değişik bir şekilde çözdüğümü düşündüğüm üçgen sorusunu yazayım. Soru: verilen 3 kenarla bir üçgen oluşturulup oluşturulamayacağını döndür(boolean):</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">kontrol</span>(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) {
+    <span class="kw">return</span> (a &lt; b+c &amp;&amp; a &gt; Math.<span class="fu">abs</span>(b-c) &amp;&amp; b &lt; a+c &amp;&amp; b &gt; Math.<span class="fu">abs</span>(a-c) &amp;&amp; c &lt; a+b &amp;&amp; c &gt; Math.<span class="fu">abs</span>(a-b));
+}</code></pre>
+<p>Bu tek satırı kağıt üzerinde yazmak bayaa zor oluyor gerçi. Neyse. Sınavın sanırım en zor sorusu olan farklı tabanlarda sayıları kaydedip kendi aralarında işleme sokabildiğimiz soru:</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> Sayi {
+
+    String s;
+    <span class="dt">int</span> d;
+    
+    <span class="kw">public</span> <span class="fu">Sayi</span>(String s, <span class="dt">int</span> d) {
+        
+        <span class="kw">this</span>.<span class="fu">s</span> = s;
+        <span class="kw">this</span>.<span class="fu">d</span> = d;
+    }
+    
+    <span class="kw">public</span> <span class="dt">int</span> <span class="fu">onluk</span>() {
+        <span class="co">// this.s'i 10 tabanında döndür            </span>
+        <span class="dt">int</span> r = <span class="dv">0</span>;
+        
+        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>(); i++) {
+            r += Integer.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i<span class="dv">+1</span>)) * Math.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i<span class="dv">-1</span>);
+        }
+        
+        <span class="kw">return</span> r;
+    }
+    
+    
+    <span class="kw">public</span> <span class="dt">static</span> String <span class="fu">taban</span>(<span class="dt">int</span> s, <span class="dt">int</span> d) {
+        <span class="co">// Girilen s sayısını d tabanında döndür</span>
+
+        String r1 = <span class="st">&quot;&quot;</span>;
+        String r2 = <span class="st">&quot;&quot;</span>;
+        
+        
+        <span class="kw">while</span> (s &gt;= d) {
+            r1 += s % d;
+            s = s / d;
+        }
+        r1 += s;
+        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; r1.<span class="fu">length</span>(); i++) {
+            r2 += r1.<span class="fu">substring</span>(r1.<span class="fu">length</span>()-i<span class="dv">-1</span>, r1.<span class="fu">length</span>()-i);
+        }
+        <span class="kw">return</span> r2;
+        
+    }
+    
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+        
+        Sayi deneme = <span class="kw">new</span> <span class="fu">Sayi</span>(<span class="st">&quot;134125&quot;</span>, <span class="dv">6</span>);
+        System.<span class="fu">out</span>.<span class="fu">println</span>(deneme.<span class="fu">onluk</span>());
+        System.<span class="fu">out</span>.<span class="fu">println</span>(Sayi.<span class="fu">taban</span>(<span class="dv">987652</span>, <span class="dv">2</span>));
+    }
+}</code></pre>
+<p>Sorunun tamamı bu kadar değil de, bu kısımdan sonrası ıvır zıvır. Sınavda yaptım bu soruyu aslında da, muhtemelen bir sürü yanlışım çıkacaktır(yeterince detaylı incelenirse, hatta belki de kodum derlenemez bile).</p>
+<p>Kağıt-kalem olduğumuz bu programlama sınavından öğrenilenler:</p>
+<ul>
+<li><p>Java’da String’lerle intler birbirlerine eklenebiliyor(concatenate yani, String’in yanına int’i String’e çevirerek ekleme). Sınavda int’i String’e çevirmeyi bulamadığım için eklenebildikleirini varsayarak yapmıştım. Gerçekten de öyleymiş.</p></li>
+<li><p><code>this</code> kelimesi tam olarak Python’daki <code>self</code>e eşit değilmiş. Hala çözemedim tam olarak ama, bununla alakalı bir yazı yazacağım.</p></li>
+<li><p>Kodu izlemek çok zor bir olay(değişkenlerin değerleri, ekrana yazdırılanlar vs). Scope, class ve instance değişkenlerinin özelliklerini vs. çok iyi bilmek gerekiyor. <code>this</code>e Python’daki <code>self</code> muamelesi yaptım, bakalım sonuç ne olacak.</p></li>
+<li><p>IDLE, ipython gibi araçlardan mıdır nedir, test etmeden hiçbir şeyi düzgün yazamadığımı farkettim. Python’da ne zaman bir şeyden emin olmasam test ederek doğru yolu buluyordum. Java’da bu çok daha zor olduğundan, hatta kağıt kalem ile imkansız olduğundan, zor anlar yaşadım diyebiliriz.</p></li>
+<li><p>Yine sanırım eski alışkanlıklardan, kodu okuyup takip etmek yerine, merak ettiğin yerlere print’ler yerleştirerek kodu takip ettiğimden, kağıt üzerinde etkili olamadım(?!) diyebilirim. Çok sinir bozucu bir iş.</p></li>
+</ul>
+<h3 id="ekleme">Ekleme</h3>
+<p>Sınavdan birkaç dakika önce ‘ya çıkarsa’ diye bir arkadaşla yazdığımız, bir matrisin karesini alan kod:</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> MatrisDeneme {
+    
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+        
+        <span class="dt">int</span>[][] matris ={{<span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">9</span>},
+                         {<span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">1</span>},
+                         {<span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">10</span>}};
+        
+        <span class="dt">int</span>[][] yeni ={{<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>},
+                        {<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>},
+                        {<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>}};
+            
+        <span class="kw">if</span> (matris.<span class="fu">length</span> != matris[^<span class="dv">0</span>]length) {
+            <span class="co">// yapilamaz</span>
+        } <span class="kw">else</span> {
+            <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; matris.<span class="fu">length</span>; i++) {
+                <span class="co">// 0 1 2</span>
+                <span class="kw">for</span> (<span class="dt">int</span> j = <span class="dv">0</span>; j &lt; matris.<span class="fu">length</span>; j++) {
+                    <span class="co">// 00 01 02 10 11 12 20 21 22</span>
+                    <span class="kw">for</span> (<span class="dt">int</span> k = <span class="dv">0</span>; k &lt; matris.<span class="fu">length</span>; k++) {
+                        yeni[i][j] += matris[k][j]*matris[j][k];
+                    }
+                }
+            }
+        }
+        
+        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">2</span>]<span class="dv">2</span>]);
+        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">0</span>]<span class="dv">1</span>]);
+    }
+
+}</code></pre>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

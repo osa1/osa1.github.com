@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Clojure ve bir 4Clojure problemi</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Clojure ve bir 4Clojure problemi</h1>
+
+<p><strong>September 25, 2011</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Clojure(ve genel olarak Lisp dilleri) ile bir süredir ilgileniyorum, canım sıkıldıkça <a href="http://4clojure.com/">4clojure</a>’daki problemleri çözüyordum(bu arada Clojure’a başalyan herkese tavsiye ederim, sitenin en güzel yanı, problemi çözdükten sonra başkalarının çözümlerini görebiliyorsunuz, ve çoğu zaman problemi çözmüş birkaç Clojure geliştirici/katkıcısı bulabiliyorsunuz). Bir süre sonra, artık temellerini kavradığımı düşündüğümde, şu ana kadar en az çözülen probleme, <a href="http://4clojure.com/problem/117">‘For Science!’</a>a bir bakayım dedim. Problem tanıdık geldi. Bu problemin bir benzeriyle ilk kez <a href="http://osa1.net/finaldeyiz/">şurda bahsettiğim</a> programlama yarışmasında karşılaşmış, ve o zaman soruya saf saf bakmaktan başka birşey yapamamıştık. Daha sonra, ilk başta alakasız gibi gözüksede, aslında çok benzeyen bir halini, üzerinde çalıştığım bir oyunun yapım aşamasını kolaylaştırmak için çözmüştüm, ilgili yazı <a href="http://osa1.net/pygame-ve-duzensiz-sprite-sheetlerle-calismak/">şurda</a>.</p>
+<p>Alternatif bir yöntem düşünmeden hemen daha önceden çözdüğüm gibi çözmeye başladım. Çözen Python kodunu birkaç dakika içerisinde yazdım. Algoritmam şu şekilde: gezilebilir olup birbirlerine komşu olan tüm alanları grupluyorum, daha sonra eğer başlangıç ve hedef aynı grupdaysa, birbirlerine erişebilirler demektir.</p>
+<p>Python koduyla açıklamak daha kolay:</p>
+<pre class="sourceCode python"><code class="sourceCode python">pos_m = <span class="ot">None</span>
+pos_c = <span class="ot">None</span>
+groups = []</code></pre>
+<p>Burda <code>pos_m</code>, problemdeki fare(mouse - M)nin başlangıç noktasını temsil ediyor. Alanı gezerken fareyle karşılaştığımızda bunu atayacağız. Aynı şekilde <code>pos_c</code> de peynir(cheese)in yeri.</p>
+<p><code>groups</code> da birbirlerine komşu olan tüm noktaların oluşturduğu grupları tutacak.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> check_adjacency(pos, x, y):
+    difx = <span class="dt">abs</span>(pos[^<span class="dv">0</span>]x)
+    dify = <span class="dt">abs</span>(pos[^<span class="dv">1</span>]y)
+    <span class="kw">return</span> (difx == <span class="dv">1</span> and dify == <span class="dv">0</span>) or (difx == <span class="dv">0</span> and dify == <span class="dv">1</span>)</code></pre>
+<p>Bu fonksiyonun yaptığı, bir (X, Y) ikilisinden oluşan noktanın, (x, y) noktasına komşu olup olmadığını dönmek. Burda komşu olma şartı, iki noktanın üst üste veya yan yana bulunmaları(haritada çarpraz ilerleme olmadığından, çarprazdakiler komşu sayılmıyor).</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> find_groups(x, y):
+    r = []
+    <span class="kw">for</span> group in groups:
+        <span class="kw">for</span> pos in group:
+            <span class="kw">if</span> check_adjacency(pos, x, y):
+                r.append(group)
+                <span class="kw">break</span>
+    <span class="kw">return</span> r</code></pre>
+<p><code>find_groups</code>, (x, y) noktasının komşu olduğu grupların bir listesini dönüyor. Örneğin bir aşamada elimizde [(1, 1), (2, 2)] ve [(2, 4)] grupları varsa ve biz (2, 3) noktasının komşu olduğu grupları arıyorsak, bu iki grupu bize döndürecek. Bu durumda bu iki grupu birleştirmemiz gerekcek çükü artık bu ikisi birbirine (2, 3) ile bağlı.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> merge_groups(grps):
+    <span class="kw">for</span> group in grps[<span class="dv">1</span>:]:
+        grps[^<span class="dv">0</span>]+= group
+        groups.remove(group)</code></pre>
+<p>Birleştirme işlemini de bu yapıyor işte.</p>
+<p>Bundan sonrası basit zaten, teker teker gez, grupları bul, grup yoksa yeni oluştur, varsa onu genişlet, birden fazlaysa birleştir. Kodu takip etmek için kullandığım print statement’larını silmeden koyuyorum:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">for</span> y in <span class="dt">xrange</span>(<span class="dt">len</span>(test_grid)):
+    <span class="kw">for</span> x in <span class="dt">xrange</span>(<span class="dt">len</span>(test_grid[^<span class="dv">0</span>]):
+        char = test_grid[y][x]
+        <span class="kw">print</span> x, y, char,
+        <span class="kw">if</span> char == <span class="st">'#'</span>:
+            <span class="kw">print</span> <span class="st">&quot;block&quot;</span>
+        <span class="kw">else</span>:
+            <span class="kw">if</span> char == <span class="st">'M'</span>:
+                pos_m = (x, y)
+            <span class="kw">elif</span> char == <span class="st">'C'</span>:
+                pos_c = (x, y)
+            grps = find_groups(x, y)
+            <span class="kw">if</span> <span class="dt">len</span>(grps) &gt; <span class="dv">1</span>:
+                merge_groups(grps)
+                grps[^<span class="dv">0</span>]append((x, y))
+                <span class="kw">print</span> <span class="st">&quot;merge&quot;</span>
+            <span class="kw">elif</span> <span class="dt">len</span>(grps) == <span class="dv">0</span>:
+                groups.append([(x, y)])
+                <span class="kw">print</span> <span class="st">&quot;new group&quot;</span>
+            <span class="kw">else</span>:
+                grps[^<span class="dv">0</span>]append((x, y))
+                <span class="kw">print</span> <span class="st">&quot;append&quot;</span>
+<span class="kw">print</span> pos_m, pos_c
+<span class="kw">for</span> group in groups:
+    <span class="kw">if</span> pos_m in group and pos_c in group:
+        <span class="kw">print</span> <span class="st">&quot;M can reach C&quot;</span></code></pre>
+<p>Çok da güzel bir kod olmayabilir(örneğin liste içinde listelerde lineer arama yerine, <code>set</code> kullanılabilir, Clojure kodumda yaptığım gibi) ama problemi hızlıca çözmek için işimi gördü.</p>
+<p>Fonksiyonel programlama yolunu henüz çözebilmiş değilim. Hala daha çoğu zaman yaptığım, bir algoritmadaki değişen durumları(<code>state</code>) bir <code>loop</code> içine alıp, tail-call yapmak(Clojure’da <code>recur</code> yani, bu arada <code>recur</code>’un tail-call optimization olmadığının farkındayım).</p>
+<p>Yukarıdaki Python fonksiyonlarının Clojure karşılıklarını şu şekilde yazdım:</p>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defn</span><span class="fu"> abs</span>
+  <span class="st">&quot;Absolute value of n&quot;</span>
+  [n]
+  (<span class="kw">if</span> (<span class="kw">neg?</span> n)
+    (<span class="kw">-</span> n)
+    n))
+(<span class="kw">defn</span><span class="fu"> check-adjacency</span>
+  [[posx posy] x y]
+  (<span class="kw">let</span> [difx (abs (<span class="kw">-</span> posx x))
+        dify (abs (<span class="kw">-</span> posy y))]
+    (<span class="kw">or</span> (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">1</span>) (<span class="kw">=</span> dify <span class="dv">0</span>)) (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">0</span>) (<span class="kw">=</span> dify <span class="dv">1</span>)))))
+(<span class="kw">defn</span><span class="fu"> find-adjacent-sets</span>
+  [sets [x y]]
+  (<span class="kw">set</span> (<span class="kw">filter</span> (<span class="kw">fn</span> [<span class="kw">set</span>]
+                 (<span class="kw">some</span> (<span class="kw">fn</span> [p]
+                         (check-adjacency p x y))
+                       <span class="kw">set</span>))
+               sets)))
+(<span class="kw">defn</span><span class="fu"> get-char</span>
+  [grid [x y]]
+  (<span class="kw">get</span> (grid y) x))</code></pre>
+<p>Daha sonra bunları kullanarak problemin çözümü:</p>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defn</span><span class="fu"> can-reach</span>?
+  [grid]
+  (<span class="kw">let</span> [rang (<span class="kw">for</span> [y (<span class="kw">range</span> (<span class="kw">count</span> grid)) 
+                   x (<span class="kw">range</span> (<span class="kw">count</span> (<span class="kw">first</span> grid)))] [x y])]
+    (<span class="kw">loop</span> [positions rang
+           sets #{}
+           posm nil
+           posc nil]
+      (<span class="kw">if</span> (<span class="kw">nil?</span> positions)
+        (<span class="kw">let</span> [m-set (<span class="kw">first</span> (<span class="kw">filter</span> #(% posm) sets))
+              c-set (<span class="kw">first</span> (<span class="kw">filter</span> #(% posc) sets))]
+          (<span class="kw">=</span> m-set c-set))
+        (<span class="kw">let</span> [pos (<span class="kw">first</span> positions)
+              ch (get-char grid pos)
+              adj-sets (find-adjacent-sets sets pos)
+              set-count (<span class="kw">count</span> adj-sets)]
+          (<span class="kw">if</span> (<span class="kw">not=</span> ch <span class="ch">\#</span>)
+            (<span class="kw">recur</span> (<span class="kw">next</span> positions)
+                   (<span class="kw">conj</span> (<span class="kw">difference</span> sets adj-sets) (<span class="kw">union</span> (<span class="kw">apply</span> <span class="kw">union</span> adj-sets) #{pos}))
+                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\M</span>) pos posm)
+                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\C</span>) pos posc))
+            (<span class="kw">recur</span> (<span class="kw">next</span> positions)
+                   sets
+                   posm
+                   posc)))))))</code></pre>
+<p>4clojure çözümlerde birden fazla fonksiyon kabul etmediğinden, tüm yardımcı fonksiyon tanımlarımı ana fonksiyonumun içine almam gerekti. 4clojure’a yolladığım çözüm <a href="https://gist.github.com/1240517">şurda</a>.</p>
+<hr />
+<p>Clojure hakkında karmaşık duygular içerisindeyim(eheh, bir programlama dili hakkında böyle bir cümle kurmak). Pek çok ileri-seviye özelliklerini henüz bilmiyorum. Fonksiyonel programlamayı da, yukarıda bahsettiğim gibi, henüz çözebilmiş değilim. Macroları şu ana kadar hiç kullanmadım. Bu dönem sonuna kadar SICP’in ilk 3 bölümünü bitirip, tüm alıştırma çözümlerini yayınlamayı planlıyorum(ilk bölüm bitti, ikincisi bitmek üzere, birkaç alıştırmayı çözemedim gerçi). Daha sonra McCarthy’nin ilk Lispini bir dilde(büyük ihtimalle C olacak) implement ettikten sonra muhtemelen <a href="http://en.wikipedia.org/wiki/Type_theory">type theory</a>ye dalmak için Haskell(veya daha uygun başka bir Lisp dili) ile uğraşacağım(sonunda muhtemelen bu dediklerimin yarısını falan yapmış olacağım ama olsun eheh).</p>
+<p>Bu arada birşey farkettim, bir süredir çeşitli programlama problemleriyle ilgileniyorum, bir de yarışma tecrübemiz oldu ve C ile katıldık. C böyle bir iş için seçilebilecek en kötü alternatif. C’de elinizden hiçbir veri yapısı ve veri yapıları üzerinde işlemler yapabileceğiniz hiçbir fonksiyon yok. Çoğu zaman Java, C++ ve Python gibi alternatifler de oluyor bu gibi problemlerde. Java’da zaten elinizin altında yüzlerce sınıf var. C++’da STL var, Python’da zaten bir sürü builtin veri yapısı var. C ile ne gerekiyorsa yazmak zorundasınız. Aslında bu gibi yarışlamarda daha adil olması açısından C kodlarını <code>glib</code> ile derleyebilirler. Performans deseniz, çoğu zaman takıldığınız nokta performans olmuyor(eğer problemi C++ veya en kötü ihtimalle Java ile çözmüşseniz). Kısaca, C ile çözmeye çalışmayın, en azından biraz STL bilip, C++ ile çözülebilir.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

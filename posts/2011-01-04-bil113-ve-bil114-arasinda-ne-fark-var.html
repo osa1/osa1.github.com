@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Bil113 ve Bil114 arasında ne fark var?</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Bil113 ve Bil114 arasında ne fark var?</h1>
+
+<p><strong>January  4, 2011</strong> - Tagged as: .</p>
+
+<p>Çok sinirlendim, bilmeyenler için, <a href="http://bil.etu.edu.tr/bil113-tr.html">Bil113</a>, ilk dönem aldığım programlamaya giriş dersi, <a href="http://bil.etu.edu.tr/bil114-tr.html">Bil114</a> de bu dönem alacağım, aynı dersinde devamı. Şimdi küçük bir programla, bil113 ve bil114 hakkındaki garipliklere bir bakalım:</p>
+<pre class="sourceCode python"><code class="sourceCode python">&gt;&gt;&gt; java = <span class="st">&quot;&quot;&quot;Programlamaya giriş. Derleyici ve yorumlayıcılar. Dilin temel elemanları ve veri tipleri. Değişkenler ve atama deyimi. İşleyiş akış kontrolleri: Karar verme ve döngü yapıları. Sınıflar ve metotlar. Diziler. İstisna durumlar (Exceptions). Metin dosyaları ile Giriş/Çıkış işlemleri. Özyineleme. &quot;&quot;&quot;</span>  <span class="co"># bil113 ders tanimi</span>
+&gt;&gt;&gt; c = <span class="st">&quot;&quot;&quot;C/C++ ile programlamaya giriş. Derleyiciler. Dilin temel elemanları ve veri tipleri. Değişkenler ve atama deyimi. İşleyiş akış kontrolleri: Karar verme ve döngü yapıları. Sınıflar ve nesneler. Dizinler. Metin dosyaları ile Giriş/Çıkış işlemleri. Kalıtım. Çok yüzlülük. Aykırı durum denetleme. &quot;&quot;&quot;</span>  <span class="co"># bil114 ders tanimi</span>
+&gt;&gt;&gt; <span class="dt">len</span>(java.split())
+<span class="dv">36</span>
+&gt;&gt;&gt; <span class="dt">len</span>(c.split())
+<span class="dv">38</span>
+&gt;&gt;&gt; counter = <span class="dv">0</span>  <span class="co"># ders tanimlarindaki ortak kelime sayisi</span>
+&gt;&gt;&gt; <span class="kw">for</span> word in c.split():
+	<span class="kw">if</span> word in java:
+		counter += <span class="dv">1</span>
+
+		
+&gt;&gt;&gt; counter
+<span class="dv">28</span>
+&gt;&gt;&gt; counter*<span class="dv">100</span>/(<span class="dt">len</span>(c.split()) * <span class="fl">1.0</span>)  
+<span class="fl">73.684210526315795</span>
+&gt;&gt;&gt; </code></pre>
+<p>Yukarıdan görülebileceği gibi, ders tanımlarının %73.684210526315795’i ortak. Şaka gibi. Bu konuların hepsini ilk dönem biz zaten gördük. Aslında aynı anlama gelen farklı kelimeler de işin içine girerse bu oran %90’ı çok rahat bulur. Programlamaya kaç kere giriliyor anlamadım ben.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

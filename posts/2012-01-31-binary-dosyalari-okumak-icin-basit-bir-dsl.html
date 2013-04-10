@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Binary dosyaları okumak için basit bir DSL</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Binary dosyaları okumak için basit bir DSL</h1>
+
+<p><strong>January 31, 2012</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Hiçbir motivasyonum olmaksızın Common Lisp ile uğraştığım şu günlerde(şu ana kadar kullandığım diller arasında bariz bir şekilde kullanması en zevkli olanı, bu konu hakkında bir yazı yazdım birkaç düzenlemeye hazır olur), staj projem için yaptığım çalışmalar sırasında öğrendiğim bazı şeyleri Common Lisp ile uyguluyorum. Bunlardan birisi de JVM yapısı. Common Lisp ile basit bir JVM işine giriştim. Şimdilik epey iyi gidiyorum, amacım birkaç JVM komutu(instructuion, opcode, artık ne derseniz) çalıştırabilen bir altyapı. Tüm native kütüphaneleriyle beraber Java programlarını çalıştırabilecek bir JVM yapmıyorum tabii ki.</p>
+<p>İlk adım olarak bir Java class dosyasını okuyup, istediğim kısımlarına kolayla ulaşabileceğim bir şekilde yüklemekti. class dosyalarının yapısını <a href="http://java.sun.com/docs/books/jvms/second_edition/html/ClassFile.doc.html">şuradan</a> inceleyebilirsiniz.</p>
+<p>Bunu yaparken bazı kod parçalarının çok tekrar ettiğini farkettim, örneğin n byte’lık bir kısmı, bir sonraki kısımdan(bu 1 byte’lık bir veri de olabilir, tamamen farklı bir yapı da olabilir, örneğin bir interface referansı) kaç tane olduğunu bilmek için okumak. Şu şekilde birşeyler yani:</p>
+<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">let*</span> ((constant-count (read-bytes <span class="dv">2</span> <span class="kw">stream</span>))
+       (constants (<span class="kw">make-array</span> constant-count)))
+  (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="kw">1-</span> constant-count) <span class="kw">do</span>
+    (<span class="kw">setf</span> (<span class="kw">elt</span> constants i) (read-constant <span class="kw">stream</span>))))</code></pre>
+<p>Burda yaptığım, 2 byte okuyarak constant pool’da kaç tane sabit olduğunu öğrenmek. Buna göre kaç byte daha okuyacağıma karar vereceğim çünkü.</p>
+<p>Tabii bir de class dosyasının istediğim kısımlarına kolayca ulaşabilmek için dosyayı farklı parçaları için structlara bölmem gerekti. Bir yerden sonra her bir struct için farklı bir okuma fonksiyonu oluşturmuştum. Ve bu okuma fonksiyonlarında da bir sürü ortak kısım vardı. Bir DSL’e çevirmeye karar verdim.</p>
+<p>Aslında DSL ile API’ın arasındaki fark tam belli değil. Benim DSL’den kastettiğim arayüzü sunarken kendisine özel bir syntax ile sunmak. Bu yaptığım biraz da yeni birşey öğrenince hemen uygulamaya çalışma merakı aslında.</p>
+<p>Önce nasıl kullanıldığını göstereyim, sonra macrolardan bahsedeceğim. Tüm kodu görmek isteyenler için, <a href="https://gist.github.com/1706229">şu</a> class dosyasını ayrıştıran kod, <a href="https://gist.github.com/1704351">şu</a> da DSL macroları. Tüm class dosyasını tanımladığım yapı şöyle birşey:</p>
+<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct class-file
+  (magic <span class="dv">4</span>)
+  (minor-version <span class="dv">2</span>)
+  (major-version <span class="dv">2</span>)
+  (constant-pool (:struct constant-pool))
+  (access-flags <span class="dv">2</span>)
+  (this-class <span class="dv">2</span>)
+  (super-class <span class="dv">2</span>)
+  (:temp (interfaces-count <span class="dv">2</span>))
+  (interfaces (:list <span class="dv">2</span> interfaces-count))
+  (:temp (fields-count <span class="dv">2</span>))
+  (fields (:list (:struct field) fields-count))
+  (:temp (jmethods-count <span class="dv">2</span>))
+  (methods (:list (:struct jmethod) jmethods-count))
+  (:temp (attributes-count <span class="dv">2</span>))
+  (attributes (:list (:struct attribute) attributes-count)))</code></pre>
+<p>Tanımın yukarıda linkini verdiğim class dosyası yapısına ne kadar benzediğine dikkat edin. Şöyle çalışıyor, her <code>defbinstruct</code> için bir <code>struct</code> oluşturuluyor, içindeki her bir liste için gerekiyorsa(<code>:temp</code> olup olmadığına göre) struct’a <code>slot</code> ekleniyor. <code>:temp</code> değişkenler farklı amaçlar için gerekebilir. Örneğin dosyadaki boşluklar(<code>padding</code> diye geçer genelde) için, veya dosyada bir yapıdan kaç tane olduğunu okumanız gerektiğinde, ama bu değeri okuduyup oluşturduğunuz yapıya dahil etmek istemiyorsanız. Her bir <code>defbinstruct</code> için bir de okuma fonksiyonu oluşturuluyor, yapının adına “read” eklenerek(burdaki örnek için <code>read-class-file</code> yani).</p>
+<p>Değişken isminden sonra gelen kısım eğer tamsayı ise, o tamsayı kadar byte okunup bu slota atanıyor, eğer <code>(:list a b)</code> veya <code>(:vector a b)</code> şeklinde birşeyse, <code>a</code>dan <code>b</code> kere okunup, liste veya vector olarak atanıyor. Eğer tamsayı kısmına <code>(:struct a)</code> gibi birşey gelmişse, <code>a</code>nın bir <code>defbinstruct</code> ile oluşturulmuş yapı olması gerekiyor(yani <code>read-a</code> diye bir fonksiyon olmalı). Bu tanımlamaların recursive bir formda olabileceğine dikkat. Şöyle birşey olabilir mesela: <code>(field-1 (:list (:list (:struct sub-field) sub-field-count) field-count))</code>.</p>
+<p>Dönüş değeri de tanımladığınız yapıdan oluşturulmuş bir <code>struct</code>. Örnekteki kodda <code>class-file-interfaces</code> ile interfaces alanına ulaşabilirsiniz mesela.</p>
+<p>Okunan değerlere göre daha kompleks işler yapmanız gerektiğinde <code>:custom</code> keywordu ile <code>read</code> fonksiyonunu kendiniz tanımlayabilirsiniz. <code>:custom</code> keywordunden sonraki kısım da yapıda olacak slotların listesi. Örneğin <code>constant-pool</code>u okumak biraz daha zor(mesela double ve long sabitler constant-pool’da 2 slot kaplıyor), şöyle:</p>
+<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct constant-pool
+  :custom
+  (constants)
+  (<span class="kw">let*</span> ((constant-pool-count (<span class="kw">1-</span> (read-bytes <span class="dv">2</span> <span class="kw">stream</span>)))
+         (constants (<span class="kw">make-array</span> constant-pool-count)))
+    (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="kw">1-</span> constant-pool-count) <span class="kw">do</span>
+      (<span class="kw">let</span> ((tag (read-bytes <span class="dv">1</span> <span class="kw">stream</span>)))
+        (<span class="kw">if</span> (<span class="kw">or</span> (<span class="kw">=</span> tag <span class="dv">5</span>) (<span class="kw">=</span> tag <span class="dv">6</span>))
+            (<span class="kw">let</span> ((constant (<span class="kw">if</span> (<span class="kw">=</span> tag <span class="dv">5</span>)
+                                (read-jlong <span class="kw">stream</span>)
+                                (read-jdouble <span class="kw">stream</span>))))
+              (<span class="kw">setf</span> (<span class="kw">elt</span> constants i) constant
+                    (<span class="kw">elt</span> constants (<span class="kw">1+</span> i)) constant)
+              (<span class="kw">incf</span> i))
+            (<span class="kw">setf</span> (<span class="kw">elt</span> constants i)
+                  (<span class="kw">funcall</span>
+                   (<span class="kw">case</span> tag
+                     (<span class="dv">1</span> #'read-utf<span class="dv">-8</span>)
+                     (<span class="dv">8</span> #'read-string-ref)
+                     (<span class="dv">3</span> #'read-jinteger)
+                     (<span class="dv">4</span> #'read-jfloat)
+                     (<span class="dv">7</span> #'read-class-ref)
+                     (<span class="dv">9</span> #'read-field-ref)
+                     (<span class="dv">10</span> #'read-method-ref)
+                     (<span class="dv">11</span> #'read-interface-method-ref)
+                     (<span class="dv">12</span> #'read-descriptor))
+                   <span class="kw">stream</span>)))))
+    (make-constant-pool :constants constants)))</code></pre>
+<p>Bu tanımladığımız read fonksiyonuna <code>stream</code> diye bir parametre aktarıldığını varsayıyoruz(macro tarafından oluşturulmuş kodda aktarılıyor). Burda aslında stream yerine lexical scope ile <code>*standard-input*</code>a bu <code>stream</code> atanabilir. Yine de çaktırmadan <code>*standard-input*</code> ile oynamak bana çok iyi bir yolmuş gibi gelmedi.</p>
+<p>Bir başka örnek olarak da yine constant-pooldaki string sabitlerini nasıl okuduğumu göstereyim:</p>
+<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct utf<span class="dv">-8</span>
+  (:temp (<span class="kw">length</span> <span class="dv">2</span>))
+  (value (:vector <span class="dv">1</span> <span class="kw">length</span>)))</code></pre>
+<p>İlk 2 byte, string’in uzunluğunu veriyor. Daha sonra bu uzunluk kadar 1 byte okuyup bir vector olarak kaydediyorum.</p>
+<p>Şimdi macrolara bakalım. İlk önce <code>defbinstruct</code> kodundaki keywordleri(<code>:vector</code>, <code>:list</code>, <code>:struct</code>) recursive olarak silip yerine gerekli Lisp kodunu ekleyen <code>remove-keywords</code> macrosu:</p>
+<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> remove-keywords </span>(form)
+  (<span class="kw">cond</span> ((<span class="kw">null</span> form) '())
+        ((<span class="kw">integerp</span> form)
+         `(read-bytes ,form <span class="kw">stream</span>))
+        ((<span class="kw">and</span> (<span class="kw">consp</span> form) (<span class="kw">keywordp</span> (<span class="kw">first</span> form)))
+         (<span class="kw">case</span> (<span class="kw">first</span> form)
+           ((:list)
+            `(<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="kw">1-</span> ,(<span class="kw">third</span> form))
+                   collect (remove-keywords ,(<span class="kw">second</span> form))))
+           ((:vector)
+            `(<span class="kw">coerce</span> (<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="kw">1-</span> ,(<span class="kw">third</span> form))
+                           collect (remove-keywords ,(<span class="kw">second</span> form)))
+                     'vector))
+           ((:struct)
+            `(,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string <span class="st">&quot;READ-&quot;</span> (<span class="kw">string</span> (<span class="kw">second</span> form)))) <span class="kw">stream</span>))))
+        (<span class="kw">t</span> form)))</code></pre>
+<p>Yaptığı şey çok basit, her <code>:struct</code> keywordu gördüğü yere <code>(read-x)</code> fonksiyonunu ekliyor, <code>:list</code> veya <code>:vector</code> gördüğü yerde de gereken <code>loop</code> kodunu. İkinci olarak olarak <code>defbinstruct</code>:</p>
+<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defbinstruct </span>(name &amp;body attributes)
+  (<span class="kw">labels</span> ((make-reader-name (name-symbol)
+             (<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string <span class="st">&quot;READ-&quot;</span> (<span class="kw">string</span> name-symbol)))))
+    (<span class="kw">if</span> (<span class="kw">and</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attributes))
+             (<span class="kw">eql</span> (<span class="kw">first</span> attributes) :custom))
+        (<span class="kw">let</span> ((attributes (<span class="kw">second</span> attributes))
+              (body (<span class="kw">cddr</span> attributes)))
+          `(<span class="kw">progn</span>
+             (<span class="kw">defstruct</span><span class="fu"> </span>,name
+               ,@attributes)
+             (<span class="kw">defun</span><span class="fu"> </span>,(make-reader-name name) (<span class="kw">stream</span>)
+               ,@body)))
+        (<span class="kw">let</span> ((attr-struct-names (<span class="kw">remove-if-not</span> #'identity
+                                                (<span class="kw">mapcar</span> (<span class="kw">lambda</span> (attr)
+                                                          (<span class="kw">unless</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attr))
+                                                            (<span class="kw">first</span> attr)))
+                                                        attributes))))
+          `(<span class="kw">progn</span>
+             (<span class="kw">defstruct</span><span class="fu"> </span>,name
+               ,@attr-struct-names)
+             (<span class="kw">defun</span><span class="fu"> </span>,(make-reader-name name) (<span class="kw">stream</span>)
+               (<span class="kw">let*</span> (,@(<span class="kw">mapcar</span> (<span class="kw">lambda</span> (attr)
+                                  (<span class="kw">destructuring-bind</span> (attr-name . bytes)
+                                      (<span class="kw">if</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attr))
+                                          (<span class="kw">cons</span> (<span class="kw">caadr</span> attr) (<span class="kw">cadadr</span> attr))
+                                          (<span class="kw">cons</span> (<span class="kw">first</span> attr) (<span class="kw">second</span> attr)))
+                                    `(,attr-name ,(<span class="kw">if</span> (<span class="kw">integerp</span> bytes)
+                                                      `(read-bytes ,bytes <span class="kw">stream</span>)
+                                                      `(remove-keywords ,bytes)))))
+                                attributes))
+                 
+                 (,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string <span class="st">&quot;MAKE-&quot;</span> (<span class="kw">string</span> name)))
+                  ,@(<span class="kw">mapcan</span> (<span class="kw">lambda</span> (name) (<span class="kw">list</span> (<span class="kw">intern</span> (<span class="kw">string</span> name) <span class="st">&quot;KEYWORD&quot;</span>) name))
+                            attr-struct-names)))))))))</code></pre>
+<p>Burda da <code>defbinstruct</code> altındaki listeleri gezip, oluşturulacak olan <code>struct</code>a gerekli <code>slot</code>ları ekliyorum ve <code>read</code> fonksiyonunu oluşturuyorum. Her bir <code>defbinstruct</code> için bir <code>struct</code> bir de fonksiyon tanımlıyorum yani.</p>
+<p>Kütüphane toplam 52 satır. İkinci bir örnek olarak da ID3 etiketlerini okuyacaktım ama çok kompleks geldi. Dikkat edilmesi gereken çok fazla istisna var. Aklıma daha basit bir örnek gelirse ekleyeceğim(ara ara kütüphaneyi de güncelliyorum, gistlerden takip edebilirsiniz).</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

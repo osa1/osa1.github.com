@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Epic OCamlYacc fail</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Epic OCamlYacc fail</h1>
+
+<p><strong>March  1, 2013</strong> - Tagged as: <a href="../tags/ocaml.html">ocaml</a>.</p>
+
+<p>I’ve been trying to compile <a href="http://gallium.inria.fr/~fpottier/wallace/">an OCaml library from 2000</a> recently and I came up against a strange OCamlYacc error; OCamlYacc doesn’t compile the parser file because parser function has a polymorphic type(with a type variable <code>'a</code>).</p>
+<p>At first I tried to understand with which concrete type <code>'a</code> type variable is being equated, so that I could replace it with the concrete type and the program would be compiled.</p>
+<p>After several hours wasted, I decided to follow some different path. I replaced type variables in <code>.mly</code> with some dummy type like <code>my_epic_dummy_type</code> and compiled it with OCamlYacc. Then I replaced <code>my_epic_dummy_type</code> types with the type variable <code>'a</code> in compiled <code>.ml</code> and <code>.mli</code> files.</p>
+<p>And the library worked as expected.</p>
+<p>Now the question naturally arises: Why does OCamlYacc refuse to compile parser function with polymorphic type ? I have no idea.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Django ile Wordpress'e bağlanmak</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Django ile Wordpress'e bağlanmak</h1>
+
+<p><strong>August 28, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/django.html">django</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Birkaç gün önce bir arkadaş sormuştu Django ile Wordpress’e nasıl bağlandığımı(bkz <a href="../arsiv/">arşiv sayfam</a>. Yaptığım şey, wordpress için bir model oluşturup, mümkün olduğunca wordpress veritabanını kopyaladım.</p>
+<p>Kendi sitem için sadece wp_posts tablosunu aktardım, fakat tüm wordpress’de aktarılabilir biraz daha uğraşılarak. Bu yöntemle wordpress’e yazı bile girebilirsiniz aslında. Ben sadece yazıları çekiyorum.</p>
+<p>wp_posts tablosu(wordpress 2.9.1 için) şu alanları içeriyor:</p>
+<pre><code>field           type
+----------------------------
+id              int(11)
+post_date       datetime
+post_title      varchar(100)
+post_content    longtext
+post_excerpt    varchar(100)
+post_status     varchar(100)
+guid            varchar(100)
+comment_count   int(11)
+post_type       varchar(20)</code></pre>
+<p>Bunu <a href="http://docs.djangoproject.com/en/dev/topics/db/models/">Django ORM</a>’ine şu şekilde çevirdim(tam olarak aynısı olmasa da, eğer sadece yazıları okuyacaksanız gayet güzel çalışıyor, yazı eklemek için denemedim):</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="co"># models.py</span>
+<span class="ch">from</span> django.db <span class="ch">import</span> models
+<span class="kw">class</span> Posts(models.Model):
+    post_date = models.DateTimeField()
+    post_content = models.TextField()
+    post_title = models.CharField(max_length=<span class="dv">100</span>)
+    post_content = models.TextField()
+    post_excerpt = models.CharField(max_length=<span class="dv">100</span>)
+    post_status = models.CharField(max_length=<span class="dv">20</span>)
+    guid = models.CharField(max_length=<span class="dv">100</span>)
+    comment_count = models.IntegerField()
+    post_type = models.CharField(max_length=<span class="dv">20</span>)</code></pre>
+<p>Daha sonra views.py dosyamdan şu şekilde çekiyorum:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">from</span> wp.models <span class="ch">import</span> Posts
+<span class="kw">def</span> wp():
+    <span class="kw">return</span> [post <span class="kw">for</span> post in Posts.objects.order_by(<span class="st">&quot;-post_date&quot;</span>) <span class="kw">if</span> post.post_type == <span class="st">&quot;post&quot;</span> and post.post_status == <span class="st">&quot;publish&quot;</span>]</code></pre>
+<p>Bundan sonrası normal Django işlemleri. wp() fonksiyonunu istediğim sayfaya gönderdikten sonra(render_to_response ile mesela) aşağıdaki template kodları ile wordpress yazılarıma ait verileri çekiyorum:</p>
+<pre class="sourceCode python"><code class="sourceCode python">{% <span class="kw">for</span> yazi in wp %}
+        {{ yazi.post_title }} *baslik*
+        {{ yazi.post_date }} *tarih*
+        {{ yazi.post_content }} *icerik*
+        {{ yazi.coment_count }} *yorum sayisi*
+{% endfor %}</code></pre>
+<p>Tabii bunları çekerken bazı <a href="http://docs.djangoproject.com/en/dev/ref/templates/builtins/#built-in-filter-reference">builtin template tag</a>lardan yararlanıyorum. Bu arada, Django, 1.2 sürümüyle beraber artık birden fazla veritabanına bağlanabiliyor, wordpress yazılarınızı çekmek istiyorsanız bunu kullanabilirsiniz(ben aynı veritabanını kullanıyorum.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

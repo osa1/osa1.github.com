@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Pygame denemeleri 1 ve okunacaklar</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Pygame denemeleri 1 ve okunacaklar</h1>
+
+<p><strong>August 15, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/pygame.html">pygame</a>, <a href="../tags/django.html">django</a>.</p>
+
+<p>Python ile Django’dan sonra pygame’e el attım biraz. Daha yeni başladım ve henüz pygame’in özelliklerinin çok azından yararlanarak birşeyler yapabiliyorum. Aşağıdaki kod ilk yazdığım basit bir çarpışma şeyi(neyi ben de bilmiyorum). İstediğiniz büyüklükte ekrana istediğiniz kadar top ekleyip onları rastgele hızlarda bir yerlere yolluyor ve çarpıştırıyor.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> pygame, random, math
+screenx, screeny = <span class="dv">500</span>, <span class="dv">500</span> <span class="co">#ekran buyuklugu</span>
+<span class="kw">class</span> Ball:
+    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, surface):
+        <span class="ot">self</span>.surface = surface
+        <span class="ot">self</span>.radius = <span class="dv">10</span>
+        <span class="ot">self</span>.color = (<span class="dv">255</span>, <span class="dv">255</span>, <span class="dv">255</span>)
+        <span class="ot">self</span>.x = random.randint(<span class="dv">0</span>+<span class="ot">self</span>.radius, screenx-<span class="ot">self</span>.radius)
+        <span class="ot">self</span>.y = random.randint(<span class="dv">0</span>+<span class="ot">self</span>.radius, screeny-<span class="ot">self</span>.radius)
+        <span class="ot">self</span>.vx = random.randint(<span class="dv">1</span>, <span class="dv">10</span>)
+        <span class="ot">self</span>.vy = random.randint(<span class="dv">1</span>, <span class="dv">10</span>)
+        
+    <span class="kw">def</span> move(<span class="ot">self</span>, time_passed):
+        <span class="kw">if</span> <span class="ot">self</span>.x &gt;= screenx-<span class="ot">self</span>.radius or <span class="ot">self</span>.x &lt;= <span class="ot">self</span>.radius:
+            <span class="ot">self</span>.vx *= -<span class="dv">1</span>
+        <span class="kw">if</span> <span class="ot">self</span>.y &gt;= screeny-<span class="ot">self</span>.radius or <span class="ot">self</span>.y &lt;= <span class="ot">self</span>.radius:
+            <span class="ot">self</span>.vy *= -<span class="dv">1</span>
+        <span class="ot">self</span>.x += <span class="ot">self</span>.vx * time_passed
+        <span class="ot">self</span>.y += <span class="ot">self</span>.vy * time_passed
+        
+    <span class="kw">def</span> draw(<span class="ot">self</span>):
+        pygame.draw.circle(<span class="ot">self</span>.surface, <span class="ot">self</span>.color, (<span class="ot">self</span>.x, <span class="ot">self</span>.y),
+                           <span class="ot">self</span>.radius)
+pygame.init()
+clock = pygame.time.Clock()
+screen = pygame.display.set_mode((screenx, screeny), <span class="dv">0</span>, <span class="dv">32</span>)
+running = <span class="ot">True</span>
+balls = []
+<span class="kw">for</span> i in <span class="dt">range</span>(<span class="dv">1</span>, <span class="dv">21</span>): <span class="co">#top sayisi</span>
+    balls.append(Ball(screen))
+<span class="kw">def</span> CollisionDetect(b1):
+    <span class="kw">for</span> b2 in balls:
+        <span class="kw">if</span> b1 is not b2:
+            <span class="dt">range</span> = math.sqrt((b1.x - b2.x)**<span class="dv">2</span> + (b1.y - b2.y)**<span class="dv">2</span>)
+            <span class="kw">if</span> <span class="dt">range</span> &lt; (b1.radius + b2.radius):
+                b1.vx, b2.vx = b2.vx, b1.vx
+                b1.vy, b2.vy = b2.vy, b1.vy
+                <span class="co">#b1.move(); b2.move()</span>
+<span class="kw">while</span> running:
+    <span class="kw">for</span> event in pygame.event.get():
+        <span class="co">#print event</span>
+        <span class="kw">if</span> event.<span class="dt">type</span> == pygame.QUIT:
+            running = <span class="ot">False</span>
+    
+    time_passed = clock.tick(<span class="dv">50</span>)
+    screen.fill((<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>))
+    <span class="kw">for</span> b in balls:
+        b.draw()
+        CollisionDetect(b)
+        b.move(time_passed)
+    
+    pygame.display.flip()</code></pre>
+<p>Onun dışında kendime bir okunacaklar listesi hazırladım, ilk fırsatta okuyacaklarım:</p>
+<ul>
+<li><a href="http://www.pygame.org/docs/tut/MoveIt.html">http://www.pygame.org/docs/tut/MoveIt.html</a></li>
+<li><a href="http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/">http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/</a></li>
+<li><a href="http://ezide.com/games/writing-games.html">http://ezide.com/games/writing-games.html</a></li>
+<li><a href="http://stackoverflow.com/questions/739654/understanding-python-decorators">StackOverflow - Understanding Python Decorators</a></li>
+<li><a href="http://stackoverflow.com/questions/231767/the-python-yield-keyword-explained">StackOverflow - Python yield Keyword</a></li>
+</ul>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

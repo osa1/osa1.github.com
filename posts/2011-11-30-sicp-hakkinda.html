@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - SICP hakkında</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">SICP hakkında</h1>
+
+<p><strong>November 30, 2011</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>~2 ay kadar önce okumaya başladığım <a href="http://mitpress.mit.edu/sicp/">SICP</a> hakkında birkaç birşey yazmak istedim. Okumak isteyenlere de birkaç tavsiyede bulunacağım. Bu kitabın yanlış anlaşıldığını, küçümsendiğini düşünüyorum. SICP nedir, veya neden SICP diye düşünen varsa, Google’da küçük bir araştırma sizi süper sayfalara yönlendirecektir.</p>
+<p>Öncelikle biraz ön bilgi vereyim, kitabı ciddi anlamda okumaya ~2 ay kadar önce başladım, ve fonksiyonel programalama, Lisp dilleri, ve haliyle genel olarak programlama hakkında epey tecrübem vardı. Kitabı ilk okuma denemem lisans’a başladığım dönem(hatta hafta) içinde, bir şekilde biryerlerden kitapdan haberdar olup kütüphanemde bulunduğunu öğrenmemle oldu. Birkaç ay sonra da <a href="http://ff.im/tnz3f">şöyle bir feed</a> girmişim. Farkedebileceğiniz gibi pek de iyi gitmemiş. Şu anda ise ikinci ve üçüncü bölümdeki 179 alıştırmadan 168’ini çözdüm ve not aldım(%93.8). Çözmediklerimin 5 tanesi 2. bölümün son 5 sorusu, artık konuyu anladığımı düşündüğümden çözmeyeceğim, geriye kalan 6 tanesini de çözemedim, aklımdalar.</p>
+<p>İlk bölüm hariç çözdüğüm tüm alıştırmaların çözümleri ve açıklamaları <a href="https://github.com/osa1/sicp-solutions">github alanım</a>da. Kitabı okumaya başladığımda çözümlerimi yayınlama gibi bir amacım yoktu, o yüzden ilk bölümdeki alıştırmaların çözümlerini not almadım. Bu aşamadan sonra ~2 hafta kadar ara verip(biraz finallerle ilgileneyim de şu dönemi kazasız belasız atlatıyorum diyorum), kitabı bitirmeye devam edeceğim. Gerçi ara verebileceğimi sanmıyorum, yine okuyacağım ama alıştırmalarla şu ana kadarki gibi yoğun bir şekilde ilgilenemeyeceğim.</p>
+<p>Şimdi biraz okumak isteyenler için birşeyler söyleyeyim:</p>
+<h3 id="çalışma-ortamı">Çalışma ortamı</h3>
+<p>Emacs’e aşina değilseniz veya benim gibi VIM olmadan düz metin bile yazamayacak halde değilseniz, Racket en ideal ortam gibi. Kendi REPL/Editor’ü yeterince iyi. Kurulumu çok kolay(hatta linux ortamında kurulum yapmadan da çalıştırabiliyorsunuz). “Picture language” bölümündeki gibi tanımı verilmemiş fonksiyonlar kolayca temin edilebiliyor(yeri geldiğimde açıklamalarımda yazdım bunları).</p>
+<p>Racket’in kötü yanı, tam olarak Scheme olmadığından, bazı kısımlar çalışmıyor, farklı bir yol izlemeniz gerekiyor. Örneğin <code>mutable data</code> ile ilgilendiğimiz 3. bölümde. Racket’ın <code>pair</code>ları <code>immutable</code> olduğundan(Scheme’dekinin aksine), <code>set-car!</code> ve <code>set-cdr!</code> gibi fonksiyonlar yok. Çözümü, bir modül aracılığıyla <code>pair</code> yerine <code>mpair</code>(mutable pair), <code>set-car!</code> yerine <code>set-mcar!</code> vs. kullanmak. Bunları hep açıklamalarda yazdım yeri geldiğinde.</p>
+<p>Bu kısımlar için de ben kullandığım dağıtımın(openSUSE 11.4) paket yöneticisinde gördüğüm Scheme48’i kullandım. Her hangi bir standart Scheme implementasyonu kullanılabilir.</p>
+<p>Emacs’e alışkın olanlar, veya illa VIM tuşları diyenler için çözüm <a href="http://www.neilvandyke.org/quack/">Quack</a>. Açıkçası profesyonel anlamda Scheme yazacaksanız ne kadar iyidir bilemiyorum, benim ihtiyacım olan Scheme REPL’i ve editorden kulayca kod çalıştırmayı mümkün kılıyor. Tuşları SLIME ile epey benzer. İstediğiniz Scheme’i kullanabiliyorsunuz(<code>run-scheme</code>i çalıştırdığınızda kullanmak istediğiniz Scheme’i soruyor). Eğer Racket kullanıyorsanız, <code>mzscheme</code>i çalıştırıyorsunuz. Emacs VIM tuşları için de <a href="http://emacswiki.org/emacs/Evil">Evil</a>.</p>
+<p>Bu arada kitabın bir sürü ders videoları var sağda solda. Berkeley ve MIT’ninkiler gayet iyiydi diye hatırlıyorum. Bana süper sıkıcı geldiğinden(gözlerim kapanıyor ya) dersleri izlemedim.</p>
+<h3 id="zorluk">Zorluk</h3>
+<p>Baştan söyleyeyim, kitap zor. Alıştırmaları çözmeden öğrenmeniz imkansız. Örneğin ikinci bölümde 90 küsür alıştırma var. Konunun bir kısmı(hatta belki de çoğu kısmı) alıştırmalarda anlatılıp, program yazarak öğretiliyor. Alıştırmalar birbirlerine bağlı, çoğu zaman bir bölüm içinde önceki alıştırmaları çözmeden sonrakini çözemiyorsunuz. Bazı bölümlerde bir paragraf birşey anlatıp, birkaç paragraflık problemler geliyor falan. Çoğu alıştırma çok zevkli olsa da, bazen kendini tekrar edebiliyor(örneğin 2. bölümün sonlarına doğru).</p>
+<p>İlk 3 bölümü epey hızlı bitirdiğimi düşünüyorum. Bu şu yüzden olabildi: Kitaba başladığımda, fonksiyonel programlama, Lisp dilleri, ve haliyle programlama hakkında epey tecrübeliydim. Bir süre Common Lisp ile uğraşmıştım, The Little Schemer’ı okumuştum, ve Clojure ile uğraşıyordum. Özellikle ilk bölüm için çok gerekli olan bazı matematiksel kavramları ayrık matematik ve calculus derslerinde görmüştüm. Kitabı ilk okuma denememde aslında bu yüzden yapamamıştım. İşin matematiğinde takılmıştım, ve ilk bölüm matematik ağırlıklı(Scheme biliyorsanız bile kesinlikle atlamamalısınız, iterative process vs. recursive process, tail-call optimization, basit lambda calculus, fixed-point combinator gibi süper konulardan bahsediliyor). Bunların hepsine sıfırda başlayacak biri için bu süreç epey uzun olabilir(MIT veya bu kitabın okutulduğu diğer okullarda kaç dönem sürüyor tüm kitap acaba?).</p>
+<h3 id="fonksiyonel-programlama">Fonksiyonel programlama</h3>
+<p>. bölüme kadar tamamen fonksiyonel programlama yapıyoruz. 3. bölümde de atama işleminden, mutable datadan, avantajlarından, dezavantajlarından, programları nasıl kompleks bir hale getirdiğinden, fonksiyonel/imperative programlama arasında dengeden bahsediliyor. Daha sonra %100 fonksiyonel bir yol izlemesek de(3. bölümü yeni bitirdim, tam emin değilim) geri kalan kısım yine büyük oranda fonksiyonel gibi.</p>
+<p>Burda SICP’in fonksiyonel programlama için mükemmel bir kaynak olduğunu düşünüyorum. Sadece ilk 3 bölüm okunsa bile yeterli olur. 3. bölüme geçtiğimde hiç farkında olmadan sürekli fonksiyonel programlama yaptığımı ve artık bu yolun bana çok doğal geldiğini farkettim. Bundan 1 yıl kadar önce imperative dillerde çok rahat çözebildiğim tüm problemleri şu anda fonksiyonel bir şekilde çözebiliyorum(hatta belkide daha bile rahatımdır, bir süredir imperative dillerle uğraşmıyorum). SICP bu şekilde düşünmeye başlayabilmek için mükemmel bence.</p>
+<h3 id="common-lisp-vs-scheme-vs-clojure">Common Lisp vs Scheme vs Clojure</h3>
+<p>Bazen denk geliyorum, SICP’i Common Lisp veya Clojure ile çözmeye çalışıyor birileri. Bunun mantıklı olduğunu düşünmüyorum. SICP’i bir Scheme kitabı olarak görmeyin, dil hakkında birşler anlattığı kısımları birleştirsek, ilk 3 bölümde toplam 10 sayfa bile etmez. Scheme çok küçük bir dil. Pek çok dili öğrenirken vaktimizin çoğunu syntax’ını anlamakla geçiriyoruz zaten(programlamaya yeni başlamıyorsak veya çok farklı bir paradigm öğrenmiyorsak). Scheme’de öyle bir dert yok. Ekstra bir dil öğrenmiyorsunuz yani aslında.</p>
+<p>Kaldı ki Scheme(ve aslında Common Lisp, ama kendisi çok kompleks bir dil olduğundan bu süreç epey uzun sürecektir) sadece kendisi ile yazılan kitaplar için bile öğrenilebilir bence.</p>
+<p>Bir de olaya şu açıdan bakın, bir programlama kitabı düşünün, anlattığı konuların herhangi bir dille alakası yok, genel olarak programalama, programların yapımı, soyutlama, problemlere yaklaşımlar, concurrency, programların yorumlanması ile alakalı, bir yerden sonra okuyucuya o ana kadar kullandığı dilin yorumlayıcısı yazdırılıyor. Bir programlama dili kitabı değil kesinlikle. Bir derleyici kitabı da değil. Daha iyi bir dil biliyor musunuz?</p>
+<hr />
+<p>SICP hakkında şimdilik bu kadar. Paylaşmak istediğim birşeyler olursa yine yazacağım. Üzerinde çalıştığım(henüz elle tutulur birşey değil ama) bir Scheme yorumlayıcısıyla alakalı da dağınık notlar var, bir ara ekleyeceğim(4. bölüm tam olarak bu işle alakalı olduğundan, sanırım 4. bölümü bitireceğim önce).</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

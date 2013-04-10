@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Clojure'da reader macroları</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Clojure'da reader macroları</h1>
+
+<p><strong>October 28, 2011</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Kendime not: Clojure’da, biraz hacky bir şekilde de olsa reader macroları tanımlanabilir. Örneğin <code>&lt;</code> ile başlayıp <code>&gt;</code> ile biten, arasındaki karakterleri string’e dönüştüren bir reader macrosu şu şekilde tanımlanabiliyor:</p>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defn</span><span class="fu"> reader-macro </span>[ch fun]
+  (<span class="kw">let</span> [dm (.<span class="kw">get</span>
+             (<span class="kw">doto</span> (.getDeclaredField clojure.lang.LispReader <span class="st">&quot;macros&quot;</span>)
+               (.setAccessible true))
+             nil)]
+    (<span class="kw">aset</span> dm (<span class="kw">int</span> ch) fun)))
+(<span class="kw">defn</span><span class="fu"> native-string </span>[rdr letter-u]
+  (<span class="kw">loop</span> [s nil
+         p <span class="ch">\s</span>pace
+         c (<span class="kw">char</span> (.<span class="kw">read</span> rdr))]
+    (<span class="kw">let</span> [s (<span class="kw">str</span> s p)]
+      (<span class="kw">if</span> (<span class="kw">=</span> c <span class="ch">\&gt;</span>)
+        s
+        (<span class="kw">recur</span> s c (<span class="kw">char</span> (.<span class="kw">read</span> rdr)))))))
+(reader-macro <span class="ch">\&lt;</span> native-string)</code></pre>
+<p>Burda <code>reader-macro</code> fonksyionu, <code>clojure.lang.LispReader</code> sınıfının <code>macros</code> fieldını(IFn[^256] erişilebilir hale getirip(reflection), reader macrosunun çağıracak karakterin(bizim durumumuzda <code>&lt;</code>) yerine okuyacak fonksionu ekliyor. Bizim fonksiyonummuz <code>native-string</code>.</p>
+<p>Reader fonksyionunu ilk parametresine <code>clojure.lang.LineNumberingPushbackReader</code> geliyor. <code>read</code>, <code>readLine</code>, <code>unread</code> gibi methodları var. İkinci parametresini çözebilmiş değilim.</p>
+<p>Clojure’da bir de dispatch macroları var, bunların tek farkı(muhtemelen bunların vermek istediği bir mesaj var ama ben çözemedim henüz), dispatch macroları <code>#</code> ile başlıyor. Yukarıdaki kodda, reader macrosunu <code>clojure.lang.LispReader.macros</code>a değil de, <code>clojure.lang.LispReader.dispatchMacros</code>a ekleyerek dispatch macroları genişletilebilir. Kurcalamak isteyen olursa, <a href="https://github.com/clojure/clojure/blob/master/src/jvm/clojure/lang/LispReader.java">LispReader.java</a>.</p>
+<p>Kaynaklar: <a href="http://briancarper.net/blog/449/">1</a>, <a href="http://nakkaya.com/2011/06/29/ferret-an-experimental-clojure-compiler/">2</a></p>
+<hr />
+<p>Clojure’da reader macroları bir süredir tartışılıyor aslında. Genel olarak, okunması/anlaşılması zor koda sebep olduğundan, namespace desteğinin olmamasından, Clojure’un zaten çok kullanılan veri yapıları için reader macrolarına sahip olmasından ve benzer başka sebeplerden dolayı reader macrolarımızı tanımlayamıyoruz şu anda. <a href="http://clojure-log.n01se.net/date/2008-11-06.html">Şurda</a> ilgili bir IRC logu var, <a href="http://groups.google.com/group/seajure/msg/2d2ec7ac9f2b4713">şurda</a> da bir mail(bir mail daha vardı ama bulamadım şimdi).</p>
+<p>Açıkçası bana bu sebepler mantıklı geliyor. Clojure’a reader macroları gelsin istemem. Common Lisp’den hevesini alamamış biri olarak bu şekilde reader macrolarıyla oynamak bana yetiyor şimdilik :) .</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

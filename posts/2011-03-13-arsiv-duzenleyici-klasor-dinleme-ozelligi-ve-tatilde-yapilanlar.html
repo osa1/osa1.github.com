@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Arşiv düzenleyici klasör dinleme özelliği ve tatilde yapılanlar</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Arşiv düzenleyici klasör dinleme özelliği ve tatilde yapılanlar</h1>
+
+<p><strong>March 13, 2011</strong> - Tagged as: <a href="../tags/java.html">java</a>, <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Çarşamba ve perşembe günleri kardan dolayı tatildi, cuma günü 2 saat derse girdim, cumartesi ve pazarla beraber 5 gün tatil yapmış gibi oldum. Birkaç fikrimi koda dökmek için fazlasıyla zamanım vardı.</p>
+<p>Arşiv düzenleyiciye klasör dinleme özelliğini sonunda ekledim. Bir süredir üzerinde düşünüyordum ama birkaç şeyden dolayı bir türlü başlayamamıştım. Birincisi, kaynak kod aşırı derecede karışık, yeniden geliştirilebilir bir şekilde yazılmamıştı. Birşey eklemeyi bırak, birkaç gün sonra kendim okuduğumda kodda ne olup bittiğini anlamıyordum. Tüm programı neredeyse yeniden yazdım.</p>
+<p>Çok daha esnek ve anlaşılabilir bir yapı oluşturdum. Büyük ihtimalle bundan sonraki güncellemeler çok daha kolay olacak. Tüm yapıyı değiştirmemin bir sebebi de klasör dinleme özelliğinin bazı şeylere ihtiyaç duymasıydı.</p>
+<p>Klasör dinleme demişken, bu konuda şaşırtıcı derecede fazla alternatif var. <a href="https://github.com/seb-m/pyinotify">inotify</a>, fam, <a href="http://people.gnome.org/~veillard/gamin/">gamin</a>, <a href="http://pypi.python.org/pypi/watchdog">watchdog</a>, <a href="https://github.com/shaurz/fsmonitor">fsmonitor</a>, pyfilesystem .. Bunların hepsini az çok kurcaladım. En son istediğim basitlikte/yeterlilikte fsmonitor kullandım.(FF’de yardımcı olan herkese teşekkürler. <a href="http://ff.im/zbSag">İlgili feed.</a>)</p>
+<p>Yeni sürümde henüz arayüz yok, tüm yapıyı değiştirince arayüz kısmı problem oldu bu sefer. Eğer arayüz yaparsam, gtk ile değil de wx ile yapacağım sanırım. gtk’da arkaplanda bir işlem yaparken arayüzü güncelleme konusunda çok sıkıntı yaşadım. Çalışan fonksiyon arayüzü güncellemek için başka fonksiyonları çağırsa bile, fonksiyon çalışmasını bitirmeden arayüz güncellenmiyor. Arayüzü güncellemek için, belirli aralıklarla fonksiyonu durdurmak gerekiyor(örneğin döngüdeki her bir adımda, yield ile bir değer döndürüp, <code>gobject.idle_add(task)</code> ile döngünün ilerlemesi sağlanabilir). Belki wx’de daha kolaydır.</p>
+<p><a href="http://github.com/osa1">Github alanımdan</a> indirebilirsiniz. System tray’de duracak basit bir arayüzden sonraki adım, yanlış etiketleri düzenlemek ve eksik etiketleri tamamlamak olacak sanırım.</p>
+<h3 id="design-patterns">Design patterns</h3>
+<p>Öğrenmek istediğim birkaç konu, başlamak istediğim birkaç kitap vardı. Hazır esnek, geliştirilebilir, anlaşılabilir program yazmakta sıkıntı yaşıyorken, <a href="http://www.amazon.com/First-Design-Patterns-Elisabeth-Freeman/dp/0596007124/ref=sr_1_1?ie=UTF8&amp;qid=1300026654&amp;sr=8-1">Head First Design Patterns</a>’a başladım ve şunu farkettim, OOP belki yeni başlayanlar için FP kadar zor değil fakat yeterince esnek/anlaşılır/geliştirilebilir bir yapı kurmak zor bir olay. Design patterns ile ilgilendikçe şunu farkettim, bu patternlar OOP’de çok karşılaşılan problemler için üretilmiş<a href="http://stackoverflow.com/questions/327955/does-functional-programming-replace-gof-design-patterns">*</a> ve aslında heryerdeler(böyle mi yazılıyor). Örneğin daha önce birkaç blog/feed’de sövdüğüm java.io decorator dolu. Twisted factory/reactor kullanıyor vs. Ben de son arşiv düzenleyicinin dosya izleme ve gerekli sinyalleri gönderme kısmında observer kullandım(daha çok öğrenme amaçlıydı ama güzel oldu).</p>
+<p>Fonksiyonel programlamaya karşı sebebini açıklayamadığım bir ilgim var. Neredeyse her gün OO programlama yapmama rağmen(dersler gereği, halbuki hiç FP yapmıyoruz) OOP bilmiyormuşuz bunu farkettim. Aynı FP gibi, prensipleri vs. varmış. C ile uğraştığımız bu dönem OOP’in bir teknoloji değil, teknik olduğunun az da olsa farkına varmıştım ama design patterns ile küçük çaplı bir aydınlanma yaşadım resmen.</p>
+<p>Design patterns, oop vs. demişken, python’da tip kontrolleri ver encapsulation ile alakalı: <a href="http://stackoverflow.com/questions/1549801/differences-between-isinstance-and-type-in-python#">differences between isinstance() and type() in python</a>, <a href="http://stackoverflow.com/questions/378927/what-is-the-best-idiomatic-way-to-check-the-type-of-a-python-variable">what is the best way to check the type of a python variable?</a>, <a href="http://www.aleax.it/gdd_pydp.pdf">alex martelli’nin design patterns in python sunumu</a>.</p>
+<h3 id="vim-için-markdown-önizleme">Vim için markdown önizleme</h3>
+<p>Vim için python ile eklenti yazma olayını biraz kurcalamıştım, geçen aklıma geldi, bloga vim ile yazı nasıl ekleyebilirim?</p>
+<p>Aslında genel olarak, vim ile <code>subprocess.Popen()</code> fonksiyonunu çağırabildikten ve <code>vim.current.buffer[:]</code> ile buffer’ı alabildikten sonra, gerisi Python. Şimdilik yazı eklemeyi yapamadım ama markdown için önizleme eklentisi yaptım.</p>
+<p>Henüz kurulum için hazır değil ama, <code>so: markdownpreview.vim</code> ile ekledikten sonra, <code>:call MarkdownPreview()</code> ile önizlemeyi görebilirsiniz. Birkaç problem var, birincisi, buffer’dan türkçe karakterler garip bir şekilde geliyor. Onunla uğraşmak lazım. İkincisi de, bir preview ekranını kapatmadan bir daha çalıştırırsanız, bir ekran daha açılıyor. Bir ara düzelteceğim. Önizleme ekranı gtk ile yapıldı.</p>
+<p>Kaynak kod github alanımda. Bu arada, vim’e python ile eklenti yazma hakkında <a href="http://vimdoc.sourceforge.net/htmldoc/if_pyth.html">resmi kaynak</a>.</p>
+<hr />
+<p>Bunların dışında blogda da birkaç iyileştirme yaptım ama önemli bir değişiklik yok.</p>
+<p>Bundan sonra yazmayı planladıklarım: Editor(vim) vs. IDE muhabbeti ve Pardus pisi paket yapımı ile alakalı birkaç şey. Okunacaklar: <a href="http://www.dabeaz.com/coroutines/index.html">A Curious Course on Coroutines and Concurrency</a>(evet hala okuyamadım), <a href="http://abhishek.geek.nz/docs/lisp-answers/">Before you start learning Lisp</a>, <a href="http://python.net/~goodger/projects/pycon/2007/idiomatic/handout.html#command-line-processing">Code like a pythonista: Idiomatic Pytohn</a>, <a href="http://ivory.idyll.org/articles/advanced-swc/">Intermediate and Advanced Software Carpentry in Python</a>, <a href="http://weblog.raganwald.com/2007/03/why-why-functional-programming-matters.html">Why why functional programming matters matters</a>.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Python ile daha gereksiz işler</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Python ile daha gereksiz işler</h1>
+
+<p><strong>December 12, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Python ve Java ile yaptığım gereksiz işlere yenilerini eklemeye devam.</p>
+<p>Çoplüğe dönen müzik arşivimi düzenlemek için(düzenleyemedim bir türlü şu arşivi :S) bir script daha. Burda aslında amacım arşivin düzenli olması falan değil de, can sıkıntısından birşeyler yazıyorum işte. Bu seferki içinde sadece bir dosya bulunan(klasör değil, en alt klasöre kadar tarar, en üst klasörü kopyalar) klasörleri bir yere topluyor.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="co">#!/usr/bin/python</span>
+<span class="ch">import</span> os, shutil
+<span class="kw">def</span> say(klasor, sayac):
+    <span class="kw">for</span> dosya in os.listdir(klasor):
+        <span class="kw">if</span> os.path.isdir(os.path.join(klasor, dosya)):
+            sayac += say(os.path.join(klasor, dosya), <span class="dv">0</span>)
+        <span class="kw">else</span>:
+            sayac += <span class="dv">1</span>
+    <span class="kw">return</span> sayac
+<span class="co">#print say(&quot;/home/osa1/Desktop/ad&quot;, 0)</span>
+yer = <span class="st">&quot;/home/osa1/Music/&quot;</span>
+klasorler = <span class="dt">filter</span>(os.path.isdir, [yer + dosya <span class="kw">for</span> dosya in os.listdir(yer)])
+<span class="kw">for</span> klasor in klasorler:
+    sayac = <span class="dv">0</span>
+    <span class="kw">if</span> say(klasor, <span class="dv">0</span>) == <span class="dv">1</span>:
+        <span class="kw">print</span> klasor.split(os.path.sep)[-<span class="dv">1</span>]
+        os.rename(klasor, <span class="st">&quot;/home/osa1/Music/test2/&quot;</span> + klasor.split(os.path.sep)[-<span class="dv">1</span>])</code></pre>
+<p>Arşiv düzenleyici arayüzünü güncelledim, küçük bir hata vardı. Dosya kopyalama sırasında kopyalanan dosya sayısı güncellenmiyordu.</p>
+<p>Bir de, dizüstü bilgisayarımı fullhd monitöre bağladıktan sonra, bilgisayarı kapatıp açtığımda üst panel dağılmış oluyor. Panel ayarlarımı bir yere kopyaladım, ve bir komut aracılığıyla onu panel ayarlarının tutulduğu yere geri kopyalıyorum. Komutu .bashrc dosyama kopyaladım:</p>
+<pre><code>python -c 'import os; os.rename(&quot;/home/osa1/Yedek/panel&quot;, &quot;/home/osa1/.gconf/apps/panel&quot;)'</code></pre>
+<p>Şimdilik bu kadar. Zaman buldukça gereksiz işler yapmaya devam edeceğim. Bu arada osa1.net’in de sayfalara bölünmeye ihtiyacı var. Örneğin python etiketine tıklarsanız, onlarca yazının aynı sayfada gözüktüğünü farkedebilirsiniz. Yeni bir etiket eklediğimde de, tüm eski yazıları tarayıp, yeni etikete göre etiketleme özelliği ekleyebilirsem de güzel olacak aslında. Bir de IRC botu vardı, yarım bıraktığım..</p>
+<p><em>Ekleme:</em> Bu arada sayfalama şeyini de ekledim, artık yazılar 5’er 5’er gösterilip, sayfalara ayrılıyorlar, sayfanın altından veya adres satırından diğer sayfalara geçebilirsiniz.</p>
+<p><em>Ekleme2:</em> Yeni bir etiket eklediğimde eski yazıların otomatik taranmasını da ekledim. Yanlız farkettim ki, otomaitk etiketleme sistemim pek de mantıklı çalışmıyor. Yani eğer etiket yazıda geçiyorsa, otomaitk olarak etiketleniyor. Alakasız etiketlerle etiketlenebiliyor yazılar. Daha mantıklı bir algoritma bulunabilir.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

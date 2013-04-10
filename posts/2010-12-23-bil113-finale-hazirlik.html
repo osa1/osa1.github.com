@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Bil113 finale hazırlık</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Bil113 finale hazırlık</h1>
+
+<p><strong>December 23, 2010</strong> - Tagged as: <a href="../tags/java.html">java</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Bugün bil113 final için birkaç satır birşeyler yazdım, Deitel’den Java: How to Program’a baktım biraz. Deitel’in Python kitabı rezaletti, ama bu iyiymiş(Amazon’dan da çılgın puanlar almış zaten). Recursion, searching and sorting bölümlerinin alıştırmalarını falan çözdüm. Kağıt üzerinde yine bildiğimizden çok az puanlar alacağız ama, neyse..</p>
+<p>Hazırlık için çözülebilecek bazı klasik basit problemler:</p>
+<ul>
+<li><a href="http://en.wikipedia.org/wiki/Bubble_sort">Bubblesort</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Selection_sort">Selection sort</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Insertion_sort">Insertion sort</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Merge_sort">Merge sort</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Bucket_sort">Bucket sort</a> (bunu sanırım yapmıycam, sıkıldım zaten, garip birşey)</li>
+<li><a href="http://en.wikipedia.org/wiki/Quicksort">Quicksort</a> (Java’da yap(a)madım henüz)</li>
+<li><a href="http://en.wikipedia.org/wiki/Linear_search">Linear search</a> (ehehe, bu da algoritma sayılıyormuş. az da olsa zorlaştırmak için, recursive olarak çözülebilir)</li>
+<li><a href="http://en.wikipedia.org/wiki/Binary_search">Binary search</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Euclidean_algorithm">Recursive ebob(gcd)</a> tespiti</li>
+<li>Recursive olarak string’i ters çevirme</li>
+<li>Recursive palindrome tespiti</li>
+<li><a href="http://en.wikipedia.org/wiki/8_queens_puzzle">8 queens puzzle</a></li>
+<li>Labirentten çıkışı bulan bir program (bitti sayılır, küçük bir düzenlemeden sonra buraya yazacağım)</li>
+</ul>
+<p>Aksini belirttiklerim hariç, çözümlerim <a href="http://osa1.net/media/bil113final/Calisma.java">bu</a> ve <a href="http://osa1.net/media/bil113final/Sort.java">şu</a> dosyalarda(main methodları testlerim için). Sort.java dosyasındaki düzenleme methodların ilk bakışta arrayi değiştirmesi gerekirken aslında neden değiştirmediği(ya da hangi arrayi değiştirdiği) de düşünülebilir. İlk başta anlam verememiştim. Tam sınav sorusu bence.</p>
+<p>Bunların dışında, codingbat’deki sorular güzel. Hepsi bittikten sonra çözümlerini yazacağım buraya.</p>
+<p>Bu arada, biraz konu dışı olacak ama, Python’da tek satırda quicksort, ibretlik:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> qsortr(<span class="dt">list</span>):
+    <span class="kw">return</span> [] <span class="kw">if</span> <span class="dt">list</span>==[]  <span class="kw">else</span> qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &lt; <span class="dt">list</span>[^<span class="dv">0</span>]) + [<span class="dt">list</span>[^<span class="dv">0</span>] + qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &gt;= <span class="dt">list</span>[^<span class="dv">0</span>])</code></pre>
+<p>Bu arada(2), bu yazıyı aşağıda ekran görüntüsünü görebileceğiniz programla ekliyorum: <img src="../images/screenshot-yaziekle.png" alt="lol" /></p>
+<p>Bunu da yine fizik finalinden önce yazmıştım. Burda, adres satırı Django admin’de olduğu gibi, yazı başlığından otomatik olarak üretiliyor. Henüz bazı durumlarda yanlış sonuçlar verebiliyor. Tek tuşla yazılı django development server’da ekliyorum, kontrol edip, web’e tıklıyorum ve bir daha gönderiyorum. Çok pratik oldu. Normalde localde admin panelinden yazıyı ekleyip, herşey tamamsa, webe kopyalıyordum. Şimdilik sadece benim yönetici panelimde çalışsa da, biraz düzenlemeyle istediğim esnekliğe getireceğim programı. Daha sonra birkaç ekleme daha yapıp burada yayınlayacağım yine.(örneğin dosya upload işini daha kolaylaştıracak birşeyler ekledikten sonra)</p>
+<p>Yazı eklemeyi daha da kolay hale getirebilmek için önceki projelerimden bkz. <a href="http://www.osa1.net/nautilus-icin-ftp-upload-scripti/">nautilus için ftp upload scripti</a></p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

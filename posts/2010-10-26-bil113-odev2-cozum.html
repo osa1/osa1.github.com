@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Bil113 ödev2 çözüm</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Bil113 ödev2 çözüm</h1>
+
+<p><strong>October 26, 2010</strong> - Tagged as: <a href="../tags/java.html">java</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Bil113 dersi 2. ödev için benim çözümümü <a href="../media/Odev2.java">buradan</a> indirebilirsiniz. 212 satır olduğundan sayfaya yapıştırmıyorum.</p>
+<p>Problemi <a href="http://ocsert.etu.edu.tr/bil113/odev/sorular/Odev2.pdf">buradan</a> indirebilirsiniz. Kısaca, bir alan üzerine av ve avcı çizdirip, avcının avı yakalamasını sağlıyoruz. Tabii bazı şartlar var.</p>
+<p>Avcım pek zeki olmadı, çok fazla ihtimal var ve bir yerden sonra sıktı açıkçası. Programın bazı özellikleri:</p>
+<p>Yorumlarla beraber toplam satır sayısı: 212</p>
+<p>Değerlendirilen ihtimaller:</p>
+<ul>
+<li><p>Her durumda av hareket eder, bir sonraki el oyun bitecek olsa da, köşeye sıkışmış olsa da. Sadece üst üste doğma durumunda hareket etmez. Üst üste doğma durumunda oyun 0 turda bitmiş olur.</p></li>
+<li><p>Av veya avcı grid alanı dışında oluşturulamaz, öyle bir durumda kullanıcıdan yeni koordinatlar istenir.</p></li>
+<li><p>Av gridin sınırlarına olan uzaklığını bilmez. Eğer avcı ona çarprazdan yaklaşmışsa, önce Y ekseninde kaçmaya çalışır, kaçacak yeri kalmadığında X ekseninde eğer gideibliyorsa sağa, gidemiyorsa sola kaçar. Avın yakalanma süresini kısaltmak için herhangi birşey yapmaz. Sadece öncelikleri vardır, onlara göre hareket eder, bu, duruma göre yakalanma süresini bazen kısaltır, bazen de uzatır. Random kütüphanesi falan kullanmadım.</p></li>
+<li><p>Grid çizme işlemi static gridCiz methodu ile yapılmaktadır. Bu method 6 arg alır, grid’in X ve Y uzunluğu, prey’in X ve Y koordinatı, hunter’ın X ve Y koordinatı.</p></li>
+</ul>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

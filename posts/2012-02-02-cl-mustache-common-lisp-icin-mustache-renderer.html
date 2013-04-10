@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - CL-Mustache, Common Lisp için Mustache renderer</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">CL-Mustache, Common Lisp için Mustache renderer</h1>
+
+<p><strong>February  2, 2012</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Biraz eski bir olay ama yarım kalan yazı arşivimde kaybolmuş, şimdi ekleyeyim(tamamlanmayı bekleyen bir sürü yazı var, sıkı durun).</p>
+<p>Mustache, “logic-less templates” diye bahsedilen bir template motoru(bu arada ben hala “logic-less” ne demek bilmiyorum ehehe). <a href="http://mustache.github.com/mustache.5.html">Şuradan</a> örneklere bakabilirsiniz.</p>
+<p>Common Lisp için Mustache kütüphanesi, en azındaın Google ile aratıp bulunabilecek bir yerde, yoktu. Ben de henüz öğrenme aşamasındaydım ve belki camiaya da bir katkım olur diye girişmiştim bu işe.</p>
+<p>Github <a href="https://github.com/osa1/cl-mustache">deposu</a>ndan edinebilirsiniz. Arayüz olarak sadece tek bir fonksiyon sunuyor, <code>mustache-render</code>. Herhangi bir input stream’ı ve Common Lisp veri yapılarına dönüştürülmüş JSON verisi ile çağırdığınızda render edilmiş halini elde ediyorsunuz. Şu anda Mustache <a href="https://www.google.com/search?sourceid=chrome&amp;ie=UTF-8&amp;q=mustache+specs">specler</a>inden çok satırlı yorumlar hariç hepsini geçiyor. comp.lang.lisp’e attığım maile de <a href="https://groups.google.com/group/comp.lang.lisp/browse_thread/thread/3002d02bfe42a87b">şuradan</a> bakabilirsiniz.</p>
+<p>Lambda desteği için speclerde yapmamız gereken değişiklikleri üşendiğim için bir türlü yapamamıştım, comp.lang.lisp’deki mailime cevap yazanlardan birisi ekleyip <a href="https://github.com/mustache/spec/pull/36">pull request</a> yollamış. Eklenip JSON hali hazırlandığında lambda desteği de ekleyeceğim(bu arada Common Lisp için YAML parser’ı da yok şu anda, bu projeyi bitirene kadar ne kadar çok şey öğrendiğimi düşünüyoru da, o işe de girişebilirim aslında).</p>
+<p>Şimdi hazır lafa girmişken teknik detaylardan bahsetmezsem ölürüm. Öncelikle kodu iyileştirmek için(ilk Common Lisp kütüphanem sonuçta), IRC’de comp.lang.lisp’de yardım istedim, ama pek bir cevap alamadım. Birkaç ihtimal var, ya Common Lisp camiasının pek umurunda değil, ya sayıca az olduğumuzdan ilgilenecke kimseye denk gelmedim(zaten kaç kişiyiz şurda), ya da kütüphane aslında iyi durumda.</p>
+<p>Toplamda 291 satır. Mustache sayfasından diğer diller ile yapılmış implementasyonlar ile karşılaştırdığınızda gayet iyi olduğunu görebilirsiniz. Kodun küçük olması çok birşey ifade etmiyor olabilir tabii ama bir dilde binlerce satırda yaptığınız bir işi başka bir dilde 300 satırda yapabiliyorsanız, benim gözümde bu dil ifade gücü açısından daha <em>güçlü</em>dür(ya da diğer dil çok kötü hehe). En azından gündüz enterprise ortamında Java, gece Common Lisp yazan biri olarak ben böyle düşünüyorum hehe.</p>
+<p>Neyse, kodda hala TODO yorumları duruyor. Düzenlenecek birkaç yer var. Onun dışında iyi bir durumda olduğunu düşünüyorum. Şu anda performans olarak aklımdaki bir iyileştirme şu:</p>
+<p>Input stream’den girdiyi satır satır okuyorum ve okuduğum her satırı tokenlere ayırıp bir listeye kaydediyorum. Daha sonra renderer JSON verisini alıp gerekli etiketleri gerekli veriyle değiştiriyor.</p>
+<p>Burda aslında tüm template’i tokenlara ayırıp bir listeye kaydetmek yerine, Common Lisp’de listeleri bir şekilde lazy bir şekilde oluşturabilseydim, kodda birkaç kelimelik değişiklik yaparak, hesaplamayı(yani tokenlere ayırma işlemini) render edilmiş metni okumanın gerektiği ana kadar erteleyebilirdim ve tüm tokenları bellekte tutmama gerek kalmazdı, sadece okumak istediğim yeri bellekte tutmuş olurdum.</p>
+<p>Clojure bu açında iyi mesela. Lazy bir dil değil aslında ama listeleri lazy bir şekilde oluşturabiliyoruz <code>lazy-seq</code> ile. Tam olarak benim ihtiyacım olan şey.</p>
+<p>Aslında Common Lisp gibi okuyucusunun(Lisp konseptini yapancı olanlar için, derleyicinin bir kısmı diyebiliriz sanırım) kolayca değiştirilebildiği bir dilde bu çok zor bir olay değil. Hatta aslında Lisp’in temelini düşündüğünüzde, sadece <code>CONS</code>, <code>CAR</code> ve <code>CDR</code>ı lazy bir hale getirdiğinizde tüm listelerin lazy olmasını bekleyebilirsiniz(bekleyebilirsiniz diyorum çünkü muhtemelen bugün aktif olarak kullanılan Common Lisp implementasyonlarında tüm listeler <code>CONS</code> ile üretilmiyordur, performans vb. sebeplerden). Ama tabii böyle bir proje için bu tarz macrolar falan bana biraz abartı geldi, kodda da ciddi değişiklikler yapmak istemiyorum şu anda. Bir yolunu bulacağım artık.</p>
+<p>Öyle işte, forklarınızı veya en azından yorumlarınızı bekliyorum(buralarda pek Lisper yok ama olsun ben şansımı deneyeyim hehe).</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

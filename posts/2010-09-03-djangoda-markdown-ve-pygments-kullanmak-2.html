@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Django'da Markdown ve Pygments kullanmak (2)</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Django'da Markdown ve Pygments kullanmak (2)</h1>
+
+<p><strong>September  3, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Daha önce bu konu hakkında bir yazı yazmıştım. Gayet güzel işliyordu herşey fakat bugün bir arkadaş bir hata bildirdi.</p>
+<p>Eğer markdown’dan geçirdiğiniz yazıda <code>&lt;pre ...&gt;&lt;/pre&gt;</code> tagları varsa, normalde markdown bunlara dokunmuyor. Dolayısıyla daha sonra pygments uygulayabiliyorsunuz sorunsuz şekilde. Ama küçük bir farkla. Örneğin python kodu yazarken, eğer bir blokun içinde kod yazarken, boş bir satır bırakıyorsanız, boş satırdan sonraki kod bloktan dışarı çıkıyor. Örneğin aşağıdaki kod:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Test:
+    <span class="kw">def</span> bu_fonksiyon_bloktan_cikiyor():
+        <span class="kw">pass</span></code></pre>
+<p>Şu anda düzgün gözüken kodda, sitedeki değişiklikleri yapmadan önce fonksiyon bloktan dışarı çıkıyordu. Bunu nasıl çözerim diye araştrırken, Markdown’un aslında kendi pygments eklentisinin olduğunu farkettim(<a href="http://www.freewisdom.org/projects/python-markdown/CodeHilite">codehilite</a>). Bunu kullanmak için eski template filterınızda markdown’u çağırdığınız yeri <code>markdown.markdown(value, ['codehilite'])</code> şeklinde değiştirmeniz gerekli.</p>
+<p>Eğer daha önceden pygments kurduysanız codehilite eklentisinin dosyasından import şeklini kontrol etmeniz yeterli. Bu şekilde aslında daha hızlı olabilir. Önceden markdown’la html taglarını yerleştirdikten sonra, BeautifulSoup ile onu ayrıştırıp, gerekli yerleri pygments’e yolluyordum. Şimdi ise BeautifulSoup’a gerek kalmadan, markdown aşamasında pygments kullanılıyor.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

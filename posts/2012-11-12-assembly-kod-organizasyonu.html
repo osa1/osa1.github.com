@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Assembly programları için kod organizasyonu hakkında</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Assembly programları için kod organizasyonu hakkında</h1>
+
+<p><strong>November 12, 2012</strong> - Tagged as: <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Düzenlenip yayınlanmayı bekleyen süper yazılar olmasına rağmen şu anda mikroişlemciler sınavı çıkışı bunu yazıyor olamam epey garip.</p>
+<p>Her ne kadar 2. vizeden çıkmış olsak da, henüz umudu kesmeyenlerin ve gelecek dönemlerin işine yarayabileceğini düşündüğüm, derste -bana göre yanlış olarak- hiç bahsedilmeyen birkaç şeyden bahsedeceğim.</p>
+<p>Ana fikir şu, bu ders kapsamında veya genel olarak x86 ASM kodlarken, bazı <em>convention</em>lar takip etmek program organizasyonu açısından çok faydalı oluyor ve ben birazdan bahsedeceğim conventionlar olmadan ben programlayamazdım.</p>
+<p>Bunlardan ilk bahsedeceğim tamamen kozmetik, kodun okunaklığını arttıran ve aslında tamamen programcının yorumlaması gereken basit bir düzenleme.</p>
+<p>Etiketleri yerleştirirken, kendi uydurduğum <em>scope</em> kuralları uyguluyorum. Yazdığım kod şu şartları sağlıyor:</p>
+<ul>
+<li>Zıplama yapılırken, zıplamayı yapan kod ile zıplaya yapılan etikete sahip kod aynı miktarda girintilenmiş olmalı.</li>
+<li>Bu iki kısım kod arasında daha az girintilenmiş başka kod olmamalı.</li>
+</ul>
+<p>Örnek olarak aşağıdaki kod, henüz deadline’ı gelmemiş bir ödevin çözümünün bir parçası. Programın tamamını koyamıyorum o yüzden, sadece etiketleri yerleştireceğim:</p>
+<pre><code>...
+
+kopyala:
+    ...
+    
+    kopyala_dongu:
+        ...
+    
+    ...
+
+sirala:
+    ...
+
+    sirala_dongu:  
+        ...
+   
+    sirala_son:     
+        ...
+
+kaydir:
+    ...
+    
+    kaydir_dongu:
+        ...
+            
+    kaydir_son:
+        ...</code></pre>
+<p>Yukarıdaki maddeleri açıklamak için birkaç örnek: <code>sirala_dongu</code>den <code>sirala_son</code>a atlanabilir, ama <code>kaydir_dongu</code>ye atlanamaz, çünkü arada daha az girintilenmiş kod var(<code>kaydir</code> prosedürüne ait). Her yerden <code>kaydir</code>, <code>sirala</code> ve <code>kopyala</code> <em>çağırılabilir</em>(<code>call</code>), ancak hiçbir yerden zıplanamaz. Bunun gibi. Bunları takip ettiğinizde, kod çok daha okunaklı bir hale geliyor diye düşünmekteyim.</p>
+<p>İkinci kısım aslında daha önemli, prosedür oluşturma ve çağırma hakkında.</p>
+<p>Anlatacağım convention, <a href="http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl">cdecl</a> olarak bilinen, x86-32 sistemlerde C fonksiyonlarının derlenme şekli.</p>
+<p>Yapılan şey şu, fonksiyon parametreleri, sondan başlanarak(örneğin 3 parametre varsa, ilk önce 3. parametre) stacke pushlanır. Daha sonra <code>call</code> yapılır. Fonksiyon, önce bp’yi stacke atarak yedekler(<code>push bp</code>), daha sonra parametrelere ve local değişkenlere erişmek için, <code>bp</code>(base pointer)ye <code>sp</code>(stack pointer)ı atar(<code>mov bp, sp</code>). Bu aşamadan sonra, artık <code>[bp+2]</code> bp’nin eski değerini, <code>[bp+4]</code> birinci parametreyi, <code>[bp+6]</code> 2. parametreyi verir.</p>
+<p>Bir sonraki aşama olarak, fonksiyon içerisinde kullanılacak local değişken kadar stackde yer açılır. Örneğin 1 değişken varsa, <code>sub sp, 2</code>, 2 değişken varsa <code>sub sp, 4</code> ile stack’de yer açılır. Bu sayede fonksiyon içerisinden başka bir fonksiyon çağırdığımızda, local değişkenlerin üzerine birşey yazılmaz. Aslında <code>bp</code>yi de benzer bir sebeple yedeklemiştik. Başka bir fonksiyon çağırıldığında, bp’yi kendi değişklenlerine ve parametrelerine erişmek için değiştirecek. Birazdan göreceğimiz gibi fonksiyon dönüş yaparken <code>bp</code>yi eski haline getirecek.</p>
+<p>stack’de yer açtıkdan sonra da local değişkenlere, 1. değişken için <code>[bp-2]</code>, 2. değişken için <code>[bp-4]</code> ile erişebiliyoruz.</p>
+<p>NOT: Bu arada eğer farkedilmediyse belirteyim, 16bit 8086 işlemcilerden bahsediyorum. 32 bit sistemlerde stack pointerını 1 değer için 2 değil 4 azaltmanız gerekecek. Bir diğer farkedilmesi gereken şey de, stack pointer’ın pushlandığında <em>azaldığı</em>.</p>
+<p>Fonksiyon işini bitirdiğinde, <code>sp</code>ye local değişkenleri silmek için <code>bp</code>yi atamalı(<code>mov sp, bp</code>, hatırlarsanız fonksiyon çağırıldığında <code>mov bp, sp</code> yapmıştık, ve daha sonra local değişkenler için <code>sp</code>yi kaydırmıştık). Bu aşamada stack’in tepesinde bp’nin eski değeri var. <code>pop bp</code> ile bunu <code>bp</code>ye yükledikten sonra <code>ret</code> ile dönüş yapabiliriz.</p>
+<p>Bu arada fonksiyon dönüş değerini <code>ax</code>e koyuyor.</p>
+<p>Bundan sonra son olarak yapılması gereken şey, fonksiyonu çağıran kod parametreleri stacke atmıştı, ama temizleyen olmadı. 2 parametre için <code>add sp, 4</code> gibi bir kod ile stack temizlenebilir.</p>
+<p>Anlaşılması için bir üs alma fonksiyonu yazacağım. Fonksiyonun adı <code>power</code> olsun. Çağırılışı şu şekilde:</p>
+<pre><code>push 2          ; ikinci parametre
+push 5          ; birinci parametre
+call power
+add sp, 4</code></pre>
+<p>En sonunda stackin temizlendiğine dikkat. Bu koddan sonra <code>ax</code>de fonksiyonun dönüş değeri olmuş olacak.</p>
+<p>Fonksiyon ise şöyle:</p>
+<pre><code>power:
+    push bp             ; bp'nin eski değerini yedekle
+    mov bp, sp          ; bp := sp.
+    sub sp, 2           ; 1 local değişken için stackde yer aç
+    
+    mov bx, [bp+4]      ; birinci parametreyi bx'e yükle
+    mov cx, [bp+6]      ; ikinci parametreyi cx'e yükle
+    
+    mov [bp-2], bx      ; bx'i birinci local değişkene ata
+
+    power_loop_start:
+        cmp cx, 1
+        je power_end
+        
+        mov ax, [bp-2]
+        mul bx
+        
+        mov [bp-2], ax
+        dec cx
+        jmp power_loop_start        
+        
+    power_end:
+        ; birinci local değişkenimiz fonksiyonun dönüş değeri
+        ; bu değeri ax'e yükle
+        mov ax, [bp-2]
+        mov sp, bp        ; sp'yi eski haline getir
+        pop bp            ; bp'yi eski haline getir
+        ret               ; dön</code></pre>
+<p>İşte x86-32’de C fonksiyonları buna benzer bir şekilde derleniyor. 64bit sistemlerde ekstradan 8 yazmaç olduğundan, parametreler direkt olarak stacke atılmaktansa yazmaçlara yazılıyormuş. Başka dillerde de, dilin ihtiyaçlarına göre farklı yollar izleniyor. Örneğin C++ dilindeki <code>this</code> pointerları her seferinde stacke atılmaktansa, sürekli sabit bir yazmaça yükleniyor olabilir.</p>
+<p>Bazı calling conventionlar için özet bilgiye Wikipedia sayfalarından ulaşabilirsiniz: <a href="http://en.wikipedia.org/wiki/X86_calling_conventions">X86 calling conventions</a>, <a href="http://en.wikipedia.org/wiki/Calling_convention">bazı farklı mimariler için conventionlar</a>, <a href="http://refspecs.linuxfoundation.org/lsb.shtml">Linux ortamında kullanılan çeşitli conventionlar</a>. Onun dışında AMD64 için <a href="http://www.x86-64.org/">ABI</a>. Intel <a href="http://www.intel.com/content/www/us/en/processors/architectures-software-developer-manuals.html">IA manualları</a>nda da ABIlardan bahsediliyordu yanlış hatırlamıyorsam.</p>
+<p>Bu arada her fonksiyon çağırılışında stacki temizlemek, fonksiyonların kaç parametre aldığının fonksiyonun kendisinin her zaman bilmesi durumunda, gereksiz. Yukarıda C conventionlarından bahsettiğimden, ve C’de örneğin <a href="http://en.cppreference.com/w/c/io/fscanf"><code>sscanf</code></a> gibi fonksiyonlar değişik sayılarda parametre alabildiğinden, temizleme işlemini parametreleri gönderen taraf yapıyor.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

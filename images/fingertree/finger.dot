@@ -1,0 +1,53 @@
+digraph fingertree {
+    node [fontname=Inconsolata];
+    root [label="<left>|<tree>|<right>", shape=Mrecord, color=blue];
+    th [label="t|h", shape=record];
+    root:left -> th;
+    ree [label="r|e|e", shape=record];
+    root:right -> ree;
+
+    sub1 [label="<left>|<tree>|<right>", shape=Mrecord, color=blue];
+    root:tree -> sub1;
+
+    r1 [label="<1>|<2>", shape=record];
+
+    is1 [label="Node2"];
+    i1 [label="i", shape=circle];
+    s1 [label="s", shape=circle];
+    is1 -> i1;
+    is1 -> s1;
+    r1:1 -> is1;
+
+    is2 [label="Node2"];
+    i2 [label="i", shape=circle];
+    s2 [label="s", shape=circle];
+    is2 -> i2;
+    is2 -> s2;
+    r1:2 -> is2;
+
+    sub1:left -> r1;
+
+    not [label="Node3"];
+    n [label="n", shape=circle];
+    o [label="o", shape=circle];
+    t [label="t", shape=circle];
+    not -> n;
+    not -> o;
+    not -> t;
+
+    at [label="Node2"];
+    a [label="a", shape=circle];
+    t1 [label="t", shape=circle];
+    at -> a;
+    at -> t1;
+
+    notat [label="<left>|<right>", shape=record];
+    notat:left -> not;
+    notat:right -> at;
+
+    sub1:right -> notat;
+
+    empty [label="Empty", color=blue];
+    sub1:center -> empty;
+
+}

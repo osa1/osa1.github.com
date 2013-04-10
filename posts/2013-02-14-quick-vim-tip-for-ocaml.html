@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Quick Vim Tip for OCaml programmers: Fix OCamlYacc comment syntax</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Quick Vim Tip for OCaml programmers: Fix OCamlYacc comment syntax</h1>
+
+<p><strong>February 14, 2013</strong> - Tagged as: <a href="../tags/vim.html">vim</a>, <a href="../tags/ocaml.html">ocaml</a>.</p>
+
+<p>I’ve been editing OCaml with Vim for several months now, one problem that annoys me with Vim’s built-in OCaml syntax highlighter is it behaves OCamlYacc files like it’s a normal OCaml file.</p>
+<p>It generally works fine but OCamlYacc’s comment syntax is different from OCaml’s. When working on big OCamlYacc files this quickly becomes annoying.</p>
+<p>I’m not proficient in VimL but I could manage to write a simple solution. I replaced this line in Vim’s built-int OCaml syntax highlighter:</p>
+<pre><code>&quot; Comments 
+syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo</code></pre>
+<p>with:</p>
+<pre><code>&quot; Comments
+if expand(&quot;%:e&quot;) == &quot;mly&quot;
+  syn region   ocamlComment start=&quot;/\*&quot; end=&quot;\*/&quot; contains=ocamlComment,ocamlTodo
+else
+  syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo
+end</code></pre>
+<p>(You can find you Vim’s built-in files’ folders by runing <code>:echo $VIMRUNTIME</code> inside Vim. On my machine, <code>ocaml.vim</code>s path is <code>/usr/share/vim/vim73/syntax/ocaml.vim</code>)</p>
+<p>Works great. It can be further simplified but requires a variable declaration and I don’t want to mess with Vim variables without understanding the consequences(scope rules etc.)</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

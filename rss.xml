@@ -1,0 +1,701 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>osa1.net - All posts</title>
+    <link href="http://osa1.net/rss.xml" rel="self" />
+    <link href="http://osa1.net" />
+    <id>http://osa1.net/rss.xml</id>
+    <author>
+        <name>Ömer Sinan Ağacan</name>
+        <email>omeragaca@gmail.com</email>
+    </author>
+    <updated>2013-04-08T00:00:00Z</updated>
+    <entry>
+    <title>Go channel examples ported to Haskell</title>
+    <link href="http://osa1.net/posts/2013-04-08-go-ported-haskell.html" />
+    <id>http://osa1.net/posts/2013-04-08-go-ported-haskell.html</id>
+    <published>2013-04-08T00:00:00Z</published>
+    <updated>2013-04-08T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been skimming over <a href="http://tour.golang.org/">gotour</a> recently. I think it’s great introduction to language; it’s short, but concise and it shows some of the interesting features of language.</p>
+<p>Last part of the tour is about goroutines and channels. My concurrent programming experience is very limited, and since Haskell is my favorite language, I decided to port goroutine examples to Haskell as a learning exercise.</p>
+<p>Any criticism would be appreciated.</p>
+<h2 id="goroutines"><a href="http://tour.golang.org/#62">62 - Goroutines</a></h2>
+<p>This is a very basic example of a program creating two threads and printing some strings.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+<span class="kw">import</span> Control.Monad
+
+<span class="ot">say ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+say s <span class="fu">=</span> forM_ [<span class="dv">1</span><span class="fu">..</span><span class="dv">5</span>] <span class="fu">$</span> \ _ <span class="ot">-&gt;</span> <span class="kw">do</span>
+  threadDelay <span class="dv">100000</span>
+  <span class="fu">putStrLn</span> s
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  forkIO <span class="fu">$</span> say <span class="st">&quot;world&quot;</span>
+  say <span class="st">&quot;hello&quot;</span></code></pre>
+<h2 id="channels"><a href="http://tour.golang.org/#63">63 - Channels</a></h2>
+<p>Simple channels example</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+
+<span class="ot">sum&#39; ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Chan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+sum&#39; ints chan <span class="fu">=</span> writeChan chan (<span class="fu">sum</span> ints)
+<span class="co">-- alternative, `pointfree` style: </span>
+<span class="co">-- sum&#39; = flip writeChan . sum</span>
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  <span class="kw">let</span> lst <span class="fu">=</span> [<span class="dv">7</span>, <span class="dv">2</span>, <span class="dv">8</span>, <span class="fu">-</span><span class="dv">9</span>, <span class="dv">4</span>, <span class="dv">0</span>]
+  chan <span class="ot">&lt;-</span> newChan
+  <span class="kw">let</span> (l1, l2) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">floor</span> <span class="fu">$</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> lst) <span class="fu">/</span> <span class="dv">2</span>) lst
+  forkIO <span class="fu">$</span> sum&#39; l1 chan
+  forkIO <span class="fu">$</span> sum&#39; l2 chan
+  x <span class="ot">&lt;-</span> readChan chan
+  y <span class="ot">&lt;-</span> readChan chan
+  <span class="fu">putStrLn</span> <span class="fu">$</span> <span class="fu">unwords</span> [ <span class="fu">show</span> x, <span class="fu">show</span> y, <span class="fu">show</span> <span class="fu">$</span> x <span class="fu">+</span> y ]</code></pre>
+<h2 id="buffered-channels"><a href="http://tour.golang.org/#64">64 - Buffered Channels</a></h2>
+<p>This is where porting started getting tricky. Haskell channels are basically linked lists, and do not have length or size. In order to get a similar effect, I created a new channel type:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span>
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+
+<span class="co">-- Buffered chan</span>
+<span class="kw">data</span> <span class="dt">BChan</span> a <span class="fu">=</span> <span class="dt">BChan</span> {<span class="ot"> chan ::</span> <span class="dt">Chan</span> a,<span class="ot"> size ::</span> <span class="dt">MVar</span> <span class="dt">Int</span>,<span class="ot"> limit ::</span> <span class="dt">Int</span> }
+
+<span class="ot">newBChan ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">BChan</span> a)
+newBChan bufsize <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> newChan
+  bvar <span class="ot">&lt;-</span> newMVar <span class="dv">0</span>
+  <span class="fu">return</span> <span class="dt">BChan</span>{chan<span class="fu">=</span>chan, size<span class="fu">=</span>bvar, limit<span class="fu">=</span>bufsize}
+
+<span class="ot">readBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
+readBChan <span class="dt">BChan</span>{chan, size, limit} <span class="fu">=</span> <span class="kw">do</span>
+  ret <span class="ot">&lt;-</span> readChan chan
+  modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">-</span><span class="dv">1</span>)
+  <span class="fu">return</span> ret
+
+<span class="ot">writeBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+writeBChan bchan<span class="fu">@</span><span class="dt">BChan</span>{chan, size, limit} val <span class="fu">=</span> <span class="kw">do</span>
+  size&#39; <span class="ot">&lt;-</span> readMVar size
+  <span class="kw">if</span> size&#39; <span class="fu">==</span> limit
+    <span class="kw">then</span> <span class="kw">do</span>
+      threadDelay <span class="dv">100000</span>
+      writeBChan bchan val
+    <span class="kw">else</span> <span class="kw">do</span>
+      modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">+</span><span class="dv">1</span>)
+      writeChan chan val
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> newBChan <span class="dv">2</span>
+  writeBChan chan <span class="dv">1</span>
+  writeBChan chan <span class="dv">2</span>
+
+  v1 <span class="ot">&lt;-</span> readBChan chan
+  <span class="fu">print</span> v1
+
+  v2 <span class="ot">&lt;-</span> readBChan chan
+  <span class="fu">print</span> v2</code></pre>
+<p>Here one difference is that Haskell doesn’t fail with a “deadlock!!” error when an extra <code>writeBChan</code> operation is added(or one of them is removed), but just waits forever(like in a <em>real</em> deadlock :-P ). I wonder whether there is a way to get an exception like that, it’s awesome.</p>
+<h2 id="range-and-close"><a href="http://tour.golang.org/#65">65 - Range and Close</a></h2>
+<p>Same as above, Haskell channels are not working like Go channels. I had to simulate Go channels’ behavior.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns, MultiWayIf #-}</span>
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+<span class="kw">import</span> Control.Monad (liftM)
+
+<span class="co">-- Closable channel</span>
+<span class="kw">data</span> <span class="dt">CChan</span> a <span class="fu">=</span> <span class="dt">CChan</span> (<span class="dt">MVar</span> ([a], <span class="dt">Int</span>, <span class="dt">Bool</span>))
+
+<span class="ot">newCChan ::</span> <span class="dt">IO</span> (<span class="dt">CChan</span> a)
+newCChan <span class="fu">=</span> liftM <span class="dt">CChan</span> (newMVar ([], <span class="dv">0</span>, <span class="kw">False</span>))
+
+<span class="ot">readCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Maybe</span> a)
+readCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span> <span class="kw">do</span>
+  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
+  <span class="kw">if</span> <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="fu">&amp;&amp;</span> <span class="fu">not</span> closed <span class="ot">-&gt;</span> <span class="kw">do</span>
+         putMVar mvar (contents, size, closed)
+         readCChan (<span class="dt">CChan</span> mvar)
+     <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+         putMVar mvar (contents, size, closed)
+         <span class="fu">return</span> <span class="kw">Nothing</span>
+     <span class="fu">|</span> <span class="fu">otherwise</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+         <span class="kw">let</span> r <span class="fu">=</span> <span class="fu">head</span> contents
+         putMVar mvar (<span class="fu">tail</span> contents, size<span class="fu">-</span><span class="dv">1</span>, closed)
+         <span class="fu">return</span> <span class="fu">$</span> <span class="kw">Just</span> r
+
+<span class="ot">writeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+writeCChan (<span class="dt">CChan</span> mvar) val <span class="fu">=</span> <span class="kw">do</span>
+  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
+  <span class="kw">if</span> closed
+    <span class="kw">then</span> <span class="fu">error</span> <span class="st">&quot;writing to a closed chan&quot;</span>
+    <span class="kw">else</span> putMVar mvar (val <span class="fu">:</span> contents, size<span class="fu">+</span><span class="dv">1</span>, closed)
+
+<span class="ot">forChan_ ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+forChan_ cchan f <span class="fu">=</span> <span class="kw">do</span>
+  v <span class="ot">&lt;-</span> readCChan cchan
+  <span class="kw">case</span> v <span class="kw">of</span>
+    <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">return</span> ()
+    <span class="kw">Just</span> v&#39; <span class="ot">-&gt;</span> f v&#39; <span class="fu">&gt;&gt;</span> forChan_ cchan f
+
+<span class="ot">closeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+closeCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span>
+    modifyMVar_ mvar <span class="fu">$</span> \(contents, size, closed) <span class="ot">-&gt;</span> <span class="fu">return</span> (contents, size, <span class="kw">True</span>)
+
+<span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">CChan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+fib i chan <span class="fu">=</span> <span class="kw">do</span>
+    iter i <span class="dv">0</span> <span class="dv">1</span>
+    closeCChan chan
+  <span class="kw">where</span> iter <span class="dv">1</span> x y <span class="fu">=</span> writeCChan chan x
+        iter n x y <span class="fu">=</span> <span class="kw">do</span>
+          writeCChan chan x
+          iter (n<span class="fu">-</span><span class="dv">1</span>) y (x<span class="fu">+</span>y)
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> newCChan
+  forkIO <span class="fu">$</span> fib <span class="dv">10</span> chan
+  forChan_ chan <span class="fu">print</span></code></pre>
+<p>This example still doesn’t quite work like Go code. This is because I used a stack instead of a queue. It should be trivial to fix this code though.</p>
+<h2 id="select-and-67---default-selection"><a href="http://tour.golang.org/#66">66 - Select</a> and <a href="http://tour.golang.org/#67">67 - Default Selection</a></h2>
+<p>Now this is hard. In 66, example program listens multiple channels, and runs some code when any of the channels is ready. If multiple channels are ready at the same time, one of them is chosen randomly. 67 is similar, only difference is when none of the channels are ready, some default action is taken.</p>
+<p>I’m actually not sure if it’s implementable with Haskell Chans, <a href="http://hackage.haskell.org/packages/archive/base/4.6.0.1/doc/html/Control-Concurrent-Chan.html#v:isEmptyChan"><code>isEmptyChan :: Chan a -&gt; IO Bool</code></a> is deprecated, and users are directed to TChans(I think it’s mostly same as a Chan, but working on STM).</p>
+<p>Anyway, that’s it for now. I’ll go learn(pun intended) some STM, why we need them and what’s different about them, and then maybe I can implement this last two examples.</p>]]></summary>
+</entry>
+<entry>
+    <title>Quick Box2d tips: Terrains, jump behavior and bodies with multiple shapes</title>
+    <link href="http://osa1.net/posts/2013-03-06-box2dtips-1.html" />
+    <id>http://osa1.net/posts/2013-03-06-box2dtips-1.html</id>
+    <published>2013-03-06T00:00:00Z</published>
+    <updated>2013-03-06T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>After wasting enough time implementing my own half-baked physics engine and never having an efficiently implemented collision resolution code, I’ve decided to go on with <a href="https://www.love2d.org/wiki/love.physics">physics module</a> my game library of choice provides. It’s based on <a href="http://box2d.org/">Box2d</a> and the API is mostly the same.</p>
+<p>My first try of using it was last weekend, me and my brother did a super short(12 hours) game jam, and I used Box2d for the first time. We finished our game, but it was so buggy that I don’t even mention it to anybody. Still, I learned so much about Box2d physics.</p>
+<p>After several days, I could finally spare some time and fixed the bugs. I also wrote a simple demo app to demonstrate my points in this post. You can see the code <a href="https://gist.github.com/osa1/5102171">here</a>. It’s a full program, just paste it somewhere and run with Löve2d(the code about chained shapes are based one someone else’s code from Löve2d forums, I don’t remember whose code is this).</p>
+<h2 id="implementing-terrains-with-box2d">Implementing terrains with Box2d</h2>
+<p>Main bug source of my game was terrain implementation. It was reading the map info from a binary file and then creating lots of <a href="https://www.love2d.org/wiki/love.physics.newRectangleShape">RectangleShapes</a>. The problem with this approach was that other dynamic entities in my game was getting stuck between two RectangleShapes, even though each shape was in touch with other so there was no space between them. Later I realized that this behavior is actually <a href="http://www.box2d.org/manual.html#_Toc258082970">documented</a>(see <em>edge shapes</em> section).</p>
+<p>There are two solution mentioned in Box2d manual. Now I’m using ChainShapes in my code and it’s working as expected. In the example game I linked above, you can see that my terrain is implemented with some artificial shapes:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">worldShape</span> <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newChainShape<span class="ot">(</span><span class="st">&quot;false&quot;</span><span class="ot">,</span>
+    <span class="dv">80</span><span class="ot">,</span> <span class="ot">-</span><span class="dv">100</span><span class="ot">,</span>
+    <span class="dv">80</span><span class="ot">,</span> <span class="dv">680</span><span class="ot">,</span>
+    <span class="dv">120</span><span class="ot">,</span> <span class="dv">680</span><span class="ot">,</span>
+    <span class="ot">...</span>
+    <span class="dv">620</span><span class="ot">,</span> <span class="dv">680</span><span class="ot">,</span>
+    <span class="dv">620</span><span class="ot">,</span> <span class="ot">-</span><span class="dv">100</span><span class="ot">)</span></code></pre>
+<p>But still none of the dynamic bodies get stuck.</p>
+<h2 id="bodies-with-multiple-shapes-and-jump-behavior">Bodies with multiple shapes and jump behavior</h2>
+<p>Being able to bind multiple shapes to a body is just an awesome feature. It helps having a more accurate shape of an entity, and also having multiple fixtures mean you can change properties of each fixture and get a more accurate behavior of friction or some other things.</p>
+<p>For instance, in my game, I wanted 2 things; 1) I don’t want my main character’s left and right side to have friction, so that it should slide without getting slowed down when left/right side is collided and 2) I want to check if my character is collided in bottom side.</p>
+<p>Having multiple fixtures helped for both cases. My character consists of 4 shapes and fixtures:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">o</span><span class="ot">.</span><span class="kw">shapeLeft</span>   <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(-</span><span class="dv">20</span><span class="ot">,</span> <span class="dv">0</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">shapeTop</span>    <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(</span><span class="dv">0</span><span class="ot">,</span> <span class="ot">-</span><span class="dv">50</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">shapeRight</span>  <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(</span><span class="dv">20</span><span class="ot">,</span> <span class="dv">0</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">shapeBottom</span> <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(</span><span class="dv">0</span><span class="ot">,</span> <span class="dv">50</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureLeft</span>   <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeLeft</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureTop</span>    <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeTop</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureRight</span>  <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeRight</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeBottom</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span></code></pre>
+<p>Then I set each fixtures a different friction factor:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureLeft</span>:setFriction<span class="ot">(</span><span class="dv">0</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureTop</span>:setFriction<span class="ot">(</span><span class="dv">0</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureRight</span>:setFriction<span class="ot">(</span><span class="dv">0</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureBottom</span>:setFriction<span class="ot">(</span><span class="dv">100</span><span class="ot">)</span></code></pre>
+<p>And for jump behavior, I’m just checking if <code>fixtureBottom</code> is collided, with the help of <code>beginContact</code> and <code>endContact</code> callbacks:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> beginContact<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="kw">b</span><span class="ot">,</span> <span class="kw">coll</span><span class="ot">)</span>
+    <span class="kw">if</span> <span class="kw">a</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">or</span> <span class="kw">b</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">then</span>
+        <span class="kw">char</span><span class="ot">.</span><span class="kw">jumpEnabled</span> <span class="ot">=</span> <span class="kw">true</span>
+    <span class="kw">end</span>
+<span class="kw">end</span>
+
+<span class="kw">function</span> endContact<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="kw">b</span><span class="ot">,</span> <span class="kw">coll</span><span class="ot">)</span>
+    <span class="kw">if</span> <span class="kw">a</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">or</span> <span class="kw">b</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">then</span>
+        <span class="kw">char</span><span class="ot">.</span><span class="kw">jumpEnabled</span> <span class="ot">=</span> <span class="kw">false</span>
+    <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+<p>With this features implemented, I think I have a good-enough platformer engine. Can’t wait for the next jam. Maybe we can build a game that we can actually mention to people ;-)</p>]]></summary>
+</entry>
+<entry>
+    <title>Epic OCamlYacc fail</title>
+    <link href="http://osa1.net/posts/2013-03-01-ocamlyacc-fail.html" />
+    <id>http://osa1.net/posts/2013-03-01-ocamlyacc-fail.html</id>
+    <published>2013-03-01T00:00:00Z</published>
+    <updated>2013-03-01T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been trying to compile <a href="http://gallium.inria.fr/~fpottier/wallace/">an OCaml library from 2000</a> recently and I came up against a strange OCamlYacc error; OCamlYacc doesn’t compile the parser file because parser function has a polymorphic type(with a type variable <code>'a</code>).</p>
+<p>At first I tried to understand with which concrete type <code>'a</code> type variable is being equated, so that I could replace it with the concrete type and the program would be compiled.</p>
+<p>After several hours wasted, I decided to follow some different path. I replaced type variables in <code>.mly</code> with some dummy type like <code>my_epic_dummy_type</code> and compiled it with OCamlYacc. Then I replaced <code>my_epic_dummy_type</code> types with the type variable <code>'a</code> in compiled <code>.ml</code> and <code>.mli</code> files.</p>
+<p>And the library worked as expected.</p>
+<p>Now the question naturally arises: Why does OCamlYacc refuse to compile parser function with polymorphic type ? I have no idea.</p>]]></summary>
+</entry>
+<entry>
+    <title>ADTler ve sınıflar: bir örnek</title>
+    <link href="http://osa1.net/posts/2013-02-31-adtler-siniflar.html" />
+    <id>http://osa1.net/posts/2013-02-31-adtler-siniflar.html</id>
+    <published>2013-02-28T00:00:00Z</published>
+    <updated>2013-02-28T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Bu yazı, <a href="/rowlar-kindlar/">bir önceki yazım</a> gibi, yine bir mail için yazıldı. Birkaç düzenleme ve eklemeden sonra blog yazısı olarak yayınlıyorum.</p>
+<hr />
+<p>Bir programlama dili meraklısı olarak sık sık yorumlayıcılar ve nadiren derleyiciler yazıyorum. Derleyici/yorumlayıcı yazarken çok sık yapılan işlemlerden biri şudur:</p>
+<p>Programda(derleyici/yorumlayıcıda) kod üzerinde çalışabilmek için son kullanıcı tarafından metin olarak girilmiş kodun üzerinde çalışılabilinecek bir veri yapısına dönüştürülmesi gerekir. Buna “parsing” işlemi diyoruz ve yaptığı iş kısaca metni alıp, abstract syntax tree(AST) dediğimiz bir çeşit ağaç yapısına dönüştürmektir.</p>
+<p>Bu aşamadan sonra elimizde bir ağaç yapısı olmuş olur. Fakat burdaki ağaç yapısını veri yapıların dersinde gösterilen “binary tree” vs. yapılarla karıştırmamak lazım, burda çok çeşitli nodelar oluyor ve her bir node farklı özelliklere sahip, her birine ayrı muameleler yapılacak oluyor. (kod örnekleri vereceğim)</p>
+<p>Bir yorumlayıcı/derleyicinin bu ağaç yapısı üzerinde defalarca gezinmesi gerekir ve genelde her bir gezinmede farklı işlemler yapılır. Bir tur sonrası ağaç üzerinde değişiklikleri yapılabilir ve bir sonraki turda bu yeni ağaç üzerinden devam edilir vs.</p>
+<p>Örnek: Statically typed bir dil için yorumlayıcı yazdığımızda, ilk başta type checker ağaç üzerinde gezerek programın type-safe olduğundan emin olur. Program type-safe ise, ağacın biraz değiştirilmiş hali üzerinde(örneğin type annotationları silinmiş, veya ağacın tagless bir hali) yorumlayıcı çalışır.</p>
+<p>Derleyicilerde ise ağaç çok daha fazla sayıda adımlanır. Her bir adımlamada ağaç yapısı değiştirilebilir.<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup></p>
+<p>Yani kısaca problem şu: Elimde farklı tiplerde ağaçlar var(örnek: tip bilgilerini içeren, type checking/inference için oluşturulmuş bir ağaç ve tip bilgilerinin büyük oranda silindiği, yorumlama/derleme için kullanılan bir ağaç vs.), bu ağaçlar üzerinde turlar atacağım fakat tur atarken farklı işler yapacağım.</p>
+<p>Katkı yaptığım bir derleyici kodundan birkaç örnek vereceğim: Fay, bir Haskell alt kümesinden JavaScript’e derleyici.</p>
+<p><a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Compiler/Exp.hs#L21"><code>compileExp</code></a> fonksiyonu, <a href="http://hackage.haskell.org/packages/archive/haskell-src-exts/1.13.5/doc/html/Language-Haskell-Exts-Syntax.html#g:8"><code>Exp</code></a> ağacı üzerinde gezinir çıktı olarak <a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Types.hs#L242"><code>JsExp</code></a> (yine başka bir ağaç) üretir. Bu bir ağaç üzerinde gezinip farklı işlemler yapıp farklı bir ağaçlar üreten fonksiyonlara bir örnek.</p>
+<p><a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Compiler/Optimizer.hs"><code>Optimizer</code></a> modulü çeşitli ağaçlar üzerinde gezinip başka ağaçlar üreten 13 tane fonksiyondan oluşur ve bunların 5-6 tanesi <a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Types.hs#L227"><code>JsStmt</code></a> ağacını dolaşır. Bu da aynı ağaç üzerinde gezinip farklı işlemler yapan fonksiyonlara örnek.</p>
+<p>Algebraic data typelara ve pattern matchinge sahip olan fonksiyonel dillerde(yani belki de tüm statically typed fonksiyonel dillerde) bunu yapmanın bir yolunu göstermek için hemen hiçbir işlevi olmayan çok basit bir aritmetik ifade dili oluşturalım:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Exp</span>
+    <span class="fu">=</span> <span class="dt">Add</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
+    <span class="fu">|</span> <span class="dt">Mul</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
+    <span class="fu">|</span> <span class="dt">Number</span> <span class="dt">Float</span></code></pre>
+<p>Bu kadar işlevsiz bir dil olamaz. Şimdi bu ağaç üzerinde iki farklı işlem yapan iki fonksiyon:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">run ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">Float</span>
+run (<span class="dt">Add</span> e1 e2) <span class="fu">=</span> run e1 <span class="fu">+</span> run e2
+run (<span class="dt">Mul</span> e1 e2) <span class="fu">=</span> run e1 <span class="fu">*</span> run e2
+run (<span class="dt">Number</span> f)  <span class="fu">=</span> f</code></pre>
+<p><code>run</code> programı çalıştırıp sonucu dönüyor.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">stringOfExp ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
+stringOfExp (<span class="dt">Add</span> e1 e2) <span class="fu">=</span>
+    <span class="fu">concat</span> [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; + &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
+stringOfExp (<span class="dt">Mul</span> e1 e2) <span class="fu">=</span>
+    <span class="fu">concat</span> [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; * &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
+stringOfExp (<span class="dt">Number</span> f) <span class="fu">=</span> <span class="fu">show</span> f</code></pre>
+<p><code>stringOfExp</code> ise programın string halini dönüyor. Örnek:</p>
+<pre><code>ghci&gt; let prog1 = Add (Number 10) (Mul (Number 20) (Add (Number 30) (Number 40)))
+ghci&gt; run prog1
+1410.0
+ghci&gt; stringOfExp prog1
+&quot;(10.0 + (20.0 * (30.0 + 40.0)))&quot;</code></pre>
+<p>Yarın ağaca yeni bir node eklediğimde ağaç üzerinde çalışan tüm fonksiyonları güncellemem gerekecek.</p>
+<p>Herkes için son derece basittir sanıyorum. Şimdi aynısını ADT’lara sahip olmayan, OO bir dil ile yazalım.</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
+<span class="kw">public</span>:
+  <span class="kw">virtual</span> ~Exp() {}
+};
+
+<span class="kw">class</span> AddExp : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  AddExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
+    : e1(e1), e2(e2) {}
+};
+
+<span class="kw">class</span> MulExp : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  MulExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
+    : e1(e1), e2(e2) {}
+};
+
+<span class="kw">class</span> Number : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> <span class="dt">float</span> f;
+  Number(<span class="dt">const</span> <span class="dt">float</span> f) : f(f) {}
+};</code></pre>
+<p>Örnek programımız da şu şekilde yazılabilir:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Exp *prog1 = <span class="kw">new</span> AddExp(
+    <span class="kw">new</span> Number(<span class="dv">10</span>), <span class="kw">new</span> MulExp(
+      <span class="kw">new</span> Number(<span class="dv">20</span>), <span class="kw">new</span> AddExp(
+        <span class="kw">new</span> Number(<span class="dv">30</span>), <span class="kw">new</span> Number(<span class="dv">40</span>))));</code></pre>
+<p>Peki bu ağaç üzerinde gezinmek nasıl mümkün olabilir ? Bir kere, tüm nodelar alt node olarak <code>Exp</code> tipinde bir nesne tutuyor, kesin tip bilgisine sahip değiliz ve bu tip bilgisine sahip olmadan da yorumlamak mümkün değil mi, yorumladığımız node <code>Number</code> mı, <code>MulExp</code> mi vs. bilmemiz gerekir.</p>
+<p>Bunu yapmanın çeşitli yolları var, ama güzel bir çözümü yok. Örneğin <code>Exp</code> sınıfında nodeların tipini tutan bir enum tutabiliriz ve <code>Exp *</code>leri gerekli tiplere cast ederiz. Veya Java gibi bir dilde <code>instanceof</code> kontrolü yapılıp cast edilebilir. Başka çözümler de bulunabilir.</p>
+<p>Bu gibi durumlarda kabul edilen en yaygın çözüm visitor design patternı. Biraz aradığınızda onlarca tutorial bulabilirsiniz ki tutoriala ihtiyaç duyması bile aslında fonksiyonel dildeki çözümümüzden ne kadar kötü olduğunun bir göstergesi sayılabilir(8 satır son derece basit ve açık bir Haskell koduna denk bir iş yapmaya çalışıyoruz şu anda)</p>
+<p>Bu probleme <em>double dispatch</em> problemi de deniyor. Sebebi yapacağımız işleme hem yorumlayıcıya, hem de ağaca göre karar vermek istiyoruz fakat bir yandan da ağaçlara ve yorumlayıcılara aynı muameleyi yapabilmeliyiz. C++ örneğinde her bir node’un bir ağaç oluşturduğuna dikkat.<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> AddExp;
+<span class="kw">class</span> MulExp;
+<span class="kw">class</span> Number;
+
+<span class="kw">class</span> ExpVisitor {
+<span class="kw">public</span>:
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+
+  <span class="kw">virtual</span> ~ExpVisitor() {};
+};
+
+<span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
+<span class="kw">public</span>:
+  <span class="kw">virtual</span> ~Exp() {}
+  <span class="kw">virtual</span> <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> = <span class="dv">0</span>;
+};
+
+<span class="kw">class</span> AddExp : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  AddExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
+    : e1(e1), e2(e2) {}
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+};
+
+<span class="kw">class</span> MulExp : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  MulExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
+    : e1(e1), e2(e2) {}
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+};
+
+<span class="kw">class</span> Number : <span class="kw">public</span> Exp {
+<span class="kw">public</span>:
+  <span class="dt">const</span> <span class="dt">float</span> f;
+  Number(<span class="dt">const</span> <span class="dt">float</span> f) : f(f) {}
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+};</code></pre>
+<p>Detaylara çok fazla girmek istemiyorum, kısaca, virtual methodların yardımıyla artık bir nesneyi <code>Exp</code> tipine cast etsek de doğru <code>visit</code> methodları çağırılacak. Buna göre ilk yorumlayıcımızı şu şekilde yazabiliyoruz:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Run : <span class="kw">public</span> ExpVisitor {
+<span class="kw">public</span>:
+  <span class="dt">float</span> result;
+  Run() : result(<span class="dv">0</span>) {}
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) {
+    Run v1;
+    exp-&gt;e1-&gt;accept(&amp;v1);
+
+    Run v2;
+    exp-&gt;e2-&gt;accept(&amp;v2);
+
+    result = v1.result + v2.result;
+  }
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) {
+    Run v1;
+    exp-&gt;e1-&gt;accept(&amp;v1);
+
+    Run v2;
+    exp-&gt;e2-&gt;accept(&amp;v2);
+
+    result = v1.result * v2.result;
+  }
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) {
+    result = exp-&gt;f;
+  }
+};</code></pre>
+<p>Bu arada nesnesel çözümümüzün fonksiyonel çözümümüzden bir başka farkı da burda belli oluyor. Visitorlar arası değer dönmenin bir yolu yok ve bu yüzden buradaki <code>result</code> member değişkeni gibi bir mutable değişken kullanmak zorunda kalıyoruz.</p>
+<p>İkinci yorumlayıcımız:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> StringOfExp : <span class="kw">public</span> ExpVisitor {
+<span class="kw">public</span>:
+  std::string result;
+  StringOfExp() : result(<span class="kw">new</span> std::string()) {}
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) {
+    StringOfExp v1;
+    exp-&gt;e1-&gt;accept(&amp;v1);
+
+    StringOfExp v2;
+    exp-&gt;e2-&gt;accept(&amp;v2);
+
+    result = <span class="st">&quot;(&quot;</span> + v1.result + <span class="st">&quot; + &quot;</span> +  v2.result + <span class="st">&quot;)&quot;</span>;
+  }
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) {
+    StringOfExp v1;
+    exp-&gt;e1-&gt;accept(&amp;v1);
+
+    StringOfExp v2;
+    exp-&gt;e2-&gt;accept(&amp;v2);
+
+    result = <span class="st">&quot;(&quot;</span> + v1.result + <span class="st">&quot; * &quot;</span> +  v2.result + <span class="st">&quot;)&quot;</span>;
+  }
+
+  <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) {
+    std::ostringstream ss;
+    ss &lt;&lt; exp-&gt;f;
+    result = ss.str();
+  }
+};</code></pre>
+<p><code>result</code> member değişkeninin tipinin farklı olduğuna dikkat. Buradaki farklılık Haskell fonksiyonlarındaki dönüş tiplerinin farklılığı ile aynı.</p>
+<p>Son olarak programı şu şekilde çalıştırabiliyoruz:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Run r;
+prog1-&gt;accept(&amp;r);
+std::cout &lt;&lt; <span class="st">&quot;return value Run: &quot;</span> &lt;&lt; r.result &lt;&lt; std::endl;
+
+StringOfExp s;
+prog1-&gt;accept(&amp;s);
+std::cout &lt;&lt; <span class="st">&quot;return value of StringOfExp: &quot;</span> &lt;&lt; s.result &lt;&lt; std::endl;</code></pre>
+<p>Çıktı:</p>
+<pre><code>➜  cpp  clang++ arith.cpp -g
+➜  cpp  ./a.out
+return value Run: 1410
+return value of StringOfExp: (10 + (20 * (30 + 40)))</code></pre>
+<p>Burda 14 satır Haskell kodu ile aynı işi yapan 125 satır C++ kodundan bahsediyoruz. Tabii kodun aynı özelliğe sahip olduğunu sadece aynı sonuca ulaşmasına bakarak karar vermiyoruz. Yapı olarak da oldukça benzerler.</p>
+<p>Haskell programında ağaca yeni bir node eklemek için ilk başta <code>Exp</code> tipine yeni bir constructor eklememiz gerekecek ve daha sonra tüm yorumlayıcılarda match edilecek bir pattern daha eklenecek.</p>
+<p>C++ programında, <code>Exp</code> sınıfından yeni bir sınıf türeteceğiz ve tamamen aynı <code>accept</code> methoduna sahip olacak. <code>ExpVisitor</code> sınıfına da bir <code>visit</code> methodu daha eklememiz gerek. Daha sonra yorumlayıcılara teker teker alakalı <code>visit</code> methodunun eklenmesi gerek.</p>
+<p>Haskell fonksiyonlarının dönüş değerleri, Visitor sınıflarının <code>result</code> değişkeni ile eşleşiyor.</p>
+<p>Aslında aynı şeylerden bahsediyoruz yani.</p>
+<p>C++ kodunun çalışan bir haline <a href="https://gist.github.com/osa1/5005037">şuradan</a> ulaşabilirsiniz.</p>
+<p>Alıştırma: Hem Haskell hem C++ programı için, ağaç üzerinde gezinerek “x + 0” ifadesini “x” haline, “x * 1” ifadesini “x” haline, “x * 0” ifadesini “0” haline getirecek yorumlayıcılar yazın. Anlamı koruyacak şekilde daha küçük bir ağaç elde etmiş olacağız. (bu optimizasyonlar gerçek derleyiciler tarafından yapılıyor)</p>
+<h1 id="ifade-problemi">İfade problemi</h1>
+<p>Yukarıda anlattıklarımın ifade problemi diye tercüme ettiğim <a href="http://en.wikipedia.org/wiki/Expression_problem">expression problem</a> ile de alakalı.</p>
+<p>Problemimiz şu, program iki boyutta gelişebiliyor, 1.si veri yapısı boyutunda, yani ağaca yeni nodelar eklemek, 2.si operasyonlar boyutunda, yani yeni yorumlayıcılar eklemek.</p>
+<p>Yukarıdaki çözümler aslında birbirlerine denk: İkisinde de veri yapısını değiştirdiğimizde kodu yeniden derlememiz gerekiyor(dolayısıyla kodun elimizde olması gerekiyor), fakat koda sahip olmadan ve yeniden derleme yapmadan yeni operasyon(yani yorumlayıcı ekleyebiliyoruz).</p>
+<p>Bu yazının amacı ifade problemi değil, o yüzden en azından şimdilik bahsetmeyeceğim(yazının orjinalinde bu kısım hiç yoktu), fakat aslında oldukça ilginç bir konu ve Haskell’ın ve Lisp dillerinin getirdiği ilginç çözümler var. OO dillerin çözümleri hakkında pek bir bilgim yok.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Aslında tabii yorumlayıcı bir çeşit byte-code üzerinden değil de, AST üzerinden yorumlama yapıyorsa, program çalıştığı sürece AST’yi geziyor demektir ve bu durumda bir derleyiciden çok daha fazla sayıda tur atmış olur. Benim burada kastettiğim çalıştırılmadan önce ön işlem anlamında yapılan gezinmeler.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Haskell örneğinde yorumlayıcıların tipleri farklı olduğundan ikisine aynı muameleyi yapamıyoruz, farkındayım. Tamamen aynı tipte yorumlayıcılar için Fay için verdiğim linklere göz atabilirsiniz.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
+    <title>Rowlar, kindlar ve tip çıkarımı hakkında öylesine bir yazı</title>
+    <link href="http://osa1.net/posts/2013-02-15-rowlar-kindlar.html" />
+    <id>http://osa1.net/posts/2013-02-15-rowlar-kindlar.html</id>
+    <published>2013-02-15T00:00:00Z</published>
+    <updated>2013-02-15T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Bu yazı birkaç gün önce attığım bir mail aslında. Acele ile yazılmış bir yazı olmasına rağmen epey uzun oldu ve maili yazmaya başlamadan önce kafamda karmaşık bir şekilde duran bazı fikirleri toparlamamda yardımcı oldu. Pek kimsenin işine yarayacağını tahmin etmesem de, yine de buraya koyuyorum. Küçük bazı düzenlemeler yaptım. Eklemeler ise yazının en altına yazıldı. Kodlar OCaml dilinde yazıldı.</p>
+<hr />
+<p>Üzerinde çalıştığım dilin tip sistemi hakkında<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>:</p>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> ty =
+  | ...
+  | <span class="dt">TRow</span> <span class="kw">of</span> tyrow
+  | ...
+
+<span class="kw">type</span> fieldty =
+  | <span class="dt">Pre</span> ty
+  | <span class="dt">Btm</span> <span class="co">(* Abs ismi lambda abstractionlarda kullanildi *)</span>
+
+<span class="kw">type</span> tyrow =
+  | <span class="dt">EmptyRow</span>
+  | <span class="dt">Row</span> (id * ty * ..1..)
+  | ..2..</code></pre>
+<p>1 ve 2 boşluklarını doldurmamız gerekiyor. Sorunlar şunlar:</p>
+<p>1 kısmına yazdığımız tip, sadece yine kendi tipiyle(yani <code>TRow</code> ile) unify etmek zorunda(ilk bakışta <code>tyrow</code> yazmak mantıklı gibi geliyor ama bu yüzden değil).</p>
+<p>2 kısmına yazdığımız constructor polymorphic row’u temsil edecek. Burada ben ilk başta aslında row değişkenlerini tamamen yok sayıp, recordlar extensible mı değil mi diye bir boolean flag tutayım demiştim. Fakat sorun, recordlar rowları paylaşabiliyorlar, örneğin şöyle bir fonksiyonda <code>\r -&gt; r.x = 10</code> tip <code>{r/x} -&gt; {x:int|r/x}</code> oluyor, başka bir yerde bu <code>r</code> kullanılabilir(parametre olarak verilen record başka yerlerde kullanıldığında fonksiyonun dönüş değeri olan recordın row değişkeni ile aynı row değişkenine sahip birden fazla record oluyor). Dolayısıyla bir değişken olmak zorunda.</p>
+<p>Fakat bu <code>typevar</code> tipinde olamaz, çünkü <code>typevar</code> bir <code>ty</code> ile unify edilebiliyor. Rowlarda ise <code>tyrow</code> ile unify etmek istiyoruz. Ayrı bir tip gerekiyor yani.</p>
+<p>Temel olarak row variable ile normal variable tamamen aynı olmalı, tek farkla, row değişkenler sadece row değişkenlerle/değerler ile unify edecek, variablelar da aynı şekilde.<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<h2 id="neden-tip-seviyesinde-kindlara-ihtiyaç-var">Neden tip seviyesinde kindlara ihtiyaç var ?</h2>
+<p>Type schemeler row değişkenler de tutabilir. <code>let</code> ile bir fonksiyon tanımladım, fonksiyon tipindeki free type variableları generalize ederek(terimler teminoloji ile uyumlu olsun diye ingilizce kullanıldı) bu fonksiyon polymorphic hale getiriliyor ve tipi <code>TypeScheme</code> olarak tutuluyor, quantified değişkenler belirtiliyor.<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup></p>
+<p>Daha sonra bu fonksiyon kullanıldığında instantiate ediliyor. Burada instantiate edilen quantified değişkenler yerine ancak kendi kindlarında tiplerin konulması bir şekilde sağlanmalı.</p>
+<p>Yani şunu demeye çalışıyorum, elimde bir row variable varsa, bu ancak bir row tipi ile yer değiştirebilir(yerine ancak row tipi yazılabilir). Bunu implementasyon sırasında tip sistemi ile garanti etmek gerçekten zor. İnsanlar bu yüzden kind sistemi kullanıyorlar sanırım.</p>
+<p>Kind kullanırsam şöyle oluyor, her tipe bir kind veriyorum. Özet geçmek gerekirse, mesela TVar bir type değişkeni tutuyordu, şimdi bir de kind tutacak. Kindlar ise dilimde kaç tip -birbirlerinden farklı- type varsa, o kadar olacak. Örneğin <code>Star</code> int, bool gibi tipler için kullanılırken, <code>Row</code> row tipleri için kullanılır. Bu sayede bir değişkenim Row kindında ise, quantified edilse de instantiate edilse de bu bilgi taşınır ve en son yerine yazılacağında kind kontrol edilir. Tüm yerine yazmalar <code>kind-preserving</code> olmalıdır.<sup><a href="#fn4" class="footnoteRef" id="fnref4">4</a></sup></p>
+<p>Bu sayede farklı kindlarda type variablelar için aynı fonksiyonları kullanabilirim, sürekli kind bilgisini de taşırım. En son substitution veya unification yaparken, kindların korunup korunmadığını kontrol ederim ve normal type değişkeni yerine row type yazılmamasını sağlarım veya unification sırasında hata alırım.</p>
+<p>–</p>
+<p>Kindlarla beraber tipleri şu şekilde tanımlayabiliyoruz(yaklaşık olarak, henüz programı yazmadım)</p>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> kind =
+  | <span class="dt">KStar</span>                 <span class="co">(* kind of term types *)</span>
+  | <span class="dt">KRow</span>                  <span class="co">(* kind of row types *)</span>
+  | <span class="dt">KArr</span> <span class="kw">of</span> (kind * kind) <span class="co">(* kind of type constructors *)</span>
+
+<span class="kw">type</span> ty =
+  | <span class="dt">TCon</span> <span class="kw">of</span> tycon     <span class="co">(* constant *)</span>
+  | <span class="dt">TVar</span> <span class="kw">of</span> tyvar     <span class="co">(* type variable *)</span>
+  | <span class="dt">TApp</span> <span class="kw">of</span> (ty * ty)
+      <span class="co">(* type application, to be well-typed</span>
+<span class="co">         kind of first ty should be KArr (k2, k)</span>
+<span class="co">         and second ty should be k2 *)</span>
+<span class="kw">and</span> tyvar = (tyvarlink <span class="dt">ref</span> * kind)
+<span class="kw">and</span> tyvarlink =
+  | <span class="dt">NoLink</span> <span class="kw">of</span> id <span class="co">(* just a type variable *)</span>
+  | <span class="dt">LinkTo</span> <span class="kw">of</span> ty <span class="co">(* equated to a ty *)</span>
+<span class="kw">and</span> tycon = (id * kind) <span class="co">(* kind should be always KStar *)</span>
+
+<span class="kw">let</span> t_int        = <span class="dt">TCon</span> (<span class="st">&quot;int&quot;</span>,  <span class="dt">KStar</span>)
+<span class="kw">let</span> t_bool       = <span class="dt">TCon</span> (<span class="st">&quot;bool&quot;</span>, <span class="dt">KStar</span>)
+<span class="kw">let</span> t_unit       = <span class="dt">TCon</span> (<span class="st">&quot;unit&quot;</span>, <span class="dt">KStar</span>)
+<span class="kw">let</span> t_list       = <span class="dt">TCon</span> (<span class="st">&quot;[]&quot;</span>,   <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KStar</span>))
+<span class="kw">let</span> t_ref        = <span class="dt">TCon</span> (<span class="st">&quot;ref&quot;</span>,  <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KStar</span>))
+<span class="kw">let</span> t_arr        = <span class="dt">TCon</span> (<span class="st">&quot;-&gt;&quot;</span>,   <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KStar</span>)))
+<span class="kw">let</span> t_empty_row  = <span class="dt">TCon</span> (<span class="st">&quot;&lt;|&gt;&quot;</span>,  <span class="dt">KRow</span>)
+<span class="kw">let</span> t_row_ext    = <span class="dt">TCon</span> (<span class="st">&quot;&lt;+&gt;&quot;</span>,  <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KArr</span> (<span class="dt">KRow</span>, <span class="dt">KRow</span>)))
+<span class="kw">let</span> t_rec_const  = <span class="dt">TCon</span> (<span class="st">&quot;{_}&quot;</span>,  <span class="dt">KArr</span> (<span class="dt">KRow</span>, <span class="dt">KStar</span>))
+
+<span class="co">(* type of {r1} *)</span>
+<span class="kw">let</span> rp1 = <span class="dt">TApp</span> (t_rec_const, <span class="dt">TVar</span> (<span class="dt">ref</span> (<span class="dt">NoLink</span> <span class="st">&quot;r1&quot;</span>), <span class="dt">KRow</span>))
+
+<span class="co">(* type of {r1} -&gt; {_:int|r1} *)</span>
+<span class="kw">let</span> f   = <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_arr, rp1), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_row_ext, t_int), rp1))</code></pre>
+<p>En sonraki iki tanım örnek olsun diyeydi.</p>
+<p>Karmaşık olduğunun farkındayım ama 1) bu tip sistemi implementasyonları için standard yol gibi geldi bana(çok fazla makalede kind sistemlerinden bahsediliyor) 2) diğer türlü de daha az karmaşık değil gibi.<sup><a href="#fn5" class="footnoteRef" id="fnref5">5</a></sup></p>
+<p>Burda mesela <code>TApp</code> oluşturan bir yardımcı fonksiyon oluştururuz ve kindları kontrol eder, uyumlu mu diye, bir miktar daha kolaylaşır. Yardımcı fonksiyonlarla işi kolaylaştırabiliriz diye düşünüyorum yani.</p>
+<p>Bu örnekde <code>rp1</code> yerine mesela <code>{a:bool}</code> (yani <code>TApp (TApp (t_rec_ext, bool_ty), t_empty_row)</code>) yazarsak:</p>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="dt">TApp</span> (<span class="dt">TApp</span> (t_arr, rp1), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_row_ext, t_int), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_rec_ext, bool_ty), t_empty_row)))</code></pre>
+<p>Bana gayet temiz bir şekilde <code>{x:int, a:bool}</code> elde ettik gibi geliyor ve tek yaptığımız yerine yazmak oldu. ( bu sunumda labelların atlandığının farkındayım, tam olarak labelları nasıl bu sisteme entegre ederim düşünmedim )</p>
+<p>Diğer türlü yapılamaz mı, tabii ki yapılabilir ve ben zaten çok yaklaşmıştım. Fakat çirkin olmayan bir yolu yok. Kod içerisinde şöyle kısımlar olmak <em>zorunda</em> gibi: “implementasyonum doğru olduğuna göre bu type variable record ile unify edilmiş olacak, exhaustive olmayan pattern matching yap”. Mesela tüm row değişkenler bir record’a unify edilimş olacak, ben pattern matching ile fieldları alacağım kendi recordıma ekleyeceğim vs.<sup><a href="#fn6" class="footnoteRef" id="fnref6">6</a></sup></p>
+<p>Ama kindler ile yaptığımda bu gibi durumlar olmayacak, ben <code>TApp</code>’lar ile typelar oluşturacağım, kind preserving substitutionlar, generalizationlar, instantiationlar yapılacağından, her zaman row tiplerim well-formed olmuş olacak ben hiçbir kontrol yapmadan <code>TApp</code>’ler oluşturmaya başlayacağım.</p>
+<p>Ben bugün akşam birkaç makale daha inceleyeceğim: Type Inference for Records in a Natural Extension of ML (Didier Rémy) ve A Polymorphic Type System for Extensible Records and Variants (Mark P. Jones, Benedict R. Gaster). Bir de Typing Haskell in Haskell (Mark P. Jones)’a baktım, Haskell’da burada konuştuğumuz anlamda recordlar yok, ama kind sisteminden bahsederken “row kindlar da kolayca eklenebilir” diyerek sanırım yukarıda yaptığım şeyi kastetmekte.</p>
+<p>Bu nasıl olabiliyor anlayabilmiş değilim ama gerçekten internette hiç örnek implementasyon yok. Bu yüzden ben bir tane yazacağım blog yazısı olarak. Polymorphic recordlara sahip bir dil inceleyeyim dedim, bir tanesi <a href="http://elm-lang.org/">Elm</a> adlı bir dil, kaynağı Haskell ile yazılmış temel olarak “Scoped Labels” makalesini kullanmış, ama kod berbat bir durumda. Çok çok karmaşık, kod stili berbat(type annotationlarını atlamış, Haskell’da bunu hiçbir zaman yapmayız, derleyici uyarı verir, annotationlar OCaml’daki gibi kodun içine yazılmaz, ayrı bir satıra yazılır ve anlaşılabilmeye çok katkı sağlarlar) vs. Yine de okunacak olursa en mantıklısı bu.</p>
+<p>İkincisi <a href="http://www.pllab.riec.tohoku.ac.jp/smlsharp/">SML#</a>. Bu da ne yazık ki SML üzerine implement edilmiş ve kaynak kodu devasa. Tüm SML kodunu incelemek gerekecek yani(aradım bulamadım alakalı kısımları).<sup><a href="#fn7" class="footnoteRef" id="fnref7">7</a></sup></p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Özetle, row polymorphism’e sahip, multi-staged bir dil. Buradaki veri yapısı dilin tip sistemini ifade ediyor. Row tiplerine dikkat. Row polymorphism’de fieldlar üzerinde bazı kısıtlar tanımlamanın birkaç yolu var. Bir yol, benim burada yaptığım ve <a href="http://gallium.inria.fr/~remy/publications.html">D. Rémy</a>’nin “Type inference for records in a natural extension of ML” ve başka makalelerinde gösterdiği gibi, field tiplerinde bir çeşit “flag” tutmak. Makalelerde Abs/Pre diye geçer, benim kodumda Pre/Btm. Bu yolun bu işi yapmak en bariz yol olduğunu söyleyebiliriz belki. Fakat kesinlikle en kolay/güzel yötem değil. Alternatif olarak kısıtlar constraint seviyesinde, kind seviyesinde veya başka bazı seviyelerde tanımlanabiliyor.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Burada anlatmaya çalıştığım problem bana çok vakit kaybettirdi ve aslında pek çok kişiye tanıdık gelebilir. Kısaca yapmaya çalıştığım şey, bazı şeyleri statik olarak garanti etmek için tip sistemini kullanmaya çalışmak. Örneğin bir programlama dilinde syntax ağacını well-formed olmayan programları ifade edebilmesini engelleyecek şekilde oluşturmak gibi. Bu gibi durumlarda eğer yeterince güçlü tip sisteminiz yoksa(örnek: GADTler yardımcı olabiliyor) işiniz çok zorlaşabiliyor. Daha kolay bir yöntemi runtime’da bunu garantilemek. Hemen sonrasında anlattığım şey tam olarak bu aslında. Statik garantiler verebilmek süper birşey aslında. Hiçbir şart altında programınızın yanlış çalışmayacağını garanti altına alıyorsunuz. Ama bazı durumlarda bu mümkün ama çok zor olabiliyor. Diğer yandan, zor da olsa bir kere implement ettikten sonra kesin olarak doğru çalışacağından emin olabiliyorsunuz. Veya test etmesi çok kolay oluyor vs.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>Anlattığım şey Damas-Hindley-Milner tip sisteminin temellerinden aslında.<a href="#fnref3">↩</a></p></li>
+<li id="fn4"><p>Kindları kendi kendime keşfettiğim an. Aslında Haskell programcısı olduğumdan kind konspetine aşinaydım, ama bu şekilde kullanımı bir bakıma kendi kendime keşfettim diyebilirim. Kind adını da ben vermedim tabii, daha sonra hakkında okudukça farkettim.<a href="#fnref4">↩</a></p></li>
+<li id="fn5"><p>“diğer türlü daha az karmaşık değil gibi” derken kastettiğim, Rémy usulü, field tiplerine bir flag koyarak Abs/Pre özelliğini belirtmekti.<a href="#fnref5">↩</a></p></li>
+<li id="fn6"><p>Burda aslında biraz programımın implementasyonu ile alakalı detaylardan bahsediyorum. Belki bir ara biraz daha açarım.<a href="#fnref6">↩</a></p></li>
+<li id="fn7"><p>Daha sonradan farkettim ki bir alternatif daha varmış: “Extensible records with scoped labels” makalesinde bahsedilenlerin implement edildiği <a href="http://www.equational.org/morrow/">Morrow</a> programlama dili. En iyi implementasyon şimdilik bu. Tek problemi, kurulmak için <a href="http://www.cs.uu.nl/wiki/HUT/AttributeGrammarSystem">UUAG attribute grammar system</a>a ihtiyaç duyması. Bir de eğer sadece type inference yapmasın, bir de çalıştırsın derseniz, OCaml’a ihtiyaç duyuyor. Evet çok fantastik. Haskell ile statik analiz kısımları yapılıyor ve OCaml’a derleniyor. Tabii programın asıl olayı tip sistemi olduğundan, deneme için yazdığınız programları çalıştırmak istemeyebilirsiniz, o zaman OCaml’a gerek yok.<a href="#fnref7">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
+    <title>Quick Vim Tip for OCaml programmers: Fix OCamlYacc comment syntax</title>
+    <link href="http://osa1.net/posts/2013-02-14-quick-vim-tip-for-ocaml.html" />
+    <id>http://osa1.net/posts/2013-02-14-quick-vim-tip-for-ocaml.html</id>
+    <published>2013-02-14T00:00:00Z</published>
+    <updated>2013-02-14T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been editing OCaml with Vim for several months now, one problem that annoys me with Vim’s built-in OCaml syntax highlighter is it behaves OCamlYacc files like it’s a normal OCaml file.</p>
+<p>It generally works fine but OCamlYacc’s comment syntax is different from OCaml’s. When working on big OCamlYacc files this quickly becomes annoying.</p>
+<p>I’m not proficient in VimL but I could manage to write a simple solution. I replaced this line in Vim’s built-int OCaml syntax highlighter:</p>
+<pre><code>&quot; Comments 
+syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo</code></pre>
+<p>with:</p>
+<pre><code>&quot; Comments
+if expand(&quot;%:e&quot;) == &quot;mly&quot;
+  syn region   ocamlComment start=&quot;/\*&quot; end=&quot;\*/&quot; contains=ocamlComment,ocamlTodo
+else
+  syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo
+end</code></pre>
+<p>(You can find you Vim’s built-in files’ folders by runing <code>:echo $VIMRUNTIME</code> inside Vim. On my machine, <code>ocaml.vim</code>s path is <code>/usr/share/vim/vim73/syntax/ocaml.vim</code>)</p>
+<p>Works great. It can be further simplified but requires a variable declaration and I don’t want to mess with Vim variables without understanding the consequences(scope rules etc.)</p>]]></summary>
+</entry>
+<entry>
+    <title>Okudukarım, okunacaklar</title>
+    <link href="http://osa1.net/posts/2013-02-12-okuduklarim-okunacaklar.html" />
+    <id>http://osa1.net/posts/2013-02-12-okuduklarim-okunacaklar.html</id>
+    <published>2013-02-12T00:00:00Z</published>
+    <updated>2013-02-12T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Son ciddi yazımdan beri epey vakit geçmiş. Henüz buradan duyuramadım ama, bir süredir 2. 14 haftalık stajımı yapıyorum. Detaylar için ayrı bir yazı yazmayı planlıyorum ama şimdilik türkiyedeki tek PLT işinde çalıştığımı söyleyebilirim sanırım(abartmış olabilirim, PLT üzerine çalışan insanlar varsa söyleyin, ben de merak ediyorum). Birkaç ay önce imkansız gibi gözüken bazı şeylerin bu kadar çabuk normalleşmesi ne garip.</p>
+<p>Neyse, kısaca şu anda üzerinde çalıştığım proje için okuduğum ve okumakta olduğum makalelerden bahsedeceğim biraz.</p>
+<h2 id="okuduklarım">Okuduklarım</h2>
+<pre><code>* A polymorphic modal type system for lisp-like multi-staged languages.
+
+Multi-staged programming ile tanıştığım makale bu oldu. Aslında giriş için hiç iyi bir makale değil, kullandığı dil çok büyük, bir tam kolon big-step [operational semantics](http://en.wikipedia.org/wiki/Operational_semantics) verilmiş. Tip ve çıkarım kuralları da buna bağlı olarak kompleks.
+
+Multi-staged programming&#39;i kısaca Lisp macroları benzeri bir meta-programming araçları gibi düşünebiliriz. Daha detaylı bilgiyi üzerinde çalıştığım yorumlayıcı bittiğinde, kendisi ile örneklerle vermek istiyorum. Şimdilik şöyle özet geçebilirim: Programların çalıştırılması birden fazla stage&#39;e ayrılmış oluyor ve her iki stage arası bir miktar evaluation yapılıyor. Örnek olarak bir matris çarpımı yapacaksanız, matrislerin uzunluğu belli olduğunda bir miktar evaluation yaparak matris uzunluk kontrolü ve iterasyon içermeyen, girdi olarak verdiğiniz iki matris boyutundaki matrisler için çarpma yapan bir kod üretebilirsiniz. Daha sonra çarpma işlemi nispeten daha hızlı olacaktır.
+
+Bir miktar [partial evaluation](http://en.wikipedia.org/wiki/Partial_evaluation) ile de alakalı. Partial evaluation çok fantastik bir konu, bu yazıyı okuyan herkesin en azından wikipedia sayfasına bakmasını tavsiye ederim(özellikle Futamura projections kısmı fantastik).
+
+* Static analysis of multi-staged programs via unstaging translation.
+
+Multi-staged programların statik analizlerinin daha zor olduğu gözlemlendikten sonra, multi-staged bir programın anlam korunarak unstaged bir hale tercüme edilebileceğinin farkedilmesi üzerine, multi-staged programların bu tercüme ile statik olarak analiz edilebileceğini söylüyor. Staged expressionlar bir çeşit record-calculus(lambda calculus + recordlar)a tercüme ediliyor ve statik tip sistemi verilmiş.
+
+Bir önceki makaledekine göre çok küçük bir multi-staged dil tanımlıyor ve bu yüzden okuması/anlaması daha kolay. Tip sistemi de daha az farklı olduğundan(hatta makalede tip sistemi anlamında yeni birşey yok) onun da anlaşılması daha kolay olabilir. (benim için farketmedi, benzer bir tip sistemi üzerinde hiç çalışmamıştım)
+
+Tercüme sonrası analizler, tercüme öncesindeki hal ile eşleştiriliyor.
+
+
+* A modern eye on ML type inference.
+
+Damas-Hindley-Milner tip sisteminin bir özeti niteliğinde. Pek çok detay bilindiği varsayılarak atlanmış, ve 2. ve 3. bölümleri &quot;gelecek&quot; denmesine rağmen, 2005&#39;den beri, gelmemiş.
+
+Tip çıkarımından bahsedildikten sonra, constraint solving ile alakasından bahsediyor. W ve J algoritmaları ve parametrik HM(X) algoritmasından bahsediliyor. Tip çıkarımı ile constraint oluşturma/çözme arasındaki ilişkiyi anlamak için çok iyi.
+
+Hatırladığım bir başka güzel yanı da constraint oluşturma ve çözme kısımlarının nasıl birbirlerinden ayrılabileceği ve bunun getirdiklerinden bahsetmesiydi. Ayrıca constraintler yardımıyla çıkarımı polymorphism&#39;i anlatmadan önce anlatması da ayrı bir güzellik bence.
+
+* Record polymorphism yazıları
+
+Refined subtyping and row variables for record types(Didier Remy), Type inference for records in a natural extension of ML(Didier Remy), Extensible records with scoped labels(Daan Leijen), A polymorphic type system for extensible records and variants(Gaster, Jones)
+
+Hepsini tamamen okumasam da, bir göz gezdirdim. Leijen makalesi özellikle çok hoş ve okuması kolay. [Elm](http://elm-lang.org/) dilinin [recordları](http://elm-lang.org/blog/announce/version-0.7.elm) temel olarak bu makalede anlatılanların bir implementasyonu. Ben de başka bir projem için benzer bir record yapısı planlıyorum.
+
+Bu makalelerden benim çıkardığım en önemli şey şu oldu: Derleme zorluğu önemsenmediğinde, çok güzel record tipleri elde etmek mümkün.
+
+İkinci olarak, aynı kısıtları tanımlamanın farklı yolları var ve çoğu zaman &quot;en iyi&quot; diyebileceğimiz bir yola sahip değiliz. Duruma göre alternatifleri değerlendirmek zorundayız.
+
+Polymorphic recordlar söz konusu olduğunda, bir recordda bir t tipinde bir labelın bulunduğunu veya bulunmadığını belirtmenin birden fazla yolu var. Kind seviyesinde tanımlayabilirsiniz ki kompleks bir kind tipi gerektirir(daha sonra bir de kindların well-formed olduğunu kontrol etmek gerekebiliyor, kind-inference algoritmaları falan var). Ohori&#39;nin makalelerinde bu kullanıyor sanırım. Direkt olarak row field tiplerine gerekli bilgiği yerleştirebilirsiniz ki Remy&#39;nin makalelerinde yapılan bu. Veya constraint oluşturabilirsiniz ki bu benim en sevdiğim yöntem, Jones&#39;un makalesinde kullanılmış(aslında _constraint_ değil de _predicate_ denmiş).
+
+Yani recordlar gibi elinizde nispeten kompleks bir tip olduğunda(en basitinden, label-type ikililerinden oluşan bir kümeden bahsediyoruz ve bazı makalelerdeki sistemlerde birden fazla label olabiliyor), teorik kısıtları ifade etmek için çeşitli yollar var ve elinizdeki mevcut sisteme hangisi daha iyi gidiyorsa onu seçme şansınız var. </code></pre>]]></summary>
+</entry>
+<entry>
+    <title>Quick Vim Tip: Disable cursorline</title>
+    <link href="http://osa1.net/posts/2013-01-16-quick-vim-tip-2.html" />
+    <id>http://osa1.net/posts/2013-01-16-quick-vim-tip-2.html</id>
+    <published>2013-01-16T00:00:00Z</published>
+    <updated>2013-01-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I wouldn’t believe how much this seemingly simple feature can affect rendering performance. Vim is being almost unusable when this is enabled. For more details, you can see <a href="https://github.com/dag/vim2hs/issues/28#issuecomment-12208866">my post</a> at vim2hs’s issue tracker.</p>
+<p>I used this feature for my entire life spent using vim, but after a few hours without it I realized I actually don’t need it.</p>
+<p>In short, disable <code>cursorline</code> (or <code>cul</code> for short) if your vim renders/highlights text too slow.</p>]]></summary>
+</entry>
+<entry>
+    <title>Quick Vim Tip: Add Left Margin To Buffers</title>
+    <link href="http://osa1.net/posts/2013-01-16-quick-vim-tip-1.html" />
+    <id>http://osa1.net/posts/2013-01-16-quick-vim-tip-1.html</id>
+    <published>2013-01-16T00:00:00Z</published>
+    <updated>2013-01-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I almost always work in fullscreen, and when I do that, text in vim starts just where my laptop monitor’s frame ends and it’s really annoying. And even if I don’t use vim in fullscreen, generally I want some margin(empty space) on the left side of vim window.</p>
+<p>One way to achieve this is enabling line numbers. But I don’t like this solution because line numbers cause unnecessary noise in the screen.</p>
+<p>As a solution, I was using <code>foldcolumn</code>, which, like line numbers, puts some space on the left side to show some folding information. It’s a nice solution if you never use folding in your code, and I wasn’t using folding in my code, but now I’m using folding and foldcolumn looks horrible:</p>
+<div class="figure">
+<img src="http://osa1.net/media/vimtip1/foldmethodmarker1.png" />
+</div>
+<p>A nasty trick to make this folding guides hidden is making folding guides’ foreground and background color the same, and same as you colorscheme’s background color:</p>
+<pre class="vimscript"><code>autocmd Colorscheme * highlight FoldColumn guifg=bg guibg=bg</code></pre>
+<p>Put this in your .vimrc, somewhere before setting your colorscheme(ie. before <code>colorscheme ...</code> line) and whenever you change color colorscheme, foldcolumn’s colors will be set and folding guides will be hidden.</p>
+<div class="figure">
+<img src="http://osa1.net/media/vimtip1/foldmethodmarker2.png" />
+</div>
+<p>How does it work: <code>bg</code> and <code>fg</code> are two special variables that will be set by vim automagically whenever you set <code>Normal</code> colors by calling <code>:highlight Normal [options]</code> and all colorschemes do that because that’s the way to set vim’s background color and default text color.</p>
+<p><code>autocmd Colorscheme *</code> makes this command run whenever you set your colorscheme by calling <code>:colorscheme ...</code> command. And now you have clear left margin. Enjoy.</p>]]></summary>
+</entry>
+<entry>
+    <title>Getting different distributions out of uniform distribution</title>
+    <link href="http://osa1.net/posts/2012-12-19-different-distributions-from-uniform.html" />
+    <id>http://osa1.net/posts/2012-12-19-different-distributions-from-uniform.html</id>
+    <published>2012-12-19T00:00:00Z</published>
+    <updated>2012-12-19T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I don’t know much about statistics and distributions, but I needed some differently distributed pseudo-random numbers for a project I’m working on.</p>
+<p>I think most programming languages have a pseudo-random number generator, and that generators probably generate <a href="http://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">uniformly-distributed</a> pseudo-randoms. I’m using Lua and Lua’s <a href="http://www.lua.org/manual/5.2/manual.html#pdf-math.random">math.random</a> generates pretty much uniformly distributed numbers:</p>
+<div class="figure">
+<img src="/images/distroyazi/uniformdistro.png" />
+</div>
+<p>It’s written in Lua’s manual(link is given above) that it’s statistical properties cannot be guaranteed. It still works fine for my purposes as a uniformly distributed number generator.</p>
+<p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
+<p>I also read some discussions on why one shouldn’t use that, and instead move to other methods like <a href="http://en.wikipedia.org/wiki/Ziggurat_algorithm">Ziggurat algorithm</a>(and some other I can’t remember now), but I think Box-Muller method is easy to implement and works fine for my purposes, so I’m using it now:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> box_muller<span class="ot">()</span>
+    <span class="kw">return</span> <span class="kw">math</span><span class="ot">.</span>sqrt<span class="ot">(-</span><span class="dv">2</span> <span class="ot">*</span> <span class="fu">math.log</span><span class="ot">(</span><span class="fu">math.random</span><span class="ot">()))</span> <span class="ot">*</span> <span class="fu">math.cos</span><span class="ot">(</span><span class="dv">2</span> <span class="ot">*</span> <span class="kw">math</span><span class="ot">.</span><span class="kw">pi</span> <span class="ot">*</span> <span class="fu">math.random</span><span class="ot">())</span> <span class="ot">/</span> <span class="dv">2</span>
+<span class="kw">end</span></code></pre>
+<p>This function returns numbers in range [-1,1]. I’m using it with some code like that:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> <span class="kw">dev</span> <span class="ot">=</span> <span class="dv">100</span>
+<span class="kw">local</span> <span class="kw">rand</span> <span class="ot">=</span> box_muller<span class="ot">()</span>
+<span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">rand</span> <span class="ot">*</span> <span class="kw">dev</span> <span class="ot">+</span> <span class="kw">myLimit</span><span class="ot">/</span><span class="dv">2</span><span class="ot">)</span></code></pre>
+<p>Here the variable <code>dev</code> stands for <a href="http://en.wikipedia.org/wiki/Standard_deviation">standard deviation</a>, though note that it’s value is not <em>standard deviation</em>, but just a value to play with to set standard deviation. I don’t know how can I set standard deviation with Box-Muller method. By playing this value you can get distributions with different standard deviations.</p>
+<div class="figure">
+<img src="/images/distroyazi/normaldistro.png" />
+</div>
+<p>I also generated two custom distributions, I don’t know if people gave them any special names, first one is this:</p>
+<div class="figure">
+<img src="/images/distroyazi/customdistro.png" />
+</div>
+<p>I think this is a very useful one, this means that if I give some <em>actions</em> in my game different numbers depending on their <em>priority</em> and use this random number generator, I get numbers of actions with more priority more than the ones with less priority. Here’s the code:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
+    <span class="kw">while</span> <span class="kw">true</span> <span class="kw">do</span>
+        <span class="kw">local</span> <span class="kw">r1</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
+        <span class="kw">local</span> <span class="kw">r2</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
+        <span class="kw">if</span> <span class="ot">(</span><span class="kw">r2</span> <span class="ot">&lt;</span> <span class="kw">r1</span><span class="ot">)</span> <span class="kw">then</span>
+            <span class="kw">return</span> <span class="kw">r1</span>
+        <span class="kw">end</span>
+    <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+<p>Last one is similar:</p>
+<div class="figure">
+<img src="/images/distroyazi/customdistro2.png" />
+</div>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
+    <span class="kw">local</span> <span class="kw">rate</span> <span class="ot">=</span> <span class="dv">3</span>
+    <span class="kw">local</span> <span class="kw">r</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">500</span><span class="ot">^</span><span class="kw">rate</span><span class="ot">)</span>
+    <span class="fu">print</span><span class="ot">(</span><span class="kw">r</span><span class="ot">)</span>
+    <span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">r</span><span class="ot">^(</span><span class="dv">1</span><span class="ot">/</span><span class="kw">rate</span><span class="ot">))</span>
+<span class="kw">end</span></code></pre>
+<p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup>.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>and you may even have a <a href="http://en.wikipedia.org/wiki/Perlin_noise">Perlin noise</a> <a href="http://processing.org/reference/noise_.html">generator</a> too!<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>For those interested: It’s <a href="http://love2d.org">Love2d</a>. Recently(while working on this code) I realized that Love2d is not a Lua library, but a complete C++ program that has Lua interpreter. In most cases you can’t see the difference but there are some edge cases like I mentioned above that makes your program runs fine with Lua, but fails with Love2d programs.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+
+</feed>

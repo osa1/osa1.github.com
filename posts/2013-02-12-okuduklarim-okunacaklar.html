@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Okudukarım, okunacaklar</title>
+        <link href="http://fonts.googleapis.com/css?family=Geo" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="header-inner">
+                <span id="blog-title">osa1 :: Blog</span>
+                <span id="menu-items">
+                    [ <a href="../">main</a>,
+                      <a href="../posts.html">posts</a>,
+                      <a href="../about.html">about</a>
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div id="column">
+            <div class="inner">
+                <h1 id="post-title">Okudukarım, okunacaklar</h1>
+
+<p><strong>February 12, 2013</strong> - Tagged as: <a href="../tags/vim.html">vim</a>.</p>
+
+<p>Son ciddi yazımdan beri epey vakit geçmiş. Henüz buradan duyuramadım ama, bir süredir 2. 14 haftalık stajımı yapıyorum. Detaylar için ayrı bir yazı yazmayı planlıyorum ama şimdilik türkiyedeki tek PLT işinde çalıştığımı söyleyebilirim sanırım(abartmış olabilirim, PLT üzerine çalışan insanlar varsa söyleyin, ben de merak ediyorum). Birkaç ay önce imkansız gibi gözüken bazı şeylerin bu kadar çabuk normalleşmesi ne garip.</p>
+<p>Neyse, kısaca şu anda üzerinde çalıştığım proje için okuduğum ve okumakta olduğum makalelerden bahsedeceğim biraz.</p>
+<h3 id="okuduklarım">Okuduklarım</h3>
+<pre><code>* A polymorphic modal type system for lisp-like multi-staged languages.
+
+Multi-staged programming ile tanıştığım makale bu oldu. Aslında giriş için hiç iyi bir makale değil, kullandığı dil çok büyük, bir tam kolon big-step [operational semantics](http://en.wikipedia.org/wiki/Operational_semantics) verilmiş. Tip ve çıkarım kuralları da buna bağlı olarak kompleks.
+
+Multi-staged programming'i kısaca Lisp macroları benzeri bir meta-programming araçları gibi düşünebiliriz. Daha detaylı bilgiyi üzerinde çalıştığım yorumlayıcı bittiğinde, kendisi ile örneklerle vermek istiyorum. Şimdilik şöyle özet geçebilirim: Programların çalıştırılması birden fazla stage'e ayrılmış oluyor ve her iki stage arası bir miktar evaluation yapılıyor. Örnek olarak bir matris çarpımı yapacaksanız, matrislerin uzunluğu belli olduğunda bir miktar evaluation yaparak matris uzunluk kontrolü ve iterasyon içermeyen, girdi olarak verdiğiniz iki matris boyutundaki matrisler için çarpma yapan bir kod üretebilirsiniz. Daha sonra çarpma işlemi nispeten daha hızlı olacaktır.
+
+Bir miktar [partial evaluation](http://en.wikipedia.org/wiki/Partial_evaluation) ile de alakalı. Partial evaluation çok fantastik bir konu, bu yazıyı okuyan herkesin en azından wikipedia sayfasına bakmasını tavsiye ederim(özellikle Futamura projections kısmı fantastik).
+
+* Static analysis of multi-staged programs via unstaging translation.
+
+Multi-staged programların statik analizlerinin daha zor olduğu gözlemlendikten sonra, multi-staged bir programın anlam korunarak unstaged bir hale tercüme edilebileceğinin farkedilmesi üzerine, multi-staged programların bu tercüme ile statik olarak analiz edilebileceğini söylüyor. Staged expressionlar bir çeşit record-calculus(lambda calculus + recordlar)a tercüme ediliyor ve statik tip sistemi verilmiş.
+
+Bir önceki makaledekine göre çok küçük bir multi-staged dil tanımlıyor ve bu yüzden okuması/anlaması daha kolay. Tip sistemi de daha az farklı olduğundan(hatta makalede tip sistemi anlamında yeni birşey yok) onun da anlaşılması daha kolay olabilir. (benim için farketmedi, benzer bir tip sistemi üzerinde hiç çalışmamıştım)
+
+Tercüme sonrası analizler, tercüme öncesindeki hal ile eşleştiriliyor.
+
+
+* A modern eye on ML type inference.
+
+Damas-Hindley-Milner tip sisteminin bir özeti niteliğinde. Pek çok detay bilindiği varsayılarak atlanmış, ve 2. ve 3. bölümleri &quot;gelecek&quot; denmesine rağmen, 2005'den beri, gelmemiş.
+
+Tip çıkarımından bahsedildikten sonra, constraint solving ile alakasından bahsediyor. W ve J algoritmaları ve parametrik HM(X) algoritmasından bahsediliyor. Tip çıkarımı ile constraint oluşturma/çözme arasındaki ilişkiyi anlamak için çok iyi.
+
+Hatırladığım bir başka güzel yanı da constraint oluşturma ve çözme kısımlarının nasıl birbirlerinden ayrılabileceği ve bunun getirdiklerinden bahsetmesiydi. Ayrıca constraintler yardımıyla çıkarımı polymorphism'i anlatmadan önce anlatması da ayrı bir güzellik bence.
+
+* Record polymorphism yazıları
+
+Refined subtyping and row variables for record types(Didier Remy), Type inference for records in a natural extension of ML(Didier Remy), Extensible records with scoped labels(Daan Leijen), A polymorphic type system for extensible records and variants(Gaster, Jones)
+
+Hepsini tamamen okumasam da, bir göz gezdirdim. Leijen makalesi özellikle çok hoş ve okuması kolay. [Elm](http://elm-lang.org/) dilinin [recordları](http://elm-lang.org/blog/announce/version-0.7.elm) temel olarak bu makalede anlatılanların bir implementasyonu. Ben de başka bir projem için benzer bir record yapısı planlıyorum.
+
+Bu makalelerden benim çıkardığım en önemli şey şu oldu: Derleme zorluğu önemsenmediğinde, çok güzel record tipleri elde etmek mümkün.
+
+İkinci olarak, aynı kısıtları tanımlamanın farklı yolları var ve çoğu zaman &quot;en iyi&quot; diyebileceğimiz bir yola sahip değiliz. Duruma göre alternatifleri değerlendirmek zorundayız.
+
+Polymorphic recordlar söz konusu olduğunda, bir recordda bir t tipinde bir labelın bulunduğunu veya bulunmadığını belirtmenin birden fazla yolu var. Kind seviyesinde tanımlayabilirsiniz ki kompleks bir kind tipi gerektirir(daha sonra bir de kindların well-formed olduğunu kontrol etmek gerekebiliyor, kind-inference algoritmaları falan var). Ohori'nin makalelerinde bu kullanıyor sanırım. Direkt olarak row field tiplerine gerekli bilgiği yerleştirebilirsiniz ki Remy'nin makalelerinde yapılan bu. Veya constraint oluşturabilirsiniz ki bu benim en sevdiğim yöntem, Jones'un makalesinde kullanılmış(aslında _constraint_ değil de _predicate_ denmiş).
+
+Yani recordlar gibi elinizde nispeten kompleks bir tip olduğunda(en basitinden, label-type ikililerinden oluşan bir kümeden bahsediyoruz ve bazı makalelerdeki sistemlerde birden fazla label olabiliyor), teorik kısıtları ifade etmek için çeşitli yollar var ve elinizdeki mevcut sisteme hangisi daha iyi gidiyorsa onu seçme şansınız var. </code></pre>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
