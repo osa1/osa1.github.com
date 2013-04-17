@@ -8,8 +8,652 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2012-08-30T00:00:00Z</updated>
+    <updated>2013-04-17T00:00:00Z</updated>
     <entry>
+    <title>THREE.js axis helper</title>
+    <link href="http://osa1.net/posts/2013-04-17-THREEjs-axis-helper.html" />
+    <id>http://osa1.net/posts/2013-04-17-THREEjs-axis-helper.html</id>
+    <published>2013-04-17T00:00:00Z</published>
+    <updated>2013-04-17T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’m using <a href="http://threejs.org">THREE.js</a> for a project I’m working on. This is my first experience programming a 3D environment and I’m having hard times wrapping my head around 3D coordinate system.</p>
+<p>So I wrote a helper function that draws axis arrows to the scene center to help me see how to translate/rotate my objects.</p>
+<pre class="sourceCode coffee"><code class="sourceCode coffee">drawAxisHelpers <span class="kw">=</span> <span class="fu">(params = {}) -&gt;</span>
+    params<span class="kw">.</span>radius <span class="kw">=</span> params<span class="kw">.</span>radius <span class="kw">||</span> <span class="fl">0.05</span>
+    params<span class="kw">.</span>height <span class="kw">=</span> params<span class="kw">.</span>height <span class="kw">||</span> <span class="dv">2</span>
+    params<span class="kw">.</span>scene  <span class="kw">=</span> params<span class="kw">.</span>scene  <span class="kw">||</span> scene
+
+    arrowGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> <span class="dv">0</span><span class="kw">,</span> <span class="dv">2</span> <span class="kw">*</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">5</span>
+
+    xAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0xFF0000</span>
+    xAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height
+    xAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> xAxisGeometry<span class="kw">,</span> xAxisMaterial
+    xArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> xAxisMaterial
+    xAxisMesh<span class="kw">.</span>add xArrowMesh
+    xArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
+    xAxisMesh<span class="kw">.</span>rotation<span class="kw">.</span>z  <span class="kw">-=</span> <span class="dv">90</span> <span class="kw">*</span> <span class="ot">Math</span><span class="kw">.</span>PI <span class="kw">/</span> <span class="dv">180</span>
+    xAxisMesh<span class="kw">.</span>position<span class="kw">.</span>x  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
+    params<span class="kw">.</span>scene<span class="kw">.</span>add xAxisMesh
+
+    yAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0x00FF00</span>
+    yAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height
+    yAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> yAxisGeometry<span class="kw">,</span> yAxisMaterial
+    yArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> yAxisMaterial
+    yAxisMesh<span class="kw">.</span>add yArrowMesh
+    yArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
+    yAxisMesh<span class="kw">.</span>position<span class="kw">.</span>y  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
+    params<span class="kw">.</span>scene<span class="kw">.</span>add yAxisMesh
+
+    zAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0x0000FF</span>
+    zAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height
+    zAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> zAxisGeometry<span class="kw">,</span> zAxisMaterial
+    zArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> zAxisMaterial
+    zAxisMesh<span class="kw">.</span>add zArrowMesh
+    zAxisMesh<span class="kw">.</span>rotation<span class="kw">.</span>x  <span class="kw">+=</span> <span class="dv">90</span> <span class="kw">*</span> <span class="ot">Math</span><span class="kw">.</span>PI <span class="kw">/</span> <span class="dv">180</span>
+    zArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
+    zAxisMesh<span class="kw">.</span>position<span class="kw">.</span>z  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
+    params<span class="kw">.</span>scene<span class="kw">.</span>add zAxisMesh</code></pre>
+<p><code>drawAxisHelpers</code> function takes named parameters, all optional. <code>radius</code> and <code>height</code> are for sizes of arrows, and <code>scene</code> is the scene object to draw arrows. When isn’t provided, a global <code>scene</code> object is used.</p>
+<p>Here’s an example: (you can zoom in/out with mouse scroll, move around with left/right clicks)</p>
+<canvas id="target" width=600 height=600 style="background-color: #39342E; float: center;"></canvas>
+
+<p>In this example I used <code>OrbitAndPanControls</code> class to enable zooming/moving around with mouse. I copied this class from Udacity’s ‘CS291 - Interactive 3D Rendering’ course’s examples. You can see this post’s source to learn more.</p>
+<script src="/js/three.min.js"></script>
+<script src="/js/OrbitAndPanControls.js"></script>
+<script type="text/javascript">
+  // Generated by CoffeeScript 1.6.2
+  var camera, cameraControls, canvas, clock, drawAxisHelpers, render, renderer;
+
+  canvas = document.getElementById("target");
+
+  renderer = new THREE.WebGLRenderer({
+    canvas: canvas
+  });
+
+  renderer.setSize(canvas.width, canvas.height);
+
+  clock = new THREE.Clock();
+
+  window.scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+  cameraControls = new THREE.OrbitAndPanControls(camera, renderer.domElement);
+
+  cameraControls.target.set(0, 0, 0);
+
+  drawAxisHelpers = function(params) {
+    var arrowGeometry, xArrowMesh, xAxisGeometry, xAxisMaterial, xAxisMesh, yArrowMesh, yAxisGeometry, yAxisMaterial, yAxisMesh, zArrowMesh, zAxisGeometry, zAxisMaterial, zAxisMesh;
+
+    if (params == null) {
+      params = {};
+    }
+    params.radius = params.radius || 0.05;
+    params.height = params.height || 2;
+    params.scene = params.scene || scene;
+    arrowGeometry = new THREE.CylinderGeometry(0, 2 * params.radius, params.height / 5);
+    xAxisMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFF0000
+    });
+    xAxisGeometry = new THREE.CylinderGeometry(params.radius, params.radius, params.height);
+    xAxisMesh = new THREE.Mesh(xAxisGeometry, xAxisMaterial);
+    xArrowMesh = new THREE.Mesh(arrowGeometry, xAxisMaterial);
+    xAxisMesh.add(xArrowMesh);
+    xArrowMesh.position.y += params.height / 2;
+    xAxisMesh.rotation.z -= 90 * Math.PI / 180;
+    xAxisMesh.position.x += params.height / 2;
+    params.scene.add(xAxisMesh);
+    yAxisMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00FF00
+    });
+    yAxisGeometry = new THREE.CylinderGeometry(params.radius, params.radius, params.height);
+    yAxisMesh = new THREE.Mesh(yAxisGeometry, yAxisMaterial);
+    yArrowMesh = new THREE.Mesh(arrowGeometry, yAxisMaterial);
+    yAxisMesh.add(yArrowMesh);
+    yArrowMesh.position.y += params.height / 2;
+    yAxisMesh.position.y += params.height / 2;
+    params.scene.add(yAxisMesh);
+    zAxisMaterial = new THREE.MeshBasicMaterial({
+      color: 0x0000FF
+    });
+    zAxisGeometry = new THREE.CylinderGeometry(params.radius, params.radius, params.height);
+    zAxisMesh = new THREE.Mesh(zAxisGeometry, zAxisMaterial);
+    zArrowMesh = new THREE.Mesh(arrowGeometry, zAxisMaterial);
+    zAxisMesh.add(zArrowMesh);
+    zAxisMesh.rotation.x += 90 * Math.PI / 180;
+    zArrowMesh.position.y += params.height / 2;
+    zAxisMesh.position.z += params.height / 2;
+    return params.scene.add(zAxisMesh);
+  };
+
+  drawAxisHelpers();
+
+  camera.position.z = 5;
+
+  render = function() {
+    var delta;
+
+    delta = clock.getDelta();
+    cameraControls.update(delta);
+    requestAnimationFrame(render);
+    return renderer.render(scene, camera);
+  };
+
+  render();
+</script>
+
+
+
+
+]]></summary>
+</entry>
+<entry>
+    <title>Internship report - type inference, row polymorphism, and multi-stage programming</title>
+    <link href="http://osa1.net/posts/2013-04-15-internship.report.html" />
+    <id>http://osa1.net/posts/2013-04-15-internship.report.html</id>
+    <published>2013-04-15T00:00:00Z</published>
+    <updated>2013-04-15T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>This is the report of my 3.5-month internship fulfilled at <a href="http://ozyegin.edu.tr/">Ozyegin University</a> under <a href="http://faculty.ozyegin.edu.tr/aktemur/">Prof. Baris Aktemur</a>’s supervision.</p>
+<p>I wrote this report as a short and informal introduction to the topics I worked on in my internship, and since I know nobody will ever read this internship report, I decided publishing it in my blog with hoping someone benefit from it.</p>
+<p>A note before reading: Things went in an unexpected way shortly after I started writing the report: I got bored. So each chapter got shorter and shorter, leaving tons of interesting and important stuff unmentioned. Sorry for that.</p>
+<h2 id="contents">Contents:</h2>
+<ul>
+<li>Introduction to type systems and polymorphism</li>
+<li>Hindley-Damas-Milner type system and type inference</li>
+<li>Row polymorphism</li>
+<li>Multi-stage porgramming</li>
+<li>Our work - extending multi-stage language with subtyping and Wallce: a module type inference system</li>
+</ul>
+<h1 id="introduction-to-type-systems-and-polymorphism">Introduction to type systems and polymorphism</h1>
+<p>As far as software engineering concerned, a type system is a static analysis method that aims to prove a program ‘won’t go wrong’<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>, meaning that the program will not crash at runtime. Static type checking can also be used for some compiler optimisations. Also, some languages have mechanisms for dispatching on types.</p>
+<p>Type systems (in this text, this term is used as ‘static type systems’) do that by inspecting program terms and proving some properties and relations among them. This work is done before run-time, and most type information can be deleted so that it won’t cause any runtime costs.</p>
+<p>For most type systems, process of type checking is ‘syntactic’. This means two things; first, the type checker only needs program text and it doesn’t need any information that can only be obtained at run-time. And second, type checking a program term only depends on type checking subterms of that program. These two properties also give us a somewhat simple way to express type checking on terms in a symbolic and formal way.</p>
+<p>Type systems are ‘conservative’, meaning they will reject some ‘correct’ programs. A correct program means a program that won’t crash at runtime. For instance, this program(in OCaml syntax):</p>
+<pre><code>if true then 1 else 42(5)</code></pre>
+<p>is actually correct, and it can be given the type <code>int</code> (since we know it always evaluates to <code>1</code>, which has type <code>int</code>), but almost all type systems reject this program because of the ‘else’ branch expression <code>42(5)</code> that is ill-typed.</p>
+<p>Research on type systems aims to have more “powerful” type systems. Being more powerful means accepting <em>more</em> correct programs and also being able to encode more <em>invariants</em> in the type system, so that more <em>incorrect</em> programs will be rejected.</p>
+<p>Being wrong and being incorrect is used with different meanings in this text: a wrong program will crash at run-time, but incorrect program will result with a wrong answer. For instance, a wrong implemented algorithm may not be <em>wrong</em>, but it’s <em>incorrect</em>. So it will work fine, but return a wrong result.</p>
+<p>As an instance of accepting more correct programs, this code is not typeable under simply-typed lambda calculus:</p>
+<pre><code>let id a = a in
+(id 1, id true)</code></pre>
+<p>But it’s well-typed in polymorphic lambda calculus. As a second example, this is not typeable under polymorphic lambda calculus:</p>
+<pre><code>add5 : float -&gt; float
+...
+add5 10</code></pre>
+<p>Here <code>10</code> has type <code>int</code>, so we can’t apply it to a function that expects a float value. Type systems with subtyping overcome this problem by defining a common supertype of types. In our case, <code>float</code> is already a supertype of <code>int</code>, so this example is well-typed in the presence of subtyping.</p>
+<p>As an example of being able to encode more <em>invariants</em> in the type system, let’s look to the type of a sort function from a dependently-typed programming language:<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<pre><code>sort : List Int -&gt; List Int</code></pre>
+<p>This type can be inhabited with some wrong functions. For instance, a function that takes a list and returns an empty list will have this type, just like <em>reverse</em> and <em>shuffle</em> functions.</p>
+<pre><code>sort : Vect Int n -&gt; Vect Int n</code></pre>
+<p>This type has a invariant encoded in it: length of it’s input and output should be equal. This means our first function that takes a list and returns an empty list now can’t be inhabited by this type. We have a more precise type.</p>
+<pre><code>sort : (xs : Vect Int n) -&gt;
+       (ys : Vect Int n ** Permutation xs ys)</code></pre>
+<p>This type is even more precise, a function that takes a list and returns a list with some random elements can’t get this type.</p>
+<p>One problem with more expressive type systems is that there may be some types that can’t be inferred by type system, but the type can be given by programmer. In some cases the type system may not be able to prove that an expresion has the denoted type. In case of dependently typed languages, programmer is required to give some proofs to the type checker. But even in much simpler type systems programmer may have to give some types manually.</p>
+<p>–</p>
+<p>A word about the terms ‘polymorphism’ and ‘subtyping’: Polymorphic type systems can give multiple types to a single piece of code, thus providing reuse. This is done by giving the code a general type and then creating instances of type depending on the use. As an example, let us start with a simple OCaml function, <code>fst</code>.</p>
+<p><code>fst</code> returns first element of any pair, it has the type <code>('a * 'b) -&gt; 'a</code> (the language of types is described in next section). This means for any pair with type of <code>('a * 'b)</code>, <code>fst</code> will return value with type of <code>'a'</code>. When applied on a value typed <code>(bool * int)</code> it will return <code>bool</code>, and when applied on a value typed <code>( (string * bool) * string )</code> it will return <code>(string * bool)</code> etc.</p>
+<p>Subtyping defines a relationship that if a type <code>t1</code> is subtype of a type <code>t2</code>, this means that <code>t1</code> can be given to context where <code>t2</code> is expected. This usually means <code>t1</code> already has all properties of <code>t2</code>.</p>
+<p>For instance, a record with fields <code>a: int, b: bool</code> can be passed to a function that expects a parameter typed <code>{a: int}</code>. The same effect can also be obtained by row polymorphism, which we’ll see in it’s own chapter.</p>
+<p>Subtyping is generally divided into two branches; nominal and structural subtyping. Structural subtyping relation is syntactic, ie. type system can decide if one type is subtype of another type just by inspecting their forms (like in the example above). Nominal subtyping requires definition from the programmer or a pre-defined type lattice from the language designer, ie. there is no way for a type system to infer subtyping relation between int and float types if this relation is not built-in; similarly a Square is not a subtype of Shape unless the programmer manually defines this subtyping relation.</p>
+<h1 id="hindley-damas-milner-type-system-and-type-inference">Hindley-Damas-Milner type system and type inference</h1>
+<p>Manually giving types to program terms may be impractical, since programs can contain hundreds of definitions. Type inference is the process of deriving types for program terms. As an example of language with type inference, OCaml programs with no type annotations can be type-inferred and checked. This results in more concise programs. Type annotations can still be given for documentation or error reporting purposes.</p>
+<p>Hindley-Damas-Milner(abbreviated as HM henceforth) type system is likely to be the most widely-used type system. It has a great property that if a term is typeable under HM type system, HM inference algorithm will result with a most general type (also called ‘principal type’).</p>
+<p>HM is the system lies behind statically typed functional languages like the ML family of languages and Haskell.</p>
+<p>In HM, a polymorphic type is specified as a ‘type scheme’. A type scheme is a type with universally quantified type variables. Type system’s job then is to give terms of a program type schemes so that for each instantiation of the scheme, the result is well-typed.</p>
+<p>HM type system produces polymorphic types (type schemes) only for some expressions, in the case of ML family of languages, it’s the <code>let</code> expression. A <code>let</code> expression binds a name to an expression and introduces a scope that the name is bound to the expression. HM type system gives a most general type to that name, and so every use of this name in the scope is valid if a valid instantiation of the required type can be obtained from the type scheme it’s given.</p>
+<pre><code>let id a = a in
+(id 1, id true)</code></pre>
+<p>Here the <code>id</code> function is given the type scheme of <code>forall a. a -&gt; a</code>. The variable <code>a</code> is called to be ‘universally quantified’. In <code>id 1</code>, <code>id</code>s type is instantiated from type scheme as <code>int -&gt; int</code> by substituting <code>a</code> with <code>int</code>. Same operation is done in <code>id true</code> and <code>id</code> is given the type <code>bool -&gt; bool</code>. So this term is well-typed under HM.</p>
+<p>Inferring a type scheme is done by assigning fresh type variables to terms with unknown types and unifying this variables with concrete types while type checking rest of the term. At the end, types that are not unified with concrete types will remain polymorphic.</p>
+<p>This is also called let-polymorphism because polymorphic type (type scheme) generation is only done in let expressions.</p>
+<p>Note that not all names defined in a let expression can be generalized. As an example, see this classic example:</p>
+<pre><code>let c = ref (fun x -&gt; x) in
+c := (fun x -&gt; x+1);
+!c true</code></pre>
+<p>Giving <code>c</code> the type <code>forall a. ('a -&gt; 'a) ref</code> (in OCaml syntax) makes this example well-typed, which is wrong. Instead, type system should have given the type <code>( '_a -&gt; '_a) ref</code>, then during the type checking <code>c := (fun x -&gt; x + 1)</code>, <code>_a</code> should be unified with <code>int</code>. Note that since <code>('_a -&gt; '_a) ref</code> doesn’t quantify the variable <code>a</code>, after this point, type of <code>c</code> will be <code>(int -&gt; int_ ref</code>, so applying it a bool value will fail.</p>
+<p>Let-polymorphism has some interesting properties. It’s simple, but it still accepts realistic programs. And even though its worst-case efficiency is exponential on the size of input program, most realistic programs don’t hit the worst case and have linear time complexity. For this reason, let-polymorphism is named as the ‘sweet-spot’ of type systems.</p>
+<p>Another great property of HM type system is that it can be reduced to constraint generation and solving steps. These separate steps lead to a more modular algorithm, with changeable constraint generators and solvers. HM(X)<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup> is a formalization of this observation.</p>
+<h1 id="row-polymorphism">Row polymorphism</h1>
+<p>Rows are a way to encode ‘labeled sums’. A sum type is a type that contains some other types; for example, a pair is a sum type of two other types (<code>(int * bool)</code> is a sum type with <code>int</code> and <code>bool</code> parts).</p>
+<p>A ‘labeled sum’ is a sum type, but with labels. For instance:</p>
+<pre><code>type error = { code : int; reason : string }</code></pre>
+<p>is just like an <code>(int * string)</code> type, but it has labels for subparts. There are severals ways to encode labeled sums as rows. Here’s one way:</p>
+<pre><code>type error = { code : abs int; reason : abs int; rho[code,int] }</code></pre>
+<p>This syntax is similar to Rémy’s, which was also used in our project. Last <code>rho</code> is the polymorphic part, it means that an error type is a row type with <code>code</code> and <code>reason</code> fields with gives types, but with a polymorphic part that can be unified with any record except the fields labeled with <code>code</code> or <code>int</code> (some systems accept field repetition, like in Daan Leijen’s “Extensible records with scoped labels”).</p>
+<p>Row polymorphism gives us a subtyping-like effect. For example, this function:</p>
+<pre><code>fun x -&gt; x.a + 1</code></pre>
+<p>Now has the type <code>{ a : int; rho[a] } -&gt; int</code> and we can apply it to the record <code>{ x : some_type; y : some_other_type; a : int; ... }</code>, like in structural subtyping.</p>
+<p>The way row polymorphism and structural subtyping accept this term are completely different though. In row polymorphism, parameter type <code>{a : int; rho[a] }</code> is being unified with <code>{ x : some_type; y : some_other_type; a : int; ... }</code>, so parameter type of function is actually getting more specialized. On the other hand, in subtyping, extra fields of actual parameter is being forgotten, like casting a type to it’s super type.</p>
+<p>More words will be said about row polymorphism in later sections.</p>
+<h1 id="multi-stage-programming">Multi-stage programming</h1>
+<p>Multi-stage programming languages makes distinguished evaluation stages in run-time. Some part of the program can be generated depending on some user input.</p>
+<p>Evaluation is done at stage 0. A program generated in staged 0 has stage 1, program generated in stage 1 has stage 2 etc. This notion of separate stages has some semantic effects. Each stage has a scope, but most systems offer a mechanism to lift a value from a lower stage.</p>
+<p>Being able to generate code in run-time gives us a way to specialize algorithms depending on user input. Let’s look at a classic example:</p>
+<pre><code>let rec pow_body_gen n = 
+  if n = 0 then &lt;1&gt; 
+  else &lt;a * ~(pow_body_gen (n-1))&gt;;;</code></pre>
+<p><code>pow_body_gen</code> takes an integer <code>n</code> and returns the code <code>a * a * a * ... * 1</code>, a to the power of n. With the help of this function, we can generate a specialized function <code>power_five</code> which raises an integer to the power 5, but without running a loop or recursively calling a function:</p>
+<pre><code>let rec power_five a = &lt;let a = ~lift(a) in ~(pow_body_gen 5)&gt;;;</code></pre>
+<p>For example, output of <code>power_five 12</code> in our interpreter is <code>&lt;let a = 12 in (a * (a * (a * (a * (a * 1)))))&gt;</code>. This is a code value. Notice the <code>a</code> value, which is multiplied by itself, 5 times.</p>
+<p>To actually run this code, we can call <code>run</code>(stage primitives will be explained shortly):</p>
+<pre><code>&gt; run(power_five 12);;
+248832</code></pre>
+<p>Our multi-stage language has three primitives for staging operations: angle brackets indicate a staged expression, contents of staged expression will be run in stage <code>n+1</code>, where n is the current stage level. Tilde (~) ‘unboxes’ a staged expression, expressions indicated with a unboxing operator will be run in stage <code>n-1</code>. Unboxing operator can only be used in stages n &gt; 0. Finally, <code>run</code> primitive is used to run a closed code value at stage 0.</p>
+<p>Note that code values can be open, but only closed code values can be run. Our <code>pow_body_gen</code> function returns a code value with an unbound variable <code>a</code>, then in <code>power_five</code>, we define <code>a</code> in stage 1, and by unboxing <code>pow_body_gen 5</code>, we actually generate a bigger code value, with <code>a</code> defined. Now our code value is closed, so it can be run.</p>
+<p>There is also a relation between multi-stage programming and partial evaluation, but this is out of this text’s scope.</p>
+<h1 id="our-work">Our work</h1>
+<p>Wallace is a type inference library, supporting subtyping. “Its goal is to serve as a plug-in component in the design of a constraint-based type-checker, regardless of the programming language being analyzed.”<sup><a href="#fn4" class="footnoteRef" id="fnref4">4</a></sup></p>
+<p>We used Wallace to get subtyping in our language. Wallace comes with an example language, called ‘toy’, which has extensible records built-in. For simplicity, instead of generating constraints for Wallace, we first translated our multi-stage language to record calculus. Translation to record calculus preserves semantics, but eliminates staged computations<sup><a href="#fn5" class="footnoteRef" id="fnref5">5</a></sup>. Our record calculus is then translated to ‘toy’. ‘toy’ infers types for us, by generating and passing constraints to Wallace.</p>
+<p>We then compared our type system with<sup><a href="#fn6" class="footnoteRef" id="fnref6">6</a></sup>. This expression:</p>
+<pre><code>run((fun c -&gt; &lt;(let x = 1 in ~c, let y = 1 in ~c)&gt;) &lt;1&gt;);;</code></pre>
+<p>is not typeable under polymorphic type system, but is well-typed in our system with subtyping. By mapping the calculated type back to our multi-stage language, we got subtyping in the multi-stage language for free.</p>
+<p>Wallace is used as is, without any modifications. But we changed ‘toy’ language for our purposes. We first added some numerical types with subtyping relations. ‘toy’ had a problem that it was generalizing every let bindings, without value restriction. To overcome this problem, we added an extra lambda wrapper in the translator when value restriction is needed. Since our type system already had value restriction, it was trivial to apply the same test to check if an expression is expansive. Expansive expressions are those that may allocate new memory cells. Expansive expressions are not generalized.</p>
+<p>Another problem with ‘toy’ language is that it doesn’t support toplevel declarations, and adding that wasn’t easy. To overcome this without any serious modifications in ‘toy’s source, we collected all well-typed toplevel expressions and declarations, and then generated a <code>let .. in ..</code> chain of toplevel declarations to give ’toy’ type checker. This means for every new toplevel phrase, ‘toy’ now type checks all old expressions too. This may not be efficient but works fine with our purposes, and it was easy to implement.</p>
+<p>Implementing type inference: Implementing a type inference system is hard to do elegantly. One problem is already discussed in my blog (in Turkish)<sup><a href="#fn7" class="footnoteRef" id="fnref7">7</a></sup>. Every non-trivial type system requires types to be separated into kinds. After that, every type variable will also have kind information and it’s a type error to unify a type variable with wrong kinds. Type applications also checked with the help of kinds.</p>
+<p>Kinds are generally checked at run-time. Type systems with kinds usually lead to a simpler type language. For instance, almost all types mentioned in this text can be represented by this simply type language (code taken from <sup><a href="#fn8" class="footnoteRef" id="fnref8">8</a></sup>) :</p>
+<pre><code>type kind =
+  | KStar                 (* kind of term types *)
+  | KRow                  (* kind of row types *)
+  | KArr of (kind * kind) (* kind of type constructors *)
+
+type ty =
+  | TCon of tycon     (* constant *)
+  | TVar of tyvar     (* type variable *)
+  | TApp of (ty * ty)
+      (* type application, to be well-typed
+         kind of first ty should be KArr (k2, k)
+         and second ty should be k2 *)
+and tyvar = (tyvarlink ref * kind)
+and tyvarlink =
+  | NoLink of id (* just a type variable *)
+  | LinkTo of ty (* equated to a ty *)
+and tycon = (id * kind) (* kind should be always KStar *)</code></pre>
+<p>We decided to take a different path, instead of keeping kind information for every type, we created new type constructors for every type and then separating differently kinded type variables with different types. This lead us to this type language:</p>
+<pre><code>type ty =
+ | TInt
+ | TBool
+ | TUnit
+
+ | TPair of ty * ty
+
+ | TList of ty
+ | TRef  of ty
+
+ | TFun of ty * ty
+ | TRec of tyrec
+ | TVar of typevar
+
+ | TBox of tyrec * ty
+
+...
+
+and typevar = (tyvarlink * int) ref
+and tyvarlink = ty link
+
+and fieldvar = (fieldvarlink * int) ref
+and fieldvarlink = field link
+
+and recvar = (recvarlink * int * IdSet.t) ref
+and recvarlink = tyrec link</code></pre>
+<p>We also needed a sum type for handling differently kinded type variables:</p>
+<pre><code>and linkvar =
+ | TV of typevar
+ | FV of fieldvar
+ | RV of recvar</code></pre>
+<p>This also made our algorithms more complex, since we had more cases to handle.</p>
+<p>This representation is not without any advantages though. For instance, writing a pretty-printer was very easy, because we could easily print a pair and a function or a list and a ref differently, even though they share similar structure, with simple pattern matching.</p>
+<p>A note on pretty-printing: OCaml has a great pretty-printer library in stdlib. It’s simple but powerful at the same time, allowing printing most complex structures easily. It interprets some characters in input strings as boxes/spaces indicators etc. and formats the text. For instance, this code:</p>
+<pre><code>printf &quot;@[&lt;hov 2&gt;~(&quot;; print_exp exp; printf &quot;)@]&quot;</code></pre>
+<p>Here <code>@[&lt;hov 2&gt;</code> part creates a new “horizontal or vertical” box. This box has a property that when a line is split to two lines, every other newline pointers will also be split into separate lines. So contents of this box is either displayed as a single line, or separated from every newline pointers. Later, <code>print_exp exp;</code> part prints the expression inside the box. And lastly, `printf “)@]” closes the paren, then closes the box, so that the text comes later will not be bound with this line split rule.</p>
+<p>This gives an easy and concise way to print even most complex structures.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>A Theory of Type Polymorphism in Programming – Robin Milner<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Code examples taken from <a href="http://vimeo.com/61576198">Dependently Typed Functional Programming with Idris</a> course slides.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p><a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.73.3971">Notes on HM(X)</a><a href="#fnref3">↩</a></p></li>
+<li id="fn4"><p><a href="http://gallium.inria.fr/~fpottier/wallace/">Wallace</a><a href="#fnref4">↩</a></p></li>
+<li id="fn5"><p>Choi, Aktemur, Yi, Tatsuta: Static Analysis of Multi-Staged Programs via Unstaging Translation<a href="#fnref5">↩</a></p></li>
+<li id="fn6"><p>Kim, Yi, Calcagno: A Polymorphic Modal Type System for List-Like Multi-Staged Languages<a href="#fnref6">↩</a></p></li>
+<li id="fn7"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref7">↩</a></p></li>
+<li id="fn8"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref8">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
+    <title>Go channel examples ported to Haskell</title>
+    <link href="http://osa1.net/posts/2013-04-08-go-ported-haskell.html" />
+    <id>http://osa1.net/posts/2013-04-08-go-ported-haskell.html</id>
+    <published>2013-04-08T00:00:00Z</published>
+    <updated>2013-04-08T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been skimming over <a href="http://tour.golang.org/">gotour</a> recently. I think it’s great introduction to language; it’s short, but concise and it shows some of the interesting features of language.</p>
+<p>Last part of the tour is about goroutines and channels. My concurrent programming experience is very limited, and since Haskell is my favorite language, I decided to port goroutine examples to Haskell as a learning exercise.</p>
+<p>Any criticism would be appreciated.</p>
+<h2 id="goroutines"><a href="http://tour.golang.org/#62">62 - Goroutines</a></h2>
+<p>This is a very basic example of a program creating two threads and printing some strings.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+<span class="kw">import</span> Control.Monad
+
+<span class="ot">say ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+say s <span class="fu">=</span> forM_ [<span class="dv">1</span><span class="fu">..</span><span class="dv">5</span>] <span class="fu">$</span> \ _ <span class="ot">-&gt;</span> <span class="kw">do</span>
+  threadDelay <span class="dv">100000</span>
+  <span class="fu">putStrLn</span> s
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  forkIO <span class="fu">$</span> say <span class="st">&quot;world&quot;</span>
+  say <span class="st">&quot;hello&quot;</span></code></pre>
+<h2 id="channels"><a href="http://tour.golang.org/#63">63 - Channels</a></h2>
+<p>Simple channels example</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+
+<span class="ot">sum&#39; ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Chan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+sum&#39; ints chan <span class="fu">=</span> writeChan chan (<span class="fu">sum</span> ints)
+<span class="co">-- alternative, `pointfree` style: </span>
+<span class="co">-- sum&#39; = flip writeChan . sum</span>
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  <span class="kw">let</span> lst <span class="fu">=</span> [<span class="dv">7</span>, <span class="dv">2</span>, <span class="dv">8</span>, <span class="fu">-</span><span class="dv">9</span>, <span class="dv">4</span>, <span class="dv">0</span>]
+  chan <span class="ot">&lt;-</span> newChan
+  <span class="kw">let</span> (l1, l2) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">floor</span> <span class="fu">$</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> lst) <span class="fu">/</span> <span class="dv">2</span>) lst
+  forkIO <span class="fu">$</span> sum&#39; l1 chan
+  forkIO <span class="fu">$</span> sum&#39; l2 chan
+  x <span class="ot">&lt;-</span> readChan chan
+  y <span class="ot">&lt;-</span> readChan chan
+  <span class="fu">putStrLn</span> <span class="fu">$</span> <span class="fu">unwords</span> [ <span class="fu">show</span> x, <span class="fu">show</span> y, <span class="fu">show</span> <span class="fu">$</span> x <span class="fu">+</span> y ]</code></pre>
+<h2 id="buffered-channels"><a href="http://tour.golang.org/#64">64 - Buffered Channels</a></h2>
+<p>This is where porting started getting tricky. Haskell channels are basically linked lists, and do not have length or size. In order to get a similar effect, I created a new channel type:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span>
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+
+<span class="co">-- Buffered chan</span>
+<span class="kw">data</span> <span class="dt">BChan</span> a <span class="fu">=</span> <span class="dt">BChan</span> {<span class="ot"> chan ::</span> <span class="dt">Chan</span> a,<span class="ot"> size ::</span> <span class="dt">MVar</span> <span class="dt">Int</span>,<span class="ot"> limit ::</span> <span class="dt">Int</span> }
+
+<span class="ot">newBChan ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">BChan</span> a)
+newBChan bufsize <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> newChan
+  bvar <span class="ot">&lt;-</span> newMVar <span class="dv">0</span>
+  <span class="fu">return</span> <span class="dt">BChan</span>{chan<span class="fu">=</span>chan, size<span class="fu">=</span>bvar, limit<span class="fu">=</span>bufsize}
+
+<span class="ot">readBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
+readBChan <span class="dt">BChan</span>{chan, size, limit} <span class="fu">=</span> <span class="kw">do</span>
+  ret <span class="ot">&lt;-</span> readChan chan
+  modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">-</span><span class="dv">1</span>)
+  <span class="fu">return</span> ret
+
+<span class="ot">writeBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+writeBChan bchan<span class="fu">@</span><span class="dt">BChan</span>{chan, size, limit} val <span class="fu">=</span> <span class="kw">do</span>
+  size&#39; <span class="ot">&lt;-</span> readMVar size
+  <span class="kw">if</span> size&#39; <span class="fu">==</span> limit
+    <span class="kw">then</span> <span class="kw">do</span>
+      threadDelay <span class="dv">100000</span>
+      writeBChan bchan val
+    <span class="kw">else</span> <span class="kw">do</span>
+      modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">+</span><span class="dv">1</span>)
+      writeChan chan val
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> newBChan <span class="dv">2</span>
+  writeBChan chan <span class="dv">1</span>
+  writeBChan chan <span class="dv">2</span>
+
+  v1 <span class="ot">&lt;-</span> readBChan chan
+  <span class="fu">print</span> v1
+
+  v2 <span class="ot">&lt;-</span> readBChan chan
+  <span class="fu">print</span> v2</code></pre>
+<p>Here one difference is that Haskell doesn’t fail with a “deadlock!!” error when an extra <code>writeBChan</code> operation is added(or one of them is removed), but just waits forever(like in a <em>real</em> deadlock :-P ). I wonder whether there is a way to get an exception like that, it’s awesome.</p>
+<h2 id="range-and-close"><a href="http://tour.golang.org/#65">65 - Range and Close</a></h2>
+<p>Same as above, Haskell channels are not working like Go channels. I had to simulate Go channels’ behavior.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns, MultiWayIf #-}</span>
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Control.Concurrent
+<span class="kw">import</span> Control.Monad (liftM)
+
+<span class="co">-- Closable channel</span>
+<span class="kw">data</span> <span class="dt">CChan</span> a <span class="fu">=</span> <span class="dt">CChan</span> (<span class="dt">MVar</span> ([a], <span class="dt">Int</span>, <span class="dt">Bool</span>))
+
+<span class="ot">newCChan ::</span> <span class="dt">IO</span> (<span class="dt">CChan</span> a)
+newCChan <span class="fu">=</span> liftM <span class="dt">CChan</span> (newMVar ([], <span class="dv">0</span>, <span class="kw">False</span>))
+
+<span class="ot">readCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Maybe</span> a)
+readCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span> <span class="kw">do</span>
+  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
+  <span class="kw">if</span> <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="fu">&amp;&amp;</span> <span class="fu">not</span> closed <span class="ot">-&gt;</span> <span class="kw">do</span>
+         putMVar mvar (contents, size, closed)
+         readCChan (<span class="dt">CChan</span> mvar)
+     <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+         putMVar mvar (contents, size, closed)
+         <span class="fu">return</span> <span class="kw">Nothing</span>
+     <span class="fu">|</span> <span class="fu">otherwise</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+         <span class="kw">let</span> r <span class="fu">=</span> <span class="fu">head</span> contents
+         putMVar mvar (<span class="fu">tail</span> contents, size<span class="fu">-</span><span class="dv">1</span>, closed)
+         <span class="fu">return</span> <span class="fu">$</span> <span class="kw">Just</span> r
+
+<span class="ot">writeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+writeCChan (<span class="dt">CChan</span> mvar) val <span class="fu">=</span> <span class="kw">do</span>
+  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
+  <span class="kw">if</span> closed
+    <span class="kw">then</span> <span class="fu">error</span> <span class="st">&quot;writing to a closed chan&quot;</span>
+    <span class="kw">else</span> putMVar mvar (val <span class="fu">:</span> contents, size<span class="fu">+</span><span class="dv">1</span>, closed)
+
+<span class="ot">forChan_ ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+forChan_ cchan f <span class="fu">=</span> <span class="kw">do</span>
+  v <span class="ot">&lt;-</span> readCChan cchan
+  <span class="kw">case</span> v <span class="kw">of</span>
+    <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">return</span> ()
+    <span class="kw">Just</span> v&#39; <span class="ot">-&gt;</span> f v&#39; <span class="fu">&gt;&gt;</span> forChan_ cchan f
+
+<span class="ot">closeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+closeCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span>
+    modifyMVar_ mvar <span class="fu">$</span> \(contents, size, closed) <span class="ot">-&gt;</span> <span class="fu">return</span> (contents, size, <span class="kw">True</span>)
+
+<span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">CChan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+fib i chan <span class="fu">=</span> <span class="kw">do</span>
+    iter i <span class="dv">0</span> <span class="dv">1</span>
+    closeCChan chan
+  <span class="kw">where</span> iter <span class="dv">1</span> x y <span class="fu">=</span> writeCChan chan x
+        iter n x y <span class="fu">=</span> <span class="kw">do</span>
+          writeCChan chan x
+          iter (n<span class="fu">-</span><span class="dv">1</span>) y (x<span class="fu">+</span>y)
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> newCChan
+  forkIO <span class="fu">$</span> fib <span class="dv">10</span> chan
+  forChan_ chan <span class="fu">print</span></code></pre>
+<p>This example still doesn’t quite work like Go code. This is because I used a stack instead of a queue. It should be trivial to fix this code though.</p>
+<h2 id="select-and-67---default-selection"><a href="http://tour.golang.org/#66">66 - Select</a> and <a href="http://tour.golang.org/#67">67 - Default Selection</a></h2>
+<p>Now this is hard. In 66, example program listens multiple channels, and runs some code when any of the channels is ready. If multiple channels are ready at the same time, one of them is chosen randomly. 67 is similar, only difference is when none of the channels are ready, some default action is taken.</p>
+<p>I’m actually not sure if it’s implementable with Haskell Chans, <a href="http://hackage.haskell.org/packages/archive/base/4.6.0.1/doc/html/Control-Concurrent-Chan.html#v:isEmptyChan"><code>isEmptyChan :: Chan a -&gt; IO Bool</code></a> is deprecated, and users are directed to TChans(I think it’s mostly same as a Chan, but working on STM).</p>
+<p>Anyway, that’s it for now. I’ll go learn(pun intended) some STM, why we need them and what’s different about them, and then maybe I can implement this last two examples.</p>]]></summary>
+</entry>
+<entry>
+    <title>Quick Box2d tips: Terrains, jump behavior and bodies with multiple shapes</title>
+    <link href="http://osa1.net/posts/2013-03-06-box2dtips-1.html" />
+    <id>http://osa1.net/posts/2013-03-06-box2dtips-1.html</id>
+    <published>2013-03-06T00:00:00Z</published>
+    <updated>2013-03-06T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>After wasting enough time implementing my own half-baked physics engine and never having an efficiently implemented collision resolution code, I’ve decided to go on with <a href="https://www.love2d.org/wiki/love.physics">physics module</a> my game library of choice provides. It’s based on <a href="http://box2d.org/">Box2d</a> and the API is mostly the same.</p>
+<p>My first try of using it was last weekend, me and my brother did a super short(12 hours) game jam, and I used Box2d for the first time. We finished our game, but it was so buggy that I don’t even mention it to anybody. Still, I learned so much about Box2d physics.</p>
+<p>After several days, I could finally spare some time and fixed the bugs. I also wrote a simple demo app to demonstrate my points in this post. You can see the code <a href="https://gist.github.com/osa1/5102171">here</a>. It’s a full program, just paste it somewhere and run with Löve2d(the code about chained shapes are based one someone else’s code from Löve2d forums, I don’t remember whose code is this).</p>
+<h2 id="implementing-terrains-with-box2d">Implementing terrains with Box2d</h2>
+<p>Main bug source of my game was terrain implementation. It was reading the map info from a binary file and then creating lots of <a href="https://www.love2d.org/wiki/love.physics.newRectangleShape">RectangleShapes</a>. The problem with this approach was that other dynamic entities in my game was getting stuck between two RectangleShapes, even though each shape was in touch with other so there was no space between them. Later I realized that this behavior is actually <a href="http://www.box2d.org/manual.html#_Toc258082970">documented</a>(see <em>edge shapes</em> section).</p>
+<p>There are two solution mentioned in Box2d manual. Now I’m using ChainShapes in my code and it’s working as expected. In the example game I linked above, you can see that my terrain is implemented with some artificial shapes:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">worldShape</span> <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newChainShape<span class="ot">(</span><span class="st">&quot;false&quot;</span><span class="ot">,</span>
+    <span class="dv">80</span><span class="ot">,</span> <span class="ot">-</span><span class="dv">100</span><span class="ot">,</span>
+    <span class="dv">80</span><span class="ot">,</span> <span class="dv">680</span><span class="ot">,</span>
+    <span class="dv">120</span><span class="ot">,</span> <span class="dv">680</span><span class="ot">,</span>
+    <span class="ot">...</span>
+    <span class="dv">620</span><span class="ot">,</span> <span class="dv">680</span><span class="ot">,</span>
+    <span class="dv">620</span><span class="ot">,</span> <span class="ot">-</span><span class="dv">100</span><span class="ot">)</span></code></pre>
+<p>But still none of the dynamic bodies get stuck.</p>
+<h2 id="bodies-with-multiple-shapes-and-jump-behavior">Bodies with multiple shapes and jump behavior</h2>
+<p>Being able to bind multiple shapes to a body is just an awesome feature. It helps having a more accurate shape of an entity, and also having multiple fixtures mean you can change properties of each fixture and get a more accurate behavior of friction or some other things.</p>
+<p>For instance, in my game, I wanted 2 things; 1) I don’t want my main character’s left and right side to have friction, so that it should slide without getting slowed down when left/right side is collided and 2) I want to check if my character is collided in bottom side.</p>
+<p>Having multiple fixtures helped for both cases. My character consists of 4 shapes and fixtures:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">o</span><span class="ot">.</span><span class="kw">shapeLeft</span>   <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(-</span><span class="dv">20</span><span class="ot">,</span> <span class="dv">0</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">shapeTop</span>    <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(</span><span class="dv">0</span><span class="ot">,</span> <span class="ot">-</span><span class="dv">50</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">shapeRight</span>  <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(</span><span class="dv">20</span><span class="ot">,</span> <span class="dv">0</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">shapeBottom</span> <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newCircleShape<span class="ot">(</span><span class="dv">0</span><span class="ot">,</span> <span class="dv">50</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">)</span>
+
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureLeft</span>   <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeLeft</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureTop</span>    <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeTop</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureRight</span>  <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeRight</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="ot">=</span> <span class="kw">love</span><span class="ot">.</span><span class="kw">physics</span><span class="ot">.</span>newFixture<span class="ot">(</span><span class="kw">o</span><span class="ot">.</span><span class="kw">body</span><span class="ot">,</span> <span class="kw">o</span><span class="ot">.</span><span class="kw">shapeBottom</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">)</span></code></pre>
+<p>Then I set each fixtures a different friction factor:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureLeft</span>:setFriction<span class="ot">(</span><span class="dv">0</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureTop</span>:setFriction<span class="ot">(</span><span class="dv">0</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureRight</span>:setFriction<span class="ot">(</span><span class="dv">0</span><span class="ot">)</span>
+<span class="kw">o</span><span class="ot">.</span><span class="kw">fixtureBottom</span>:setFriction<span class="ot">(</span><span class="dv">100</span><span class="ot">)</span></code></pre>
+<p>And for jump behavior, I’m just checking if <code>fixtureBottom</code> is collided, with the help of <code>beginContact</code> and <code>endContact</code> callbacks:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> beginContact<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="kw">b</span><span class="ot">,</span> <span class="kw">coll</span><span class="ot">)</span>
+    <span class="kw">if</span> <span class="kw">a</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">or</span> <span class="kw">b</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">then</span>
+        <span class="kw">char</span><span class="ot">.</span><span class="kw">jumpEnabled</span> <span class="ot">=</span> <span class="kw">true</span>
+    <span class="kw">end</span>
+<span class="kw">end</span>
+
+<span class="kw">function</span> endContact<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="kw">b</span><span class="ot">,</span> <span class="kw">coll</span><span class="ot">)</span>
+    <span class="kw">if</span> <span class="kw">a</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">or</span> <span class="kw">b</span> <span class="ot">==</span> <span class="kw">char</span><span class="ot">.</span><span class="kw">fixtureBottom</span> <span class="kw">then</span>
+        <span class="kw">char</span><span class="ot">.</span><span class="kw">jumpEnabled</span> <span class="ot">=</span> <span class="kw">false</span>
+    <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+<p>With this features implemented, I think I have a good-enough platformer engine. Can’t wait for the next jam. Maybe we can build a game that we can actually mention to people ;-)</p>]]></summary>
+</entry>
+<entry>
+    <title>Epic OCamlYacc fail</title>
+    <link href="http://osa1.net/posts/2013-03-01-ocamlyacc-fail.html" />
+    <id>http://osa1.net/posts/2013-03-01-ocamlyacc-fail.html</id>
+    <published>2013-03-01T00:00:00Z</published>
+    <updated>2013-03-01T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been trying to compile <a href="http://gallium.inria.fr/~fpottier/wallace/">an OCaml library from 2000</a> recently and I came up against a strange OCamlYacc error; OCamlYacc doesn’t compile the parser file because parser function has a polymorphic type(with a type variable <code>'a</code>).</p>
+<p>At first I tried to understand with which concrete type <code>'a</code> type variable is being equated, so that I could replace it with the concrete type and the program would be compiled.</p>
+<p>After several hours wasted, I decided to follow some different path. I replaced type variables in <code>.mly</code> with some dummy type like <code>my_epic_dummy_type</code> and compiled it with OCamlYacc. Then I replaced <code>my_epic_dummy_type</code> types with the type variable <code>'a</code> in compiled <code>.ml</code> and <code>.mli</code> files.</p>
+<p>And the library worked as expected.</p>
+<p>Now the question naturally arises: Why does OCamlYacc refuse to compile parser function with polymorphic type ? I have no idea.</p>]]></summary>
+</entry>
+<entry>
+    <title>Quick Vim Tip for OCaml programmers: Fix OCamlYacc comment syntax</title>
+    <link href="http://osa1.net/posts/2013-02-14-quick-vim-tip-for-ocaml.html" />
+    <id>http://osa1.net/posts/2013-02-14-quick-vim-tip-for-ocaml.html</id>
+    <published>2013-02-14T00:00:00Z</published>
+    <updated>2013-02-14T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been editing OCaml with Vim for several months now, one problem that annoys me with Vim’s built-in OCaml syntax highlighter is it behaves OCamlYacc files like it’s a normal OCaml file.</p>
+<p>It generally works fine but OCamlYacc’s comment syntax is different from OCaml’s. When working on big OCamlYacc files this quickly becomes annoying.</p>
+<p>I’m not proficient in VimL but I could manage to write a simple solution. I replaced this line in Vim’s built-int OCaml syntax highlighter:</p>
+<pre><code>&quot; Comments 
+syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo</code></pre>
+<p>with:</p>
+<pre><code>&quot; Comments
+if expand(&quot;%:e&quot;) == &quot;mly&quot;
+  syn region   ocamlComment start=&quot;/\*&quot; end=&quot;\*/&quot; contains=ocamlComment,ocamlTodo
+else
+  syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo
+end</code></pre>
+<p>(You can find you Vim’s built-in files’ folders by runing <code>:echo $VIMRUNTIME</code> inside Vim. On my machine, <code>ocaml.vim</code>s path is <code>/usr/share/vim/vim73/syntax/ocaml.vim</code>)</p>
+<p>Works great. It can be further simplified but requires a variable declaration and I don’t want to mess with Vim variables without understanding the consequences(scope rules etc.)</p>]]></summary>
+</entry>
+<entry>
+    <title>Quick Vim Tip: Disable cursorline</title>
+    <link href="http://osa1.net/posts/2013-01-16-quick-vim-tip-2.html" />
+    <id>http://osa1.net/posts/2013-01-16-quick-vim-tip-2.html</id>
+    <published>2013-01-16T00:00:00Z</published>
+    <updated>2013-01-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I wouldn’t believe how much this seemingly simple feature can affect rendering performance. Vim is being almost unusable when this is enabled. For more details, you can see <a href="https://github.com/dag/vim2hs/issues/28#issuecomment-12208866">my post</a> at vim2hs’s issue tracker.</p>
+<p>I used this feature for my entire life spent using vim, but after a few hours without it I realized I actually don’t need it.</p>
+<p>In short, disable <code>cursorline</code> (or <code>cul</code> for short) if your vim renders/highlights text too slow.</p>]]></summary>
+</entry>
+<entry>
+    <title>Quick Vim Tip: Add Left Margin To Buffers</title>
+    <link href="http://osa1.net/posts/2013-01-16-quick-vim-tip-1.html" />
+    <id>http://osa1.net/posts/2013-01-16-quick-vim-tip-1.html</id>
+    <published>2013-01-16T00:00:00Z</published>
+    <updated>2013-01-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I almost always work in fullscreen, and when I do that, text in vim starts just where my laptop monitor’s frame ends and it’s really annoying. And even if I don’t use vim in fullscreen, generally I want some margin(empty space) on the left side of vim window.</p>
+<p>One way to achieve this is enabling line numbers. But I don’t like this solution because line numbers cause unnecessary noise in the screen.</p>
+<p>As a solution, I was using <code>foldcolumn</code>, which, like line numbers, puts some space on the left side to show some folding information. It’s a nice solution if you never use folding in your code, and I wasn’t using folding in my code, but now I’m using folding and foldcolumn looks horrible:</p>
+<div class="figure">
+<img src="http://osa1.net/media/vimtip1/foldmethodmarker1.png" />
+</div>
+<p>A nasty trick to make this folding guides hidden is making folding guides’ foreground and background color the same, and same as you colorscheme’s background color:</p>
+<pre class="vimscript"><code>autocmd Colorscheme * highlight FoldColumn guifg=bg guibg=bg</code></pre>
+<p>Put this in your .vimrc, somewhere before setting your colorscheme(ie. before <code>colorscheme ...</code> line) and whenever you change color colorscheme, foldcolumn’s colors will be set and folding guides will be hidden.</p>
+<div class="figure">
+<img src="http://osa1.net/media/vimtip1/foldmethodmarker2.png" />
+</div>
+<p>How does it work: <code>bg</code> and <code>fg</code> are two special variables that will be set by vim automagically whenever you set <code>Normal</code> colors by calling <code>:highlight Normal [options]</code> and all colorschemes do that because that’s the way to set vim’s background color and default text color.</p>
+<p><code>autocmd Colorscheme *</code> makes this command run whenever you set your colorscheme by calling <code>:colorscheme ...</code> command. And now you have clear left margin. Enjoy.</p>]]></summary>
+</entry>
+<entry>
+    <title>Getting different distributions out of uniform distribution</title>
+    <link href="http://osa1.net/posts/2012-12-19-different-distributions-from-uniform.html" />
+    <id>http://osa1.net/posts/2012-12-19-different-distributions-from-uniform.html</id>
+    <published>2012-12-19T00:00:00Z</published>
+    <updated>2012-12-19T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I don’t know much about statistics and distributions, but I needed some differently distributed pseudo-random numbers for a project I’m working on.</p>
+<p>I think most programming languages have a pseudo-random number generator, and that generators probably generate <a href="http://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">uniformly-distributed</a> pseudo-randoms. I’m using Lua and Lua’s <a href="http://www.lua.org/manual/5.2/manual.html#pdf-math.random">math.random</a> generates pretty much uniformly distributed numbers:</p>
+<div class="figure">
+<img src="/images/distroyazi/uniformdistro.png" />
+</div>
+<p>It’s written in Lua’s manual(link is given above) that it’s statistical properties cannot be guaranteed. It still works fine for my purposes as a uniformly distributed number generator.</p>
+<p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
+<p>I also read some discussions on why one shouldn’t use that, and instead move to other methods like <a href="http://en.wikipedia.org/wiki/Ziggurat_algorithm">Ziggurat algorithm</a>(and some other I can’t remember now), but I think Box-Muller method is easy to implement and works fine for my purposes, so I’m using it now:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> box_muller<span class="ot">()</span>
+    <span class="kw">return</span> <span class="kw">math</span><span class="ot">.</span>sqrt<span class="ot">(-</span><span class="dv">2</span> <span class="ot">*</span> <span class="fu">math.log</span><span class="ot">(</span><span class="fu">math.random</span><span class="ot">()))</span> <span class="ot">*</span> <span class="fu">math.cos</span><span class="ot">(</span><span class="dv">2</span> <span class="ot">*</span> <span class="kw">math</span><span class="ot">.</span><span class="kw">pi</span> <span class="ot">*</span> <span class="fu">math.random</span><span class="ot">())</span> <span class="ot">/</span> <span class="dv">2</span>
+<span class="kw">end</span></code></pre>
+<p>This function returns numbers in range [-1,1]. I’m using it with some code like that:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> <span class="kw">dev</span> <span class="ot">=</span> <span class="dv">100</span>
+<span class="kw">local</span> <span class="kw">rand</span> <span class="ot">=</span> box_muller<span class="ot">()</span>
+<span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">rand</span> <span class="ot">*</span> <span class="kw">dev</span> <span class="ot">+</span> <span class="kw">myLimit</span><span class="ot">/</span><span class="dv">2</span><span class="ot">)</span></code></pre>
+<p>Here the variable <code>dev</code> stands for <a href="http://en.wikipedia.org/wiki/Standard_deviation">standard deviation</a>, though note that it’s value is not <em>standard deviation</em>, but just a value to play with to set standard deviation. I don’t know how can I set standard deviation with Box-Muller method. By playing this value you can get distributions with different standard deviations.</p>
+<div class="figure">
+<img src="/images/distroyazi/normaldistro.png" />
+</div>
+<p>I also generated two custom distributions, I don’t know if people gave them any special names, first one is this:</p>
+<div class="figure">
+<img src="/images/distroyazi/customdistro.png" />
+</div>
+<p>I think this is a very useful one, this means that if I give some <em>actions</em> in my game different numbers depending on their <em>priority</em> and use this random number generator, I get numbers of actions with more priority more than the ones with less priority. Here’s the code:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
+    <span class="kw">while</span> <span class="kw">true</span> <span class="kw">do</span>
+        <span class="kw">local</span> <span class="kw">r1</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
+        <span class="kw">local</span> <span class="kw">r2</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
+        <span class="kw">if</span> <span class="ot">(</span><span class="kw">r2</span> <span class="ot">&lt;</span> <span class="kw">r1</span><span class="ot">)</span> <span class="kw">then</span>
+            <span class="kw">return</span> <span class="kw">r1</span>
+        <span class="kw">end</span>
+    <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+<p>Last one is similar:</p>
+<div class="figure">
+<img src="/images/distroyazi/customdistro2.png" />
+</div>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
+    <span class="kw">local</span> <span class="kw">rate</span> <span class="ot">=</span> <span class="dv">3</span>
+    <span class="kw">local</span> <span class="kw">r</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">500</span><span class="ot">^</span><span class="kw">rate</span><span class="ot">)</span>
+    <span class="fu">print</span><span class="ot">(</span><span class="kw">r</span><span class="ot">)</span>
+    <span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">r</span><span class="ot">^(</span><span class="dv">1</span><span class="ot">/</span><span class="kw">rate</span><span class="ot">))</span>
+<span class="kw">end</span></code></pre>
+<p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup>.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>and you may even have a <a href="http://en.wikipedia.org/wiki/Perlin_noise">Perlin noise</a> <a href="http://processing.org/reference/noise_.html">generator</a> too!<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>For those interested: It’s <a href="http://love2d.org">Love2d</a>. Recently(while working on this code) I realized that Love2d is not a Lua library, but a complete C++ program that has Lua interpreter. In most cases you can’t see the difference but there are some edge cases like I mentioned above that makes your program runs fine with Lua, but fails with Love2d programs.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>Separating lexing and parsing stages in Parsec</title>
     <link href="http://osa1.net/posts/2012-08-30-separating-lexing-and-parsing-in-parsec.html" />
     <id>http://osa1.net/posts/2012-08-30-separating-lexing-and-parsing-in-parsec.html</id>
@@ -66,434 +710,6 @@ tok t <span class="fu">=</span> (satisfy <span class="fu">$</span> (<span class=
 <p><code>.. &lt;?&gt; show t</code> part is required for error reporting. See my <a href="http://stackoverflow.com/questions/12167329/haskell-parsec-error-messages-are-less-helpful-while-using-custom-tokens">SO question</a> for details.</p>
 <p>Now, when using Parsec, generally there’s no need to separate lexing stage. Because as you can see above, it just makes code more complex, and adds no more flexibility. Instead of writing <code>tok $ Ide &quot;some-identifier&quot;</code>, you can always write <code>ide &quot;some-identifier&quot;</code> with a <code>ide</code> parser.</p>
 <p>Still, I think understanding how to make this helps for at least two reasons. First, now you can work on any streams, not just character streams using Parsec’s <code>Char</code> token. And second, writing lexers can still help in some situations, like parsing indentation-based grammars. In that case, you can generate indent-dedent tokens in lexing stage, and make parser code more clean because it will be less <em>context-dependent</em> (I never tried that with Parsec, though) .</p>]]></summary>
-</entry>
-<entry>
-    <title>Some GHC extensions I use</title>
-    <link href="http://osa1.net/posts/2012-07-31-some-ghc-extensions.html" />
-    <id>http://osa1.net/posts/2012-07-31-some-ghc-extensions.html</id>
-    <published>2012-07-31T00:00:00Z</published>
-    <updated>2012-07-31T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>GHC is a huge compiler. On GHC 7.4.1, I can see 85 optional language extensions<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> Some of them are just adding some syntactic sugar(<code>NamedFieldPuns</code>, <code>RecordWildCards</code>), and some of them are extensions to type system(<code>GADTs</code>, <code>Rank2Types</code>). As a new Haskeller, I only know and use a small subset of this features, and in this post I’ll write about it.</p>
-<h3 id="namedfieldpuns-and-recordwildcards">NamedFieldPuns and RecordWildCards</h3>
-<p>This is some really simple syntactic sugar for pattern matching some names in records. Normally you’d do:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)
-someFun <span class="dt">T</span>{n2<span class="fu">=</span>n2, n3<span class="fu">=</span>n3} <span class="fu">=</span> (n2, n3)</code></pre>
-<p>But instead of assigning some names to members of a record with same names, with help of <code>NamedFieldPuns</code>, you could just write:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)
-someFun <span class="dt">T</span>{n3, n2} <span class="fu">=</span> (n2, n3)</code></pre>
-<p>It’s that simple. <code>RecordWildCards</code> doing something similar. Instead of writing <code>someFun T{n1,n2,n3}</code>, you just write <code>someFun T{..}</code>.</p>
-<p>These are purely syntactic, so they can be used for any place that you can use pattern matching or destructuring(ie. <code>let .. in ..</code> or <code>where</code> clauses). Really helpful when working on data constructors that have 4+ members.</p>
-<p>Most interesting use of <code>RecordWildCards</code> I’ve seen was <a href="http://hpaste.org/71626">this implementation</a> of localised module imports(I think this implementation can also be used for first-class modules).</p>
-<h3 id="overloadedstrings">OverloadedStrings</h3>
-<p>This really helps when working on <a href="http://hackage.haskell.org/package/text-0.11.2.2"><code>Text</code></a> data. When you are passing a function a <code>Text</code> data, instead of using <code>pack &quot;some string&quot;</code>, you can just use <code>&quot;some string&quot;</code> and compiler resolves the type of the string, adds required code etc.</p>
-<p>Basically it provides a way to create instances of <code>class IsString a where fromString :: String -&gt; a</code> using string syntax. It’s mostly used with <code>Data.Text</code>, <code>ByteString.Text</code> etc.</p>
-<h3 id="gadts">GADTs</h3>
-<p>This is by far my favorite type system extension. This is mostly because I’m working on an interpreter, and GADTs are great for representing syntax trees.</p>
-<p>To understand advantages of GADTs, first let’s think about how we can represent syntax tree for a simple language. Let some part of our sytax be(in a BNF-like format):</p>
-<pre><code>&lt;var&gt;   = String
-&lt;abst&gt;  = &quot;(&quot; &quot;λ&quot; &quot;(&quot; {&lt;var&gt; [&quot; &quot;]}* &quot;)&quot; &lt;term&gt; &quot;)&quot;
-&lt;app&gt;   = &quot;(&quot; &lt;term&gt; {&lt;term&gt; [&quot; &quot;]}* &quot;)&quot;
-&lt;term&gt;  = &lt;var&gt; | &lt;abst&gt; | &lt;app&gt;</code></pre>
-<p>So, variables, lambda abstractions, and applications. Just like in untyped lambda calculus. Now let’s try to encode this format in Haskell:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="dt">Var</span> <span class="dt">String</span>
-          <span class="fu">|</span> <span class="dt">Abst</span> [<span class="fu">??</span>] <span class="dt">Term</span>
-          <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Term</span> <span class="dt">Term</span></code></pre>
-<p>What should we write in place of <code>??</code> ? Writing <code>Term</code> is obviously wrong, since then we could be ill-formed data(for instance, think about a syntax like that: <code>(λ ((λ (a) ..)) ...)</code> we used lambda abstraction in place of lambda parameter names).</p>
-<p>If the term <code>var</code> just consists of a String, then we can directly use String as a first member of <code>Abst</code> constructor, but think term <code>var</code> as a really complex constructor. I’m trying to make examples as clear and simple as possible.</p>
-<p>One way to fix that is to use “smart constructors”. What this really means is that we can hide some data constructors in our module(ie. write exported names in module explicitly) and export some constructor function in place of them. With the help of a trick we can give users a more controlled way of creating data(in our case this means that we can prevent caller from creating ill-formed syntax tree).</p>
-<p>First, let’s see the data type trick:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T1</span>
-<span class="kw">data</span> <span class="dt">T2</span>
-<span class="kw">data</span> <span class="dt">SomeData</span> a <span class="fu">=</span> <span class="dt">Data1</span> <span class="dt">String</span> <span class="fu">|</span> <span class="dt">Data2</span> <span class="dt">Int</span>
-  <span class="kw">deriving</span> <span class="kw">Show</span></code></pre>
-<p>This is interesting because data types T1 and T2 don’t have any constructors. So there is literally no way to create data in that types. Second interesting point in <code>SomeData a</code> is, the <code>a</code> variable is not used by data constructors(<code>Data1</code> and <code>Data2</code>). This code still works:</p>
-<pre><code>ghci&gt; :t Data1 &quot;ok&quot;
-Data1 &quot;ok&quot; :: SomeData a
-ghci&gt; :t Data2 123
-Data2 123 :: SomeData a
-ghci&gt; Data1 &quot;ok&quot; :: SomeData Int
-Data1 &quot;ok&quot;
-ghci&gt; Data1 &quot;ok&quot; :: SomeData Char
-Data1 &quot;ok&quot;</code></pre>
-<p>If we could find a way to distinguish types of data created with <code>Data1</code> and <code>Data2</code>, we’re done. This is where smart constructors take place:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">data1 ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T1</span>
-data1 <span class="fu">=</span> <span class="dt">Data1</span>
-<span class="ot">data2 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T2</span>
-data2 <span class="fu">=</span> <span class="dt">Data2</span></code></pre>
-<p>We’re telling to compiler that data created with <code>data1</code> constructor will be the type of <code>SomeData T1</code>. Now if we hide <code>Data1</code> and <code>Data2</code> data constructors and export <code>data1</code> and <code>data2</code> functions, there is no way for user create ill-formed data types like <code>Data1 &quot;ok&quot; :: SomeData SomeUnrelatedType</code> like we done in past example.</p>
-<pre><code>ghci&gt; data1 &quot;ok&quot; :: SomeData Int
-
-&lt;interactive&gt;:48:1:
-    Couldn&#39;t match expected type `Int&#39; with actual type `T1&#39;
-    Expected type: SomeData Int
-      Actual type: SomeData T1
-    In the return type of a call of `data1&#39;
-    In the expression: data1 &quot;ok&quot; :: SomeData Int</code></pre>
-<p>Now we can encode our syntax in Haskell like this:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Var</span>
-<span class="kw">data</span> <span class="dt">Abst</span>
-<span class="kw">data</span> <span class="dt">App</span>
-<span class="kw">data</span> <span class="dt">AnyTerm</span>
-<span class="kw">data</span> <span class="dt">Term</span> a <span class="fu">=</span> <span class="dt">Var</span> <span class="dt">String</span>
-            <span class="fu">|</span> <span class="dt">Abst</span> [<span class="dt">Term</span> <span class="dt">Var</span>] (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)
-            <span class="fu">|</span> <span class="dt">App</span> (<span class="dt">Term</span> <span class="dt">AnyTerm</span>) (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)
-<span class="ot">var ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span>
-var <span class="fu">=</span> <span class="dt">Var</span>
-<span class="ot">abst ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span>
-abst <span class="fu">=</span> <span class="dt">Abst</span>
-<span class="ot">app ::</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span>
-app <span class="fu">=</span> <span class="dt">App</span>
-anyTerm <span class="fu">=</span> <span class="fu">id</span></code></pre>
-<p>Now I’m omitting some parts without explaining since this post is already long enough. But the point should be clear by now. Let’s see this in action:</p>
-<pre><code>ghci&gt; abst [(abst [var &quot;p1&quot;] (anyTerm (var &quot;p1&quot;)))] (anyTerm (var &quot;somevar&quot;))
-
-&lt;interactive&gt;:63:8:
-    Couldn&#39;t match expected type `Var&#39; with actual type `Abst&#39;
-    Expected type: Term Var
-      Actual type: Term Abst
-    In the return type of a call of `abst&#39;
-    In the expression: (abst [var &quot;p1&quot;] (anyTerm (var &quot;p1&quot;)))</code></pre>
-<p>Nice! Just like what we wanted. GADTs help for creating smart “data constructors” so that we don’t have to hide data constructors and export some smart constructor functions. Here’s the same code with GADTs:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Var</span>
-<span class="kw">data</span> <span class="dt">Abst</span>
-<span class="kw">data</span> <span class="dt">App</span>
-<span class="kw">data</span> <span class="dt">Term</span> a <span class="kw">where</span>
-    <span class="dt">Var</span><span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span>
-    <span class="dt">Abst</span><span class="ot"> ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span>
-    <span class="dt">App</span><span class="ot"> ::</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span>
-<span class="kw">data</span> <span class="dt">AnyTerm</span> <span class="kw">where</span>
-    <span class="dt">AnyTerm</span><span class="ot"> ::</span><span class="dt">Term</span> a <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span></code></pre>
-<p>This code should be clear. All we do is to specify constructor’s return type.</p>
-<p>This is really great improvement. Think of a more complex syntax tree, with a lot more constructors. The parser already checks for invalid syntax, so actually there’s no way to create ill-formed syntax tree since parser rejects the code.</p>
-<p>If you don’t use GADTs or phantom types, you have to check for ill-formed syntax in your evaluator(or reducer or compiler or whatever) even if there’s no way for parser to generate ill-formed syntax tree. For instance, you’d have to check for <code>Var [(App ..)] ...</code> in your <code>eval :: Env -&gt; Term -&gt; Val</code> function.</p>
-<p>The worst part of GADTs is that you can’t use <code>deriving</code> clause in data type declaration(can anyone explain why?). In my case, that means I have to write some big amounts of code just to be able to print out the data for debugging purposes. For instance, I had to write some repetitive code like this:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Show</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>
-    <span class="fu">...</span>
-    <span class="fu">show</span> (<span class="dt">Lambda</span> params ret body) <span class="fu">=</span> <span class="st">&quot;(lambda (&quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> params) <span class="fu">++</span> <span class="st">&quot;) : &quot;</span> <span class="fu">++</span> <span class="fu">show</span> ret <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> body) <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
-    <span class="fu">show</span> (<span class="dt">If</span> ifE thenE elseE) <span class="fu">=</span> <span class="st">&quot;(&quot;</span> <span class="fu">++</span> intercalate <span class="st">&quot;,&quot;</span> [<span class="fu">show</span> ifE, <span class="fu">show</span> thenE, <span class="fu">show</span> elseE] <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
-    <span class="co">-- same repetitive code for each data constructor, it&#39;s really pain when the syntax grows bigger and when you frequently make some changes on it.</span></code></pre>
-<p>I also had to write same amount of code just to be able to run tests on my parser(ie. I need to compare hand-written syntax tree with parser generated syntax tree).</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Eq</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>
-    <span class="fu">...</span>
-    <span class="dt">Lambda</span> p1 b1 <span class="fu">==</span> <span class="dt">Lambda</span> p2 b2 <span class="fu">=</span> p1 <span class="fu">==</span> p2 <span class="fu">&amp;&amp;</span> b1 <span class="fu">==</span> b2
-    <span class="dt">If</span> i1 t1 e1 <span class="fu">==</span> <span class="dt">If</span> i2 t2 e2 <span class="fu">=</span> i1 <span class="fu">==</span> i2 <span class="fu">&amp;&amp;</span> t1 <span class="fu">==</span> t2 <span class="fu">&amp;&amp;</span> e1 <span class="fu">==</span> e2
-    <span class="fu">...</span>
-    _ <span class="fu">==</span> _ <span class="fu">=</span> <span class="kw">False</span></code></pre>
-<h3 id="further-reading">Further reading:</h3>
-<ul>
-<li><a href="http://www.haskell.org/haskellwiki/Phantom_type">Phantom type on Haskell wiki</a>. Phantom types are data types without constructors, like we’ve used in examples. I first met with this concept in <a href="http://vimeo.com/14313378">Yaron Minsky’s great talk on effective ML</a>. I highly recommend it.</li>
-<li><a href="http://www.haskell.org/ghc/docs/latest/html/users_guide/data-type-extensions.html#gadt">GHC user’s guide on GADTs</a>.</li>
-<li><a href="http://www.haskell.org/haskellwiki/GADT">GADTs on Haskell wiki</a>.</li>
-</ul>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>To list all extensions, I run GHCi, type <code>:set -X</code> and then run auto-complete, it says “Display all 167 possibilities?” on GHC 7.4.1, 82 of them are starting with <code>-XNo</code>.<a href="#fnref1">↩</a></p></li>
-</ol>
-</div>]]></summary>
-</entry>
-<entry>
-    <title>Lazy lists in Lua and eliminating tail-calls with continuations</title>
-    <link href="http://osa1.net/posts/2012-05-20-lazy-lists-in-lua-and-eliminating-tail-calls-with-continuations.html" />
-    <id>http://osa1.net/posts/2012-05-20-lazy-lists-in-lua-and-eliminating-tail-calls-with-continuations.html</id>
-    <published>2012-05-20T00:00:00Z</published>
-    <updated>2012-05-20T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I was reading some papers about parsing with continuations and I realized that I had never implemented continuations in any language. Since I’m interested in Lua nowadays, I want to implement it in Lua.</p>
-<p>After a while, I realized that you could use continuations to eliminate recursive calls to prevent stack overflows. Now, in a language like Lua, we have tail-call optimization(TCO) and recursive calls in tail positoins are not problem, but even in languages that don’t have TCO, you can easily convert tail calls to loops with help of continuations. And I found the underlying idea of this is pretty similar to lazy-lists. Now I’m going to try to explain how.</p>
-<p>For those who want to see the code, here’s the <a href="https://gist.github.com/2757232">gist</a>.</p>
-<p>Nowadays most of modern languages(functional ones or not), have some primitives for lazy evaluation(like Python’s generators), and I’m not an expert on Lua but AFAIK, Lua’s coroutines can be used for lazy evaluation. But even if you use a language that doesn’t have any non-strict primitives, you can have some lazy structures(ie. in JavaScript).</p>
-<p>The main idea of this is that you can always pass functions in a form that holds the function itself and a list of arguments that will be passed to function. And when you want to evaluate the result of the function call, you just call the function in that form with the arguments. Note that by “function itself”, I mean the function callback. Most modern languages nowadays have functions as first-class values or at least some kind of function pointers/referances, so this is not a problem.</p>
-<p>I’ll give the code in Lua. We’ll call the structure that holds a function callback(or whatever your language call it) and a list of parameters, <code>thunk</code><sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> In Lua, this will be a table with two keys: <code>f</code> and <code>args</code>. Here’s an example thunk.</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t</span> <span class="ot">=</span> <span class="ot">{</span> <span class="kw">f</span> <span class="ot">=</span> <span class="fu">print</span><span class="ot">,</span> <span class="kw">args</span> <span class="ot">=</span> <span class="ot">{</span><span class="st">&quot;first arg&quot;</span><span class="ot">,</span> <span class="st">&quot; second arg&quot;</span><span class="ot">}</span> <span class="ot">}</span></code></pre>
-<p>So when we want to run the function in the thunk, we just call <code>evalThunk</code>, which is pretty straightforward to implement:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> evalThunk<span class="ot">(</span><span class="kw">t</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="kw">t</span><span class="ot">.</span>f<span class="ot">(</span><span class="fu">unpack</span><span class="ot">(</span><span class="kw">t</span><span class="ot">.</span><span class="kw">args</span><span class="ot">))</span>
-<span class="kw">end</span>
-<span class="ot">&gt;</span> evalThunk<span class="ot">(</span><span class="kw">t</span><span class="ot">)</span>
-<span class="kw">first</span> <span class="kw">arg</span>        <span class="kw">second</span> <span class="kw">arg</span></code></pre>
-<p>Basically, when we want to make a function non-strict, we just create a thunk of it, with <code>f</code> = function itself, and the <code>args</code> = the args we want to pass to the function when we run it. Here’s a helper for it:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> makeThunk<span class="ot">(</span><span class="kw">f</span><span class="ot">,</span> <span class="kw">args</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="ot">{</span> <span class="fu">tag</span> <span class="ot">=</span> <span class="st">&quot;thunk&quot;</span><span class="ot">,</span> <span class="kw">f</span> <span class="ot">=</span> <span class="kw">f</span><span class="ot">,</span> <span class="kw">args</span> <span class="ot">=</span> <span class="kw">args</span> <span class="ot">}</span>
-<span class="kw">end</span></code></pre>
-<p>Now, with the help of this two functions, we can create a infinite-length lazy linked-lists. Each node in our linked-lists will have two keys: <code>first</code> and <code>rest</code>. <code>first</code> will have the value of that node, and <code>rest</code> will have the next node connected to that node. Here’s a helper to create linked-list nodes.</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> cons<span class="ot">(</span><span class="kw">first</span><span class="ot">,</span> <span class="kw">rest</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="ot">{</span> <span class="kw">first</span> <span class="ot">=</span> <span class="kw">first</span><span class="ot">,</span>
-             <span class="kw">rest</span>  <span class="ot">=</span> <span class="kw">rest</span> <span class="ot">}</span>
-<span class="kw">end</span></code></pre>
-<p>In lazy-lists, we always have the <code>rest</code> part of the list as unevaluated thunks. To traverse the list to some point, we need to evaluate the nodes we passed, and when we evaluate this nodes, we just replace the thunks with evaluated values. Because we don’t want to evaluate the same node again and again for eact iteration.</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> evalPart<span class="ot">(</span><span class="kw">t</span><span class="ot">,</span> <span class="kw">p</span><span class="ot">)</span>
-    <span class="kw">if</span> <span class="kw">t</span> <span class="ot">==</span> <span class="kw">nil</span> <span class="kw">then</span>
-        <span class="kw">return</span> <span class="kw">nil</span>
-    <span class="kw">elseif</span> <span class="fu">type</span><span class="ot">(</span><span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">])</span> <span class="ot">==</span> <span class="st">&quot;table&quot;</span> <span class="kw">and</span> <span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">].</span><span class="kw">tag</span> <span class="ot">==</span> <span class="st">&quot;thunk&quot;</span> <span class="kw">then</span>
-        <span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">]</span> <span class="ot">=</span> evalThunk<span class="ot">(</span><span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">])</span>
-    <span class="kw">end</span>
-    <span class="kw">return</span> <span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">]</span>
-<span class="kw">end</span>
-<span class="kw">function</span> first<span class="ot">(</span><span class="kw">t</span><span class="ot">)</span>
-    <span class="kw">return</span> evalPart<span class="ot">(</span><span class="kw">t</span><span class="ot">,</span> <span class="st">&quot;first&quot;</span><span class="ot">)</span>
-<span class="kw">end</span>
-<span class="kw">function</span> rest<span class="ot">(</span><span class="kw">t</span><span class="ot">)</span>
-    <span class="kw">return</span> evalPart<span class="ot">(</span><span class="kw">t</span><span class="ot">,</span> <span class="st">&quot;rest&quot;</span><span class="ot">)</span>
-<span class="kw">end</span></code></pre>
-<p><code>first</code> and <code>rest</code> functions are returning the <code>first</code> and <code>rest</code> parts of our linked-list nodes. We’re expecting this parts to be unevaluated thunks. So if they’re thunks, we just evaluate them and replace the return value with thunks so that we don’t need to re-evaluate everytime we get a node.</p>
-<p>And with the last helper, we can start creating infinite lazy-lists in Lua:</p>
-<pre><code>function nth(t, n)
-    if n == 0 then
-        return first(t)
-    end
-    return nth(rest(t), n-1)
-end</code></pre>
-<p>This function is just getting the n. node in a linked list. And while getting this node, it’s evaluating all the thunk on the way with help of <code>rest</code> function. This is important because as you’ll see, we will be creating the rest of the lists while we’re traversing it.</p>
-<p>Let’s see an example of infinite lazy-list that creates a list of factorials, starting from 1!:</p>
-<pre><code>function fact(n, f)
-    n = n or 1
-    f = f or 1
-    return cons(n, makeThunk(fact, {n*f, f+1}))
-end</code></pre>
-<p>This function returns a linked-list that contains factorial of 1, and then a thunk of the same factorial function, but with different parameters. The function call in the <code>rest</code> part of the thunk will return the next factorial, and then the same function as a thunk in <code>rest</code> part of the thunk, in a recursive fashion. Note that our <code>nth</code> function is tail-recursive so we’ll never have stack overflows while traversing the list(it’s also trivial to implement an iterative loop version of it).</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="ot">&gt;</span> <span class="kw">a</span> <span class="ot">=</span> fact<span class="ot">()</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">))</span>
-<span class="dv">1</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">))</span>
-<span class="dv">2</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">10</span><span class="ot">))</span>
-<span class="dv">3628800</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">20</span><span class="ot">))</span>
-<span class="dv">2.4329020081766e+18</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">30</span><span class="ot">))</span>
-<span class="dv">2.6525285981219e+32</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">40</span><span class="ot">))</span>
-<span class="dv">8.159152832479e+47</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">50</span><span class="ot">))</span>
-<span class="dv">3.0414093201713e+64</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">250</span><span class="ot">))</span>
-<span class="kw">inf</span></code></pre>
-<p>So it’s obviously generating all the factorials while we traverse the list. You can also try to see that every thunk is evaluated only once by adding some <code>print</code> functions to thunks.</p>
-<p>Here’s a lazy-list that contains all fibonacci numbers:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> fib<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="kw">b</span><span class="ot">)</span>
-    <span class="kw">a</span> <span class="ot">=</span> <span class="kw">a</span> <span class="kw">or</span> <span class="dv">0</span>
-    <span class="kw">b</span> <span class="ot">=</span> <span class="kw">b</span> <span class="kw">or</span> <span class="dv">1</span>
-    <span class="kw">return</span> cons<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> makeThunk<span class="ot">(</span><span class="kw">fib</span><span class="ot">,</span> <span class="ot">{</span><span class="kw">b</span><span class="ot">,</span> <span class="kw">a</span><span class="ot">+</span><span class="kw">b</span><span class="ot">}))</span>
-<span class="kw">end</span></code></pre>
-<p>You can also easily define functions that take linked-lists and map/filter and return the result as lazy-lists. I added them the to the gist.</p>
-<p>Now, how’s that related with continuations that eliminate tail-calls? Let’s work on an exmple:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> sum<span class="ot">(</span><span class="kw">n</span><span class="ot">,</span> <span class="kw">cont</span><span class="ot">)</span>
-    <span class="kw">if</span> <span class="kw">n</span> <span class="ot">&lt;=</span> <span class="dv">1</span> <span class="kw">then</span>
-        <span class="kw">return</span> cont<span class="ot">(</span><span class="dv">1</span><span class="ot">)</span>
-    <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> newCont<span class="ot">(</span><span class="kw">v</span><span class="ot">)</span>
-        <span class="kw">return</span> cont<span class="ot">(</span><span class="kw">v</span><span class="ot">+</span><span class="kw">n</span><span class="ot">)</span>
-    <span class="kw">end</span>
-    <span class="kw">return</span> sum<span class="ot">(</span><span class="kw">n</span><span class="ot">-</span><span class="dv">1</span><span class="ot">,</span> <span class="kw">newCont</span><span class="ot">)</span>
-<span class="kw">end</span></code></pre>
-<p>I found JavaScript version of this example in <a href="http://nathansuniversity.com/cont3.html">Nathan’s University</a> and I think it’s a typical usage of continuations. Instead of returning the result, we’re passing the result to the continuation function. And when we hit the buttom(ie. when n &lt;= 1) we pass the last result to continuation function and return it.</p>
-<p>I don’t explain why one would do that, you can read it from Nathan’s University.</p>
-<p>If you run a function like this in JavaScript, you get a stack overflow after a while since this function is recursive. But with the help of thunks, you can eliminate the recursive call entirely, even in JavaScript. Let’s change it to:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> sum<span class="ot">(</span><span class="kw">n</span><span class="ot">,</span> <span class="kw">cont</span><span class="ot">)</span>
-    <span class="kw">if</span> <span class="kw">n</span> <span class="ot">&lt;=</span> <span class="dv">1</span> <span class="kw">then</span>
-        <span class="kw">return</span> makeThunk<span class="ot">(</span><span class="kw">cont</span><span class="ot">,</span> <span class="ot">{</span><span class="dv">1</span><span class="ot">})</span>
-    <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> newCont<span class="ot">(</span><span class="kw">v</span><span class="ot">)</span>
-        <span class="kw">return</span> makeThunk<span class="ot">(</span><span class="kw">cont</span><span class="ot">,</span> <span class="ot">{</span><span class="kw">v</span><span class="ot">+</span><span class="kw">n</span><span class="ot">})</span>
-    <span class="kw">end</span>
-    <span class="kw">return</span> makeThunk<span class="ot">(</span><span class="kw">sum</span><span class="ot">,</span> <span class="ot">{</span><span class="kw">n</span><span class="ot">-</span><span class="dv">1</span><span class="ot">,</span> <span class="kw">newCont</span><span class="ot">})</span>
-<span class="kw">end</span></code></pre>
-<p>We replaced every function call with thunks. Now you can realize that <code>makeThunk</code> calls are just linking function calls together. For example, after calling <code>sum(10, function(n) print(&quot;result: &quot;, n) end)</code>, we get this thunk:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="ot">{</span> <span class="fu">tag</span> <span class="ot">=</span> <span class="st">&quot;thunk&quot;</span><span class="ot">,</span> <span class="kw">f</span> <span class="ot">=</span> <span class="kw">sum</span><span class="ot">,</span> <span class="kw">args</span> <span class="ot">=</span> <span class="ot">{</span><span class="dv">9</span><span class="ot">,</span> <span class="kw">function</span><span class="ot">(</span><span class="kw">v</span><span class="ot">)</span> <span class="kw">return</span> makeThunk<span class="ot">(</span><span class="kw">cont</span><span class="ot">,</span> <span class="ot">{</span><span class="kw">v</span><span class="ot">+</span><span class="dv">10</span><span class="ot">})</span> <span class="kw">end</span><span class="ot">}}</span></code></pre>
-<p>When we evaluate this thunk, we just get another thunk unless the first arg is not &lt;= 1. Now we need a helper to evaluate the thunk, and then evaluate the thunk returned by the first thunk, until we evaluate all the thunks. This is what’s called “trampoline”:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> trampoline<span class="ot">(</span><span class="kw">thunk</span><span class="ot">)</span>
-    <span class="kw">while</span> <span class="kw">true</span> <span class="kw">do</span>
-        <span class="kw">if</span> <span class="fu">type</span><span class="ot">(</span><span class="kw">thunk</span><span class="ot">)</span> <span class="ot">~=</span> <span class="st">&quot;table&quot;</span> <span class="kw">then</span>
-            <span class="kw">return</span> <span class="kw">thunk</span>
-        <span class="kw">elseif</span> <span class="kw">thunk</span><span class="ot">.</span><span class="kw">tag</span> <span class="ot">==</span> <span class="st">&quot;thunk&quot;</span> <span class="kw">then</span>
-            <span class="kw">thunk</span> <span class="ot">=</span> evalThunk<span class="ot">(</span><span class="kw">thunk</span><span class="ot">)</span>
-        <span class="kw">end</span>
-    <span class="kw">end</span>
-<span class="kw">end</span>
-<span class="ot">&gt;</span> <span class="kw">a</span> <span class="ot">=</span> sum<span class="ot">(</span><span class="dv">10</span><span class="ot">,</span> <span class="kw">function</span><span class="ot">(</span><span class="kw">n</span><span class="ot">)</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;result: &quot;</span><span class="ot">,</span> <span class="kw">n</span><span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">tag</span><span class="ot">)</span>
-<span class="kw">thunk</span>
-<span class="ot">&gt;</span> trampoline<span class="ot">(</span><span class="kw">a</span><span class="ot">)</span>
-<span class="kw">result</span>:         <span class="dv">55</span></code></pre>
-<p>We’re evaluating the thunks in a <code>while</code> loop. This is how you can eliminate tail calls. Now, this exactly looks like the lazy-list method I mentioned in this post. And we already used the same thunk structure for both of them.</p>
-<p>The only difference is, in continuations we don’t save old thunks anywhere and just replace them with new continuations, and we only return a value other than new thunks when we finished the calculation(ie. when we reach the base case).</p>
-<p>So essentially, both continuations and lazy-lists have the same idea. And these are very easy to implement even in langauges that doesn’t support any non-strict primitives.</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>For a better explanation of <code>thunk</code>s, see <a href="http://mitpress.mit.edu/sicp/full-text/book/book-Z-H-27.html#footnote_Temp_580">SICP</a>.<a href="#fnref1">↩</a></p></li>
-</ol>
-</div>]]></summary>
-</entry>
-<entry>
-    <title>Ramblings on monads</title>
-    <link href="http://osa1.net/posts/2012-04-09-ramblings-monads.html" />
-    <id>http://osa1.net/posts/2012-04-09-ramblings-monads.html</id>
-    <published>2012-04-09T00:00:00Z</published>
-    <updated>2012-04-09T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I had written a short post about Haskell and monads to <a href="http://nathansuniversity.com/">Nathan’s University</a> forum as a first homework, and I wanted to add it to my blog too:</p>
-<hr />
-<p>I know lots of people here have already given Haskell as an example, but I want to mention to a different point of Haskell. Monads and DSL capabilities.</p>
-<p>Every monad in Haskell is potentially a DSL. You can define commands(ie. functions) in a syntax that looks almost like syntax in imperative languages even if you’re doing a purely functional computation(for imperative computations, see IO monad). When you write a monad and some functions working with this monad, you basically write operations of a kind of computations, and a way to combine this computations(with <code>&gt;&gt;=</code> function, read as bind).</p>
-<p>This gives you two great advantages. First, monads give you an elegant way to separate combination and calculation logic, and second, it gives you an opportunity to create syntactic abstractions.</p>
-<p>For example, you don’t have to pass some states around functions thank to monads. You can just create a monad with functions getting a state and returning some values and the new state. Then you can define your combination logic(bind functions) and with the help of <code>do</code> notation, you can write almost imperative looking code, passing states automatically. See example:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Monad.State
-<span class="kw">import</span> Control.Monad
-<span class="kw">type</span> <span class="dt">AvgState</span> <span class="fu">=</span> <span class="dt">State</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="dt">Int</span>
-state0 <span class="fu">=</span> (<span class="dv">0</span>, <span class="dv">0</span>)
- 
-<span class="ot">addAvg ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">AvgState</span>
-addAvg x <span class="fu">=</span> <span class="kw">do</span>
-    (count, total) <span class="ot">&lt;-</span> get
-    put (count<span class="fu">+</span><span class="dv">1</span>, total<span class="fu">+</span>x)
-    <span class="fu">return</span> <span class="fu">$</span> (total<span class="fu">+</span>x) <span class="ot">`div`</span> (count<span class="fu">+</span><span class="dv">1</span>)
- 
-<span class="ot">test ::</span> <span class="dt">AvgState</span>
-test <span class="fu">=</span> <span class="kw">do</span>
-    addAvg <span class="dv">10</span>
-    addAvg <span class="dv">20</span>
-    addAvg <span class="dv">30</span>
- 
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-    <span class="fu">print</span> <span class="fu">$</span> evalState test state0</code></pre>
-<p>Here I’m calculating arithmetic average of some integers. <code>type AvgState</code> is my data type representing the sum of the numbers I give and the total count of numbers. Here I don’t write a new monad, instead I use Haskell’s State monad, contained in <code>Control.Monad.State</code> package.</p>
-<p><code>addAvg</code> functions is the main logic. If you look at it, it almost looks like an imperative program, I’m reading some values and changing them by adding them one, and returning a new value(note that I’m not returning any new states, it’s being handled my the monad itself), but still it’s purely functional.</p>
-<p>Now how’s that a DSL? Look at <code>test</code> function and hopefully you’ll see :) .</p>
-<p>I want to give another example about DSL-like monads: <code>Parsec</code>.</p>
-<p>I’ve been working on a Websocket based chat protocol written in Haskell lately and this code is directly from my project:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">chanName ::</span> <span class="dt">Parser</span> <span class="dt">ChanName</span>
-chanName <span class="fu">=</span> many1 (letter <span class="fu">&lt;|&gt;</span> oneOf <span class="st">&quot;-&quot;</span> <span class="fu">&lt;|&gt;</span> digit)
- 
-<span class="ot">msgCmd ::</span> <span class="dt">Parser</span> <span class="dt">Cmd</span>
-msgCmd <span class="fu">=</span> <span class="kw">do</span>
-    string <span class="st">&quot;msg&quot;</span>
-    spaces
-    chan <span class="ot">&lt;-</span> chanName
-    spaces
-    msg <span class="ot">&lt;-</span> many1 anyChar
-    eof
-    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">MsgCmd</span> chan msg</code></pre>
-<p>I’m using Parsec’s <code>Parser</code> monads with <code>do</code> notation and it looks almost like Backus–Naur Form. chanName mathes list of letters, ‘-’ character, or digits with at least one element. This is a parser. And then I’m using this parser in my <code>msgCmd</code> parser. It matches a string “msg”, then arbitrary number of spaces, then <code>chanName</code>, then spaces again, and at last any characters.</p>]]></summary>
-</entry>
-<entry>
-    <title>Finger Tree I</title>
-    <link href="http://osa1.net/posts/2012-03-14-finger-tree-i.html" />
-    <id>http://osa1.net/posts/2012-03-14-finger-tree-i.html</id>
-    <published>2012-03-14T00:00:00Z</published>
-    <updated>2012-03-14T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>As a part of my journey of understanding functional programming and functional languages’ internals, I’m reading some classical papers about functional data structures. In this series of posts, I’ll be explaining Finger Trees, which I learned so much from.</p>
-<p>At first I had tried to write about finger trees in one post but later I realized that it was too long and it contained lots of different concepts. So I decided to split it into 3-4 posts, each of them explaining a different concept. In each post, we’re going to implement a different data structure. First post is going to be about implementing a functional <em>deque</em> with Finger Trees. Second is going to be about <em>priority queues</em>, in which I also am going to explain an use of <em>monoid</em> s. Third is going to be about vectors, with efficient concatenation and slicing. And at last, I’m going to explain Clojure’s persistent vector’s internals, which I think it’s somewhat related with finger tree’s. Oh, and somewhere in between I’m going to write something about <em>Peano numbers</em>.</p>
-<p>So, let’s start. AFAIK, the first paper about finger trees was <a href="http://www.soi.city.ac.uk/~ross/papers/FingerTree.html">Finger Trees: A Simple General-purpose Data Structure</a>. I read the paper a couple of times and I found it too .. complex. So I’ll explain most of the stuff in my own words. Some part of the code will be different from code in the paper.</p>
-<p>The problem finger trees are trying to solve is, since in functional setting we can’t mutate any structures, to form our structures in a way that making some specific changes on them should cost us minimum number of copying operations. This idea is similar to zippers. With zippers, we convert our structures to a form that make changes in some specific places cost us less copying operations, which means we can make changes more efficiently. And with finger trees, we have a structure that make modifications on two(or maybe more, depending on your implementation) places are really efficient. For instance, we can create <em>deque</em> with finger trees with efficient <code>push_back</code>, <code>push_front</code>, <code>pop_back</code> and <code>pop_front</code> operations.</p>
-<p>Let’s assume a 2-3 tree, which we use as a <em>deque</em>. In order to make modifications on ends of the tree, we need to copy all nodes on it’s way to end. So we change the structure, like in zippers, create a new structure which looks like this:</p>
-<div class="figure">
-<img src="/images/fingertree/finger.png" />
-</div>
-<p>For those who have already read the original paper, this example is the same with the paper. But I change the look of it. I found drawing of this example in paper confusing. It shows different nodes with same shapes, then gives a definition of the structure, which I found completely unrelated with the drawing.</p>
-<p>This is a deque contains characters of “thisisnotatree”. To make some changes in front or back of the deque, all we need to change is the nodes containing “th” and “ree”, which are just ordinary arrays, and the root node. When arrays get bigger, we shift some elements from arrays to our tree structures. Let’s make some definitions(most of my ADTs are deriving from <code>Show</code>, I found it better to see internals of structures that I’m working on):</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Node</span> s <span class="fu">=</span> <span class="dt">Node2</span> s s <span class="fu">|</span> <span class="dt">Node3</span> s s s
-  <span class="kw">deriving</span> (<span class="kw">Show</span>)
-<span class="kw">data</span> <span class="dt">FingerTree</span> a <span class="fu">=</span> <span class="dt">Empty</span>
-                  <span class="fu">|</span> <span class="dt">Single</span> a
-                  <span class="fu">|</span> <span class="dt">Deep</span> (<span class="dt">Digit</span> a) (<span class="dt">FingerTree</span> (<span class="dt">Node</span> a)) (<span class="dt">Digit</span> a)
-  <span class="kw">deriving</span> (<span class="kw">Show</span>)
-<span class="kw">type</span> <span class="dt">Digit</span> a <span class="fu">=</span> [a]</code></pre>
-<p>In my drawing, blue nodes are FingerTrees, black nodes which characters inside are Digits<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup></p>
-<p>So let’s see how we can add new Digits to the structure. In my examples, Digits will be <code>[Char]</code>, which are the same with <code>String</code>. Later we’ll see we can use any types that provide some operations.</p>
-<p>Let’s define <code>addl</code> and <code>addr</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addl ::</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a</code></pre>
-<p>We have 4 cases, if we add to an empty finger tree, it’s obvious:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a <span class="dt">Empty</span> <span class="fu">=</span> <span class="dt">Single</span> a</code></pre>
-<p>If we add to a finger tree with only one element(<code>Single a</code>), we just shift old element to right part of the structure and put new element to left:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Single</span> b) <span class="fu">=</span> <span class="dt">Deep</span> [a] <span class="dt">Empty</span> [b]</code></pre>
-<p>When we add to a tree with left side contains 4 elements, we push two of this elements to subtree part, and push new element to new left part:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Deep</span> [b,c,d,e] m sf) <span class="fu">=</span> <span class="dt">Deep</span> [a, b] (addl (<span class="dt">Node3</span> c d e) m) sf</code></pre>
-<p>And lastly, if our left part contains less than 4 elements, we just add a new element to the left part:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span> <span class="dt">Deep</span> ([a] <span class="fu">++</span> pr) m sf</code></pre>
-<p>The number of maximum elements in our left and right part of trees are arbitrary. When we come to Clojure’s persistent vector implementation, we’ll see that it could be 32, depending on your needs.</p>
-<p>We can easily track our structure when creating a tree of “thisisnotatree”:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Empty</span>
-<span class="dt">Single</span> <span class="ch">&#39;e&#39;</span>
-<span class="dt">Deep</span> [<span class="ch">&#39;e&#39;</span>] <span class="dt">Empty</span> [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;r&#39;</span>, <span class="ch">&#39;e&#39;</span>] <span class="dt">Empty</span> [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;r&#39;</span>, <span class="ch">&#39;e&#39;</span>] <span class="dt">Empty</span> [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;a&#39;</span>, <span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;r&#39;</span>, <span class="ch">&#39;e&#39;</span>] <span class="dt">Empty</span> [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;a&#39;</span>] (<span class="dt">Single</span> (<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)) [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;o&#39;</span>, <span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;a&#39;</span>] (<span class="dt">Single</span> (<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)) [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;n&#39;</span>, <span class="ch">&#39;o&#39;</span>, <span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;a&#39;</span>] (<span class="dt">Single</span> (<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)) [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;s&#39;</span>, <span class="ch">&#39;n&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;i&#39;</span> ,<span class="ch">&#39;s&#39;</span>, <span class="ch">&#39;n&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;s&#39;</span>, <span class="ch">&#39;i&#39;</span> ,<span class="ch">&#39;s&#39;</span>, <span class="ch">&#39;n&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;i&#39;</span>, <span class="ch">&#39;s&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;i&#39;</span> <span class="ch">&#39;s&#39;</span> <span class="ch">&#39;n&#39;</span>), (<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;h&#39;</span>, <span class="ch">&#39;i&#39;</span>, <span class="ch">&#39;s&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;i&#39;</span> <span class="ch">&#39;s&#39;</span> <span class="ch">&#39;n&#39;</span>), (<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]
-<span class="dt">Deep</span> [<span class="ch">&#39;t&#39;</span>, <span class="ch">&#39;h&#39;</span>, <span class="ch">&#39;i&#39;</span>, <span class="ch">&#39;s&#39;</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">&#39;i&#39;</span> <span class="ch">&#39;s&#39;</span> <span class="ch">&#39;n&#39;</span>), (<span class="dt">Node3</span> <span class="ch">&#39;o&#39;</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;a&#39;</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">&#39;t&#39;</span> <span class="ch">&#39;r&#39;</span> <span class="ch">&#39;e&#39;</span>)]) [<span class="ch">&#39;e&#39;</span>]</code></pre>
-<p>When I first saw the definition of <code>FingerTree</code> in the paper, I had no idea what was this all about, and tracing the structure while adding characters one by one helped me a lot. Notice that we have only one element in the right part. This is because we made all changes to the left part of the structure so right part remained unchanged.</p>
-<p><code>push_right</code> is just the mirror of <code>push_left</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addr ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
-addr <span class="dt">Empty</span> a                 <span class="fu">=</span> <span class="dt">Single</span> a
-addr (<span class="dt">Single</span> b) a            <span class="fu">=</span> <span class="dt">Deep</span> [b] <span class="dt">Empty</span> [a]
-addr (<span class="dt">Deep</span> pr m [e,b,c,d]) a <span class="fu">=</span> <span class="dt">Deep</span> pr (addr m (<span class="dt">Node3</span> e d c)) [b,a]
-addr (<span class="dt">Deep</span> pr m sf) a        <span class="fu">=</span> <span class="dt">Deep</span> pr m (sf <span class="fu">++</span> [a])</code></pre>
-<p>So, the structure of FingerTree’s and add operations should be clear now. To create FingerTrees from other collections, we need <code>fold</code> operations:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Foldable</span> <span class="dt">Node</span> <span class="kw">where</span>
-  <span class="fu">foldr</span> f z (<span class="dt">Node2</span> a b) <span class="fu">=</span> a <span class="ot">`f`</span> (b <span class="ot">`f`</span> z)
-  <span class="fu">foldr</span> f z (<span class="dt">Node3</span> a b c) <span class="fu">=</span> a <span class="ot">`f`</span> (b <span class="ot">`f`</span> (c <span class="ot">`f`</span> z))
-  <span class="fu">foldl</span> f z (<span class="dt">Node2</span> a b) <span class="fu">=</span> (z <span class="ot">`f`</span> a) <span class="ot">`f`</span> b
-  <span class="fu">foldl</span> f z (<span class="dt">Node3</span> a b c) <span class="fu">=</span> ((z <span class="ot">`f`</span> a) <span class="ot">`f`</span> b) <span class="ot">`f`</span> c
-<span class="kw">instance</span> <span class="kw">Foldable</span> <span class="dt">FingerTree</span> <span class="kw">where</span>
-  <span class="fu">foldr</span> _ z <span class="dt">Empty</span> <span class="fu">=</span> z
-  <span class="fu">foldr</span> f z (<span class="dt">Single</span> x) <span class="fu">=</span> x <span class="ot">`f`</span> z
-  <span class="fu">foldr</span> f z (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span>
-    <span class="fu">foldr</span> f (<span class="fu">foldr</span> (<span class="fu">flip</span> (<span class="fu">foldr</span> f)) (<span class="fu">foldr</span> f z sf) m) pr
-  <span class="fu">foldl</span> _ z <span class="dt">Empty</span> <span class="fu">=</span> z
-  <span class="fu">foldl</span> f z (<span class="dt">Single</span> x) <span class="fu">=</span> z <span class="ot">`f`</span> x
-  <span class="fu">foldl</span> f z (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span>
-    <span class="fu">foldl</span> f (<span class="fu">foldl</span> (<span class="fu">foldl</span> f) (<span class="fu">foldl</span> f z pr) m) sf</code></pre>
-<p><code>Foldable</code> typeclass is in <code>Data.Foldable</code> package. Only part that is not so trivial in this definitions is folding over a <code>Deep</code> structure. When we <code>foldr</code> over a <code>Deep</code> structure, we first <code>foldr</code> over it’s right part(<code>sf</code>), then <code>foldr</code> it over it’s subtree part, and then <code>foldr</code> it to right part. I don’t know how can I explain it more but if you inspect functions a little bit you’ll see that it’s just a recursive fold operation, and it really makes sense.</p>
-<p>With help of this fold functions, we define some helpers:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addl&#39; ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
-addl&#39; <span class="fu">=</span> <span class="fu">flip</span> <span class="fu">$</span> <span class="fu">foldr</span> addl
-<span class="ot">addr&#39; ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
-addr&#39; <span class="fu">=</span> <span class="fu">flip</span> <span class="fu">$</span> <span class="fu">foldl</span> addr</code></pre>
-<p>Those are not really necessary, just helpers. Now we can define a function to create FingerTrees from lists:</p>
-<pre><code>toTree :: [a] -&gt; FingerTree a
-toTree s = addl&#39; s Empty</code></pre>
-<p>So now we can create FingerTree from a String with just <code>toTree &quot;thisisnotatree&quot; Empty</code>. From now on, we need some operations to pop each side of the <em>deque</em> . For this, authors of the original paper use a structure called <code>view</code>. I’m not sure if I’d do it the same way, but I’ll stick with the authors’ idea.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">LeftView</span> s a <span class="fu">=</span> <span class="dt">LeftNil</span> <span class="fu">|</span> <span class="dt">LeftCons</span> a (s a)
-  <span class="kw">deriving</span> (<span class="kw">Show</span>)</code></pre>
-<p>With this structure, we can easily create <code>first</code> and <code>tail</code> operations of FingerTree. But first we need to convert our FingerTrees to LeftView:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">leftView ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">LeftView</span> <span class="dt">FingerTree</span> a
-leftView <span class="dt">Empty</span> <span class="fu">=</span> <span class="dt">LeftNil</span>
-leftView (<span class="dt">Single</span> x) <span class="fu">=</span> <span class="dt">LeftCons</span> x <span class="dt">Empty</span>
-leftView (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span> <span class="dt">LeftCons</span> (<span class="fu">head</span> pr) (leftDeep (<span class="fu">tail</span> pr) m sf)</code></pre>
-<p>This code is trivial other than the last part. It just splits our structure to <code>head</code> and <code>tail</code>. With this, we can work on finger trees just like we work on any list. In the last case, we are calling <code>leftDeep</code> on tail of the left part, this is because we don’t want our <code>tail</code> tree’s left part to be empty. So if we call <code>tail</code> with the tree with one element in it’s left part, we get a new tree, with a left part not empty:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">leftDeep ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> (<span class="dt">Node</span> a) <span class="ot">-&gt;</span> <span class="dt">Digit</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
-leftDeep [] m sf <span class="fu">=</span> <span class="kw">case</span> leftView m <span class="kw">of</span>
-                     <span class="dt">LeftNil</span>       <span class="ot">-&gt;</span> toTree sf
-                     <span class="dt">LeftCons</span> a m&#39; <span class="ot">-&gt;</span> <span class="dt">Deep</span> (toList a) m&#39; sf
-leftDeep pr m sf <span class="fu">=</span> <span class="dt">Deep</span> pr m sf</code></pre>
-<p>With the help of this view functions, we can easily define <code>head</code>, <code>tail</code> and <code>isEmpty</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">isEmpty ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">Bool</span>
-isEmpty x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span>
-              <span class="dt">LeftNil</span>      <span class="ot">-&gt;</span> <span class="kw">True</span>
-              <span class="dt">LeftCons</span> _ _ <span class="ot">-&gt;</span> <span class="kw">False</span>
-<span class="ot">leftHead ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> a
-leftHead x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span> <span class="dt">LeftCons</span> a _ <span class="ot">-&gt;</span> a
-<span class="ot">leftTail ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
-leftTail x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span> <span class="dt">LeftCons</span> _ x&#39; <span class="ot">-&gt;</span> x&#39;</code></pre>
-<p>And that’s it. I’m omitting definitions of <code>rightHead</code>, <code>rightTail</code> and right view functions because they’re just mirrors of lefts. Now let’s talk about efficiency. I’m not experienced in that stuff so don’t expect a detailed explanation :) .</p>
-<p>Since Haskell is a lazy language, when we call head function on left or right views, we only create head part of the view structures. <em>Deque</em> operations take more than constant time only when we have 4 elements in the left/right part of the tree. Also, changes affect next level of the tree only when we have 4 elements in the subtree’s left/right part. Which means, at most half of the operations descend to second level, and at most quarter of the operations descent to the third level. All of this gives us a great <em>deque</em> structure implemented as a FingerTree. You can refer to the paper for some detailed analysis :) .</p>
-<p>BTW, Haskell’s <code>Data.Sequence</code> is just a FingerTree, implemented by the paper’s authors. Next, we’ll implement a priority queue based on ideas explained in this post. I’ll also talk about monoids.</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>Digit name here used for compatibility with the paper.<a href="#fnref1">↩</a></p></li>
-</ol>
-</div>]]></summary>
 </entry>
 
 </feed>
