@@ -8,8 +8,27 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-04-17T00:00:00Z</updated>
+    <updated>2013-04-19T00:00:00Z</updated>
     <entry>
+    <title>On typing dynamic langs</title>
+    <link href="http://osa1.net/posts/2013-04-19-on-typing-dynamic-langs.html" />
+    <id>http://osa1.net/posts/2013-04-19-on-typing-dynamic-langs.html</id>
+    <published>2013-04-19T00:00:00Z</published>
+    <updated>2013-04-19T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p><a href="http://marijnhaverbeke.nl/blog/tern.html">This excellent post</a> on Tern’s internals reminded me of why I lost interest of my statically typed Lua project.</p>
+<p>I lost my interest in a program exponentially with the amount of hacky solutions it involves.</p>
+<p>I love Lua, it’s so simple but it is so powerful at the same time, without having any quirks most other dynamic languages have. But when it comes developing a type inference system for such a dynamic language, the result will have to contain a lot of hacks.</p>
+<p>Here’s a quote from Tern post, which explains handling dynamically extending objects:</p>
+<blockquote>
+<p>And now we’re off into dodgy hack land. In order to meet this challenge, Tern uses a special treatment for for/in loops that appear to be copying properties. When it encounters them, it assumes that the properties from the source object will be copied to the target object. It ignores control flow (conditionals and such) and simply copies all properties.</p>
+</blockquote>
+<p>Similar situation is applied to Lua and this is where I dropped my project. Basically, there is no way to give a type to an object without actually running the program to the point where completion is needed. But even then you can’t have completely correct type information because for instance, you may have a different object in second iteration of loop but your type inference system would be only run it for one iteration. Still, I think running a program in an isolated environment to the point where enough type information is acquired is the best way to infer types in dynamic languages.</p>
+<p>Accepting having a subset of Lua and forbidding object extensions in run-time is not a solution because then you can’t even use tables as, well, tables, rather than objects.</p>
+<p>The obvious solution is creating a new syntax for defining objects. That syntax should be allowed only in top-level of a file, ie. you can’t use object definition syntax inside of a function.</p>
+<p>But then a new language that is not Lua would be invented. I deliberately wanted to avoid this situation because in my opinion, it’s slightly missing the point of that kind of languages. I don’t like CoffeeScript’s additional compile step to my workflow. One nice property of dynamic languages is that we don’t have any visible intermediate steps between writing the source code and running it. All intermediate steps(parsing, compiling to some kind of byte-code, like Python does) are completely hidden to programmer.</p>
+<p>Maybe the problem is that I’m looking for a perfect solution which is not exists in reality. I’m not sure how can I overcome this problem, I don’t want to work on programs full of hacks in my free time(well, I don’t want to work on this kind of programs in <em>any</em> time, but doing that as a hobby is more unbearable).</p>]]></summary>
+</entry>
+<entry>
     <title>THREE.js axis helper</title>
     <link href="http://osa1.net/posts/2013-04-17-THREEjs-axis-helper.html" />
     <id>http://osa1.net/posts/2013-04-17-THREEjs-axis-helper.html</id>
@@ -918,16 +937,6 @@ Bu makalelerden benim çıkardığım en önemli şey şu oldu: Derleme zorluğu
 Polymorphic recordlar söz konusu olduğunda, bir recordda bir t tipinde bir labelın bulunduğunu veya bulunmadığını belirtmenin birden fazla yolu var. Kind seviyesinde tanımlayabilirsiniz ki kompleks bir kind tipi gerektirir(daha sonra bir de kindların well-formed olduğunu kontrol etmek gerekebiliyor, kind-inference algoritmaları falan var). Ohori&#39;nin makalelerinde bu kullanıyor sanırım. Direkt olarak row field tiplerine gerekli bilgiği yerleştirebilirsiniz ki Remy&#39;nin makalelerinde yapılan bu. Veya constraint oluşturabilirsiniz ki bu benim en sevdiğim yöntem, Jones&#39;un makalesinde kullanılmış(aslında _constraint_ değil de _predicate_ denmiş).
 
 Yani recordlar gibi elinizde nispeten kompleks bir tip olduğunda(en basitinden, label-type ikililerinden oluşan bir kümeden bahsediyoruz ve bazı makalelerdeki sistemlerde birden fazla label olabiliyor), teorik kısıtları ifade etmek için çeşitli yollar var ve elinizdeki mevcut sisteme hangisi daha iyi gidiyorsa onu seçme şansınız var. </code></pre>]]></summary>
-</entry>
-<entry>
-    <title>Quick Vim Tip: Disable cursorline</title>
-    <link href="http://osa1.net/posts/2013-01-16-quick-vim-tip-2.html" />
-    <id>http://osa1.net/posts/2013-01-16-quick-vim-tip-2.html</id>
-    <published>2013-01-16T00:00:00Z</published>
-    <updated>2013-01-16T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I wouldn’t believe how much this seemingly simple feature can affect rendering performance. Vim is being almost unusable when this is enabled. For more details, you can see <a href="https://github.com/dag/vim2hs/issues/28#issuecomment-12208866">my post</a> at vim2hs’s issue tracker.</p>
-<p>I used this feature for my entire life spent using vim, but after a few hours without it I realized I actually don’t need it.</p>
-<p>In short, disable <code>cursorline</code> (or <code>cul</code> for short) if your vim renders/highlights text too slow.</p>]]></summary>
 </entry>
 
 </feed>
