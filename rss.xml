@@ -8,8 +8,128 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-04-19T00:00:00Z</updated>
+    <updated>2013-04-24T00:00:00Z</updated>
     <entry>
+    <title>An interesting case of closures: is closed-over variable reference or value?</title>
+    <link href="http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html" />
+    <id>http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html</id>
+    <published>2013-04-24T00:00:00Z</published>
+    <updated>2013-04-24T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
+<p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
+<pre class="sourceCode JavaScript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>(<span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+    });
+}
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
+<p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
+<p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
+<p>Python also has this problem<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>:</p>
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
+
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
+    <span class="kw">def</span> callback():
+        <span class="kw">print</span> say
+    callbacks.append(callback)
+
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
+<p>This prints same wrong output as with JavaScript.</p>
+<p>Lua, my favorite dynamic language, does great:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">callbacks</span> <span class="ot">=</span> <span class="ot">{}</span>
+
+<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
+  <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;say &quot;</span> <span class="ot">..</span> <span class="kw">v</span><span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
+<span class="kw">end</span>
+
+<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">)</span> <span class="kw">do</span>
+  v<span class="ot">()</span>
+<span class="kw">end</span></code></pre>
+<p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
+  <span class="kw">where</span> callbacks <span class="fu">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
+<p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
+<p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
+<p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">&gt; <span class="kw">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> ]) { <span class="ot">console</span>.<span class="fu">log</span>(v); }
+<span class="dv">0</span>
+<span class="dv">1</span>
+<span class="dv">2</span>
+&gt; v
+<span class="st">&quot;2&quot;</span></code></pre>
+<p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
+<h1 id="fixing-it">Fixing it</h1>
+<p>Let’s fix that in JavaScript and Python.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>((<span class="kw">function</span> (say) {
+      <span class="kw">return</span> <span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+      }
+    })(say));
+}
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
+<p>Here we’re creating a new scope with function(remember the JavaScript module pattern?), and then passing <code>say</code> variable to it. This guarantees that we have <code>say</code> variable local to the function. Then in callback returned by wrapper function, we have a reference just like before, but it’s not shared with any other functions.</p>
+<p>In Python, there’s a cleaner way to do same thing:</p>
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
+
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
+    <span class="kw">def</span> callback(say=say):
+        <span class="kw">print</span> say
+    callbacks.append(callback)
+
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
+<p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
+<h1 id="breaking-it">Breaking it</h1>
+<p>Let’s have JavaScript’s behavior in Haskell:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Data.IORef
+
+printFromRef r <span class="fu">=</span> <span class="fu">putStrLn</span> <span class="fu">=&lt;&lt;</span> readIORef r
+
+mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
+    ref <span class="ot">&lt;-</span> newIORef w
+    r   <span class="ot">&lt;-</span> iter ref ws
+    <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
+  <span class="kw">where</span> iter ref []     <span class="fu">=</span> <span class="fu">return</span> []
+        iter ref (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
+          writeIORef ref w
+          cs <span class="ot">&lt;-</span> iter ref ws
+          <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
+
+main <span class="fu">=</span> <span class="kw">do</span>
+  callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
+  <span class="fu">sequence_</span> callbacks</code></pre>
+<p>The reason this code is that long is because we need to create and pass references explicitly.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>On typing dynamic langs</title>
     <link href="http://osa1.net/posts/2013-04-19-on-typing-dynamic-langs.html" />
     <id>http://osa1.net/posts/2013-04-19-on-typing-dynamic-langs.html</id>
@@ -889,54 +1009,6 @@ else
 end</code></pre>
 <p>(You can find you Vim’s built-in files’ folders by runing <code>:echo $VIMRUNTIME</code> inside Vim. On my machine, <code>ocaml.vim</code>s path is <code>/usr/share/vim/vim73/syntax/ocaml.vim</code>)</p>
 <p>Works great. It can be further simplified but requires a variable declaration and I don’t want to mess with Vim variables without understanding the consequences(scope rules etc.)</p>]]></summary>
-</entry>
-<entry>
-    <title>Okudukarım, okunacaklar</title>
-    <link href="http://osa1.net/posts/2013-02-12-okuduklarim-okunacaklar.html" />
-    <id>http://osa1.net/posts/2013-02-12-okuduklarim-okunacaklar.html</id>
-    <published>2013-02-12T00:00:00Z</published>
-    <updated>2013-02-12T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Son ciddi yazımdan beri epey vakit geçmiş. Henüz buradan duyuramadım ama, bir süredir 2. 14 haftalık stajımı yapıyorum. Detaylar için ayrı bir yazı yazmayı planlıyorum ama şimdilik türkiyedeki tek PLT işinde çalıştığımı söyleyebilirim sanırım(abartmış olabilirim, PLT üzerine çalışan insanlar varsa söyleyin, ben de merak ediyorum). Birkaç ay önce imkansız gibi gözüken bazı şeylerin bu kadar çabuk normalleşmesi ne garip.</p>
-<p>Neyse, kısaca şu anda üzerinde çalıştığım proje için okuduğum ve okumakta olduğum makalelerden bahsedeceğim biraz.</p>
-<h2 id="okuduklarım">Okuduklarım</h2>
-<pre><code>* A polymorphic modal type system for lisp-like multi-staged languages.
-
-Multi-staged programming ile tanıştığım makale bu oldu. Aslında giriş için hiç iyi bir makale değil, kullandığı dil çok büyük, bir tam kolon big-step [operational semantics](http://en.wikipedia.org/wiki/Operational_semantics) verilmiş. Tip ve çıkarım kuralları da buna bağlı olarak kompleks.
-
-Multi-staged programming&#39;i kısaca Lisp macroları benzeri bir meta-programming araçları gibi düşünebiliriz. Daha detaylı bilgiyi üzerinde çalıştığım yorumlayıcı bittiğinde, kendisi ile örneklerle vermek istiyorum. Şimdilik şöyle özet geçebilirim: Programların çalıştırılması birden fazla stage&#39;e ayrılmış oluyor ve her iki stage arası bir miktar evaluation yapılıyor. Örnek olarak bir matris çarpımı yapacaksanız, matrislerin uzunluğu belli olduğunda bir miktar evaluation yaparak matris uzunluk kontrolü ve iterasyon içermeyen, girdi olarak verdiğiniz iki matris boyutundaki matrisler için çarpma yapan bir kod üretebilirsiniz. Daha sonra çarpma işlemi nispeten daha hızlı olacaktır.
-
-Bir miktar [partial evaluation](http://en.wikipedia.org/wiki/Partial_evaluation) ile de alakalı. Partial evaluation çok fantastik bir konu, bu yazıyı okuyan herkesin en azından wikipedia sayfasına bakmasını tavsiye ederim(özellikle Futamura projections kısmı fantastik).
-
-* Static analysis of multi-staged programs via unstaging translation.
-
-Multi-staged programların statik analizlerinin daha zor olduğu gözlemlendikten sonra, multi-staged bir programın anlam korunarak unstaged bir hale tercüme edilebileceğinin farkedilmesi üzerine, multi-staged programların bu tercüme ile statik olarak analiz edilebileceğini söylüyor. Staged expressionlar bir çeşit record-calculus(lambda calculus + recordlar)a tercüme ediliyor ve statik tip sistemi verilmiş.
-
-Bir önceki makaledekine göre çok küçük bir multi-staged dil tanımlıyor ve bu yüzden okuması/anlaması daha kolay. Tip sistemi de daha az farklı olduğundan(hatta makalede tip sistemi anlamında yeni birşey yok) onun da anlaşılması daha kolay olabilir. (benim için farketmedi, benzer bir tip sistemi üzerinde hiç çalışmamıştım)
-
-Tercüme sonrası analizler, tercüme öncesindeki hal ile eşleştiriliyor.
-
-
-* A modern eye on ML type inference.
-
-Damas-Hindley-Milner tip sisteminin bir özeti niteliğinde. Pek çok detay bilindiği varsayılarak atlanmış, ve 2. ve 3. bölümleri &quot;gelecek&quot; denmesine rağmen, 2005&#39;den beri, gelmemiş.
-
-Tip çıkarımından bahsedildikten sonra, constraint solving ile alakasından bahsediyor. W ve J algoritmaları ve parametrik HM(X) algoritmasından bahsediliyor. Tip çıkarımı ile constraint oluşturma/çözme arasındaki ilişkiyi anlamak için çok iyi.
-
-Hatırladığım bir başka güzel yanı da constraint oluşturma ve çözme kısımlarının nasıl birbirlerinden ayrılabileceği ve bunun getirdiklerinden bahsetmesiydi. Ayrıca constraintler yardımıyla çıkarımı polymorphism&#39;i anlatmadan önce anlatması da ayrı bir güzellik bence.
-
-* Record polymorphism yazıları
-
-Refined subtyping and row variables for record types(Didier Remy), Type inference for records in a natural extension of ML(Didier Remy), Extensible records with scoped labels(Daan Leijen), A polymorphic type system for extensible records and variants(Gaster, Jones)
-
-Hepsini tamamen okumasam da, bir göz gezdirdim. Leijen makalesi özellikle çok hoş ve okuması kolay. [Elm](http://elm-lang.org/) dilinin [recordları](http://elm-lang.org/blog/announce/version-0.7.elm) temel olarak bu makalede anlatılanların bir implementasyonu. Ben de başka bir projem için benzer bir record yapısı planlıyorum.
-
-Bu makalelerden benim çıkardığım en önemli şey şu oldu: Derleme zorluğu önemsenmediğinde, çok güzel record tipleri elde etmek mümkün.
-
-İkinci olarak, aynı kısıtları tanımlamanın farklı yolları var ve çoğu zaman &quot;en iyi&quot; diyebileceğimiz bir yola sahip değiliz. Duruma göre alternatifleri değerlendirmek zorundayız.
-
-Polymorphic recordlar söz konusu olduğunda, bir recordda bir t tipinde bir labelın bulunduğunu veya bulunmadığını belirtmenin birden fazla yolu var. Kind seviyesinde tanımlayabilirsiniz ki kompleks bir kind tipi gerektirir(daha sonra bir de kindların well-formed olduğunu kontrol etmek gerekebiliyor, kind-inference algoritmaları falan var). Ohori&#39;nin makalelerinde bu kullanıyor sanırım. Direkt olarak row field tiplerine gerekli bilgiği yerleştirebilirsiniz ki Remy&#39;nin makalelerinde yapılan bu. Veya constraint oluşturabilirsiniz ki bu benim en sevdiğim yöntem, Jones&#39;un makalesinde kullanılmış(aslında _constraint_ değil de _predicate_ denmiş).
-
-Yani recordlar gibi elinizde nispeten kompleks bir tip olduğunda(en basitinden, label-type ikililerinden oluşan bir kümeden bahsediyoruz ve bazı makalelerdeki sistemlerde birden fazla label olabiliyor), teorik kısıtları ifade etmek için çeşitli yollar var ve elinizdeki mevcut sisteme hangisi daha iyi gidiyorsa onu seçme şansınız var. </code></pre>]]></summary>
 </entry>
 
 </feed>

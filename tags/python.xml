@@ -8,8 +8,128 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2012-03-23T00:00:00Z</updated>
+    <updated>2013-04-24T00:00:00Z</updated>
     <entry>
+    <title>An interesting case of closures: is closed-over variable reference or value?</title>
+    <link href="http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html" />
+    <id>http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html</id>
+    <published>2013-04-24T00:00:00Z</published>
+    <updated>2013-04-24T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
+<p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
+<pre class="sourceCode JavaScript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>(<span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+    });
+}
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
+<p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
+<p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
+<p>Python also has this problem<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>:</p>
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
+
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
+    <span class="kw">def</span> callback():
+        <span class="kw">print</span> say
+    callbacks.append(callback)
+
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
+<p>This prints same wrong output as with JavaScript.</p>
+<p>Lua, my favorite dynamic language, does great:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">callbacks</span> <span class="ot">=</span> <span class="ot">{}</span>
+
+<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
+  <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;say &quot;</span> <span class="ot">..</span> <span class="kw">v</span><span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
+<span class="kw">end</span>
+
+<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">)</span> <span class="kw">do</span>
+  v<span class="ot">()</span>
+<span class="kw">end</span></code></pre>
+<p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
+  <span class="kw">where</span> callbacks <span class="fu">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
+<p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
+<p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
+<p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">&gt; <span class="kw">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> ]) { <span class="ot">console</span>.<span class="fu">log</span>(v); }
+<span class="dv">0</span>
+<span class="dv">1</span>
+<span class="dv">2</span>
+&gt; v
+<span class="st">&quot;2&quot;</span></code></pre>
+<p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
+<h1 id="fixing-it">Fixing it</h1>
+<p>Let’s fix that in JavaScript and Python.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>((<span class="kw">function</span> (say) {
+      <span class="kw">return</span> <span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+      }
+    })(say));
+}
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
+<p>Here we’re creating a new scope with function(remember the JavaScript module pattern?), and then passing <code>say</code> variable to it. This guarantees that we have <code>say</code> variable local to the function. Then in callback returned by wrapper function, we have a reference just like before, but it’s not shared with any other functions.</p>
+<p>In Python, there’s a cleaner way to do same thing:</p>
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
+
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
+    <span class="kw">def</span> callback(say=say):
+        <span class="kw">print</span> say
+    callbacks.append(callback)
+
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
+<p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
+<h1 id="breaking-it">Breaking it</h1>
+<p>Let’s have JavaScript’s behavior in Haskell:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Data.IORef
+
+printFromRef r <span class="fu">=</span> <span class="fu">putStrLn</span> <span class="fu">=&lt;&lt;</span> readIORef r
+
+mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
+    ref <span class="ot">&lt;-</span> newIORef w
+    r   <span class="ot">&lt;-</span> iter ref ws
+    <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
+  <span class="kw">where</span> iter ref []     <span class="fu">=</span> <span class="fu">return</span> []
+        iter ref (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
+          writeIORef ref w
+          cs <span class="ot">&lt;-</span> iter ref ws
+          <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
+
+main <span class="fu">=</span> <span class="kw">do</span>
+  callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
+  <span class="fu">sequence_</span> callbacks</code></pre>
+<p>The reason this code is that long is because we need to create and pass references explicitly.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>Micro-Manual for Lisp in Python</title>
     <link href="http://osa1.net/posts/2012-03-23-micro-manual-lisp-python.html" />
     <id>http://osa1.net/posts/2012-03-23-micro-manual-lisp-python.html</id>
@@ -489,30 +609,6 @@ Segmentation fault</code></pre>
 <h2 id="vim-hakkında">VIM hakkında</h2>
 <p>Vim hakkında da birkaç birşey söyleyeyim hazır IDE/Editor muhabbetine girmişken. Yaklaşık 7-8 aydır(sanırım) Vim kullanıyorum, ve şu dakikadan sonra Vim’siz hiçbir şey yazamaz oldum. Maillerimi Vim ile yazıyorum(sylpheed), bloga yazıları Vim ile giriyorum(kendi eklentim), Eclipse’de <a href="http://www.viplugin.com/viplugin/">Vim eklentisi</a> kullanıyorum(o olmasa Eclipse kullanamazdım), Lisp ile uğraştığımda, Emacs kullanmam gerekiyor ve Emacs’i <a href="http://www.emacswiki.org/emacs-es/Vimpulse">vimpulse</a> ile kullanıyorum. Şöyle iyi böyle güzel diye anlatmayacağım, resmen bağımlı oldum. Arkadaşların, normal IDE/Editorlerde nasıl yazdıklarını görünce duygulu anlar yaşıyorum.</p>
 <p>Bu yüzden IDE seçerken dikkat ettiğim konulardan biri de Vim desteği(veya eklentileri) oluyor. Eclipse o açıdan(viPlugin sağolsun) çok başarılı. Söz konusu Java olduğunda düşünüyorum da, Eclipse olmasa herhalde hiçbir şey yazamazdım.(bu arada WingIDE Vim tuşlarını destekliyormuş, ne kadar başarılıdır bilmiyorum)</p>]]></summary>
-</entry>
-<entry>
-    <title>Pygame ve basit bir fizik motoru 2, çarpışma tespiti ve yansıma</title>
-    <link href="http://osa1.net/posts/2011-04-11-pygame-ve-basit-bir-fizik-motoru-2-carpisma-tespiti-ve-yansima.html" />
-    <id>http://osa1.net/posts/2011-04-11-pygame-ve-basit-bir-fizik-motoru-2-carpisma-tespiti-ve-yansima.html</id>
-    <published>2011-04-11T00:00:00Z</published>
-    <updated>2011-04-11T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Geçen yazıda <a href="http://www.wildbunny.co.uk/blog/2011/04/06/physics-engines-for-dummies/">şurdaki</a> örnekleri Pygame’de yazmaya çalıştığımdan bahsetmiştim ve ilk örnek için mouse pozisyonuna göre yönü ayarlanabilen bir çerçeve çizmek için birkaç bilgi vermiştim(kaynaklar github’da).</p>
-<p>Bugün çarpışma tespiti ve yansımaları da hallettim. Çarpışma tespiti için çok fazla yöntem var, ben Stack Overflow’da gördüğüm <a href="http://stackoverflow.com/questions/1073336/circle-line-collision-detection">şu yazıdakilerden</a> birinden esinlendim.</p>
-<p>Yaptığım şey kısaca şu:</p>
-<p>vm1, çarpacak cismimizin merkezinden, 1. yüzeyin merkezine vektör olsun. m1b, 1. yüzeyin merkezinden düzlem merkezini gösteren birim vektör olsun vm1’in m1b izdüşümü(<a href="http://en.wikipedia.org/wiki/Vector_projection">projection</a>) yeterince küçükse(örneğin cisim topsa, yarıçapından küçükse), çarpışacaklar demektir.</p>
-<p>Kendi yazdığım Vector sınıfıyla beraber kod şöyle birşey oluyor:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> <span class="dt">abs</span>((m1b*vm1.dot_product(m1b)).length) &lt; <span class="dv">5</span>:
-        <span class="co"># carpisma!</span></code></pre>
-<p>Bu yöntemi başka bir yöntemden esinlenerek kendim ürettiğimden, pek sağlıklı olmayabilir. Bu uygulama için gayet güzel çalışıyor ama. Zaten çarptıracağınız yüzeye ve çarpan cisme göre farklı algoritmalar daha mantıklı oluyor.</p>
-<p>Yansıma için de <a href="http://pfirth.co.uk/Reflection.html">reflection vector</a> kullandım. Şöyle birşey:</p>
-<p>R = V - 2<em>N</em>(V DOT N) . Bizim şartlar altında, R yansıyan hız vektörü, V gelen hız, N de yüzeyin normal vektörü. Yine kendi yazdığım Vector sınıfımla beraber şöyle birşey yani:</p>
-<pre class="sourceCode python"><code class="sourceCode python">ref_v = v_hiz - m1b*<span class="dv">2</span>*(v_hiz.dot_product(m1b))</code></pre>
-<p>Programdaki küçük(ya da bir daha düşündüm de, büyük) hata ise, toplar yüzeylere çarpmak üzereyken yüzeyleri hareket ettirirseniz, toplar alandan dışarı çıkıyorlar. Ekranın dışına çıktıklarında diğer taraftan tekrar girmelerini sağladığımdan, tekrardan alan içerisine alabiliyorum, ehaeuhe. Neden olduğu hakkında az da olsa fikrim var, bir şekilde çözeceğiz artık.</p>
-<div class="figure">
-<img src="/images/collision.png" />
-</div>
-<p>Bundan sonra 3. örnek, zıplayan toplar var. Önce topların alandan dışarı çıkmasını engellemeye çalışacağım sanırım.</p>
-<p>Bu arada tüm kodlar <a href="http://github.com/osa1">github</a>’da.</p>]]></summary>
 </entry>
 
 </feed>

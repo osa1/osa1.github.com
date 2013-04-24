@@ -1,21 +1,26 @@
-<?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
-    <title>osa1.net - Posts tagged javascript</title>
-    <link href="http://osa1.net/tags/javascript.xml" rel="self" />
-    <link href="http://osa1.net" />
-    <id>http://osa1.net/tags/javascript.xml</id>
-    <author>
-        <name>Ömer Sinan Ağacan</name>
-        <email>omeragaca@gmail.com</email>
-    </author>
-    <updated>2013-04-24T00:00:00Z</updated>
-    <entry>
-    <title>An interesting case of closures: is closed-over variable reference or value?</title>
-    <link href="http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html" />
-    <id>http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html</id>
-    <published>2013-04-24T00:00:00Z</published>
-    <updated>2013-04-24T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - An interesting case of closures: is closed-over variable reference or value?</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">An interesting case of closures: is closed-over variable reference or value?</h1>
+
+<p><strong>April 24, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/ocaml.html">ocaml</a>, <a href="../tags/lua.html">lua</a>, <a href="../tags/javascript.html">javascript</a>, <a href="../tags/python.html">python</a>.</p>
+
+<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
 <pre class="sourceCode JavaScript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
 <span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
@@ -69,7 +74,7 @@ main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
 &gt; v
 <span class="st">&quot;2&quot;</span></code></pre>
 <p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
-<h1 id="fixing-it">Fixing it</h1>
+<h2 id="fixing-it">Fixing it</h2>
 <p>Let’s fix that in JavaScript and Python.</p>
 <pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
 <span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
@@ -99,7 +104,7 @@ main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
 <span class="kw">for</span> c in callbacks:
     c()</code></pre>
 <p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
-<h1 id="breaking-it">Breaking it</h1>
+<h2 id="breaking-it">Breaking it</h2>
 <p>Let’s have JavaScript’s behavior in Haskell:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
@@ -127,65 +132,23 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <ol>
 <li id="fn1"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1">↩</a></p></li>
 </ol>
-</div>]]></summary>
-</entry>
-<entry>
-    <title>Life.js - Javascript + DOM ile Game of Life</title>
-    <link href="http://osa1.net/posts/2011-08-22-life-js---javascript-dom-ile-game-of-life.html" />
-    <id>http://osa1.net/posts/2011-08-22-life-js---javascript-dom-ile-game-of-life.html</id>
-    <published>2011-08-22T00:00:00Z</published>
-    <updated>2011-08-22T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Life.js, Javascript ile yazılmış basit bir Conway’s Game of Life oyunu(ya da adı her neyse işte).</p>
-<p>Geçen hafta kurcalamaya başladığım Javascript ile dün yazdım. Amacım basit birkaç şey yazarak Javascript’i az da olsa anlayabilmekti. Grid’i çizdirmek ve hareketler için DOM ile, bir tablo çizdiriyorum ve tablodaki alanların arkaplan renklerini değiştiriyorum.</p>
-<p>Aşağıdaki gibi, sayfanızın istediğiniz herine Game of Life gridi koyup, istediğiniz hücreleri canlandırabilirsiniz,</p>
-<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;lifegrid&quot;</span><span class="ot"> style=</span><span class="st">&quot;height: 300px;&quot;</span><span class="kw">&gt;&lt;/div&gt;</span>
-<span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;life.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span>
-<span class="kw">&lt;script&gt;</span>
-    <span class="kw">var</span> opts = {<span class="st">&#39;height&#39;</span>: <span class="dv">9</span>,
-                <span class="st">&#39;width&#39;</span>: <span class="dv">22</span>};
-<span class="er">    var life = new Life(opts);</span>
-<span class="er">    life.revive(life.grid, 3, 4);</span>
-<span class="er">    life.revive(life.grid, 4, 4);</span>
-<span class="er">    life.revive(life.grid, 5, 4);</span>
-<span class="er">    life.revive(life.grid, 6, 4);</span>
-<span class="er">    life.revive(life.grid, 7, 4);</span>
-<span class="er">    life.revive(life.grid, 8, 4);</span>
-<span class="er">    life.revive(life.grid, 9, 4);</span>
-<span class="er">    life.revive(life.grid, 10, 4);</span>
-<span class="er">    life.revive(life.grid, 11, 4);</span>
-<span class="er">    life.revive(life.grid, 12, 4);</span>
-<span class="er">    life.drawTable(document.getElementById(&quot;lifegrid&quot;));</span>
-<span class="er">    life.run();</span>
-<span class="kw">&lt;/script&gt;</span></code></pre>
-<p>Ya da rastgele oluşturulmuş bir oyun(yeniden oluşturmak için üstüne tıklayın):</p>
-<script src="http://osa1.net/media/javascript/life.js"></script>
-<div id="lifegrid2" style="height: 300px;"></div>
-<script>
-    var opts = {'height': 30,
-                'width': 30};
-    var life = new Life(opts);
-    life.fillRandom();
-    life.drawTable(document.getElementById("lifegrid2"));
-    life.run();
+</div>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
 </script>
 
-
-
-
-<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;lifegrid&quot;</span><span class="kw">&gt;&lt;/div&gt;</span>
-<span class="kw">&lt;script&gt;</span>
-    <span class="kw">var</span> opts = {<span class="st">&#39;height&#39;</span>: <span class="dv">30</span>,
-                <span class="st">&#39;width&#39;</span>: <span class="dv">30</span>};
-<span class="er">    var life = new Life(opts);</span>
-<span class="er">    life.fillRandom();</span>
-<span class="er">    life.drawTable(document.getElementById(&quot;lifegrid&quot;));</span>
-<span class="er">    life.run();</span>
-<span class="kw">&lt;/script&gt;</span></code></pre>
-<p>Henüz Javascript konusunda bir karara varamadım. Bir süre daha kurcalamaya devam edeceğim sanırım. Web programlama/tasarım olaylarından hiç hoşlanmayan biri olarak, Javascript’e başlama sebebim, neden sürekli farkı dillerden Javascript’e derleyicilerin yazıldığını(CoffeeScript, ClojureScript, Pyjamas, HaXe) ve <a href="http://bellard.org/jslinux/">Javascript içerisinde Linux</a> veya <a href="http://hell.student.utwente.nl/paratrooper/">Javascript PC emulator</a> gibi uygulamaların nasıl ve neden yapıldığını, V8, Node.js tarayıcı eklentileri ve DOM gibi şeyleri az da olsa anlayabilmekti. DOM kısmı hariç henüz amacıma yaklaşamadım diyebilirim.</p>
-<p>DOM kısmı işin en kolayı diyebilirim(ya da en azından başlangıç seviyesinde öyle gözüküyor). Daha önceden XML parse etmekle vs. uğraştıysanız muhtemelen yabancılık çekmeyeceksiniz. DOM öğrenmenin en eğlenceli yolu, bence, rastgele sayfaları açıp, resimler veya içeriği başka şeylerle değiştirmek, butonlar vb. şeyler eklemek. HTML konusunda iyi olmadığımdan çok fazla birşey yapamadım ama en azından Google logosu yerine lolcat veya osa1 logosu koymak güzel oluyor(<code>$('hplogo').style.cssText += &quot;background-image: url(http://osa1.net/media/logo.png)&quot;</code> :)</p>
-<p><a href="http://osa1.net/media/javascript/life.js">Şurdan</a> indirebilirsiniz. Javascript ile yazdığım ilk uygulamam olmasından ve öğrenmem + uygulamayı yazmamın toplam 4-5 akşam sürmesinden dolayı, kod iyi bir Javascript kodu sayılmaz muhtemelen. Tüm tarayıcılarda da çalışmayabilir(hatta içimden bir ses IE’de çalışmayacağını söylüyor nedense, test etme şansım yok), Firefox ve Chromium ile çalışıyor en azından. Onun dışında Javascript’de OOP konusunu hala tam olarak çözebilmiş değilim(prototype’lar hakkında kafama yatmayan birkaç şey, private methodların nasıl uygulanabileceği vs.). Onun dışında JSLint’de bir sürü uyarı veriyor ama henüz neden JSLint’i dinlemem gerektiğini bilmediğimden pek bir çaba sarfetmedim açıkçası.</p>
-<p>Kaynak olarak ağırlıklı olarak <a href="http://www.amazon.com/JavaScript-Good-Parts-Douglas-Crockford/dp/0596517742/ref=sr_1_1?ie=UTF8&amp;qid=1314040474&amp;sr=8-1">Javascript: The Good Parts</a> kullandım. Javascript gibi bir sürü ilk bakışta anlamsız gelen(ve çoğunun gerçekten anlamsız olduğu(inner fonksiyonlardaki <code>this</code> referansı, namespace problemleri, <code>new</code> keywordunun kullanımı vs.)) özelliklere sahip bir dili öğrenmek için mükemmel bir kitap(programlamaya yeni başlayanlar için değil). Onun dışında DOM ve eventlar hakkında <a href="http://eloquentjavascript.net/">Eloquent Javascript</a>’e başvurdum. Bu aşamadan sonra sanırım <a href="http://www.yuiblog.com/crockford/">Douglas Crockford’un Javascript videoları</a>nı izleyip, birkaç uygulama daha yazacağım. Daha sonra hoşuma giderse Javascript ile devam edebilirim.</p>
-<p>Genel olarak programlama dilleri ve implementasyonları çok ilgimi çekiyor ve herhangi bir farklı özellik/yöntem için yeni bir programlama dili öğrenebilirim. Python ile başlayıp, dersler gereği Java, C, C++, daha sonra Common Lisp, Clojure ve şimdi de Javascript ile devam eden programlama dilleri maceram hakkında bir yazı yazıyorum. Eğer bitirip, sonuçtan memnun kalırsam herhande birkaç gün içinde ekleyeceğim.</p>]]></summary>
-</entry>
-
-</feed>
+            </div>
+        </div>
+    </body>
+</html>

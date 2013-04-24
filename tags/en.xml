@@ -8,8 +8,128 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-04-19T00:00:00Z</updated>
+    <updated>2013-04-24T00:00:00Z</updated>
     <entry>
+    <title>An interesting case of closures: is closed-over variable reference or value?</title>
+    <link href="http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html" />
+    <id>http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html</id>
+    <published>2013-04-24T00:00:00Z</published>
+    <updated>2013-04-24T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
+<p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
+<pre class="sourceCode JavaScript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>(<span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+    });
+}
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
+<p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
+<p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
+<p>Python also has this problem<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>:</p>
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
+
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
+    <span class="kw">def</span> callback():
+        <span class="kw">print</span> say
+    callbacks.append(callback)
+
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
+<p>This prints same wrong output as with JavaScript.</p>
+<p>Lua, my favorite dynamic language, does great:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">callbacks</span> <span class="ot">=</span> <span class="ot">{}</span>
+
+<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
+  <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;say &quot;</span> <span class="ot">..</span> <span class="kw">v</span><span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
+<span class="kw">end</span>
+
+<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">)</span> <span class="kw">do</span>
+  v<span class="ot">()</span>
+<span class="kw">end</span></code></pre>
+<p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
+  <span class="kw">where</span> callbacks <span class="fu">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
+<p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
+<p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
+<p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">&gt; <span class="kw">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> ]) { <span class="ot">console</span>.<span class="fu">log</span>(v); }
+<span class="dv">0</span>
+<span class="dv">1</span>
+<span class="dv">2</span>
+&gt; v
+<span class="st">&quot;2&quot;</span></code></pre>
+<p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
+<h1 id="fixing-it">Fixing it</h1>
+<p>Let’s fix that in JavaScript and Python.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>((<span class="kw">function</span> (say) {
+      <span class="kw">return</span> <span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+      }
+    })(say));
+}
+
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
+<p>Here we’re creating a new scope with function(remember the JavaScript module pattern?), and then passing <code>say</code> variable to it. This guarantees that we have <code>say</code> variable local to the function. Then in callback returned by wrapper function, we have a reference just like before, but it’s not shared with any other functions.</p>
+<p>In Python, there’s a cleaner way to do same thing:</p>
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
+
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
+    <span class="kw">def</span> callback(say=say):
+        <span class="kw">print</span> say
+    callbacks.append(callback)
+
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
+<p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
+<h1 id="breaking-it">Breaking it</h1>
+<p>Let’s have JavaScript’s behavior in Haskell:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Data.IORef
+
+printFromRef r <span class="fu">=</span> <span class="fu">putStrLn</span> <span class="fu">=&lt;&lt;</span> readIORef r
+
+mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
+    ref <span class="ot">&lt;-</span> newIORef w
+    r   <span class="ot">&lt;-</span> iter ref ws
+    <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
+  <span class="kw">where</span> iter ref []     <span class="fu">=</span> <span class="fu">return</span> []
+        iter ref (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
+          writeIORef ref w
+          cs <span class="ot">&lt;-</span> iter ref ws
+          <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
+
+main <span class="fu">=</span> <span class="kw">do</span>
+  callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
+  <span class="fu">sequence_</span> callbacks</code></pre>
+<p>The reason this code is that long is because we need to create and pass references explicitly.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>On typing dynamic langs</title>
     <link href="http://osa1.net/posts/2013-04-19-on-typing-dynamic-langs.html" />
     <id>http://osa1.net/posts/2013-04-19-on-typing-dynamic-langs.html</id>
@@ -612,65 +732,6 @@ end</code></pre>
 </div>
 <p>How does it work: <code>bg</code> and <code>fg</code> are two special variables that will be set by vim automagically whenever you set <code>Normal</code> colors by calling <code>:highlight Normal [options]</code> and all colorschemes do that because that’s the way to set vim’s background color and default text color.</p>
 <p><code>autocmd Colorscheme *</code> makes this command run whenever you set your colorscheme by calling <code>:colorscheme ...</code> command. And now you have clear left margin. Enjoy.</p>]]></summary>
-</entry>
-<entry>
-    <title>Getting different distributions out of uniform distribution</title>
-    <link href="http://osa1.net/posts/2012-12-19-different-distributions-from-uniform.html" />
-    <id>http://osa1.net/posts/2012-12-19-different-distributions-from-uniform.html</id>
-    <published>2012-12-19T00:00:00Z</published>
-    <updated>2012-12-19T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I don’t know much about statistics and distributions, but I needed some differently distributed pseudo-random numbers for a project I’m working on.</p>
-<p>I think most programming languages have a pseudo-random number generator, and that generators probably generate <a href="http://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">uniformly-distributed</a> pseudo-randoms. I’m using Lua and Lua’s <a href="http://www.lua.org/manual/5.2/manual.html#pdf-math.random">math.random</a> generates pretty much uniformly distributed numbers:</p>
-<div class="figure">
-<img src="/images/distroyazi/uniformdistro.png" />
-</div>
-<p>It’s written in Lua’s manual(link is given above) that it’s statistical properties cannot be guaranteed. It still works fine for my purposes as a uniformly distributed number generator.</p>
-<p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
-<p>I also read some discussions on why one shouldn’t use that, and instead move to other methods like <a href="http://en.wikipedia.org/wiki/Ziggurat_algorithm">Ziggurat algorithm</a>(and some other I can’t remember now), but I think Box-Muller method is easy to implement and works fine for my purposes, so I’m using it now:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> box_muller<span class="ot">()</span>
-    <span class="kw">return</span> <span class="kw">math</span><span class="ot">.</span>sqrt<span class="ot">(-</span><span class="dv">2</span> <span class="ot">*</span> <span class="fu">math.log</span><span class="ot">(</span><span class="fu">math.random</span><span class="ot">()))</span> <span class="ot">*</span> <span class="fu">math.cos</span><span class="ot">(</span><span class="dv">2</span> <span class="ot">*</span> <span class="kw">math</span><span class="ot">.</span><span class="kw">pi</span> <span class="ot">*</span> <span class="fu">math.random</span><span class="ot">())</span> <span class="ot">/</span> <span class="dv">2</span>
-<span class="kw">end</span></code></pre>
-<p>This function returns numbers in range [-1,1]. I’m using it with some code like that:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> <span class="kw">dev</span> <span class="ot">=</span> <span class="dv">100</span>
-<span class="kw">local</span> <span class="kw">rand</span> <span class="ot">=</span> box_muller<span class="ot">()</span>
-<span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">rand</span> <span class="ot">*</span> <span class="kw">dev</span> <span class="ot">+</span> <span class="kw">myLimit</span><span class="ot">/</span><span class="dv">2</span><span class="ot">)</span></code></pre>
-<p>Here the variable <code>dev</code> stands for <a href="http://en.wikipedia.org/wiki/Standard_deviation">standard deviation</a>, though note that it’s value is not <em>standard deviation</em>, but just a value to play with to set standard deviation. I don’t know how can I set standard deviation with Box-Muller method. By playing this value you can get distributions with different standard deviations.</p>
-<div class="figure">
-<img src="/images/distroyazi/normaldistro.png" />
-</div>
-<p>I also generated two custom distributions, I don’t know if people gave them any special names, first one is this:</p>
-<div class="figure">
-<img src="/images/distroyazi/customdistro.png" />
-</div>
-<p>I think this is a very useful one, this means that if I give some <em>actions</em> in my game different numbers depending on their <em>priority</em> and use this random number generator, I get numbers of actions with more priority more than the ones with less priority. Here’s the code:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
-    <span class="kw">while</span> <span class="kw">true</span> <span class="kw">do</span>
-        <span class="kw">local</span> <span class="kw">r1</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
-        <span class="kw">local</span> <span class="kw">r2</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
-        <span class="kw">if</span> <span class="ot">(</span><span class="kw">r2</span> <span class="ot">&lt;</span> <span class="kw">r1</span><span class="ot">)</span> <span class="kw">then</span>
-            <span class="kw">return</span> <span class="kw">r1</span>
-        <span class="kw">end</span>
-    <span class="kw">end</span>
-<span class="kw">end</span></code></pre>
-<p>Last one is similar:</p>
-<div class="figure">
-<img src="/images/distroyazi/customdistro2.png" />
-</div>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
-    <span class="kw">local</span> <span class="kw">rate</span> <span class="ot">=</span> <span class="dv">3</span>
-    <span class="kw">local</span> <span class="kw">r</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">500</span><span class="ot">^</span><span class="kw">rate</span><span class="ot">)</span>
-    <span class="fu">print</span><span class="ot">(</span><span class="kw">r</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">r</span><span class="ot">^(</span><span class="dv">1</span><span class="ot">/</span><span class="kw">rate</span><span class="ot">))</span>
-<span class="kw">end</span></code></pre>
-<p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup>.</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>and you may even have a <a href="http://en.wikipedia.org/wiki/Perlin_noise">Perlin noise</a> <a href="http://processing.org/reference/noise_.html">generator</a> too!<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>For those interested: It’s <a href="http://love2d.org">Love2d</a>. Recently(while working on this code) I realized that Love2d is not a Lua library, but a complete C++ program that has Lua interpreter. In most cases you can’t see the difference but there are some edge cases like I mentioned above that makes your program runs fine with Lua, but fails with Love2d programs.<a href="#fnref2">↩</a></p></li>
-</ol>
-</div>]]></summary>
 </entry>
 
 </feed>
