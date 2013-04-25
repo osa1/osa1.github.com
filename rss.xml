@@ -8,8 +8,60 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-04-24T00:00:00Z</updated>
+    <updated>2013-04-25T00:00:00Z</updated>
     <entry>
+    <title>Weirdest bug</title>
+    <link href="http://osa1.net/posts/2013-04-25-weirdest-bug.html" />
+    <id>http://osa1.net/posts/2013-04-25-weirdest-bug.html</id>
+    <published>2013-04-25T00:00:00Z</published>
+    <updated>2013-04-25T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Haskell implementation of Shen is stuck because of some weird bugs. I think most of them are related with lazy io.</p>
+<p>Weird bug #1: Print functions print not when they’re called, but at some later time. This causes Shen repl to take some input, and then print prompt line:</p>
+<pre><code>(+ 1 2)
+(0.0-) 3.0</code></pre>
+<p>Shen REPL is defined in KLambda source, so we can know it’s implemented correctly. Also, KLambda REPL I wrote in Haskell doesn’t have this kind of problem(it prints the prompt, then gets user input).</p>
+<p>Weird bug #2: Reading from/writing to handles are also lazy, thus causing unpredictable results. Shen has a KLambda function, <code>shen.read-file-as-bytelist-help</code>, which reads from a file until EOF, and accumulates the bytes in a list. It’s defined like this:</p>
+<pre><code>(defun shen.read-file-as-bytelist-help (V2003 V2004 V2005)
+  (cond ((= -1 V2004)
+         V2005)
+        (true
+         (shen.read-file-as-bytelist-help V2003 (read-byte V2003) (cons V2004 V2005)))))</code></pre>
+<p>The problem is it gets stuck in an infinite tail-call when called. One solution for this was to print the byte read by <code>read-byte</code> in this function(the parameter <code>V2004</code>), then it’s working. (well, it’s still not working, see weird bug #3, but at least it ends)</p>
+<p>Weird bug #3: For some reason, <code>shen.read-file-as-bytelist-help</code> still doesn’t end even after printing the bytes. That’s because even if <code>read-byte</code>s return value is <code>-1</code>, <code>else</code> part of the conditional is taken. I have no idea why. Here’s a demonstration:</p>
+<p>The file <code>empty.txt</code> is empty:</p>
+<pre><code>➜  cat empty.txt
+➜</code></pre>
+<p>And reading it with <code>read-byte</code> Shen function returns correct value:</p>
+<pre><code>➜ shenhs
+
+Shen 2010, copyright (C) 2010 Mark Tarver
+www.shenlanguage.org, version 9.2
+running under Haskell, implementation: GHC
+port 0.1 ported by Ömer Sinan Ağacan
+
+(= -1 (let stream (open file &quot;empty.txt&quot; in) (read-byte stream)))
+(1.0-) true</code></pre>
+<p>But reading file with <code>read-file</code> gets stuck in an infinite tail-call:</p>
+<pre><code>(read-file &quot;empty.txt&quot;)
+(2.0-) ^C</code></pre>
+<p>For debugging purposes, I changed <code>shen.read-file-as-bytelist-help</code> and put some prints:</p>
+<pre><code>(defun shen.read-file-as-bytelist-help (V2003 V2004 V2005)
+  (cond ((= -1 V2004)
+         (do
+           (pr &quot;-1&lt;nop&gt;&quot; (value *stoutput*))
+           V2005))
+        (true
+         (do
+           (pr (str (= -1 V2004)) (value *stoutput*))
+           (do
+             (pr &quot;&lt;ok&gt;&quot; (value *stoutput*))
+             (shen.read-file-as-bytelist-help V2003 (read-byte V2003) (cons V2004 V2005)))))))</code></pre>
+<p>It prints <code>false&lt;ok&gt;</code> forever. Now this is strange because as I showed above, <code>read-byte</code> returns <code>-1</code> so <code>(= -1 V2004)</code> should have returned <code>true</code>. Here’s an even more interesting observation:</p>
+<pre><code>(shen.read-file-as-bytelist-help -1 -1 -1)
+(0.0-) false&lt;ok&gt;TypeError {foundTy = TyNum, expectedTy = TyStream}</code></pre>
+<p>Passing <code>-1</code> as <code>V2004</code> still prints <code>false</code>. Now you can think that the problem is at conditionals, but it works fine hundreds of times until the program comes to this function call.</p>]]></summary>
+</entry>
+<entry>
     <title>An interesting case of closures: is closed-over variable reference or value?</title>
     <link href="http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html" />
     <id>http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html</id>
@@ -988,27 +1040,6 @@ return value of StringOfExp: (10 + (20 * (30 + 40)))</code></pre>
 <li id="fn7"><p>Daha sonradan farkettim ki bir alternatif daha varmış: “Extensible records with scoped labels” makalesinde bahsedilenlerin implement edildiği <a href="http://www.equational.org/morrow/">Morrow</a> programlama dili. En iyi implementasyon şimdilik bu. Tek problemi, kurulmak için <a href="http://www.cs.uu.nl/wiki/HUT/AttributeGrammarSystem">UUAG attribute grammar system</a>a ihtiyaç duyması. Bir de eğer sadece type inference yapmasın, bir de çalıştırsın derseniz, OCaml’a ihtiyaç duyuyor. Evet çok fantastik. Haskell ile statik analiz kısımları yapılıyor ve OCaml’a derleniyor. Tabii programın asıl olayı tip sistemi olduğundan, deneme için yazdığınız programları çalıştırmak istemeyebilirsiniz, o zaman OCaml’a gerek yok.<a href="#fnref7">↩</a></p></li>
 </ol>
 </div>]]></summary>
-</entry>
-<entry>
-    <title>Quick Vim Tip for OCaml programmers: Fix OCamlYacc comment syntax</title>
-    <link href="http://osa1.net/posts/2013-02-14-quick-vim-tip-for-ocaml.html" />
-    <id>http://osa1.net/posts/2013-02-14-quick-vim-tip-for-ocaml.html</id>
-    <published>2013-02-14T00:00:00Z</published>
-    <updated>2013-02-14T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’ve been editing OCaml with Vim for several months now, one problem that annoys me with Vim’s built-in OCaml syntax highlighter is it behaves OCamlYacc files like it’s a normal OCaml file.</p>
-<p>It generally works fine but OCamlYacc’s comment syntax is different from OCaml’s. When working on big OCamlYacc files this quickly becomes annoying.</p>
-<p>I’m not proficient in VimL but I could manage to write a simple solution. I replaced this line in Vim’s built-int OCaml syntax highlighter:</p>
-<pre><code>&quot; Comments 
-syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo</code></pre>
-<p>with:</p>
-<pre><code>&quot; Comments
-if expand(&quot;%:e&quot;) == &quot;mly&quot;
-  syn region   ocamlComment start=&quot;/\*&quot; end=&quot;\*/&quot; contains=ocamlComment,ocamlTodo
-else
-  syn region   ocamlComment start=&quot;(\*&quot; end=&quot;\*)&quot; contains=ocamlComment,ocamlTodo
-end</code></pre>
-<p>(You can find you Vim’s built-in files’ folders by runing <code>:echo $VIMRUNTIME</code> inside Vim. On my machine, <code>ocaml.vim</code>s path is <code>/usr/share/vim/vim73/syntax/ocaml.vim</code>)</p>
-<p>Works great. It can be further simplified but requires a variable declaration and I don’t want to mess with Vim variables without understanding the consequences(scope rules etc.)</p>]]></summary>
 </entry>
 
 </feed>
