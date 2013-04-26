@@ -59,6 +59,8 @@ port 0.1 ported by Ömer Sinan Ağacan
 <pre><code>(shen.read-file-as-bytelist-help -1 -1 -1)
 (0.0-) false&lt;ok&gt;TypeError {foundTy = TyNum, expectedTy = TyStream}</code></pre>
 <p>Passing <code>-1</code> as <code>V2004</code> still prints <code>false</code>. Now you can think that the problem is at conditionals, but it works fine hundreds of times until the program comes to this function call.</p>
+<hr />
+<p><strong>UPDATE:</strong> I solved the <code>read-file</code> bug. That was because the lexer was reading <code>-1</code> as a symbol, not a number. You can see the commit <a href="https://github.com/osa1/Shen.hs/commit/8092d2eef874dabc4a706a96f45ef6a3aab460a7">here</a>. (lexer may still have bugs though, it’s not well-tested, maybe I should take my time and read Shen specification in detail.</p>
 
 <hr />
 <div id="disqus_thread"></div>
