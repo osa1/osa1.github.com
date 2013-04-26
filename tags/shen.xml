@@ -20,13 +20,7 @@
 <pre><code>(+ 1 2)
 (0.0-) 3.0</code></pre>
 <p>Shen REPL is defined in KLambda source, so we can know it’s implemented correctly. Also, KLambda REPL I wrote in Haskell doesn’t have this kind of problem(it prints the prompt, then gets user input).</p>
-<p>Weird bug #2: Reading from/writing to handles are also lazy, thus causing unpredictable results. Shen has a KLambda function, <code>shen.read-file-as-bytelist-help</code>, which reads from a file until EOF, and accumulates the bytes in a list. It’s defined like this:</p>
-<pre><code>(defun shen.read-file-as-bytelist-help (V2003 V2004 V2005)
-  (cond ((= -1 V2004)
-         V2005)
-        (true
-         (shen.read-file-as-bytelist-help V2003 (read-byte V2003) (cons V2004 V2005)))))</code></pre>
-<p>The problem is it gets stuck in an infinite tail-call when called. One solution for this was to print the byte read by <code>read-byte</code> in this function(the parameter <code>V2004</code>), then it’s working. (well, it’s still not working, see weird bug #3, but at least it ends)</p>
+<p>Weird bug #2: <strong>REMOVED.</strong> When read this post second time after several hours, I realized his same as <em>Weird bug #3</em>. Writing really helps :-)</p>
 <p>Weird bug #3: For some reason, <code>shen.read-file-as-bytelist-help</code> still doesn’t end even after printing the bytes. That’s because even if <code>read-byte</code>s return value is <code>-1</code>, <code>else</code> part of the conditional is taken. I have no idea why. Here’s a demonstration:</p>
 <p>The file <code>empty.txt</code> is empty:</p>
 <pre><code>➜  cat empty.txt
