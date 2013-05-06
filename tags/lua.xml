@@ -8,8 +8,66 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-04-24T00:00:00Z</updated>
+    <updated>2013-05-06T00:00:00Z</updated>
     <entry>
+    <title>A converter from Lua tables to JavaScript objects</title>
+    <link href="http://osa1.net/posts/2013-05-06-lua-tables-to-js-objs.html" />
+    <id>http://osa1.net/posts/2013-05-06-lua-tables-to-js-objs.html</id>
+    <published>2013-05-06T00:00:00Z</published>
+    <updated>2013-05-06T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I wrote a simple Haskell program to convert some data encoded as Lua tables to JavaScript objects/arrays to be used in another project of mine:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span>
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span>           Language.Lua.Parser
+<span class="kw">import</span>           Language.Lua.Types
+
+<span class="kw">import</span> <span class="kw">qualified</span> Language.ECMAScript3.Syntax       <span class="kw">as</span> JS
+<span class="kw">import</span>           Language.ECMAScript3.PrettyPrint  (renderExpression)
+
+<span class="kw">import</span>           System.Environment                (getArgs)
+<span class="kw">import</span>           Control.Monad
+<span class="kw">import</span>           Prelude                           <span class="kw">hiding</span> (exp)
+
+<span class="ot">unsupported ::</span> <span class="kw">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b
+unsupported <span class="fu">=</span> <span class="fu">error</span> <span class="fu">.</span> (<span class="st">&quot;unsupported exp: &quot;</span> <span class="fu">++</span>) <span class="fu">.</span> <span class="fu">show</span>
+
+<span class="kw">class</span> <span class="dt">ToJsExp</span> a <span class="kw">where</span>
+<span class="ot">    toJsExp ::</span> a <span class="ot">-&gt;</span> <span class="dt">JS.Expression</span> ()
+
+<span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Exp</span> a) <span class="kw">where</span>
+    toJsExp (<span class="dt">Nil</span> _) <span class="fu">=</span> <span class="dt">JS.NullLit</span> ()
+    toJsExp (<span class="dt">Bool</span> _ bool) <span class="fu">=</span> <span class="dt">JS.BoolLit</span> () bool
+    toJsExp (<span class="dt">Number</span> _ num) <span class="fu">=</span> <span class="dt">JS.NumLit</span> () (<span class="fu">read</span> num)
+    toJsExp (<span class="dt">String</span> _ str) <span class="fu">=</span> <span class="dt">JS.StringLit</span> () str
+    toJsExp (<span class="dt">TableConst</span> _ table) <span class="fu">=</span> toJsExp table
+    toJsExp unsupportedexp <span class="fu">=</span> unsupported (<span class="fu">fmap</span> (<span class="fu">const</span> ()) unsupportedexp)
+
+<span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Table</span> a) <span class="kw">where</span>
+    toJsExp (<span class="dt">Table</span> _ fields)
+      <span class="fu">|</span> <span class="fu">all</span> arrField fields <span class="fu">=</span>
+          <span class="dt">JS.ArrayLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">Field</span> _ <span class="fu">exp</span>) <span class="ot">-&gt;</span> toJsExp <span class="fu">exp</span>) fields
+      <span class="fu">|</span> <span class="fu">all</span> objField fields <span class="fu">=</span>
+          <span class="dt">JS.ObjectLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">NamedField</span> _ (<span class="dt">Name</span> _ name) <span class="fu">exp</span>) <span class="ot">-&gt;</span> (<span class="dt">JS.PropId</span> () (<span class="dt">JS.Id</span> () name), toJsExp <span class="fu">exp</span>)) fields
+      <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> unsupported (<span class="fu">map</span> (<span class="fu">fmap</span> (<span class="fu">const</span> ())) fields)
+
+      <span class="kw">where</span>
+        arrField <span class="dt">Field</span>{} <span class="fu">=</span> <span class="kw">True</span>
+        arrField _       <span class="fu">=</span> <span class="kw">False</span>
+
+        objField <span class="dt">NamedField</span>{} <span class="fu">=</span> <span class="kw">True</span>
+        objField _            <span class="fu">=</span> <span class="kw">False</span>
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+    args <span class="ot">&lt;-</span> getArgs
+    contents <span class="ot">&lt;-</span> <span class="fu">readFile</span> (<span class="fu">head</span> args)
+    <span class="kw">case</span> parseText <span class="fu">exp</span> contents <span class="kw">of</span>
+      <span class="kw">Left</span> err <span class="ot">-&gt;</span> <span class="fu">print</span> err
+      <span class="kw">Right</span> result <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre>
+<p>It uses <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>, a Lua parser and pretty-printer which I wrote to use in some other project of mine(a static analysis tool for Lua, I have big plans about it) and <a href="http://hackage.haskell.org/package/language-ecmascript">language-ecmascript</a>, JavaScript parser and pretty-printer.</p>]]></summary>
+</entry>
+<entry>
     <title>An interesting case of closures: is closed-over variable reference or value?</title>
     <link href="http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html" />
     <id>http://osa1.net/posts/2013-04-24-interesting-case-of-closures.html</id>
