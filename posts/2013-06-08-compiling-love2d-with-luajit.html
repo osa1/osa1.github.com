@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Compiling Love2D with LuaJIT</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Compiling Love2D with LuaJIT</h1>
+
+<p><strong>June  8, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/cpp.html">cpp</a>, <a href="../tags/lua.html">lua</a>.</p>
+
+<p>For some reason, I couldn’t load my dynamic library(compiled to <code>.so</code>) in Love2D linked with Lua 5.1.5. It was failing with <code>undefined symbol: lua_getfield</code> error. Interesting point is that I could load same library from directly in Lua 5.1.5 interpreter, which is the same thing as Love2D’s Lua interpreter. They’re compiled with same headers and linked with same object files.</p>
+<p>I wasted several hours trying to compile Love2D with LuaJIT with the hope of loading my library from Love2D. I had tried loading my library from several different Lua versions before, Lua 5.1.5, Lua 5.2.5 and LuaJIT 2.0.2, and everything had worked perfectly. So I was expecting it to work with Love2D’s Lua interpreter too.</p>
+<p>The problem was that Love2D’s configure script was not using environment variables to look for headers/object files. I was using same environment variables to build some other programs that use LuaJIT, and only Love2D had that problem.</p>
+<p>To overcome this, I had to install LuaJIT to <code>/usr/</code>. There no way to compile Love2D with LuaJIT other than installing LuaJIT to <code>/usr/</code>. Installing <code>/usr/local/</code> doesn’t work. Setting environment variables(<code>LDFLAGS</code>, <code>LIBS</code> and <code>CPPFLAGS</code>) doesn’t work.</p>
+<p>After that, I could compile Love2D. But that wasn’t enough because then generated executable was failing with <code>libluajit-5.1.so.2: cannot open shared object file: No such file or directory</code>. The reason of this error is latest version of LuaJIT generates a library file with different name: <code>libluajit-5.1.so.2.0.2</code>. This makes sense, I think most C/C++ libraries use same naming conventions.</p>
+<p>Thankfully, renaming it works. Just rename that so file with required file.</p>
+<p>I’m working on some Lua libraries written in C++, and testing gets painful when you can’t be sure which libraries you’re library is linked against. For this reason I don’t install Lua to <code>/usr</code> or <code>/usr/local</code>, and manually specify header/object file locations while compiling my library. So I removed all LuaJIT files from <code>/usr/lib</code>, <code>/usr/include</code>, etc. But to make Love2D work, I need <code>libluajit-5.1.so.2</code>. So I created a <code>lib</code> folder in my home dir, moved LuaJIT file there, and add that folder to <code>$LD_LIBRARY_PATH</code> environment variable. With this, I had a Love2D working with latest LuaJIT.</p>
+<p>Hope this helps other people who want LuaJIT enabled Love2D on Linux.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
