@@ -10,6 +10,35 @@
     </author>
     <updated>2013-06-08T00:00:00Z</updated>
     <entry>
+    <title>lcl -- Lua Container Library and The One Data Structure to Rule Them All</title>
+    <link href="http://osa1.net/posts/2013-06-08-lcl-and-one-data-structure.html" />
+    <id>http://osa1.net/posts/2013-06-08-lcl-and-one-data-structure.html</id>
+    <published>2013-06-08T00:00:00Z</published>
+    <updated>2013-06-08T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p><strong>Note: Sorry for organization of this post. We were talking about this stuff over #lua IRC channel for an hour, and before that I had worked on various bugs and I’m incredibly tired now.</strong></p>
+<p>I’ve been working with an experimental Lua library lately. It had started as a learning exercise, and after first iteration, it turned out to be an experiment about Lua’s internals, dynamic linking, and data structures.</p>
+<p>Lua Container Lib(lcl or liblcl for short) is a Lua library to use C++ STL containers from within Lua. It’s compiled to a single <code>.so</code>(or <code>.dll</code>) and it can be loaded from Lua 5.1.5, 5.2.2, LuaJIT 2.0.2 and Love2D with <code>package.loadlib</code> standard function. It provides some STL containers with an object-oriented interface.</p>
+<p>You can see the source <a href="https://github.com/osa1/lcl">here</a>. There isn’t any tutorials yet, I think it’s simple enough to learn it from examples, see <code>tests/</code> folder.</p>
+<p>For now, it only contains set and deque containers, but it should be very easy to add more. Also, not all operations on sets and deques are supported yet. Again, this should also be very easy to add. Current code base should have all kinds of code to implement more containers/operations on containers by just looking for others’ implementations. Pull requests are welcome!</p>
+<p><code>tests/</code> folder also have a simple benchmark. Output of benchmark is in files <code>benchmark.output</code> and <code>benchmark.output_luajit</code>. I think most people find the output interesting. Before explaining what’s going on in that benchmark, here are some stuff I learned while developing this library:</p>
+<h2 id="lessons-learned">Lessons learned</h2>
+<p>Lua has some rules about the use of C API, but when you don’t follow the rules, you don’t immediately get caught. For instance, you should return the number of elements placed to the stack in your C functions. I had a bug in my code and one of my functions was returning 1 even though it returns with an empty stack. Nevertheless, the library worked fine until I tried it with LuaJIT.</p>
+<p>LuaJIT is more picky about that rules and it fails in strange ways. Sometimes my program was failing with strange memory allocation errors, but program was still running. In the best case, I was getting a segmentation fault.</p>
+<p>After several hours of debugging and some help from mailing list(see my mail <a href="http://www.freelists.org/post/luajit/cant-load-so-with-packageloadlib-undefined-symbol-error">here</a>) I could solve it. Best helper was the <code>LUA_USE_APICHECK</code> debug macro. It’s added to Lua in somewhere between Lua 5.1.5 and 5.2.2. When you compile Lua with <code>LUA_USE_APICHECK</code> defined, Lua makes some assertions in code to make sure stack is in correct state. You should always develop C libraries to Lua with this enabled.</p>
+<p>Now, as for benchmarks; two things can be seen immediately from benchmarks: 1) All operations on STL containers are slower 2) LuaJIT is awesome.</p>
+<p>Let’s first start from second point. LuaJIT is awesome. It’s best thing happened to Lua. It’s binary compatible with Lua 5.1.5, which means with minimal effort, you can gain some real performance benefits. You can see the difference by comparing <code>benchmark.output</code> and <code>benchmark.output_luajit</code> files. All I had to do was to run program with LuaJIT instead of Lua.</p>
+<p>Now, as for STL containers .. Before starting this project, I was considering having a better performance for specialized data structures, ie. STL deques should be faster than Lua tables used as deques. As can be seen from benchmarks, that’s not the case. I made a simplest possible deque implementation possible in Lua(you can see it <a href="https://github.com/osa1/lcl/blob/master/tests/deque.lua">here</a>) and it’s still faster than STL deque(with minor difference).</p>
+<p>I think there are several reasons for that.</p>
+<p>There is no way to get a Lua value out of Lua interpreter. Lua C API deliberately avoid this because this may lead to memory leaks or memory corruptions.</p>
+<p>You can only have a reference to a Lua value, and in that case, that value has to be written in some table. <a href="http://www.lua.org/manual/5.2/manual.html#luaL_ref"><code>luaL_ref</code></a> creates a reference and writes it to a Lua table, and then return that reference(as an <code>int</code>). Generally, you would use global register at <code>LUA_REGISTRYINDEX</code> to save Lua values.</p>
+<p>This implies that you cannot have a container with insertion faster than Lua table insertion. Because every insertion also have to insert to a Lua table. This table is generally the global register at index <code>LUA_REGISTRYINDEX</code>. For example, when I add 1000000 elements to a set, all those elements is also added to the register.</p>
+<p>You can see that STL deque insertions time is almost the same as Lua implementation’s. The reason for this is that even though STL deque insertion is O(1) with a minimal constant factor, you have to insert to a Lua table like explained above.</p>
+<p>In case of set data structure: STL’s set implementation is generally a kind of tree, and elements are stored in sorted order(this makes possible to use STL sets as heaps like I did in <a href="https://github.com/osa1/lcl/blob/master/tests/dynload.lua"><code>dynload.lua</code></a> example). This causes extra O(log N) function calls for comparisons, where N is number of elements in tree. ie. when a new element added, it’s place is determined by comparing it with elements at each level and then moving down to next level in tree. In case of Lua tables, all insertions are amortized O(1) and no comparison functions are called.</p>
+<p>These are my explanations to reasons of why STL operations are slower.</p>
+<p>Still, I don’t think adding C/C++ containers in Lua is completely pointless. Significant memory savings may be possible with C/C++ containers. For example, 32 flags can be held in a 32bit integer in C/C++, but to do this in Lua, you need to use a double for every flag, and a table. A double is 8 bytes in my 64bit machine. And with 32 flags it costs you 32*8 = 256 bytes. In C/C++ you can have it with only 4 bytes.</p>
+<p>There may be also performance advantages for really complex algorithms, but I don’t have a particular example in mind.</p>]]></summary>
+</entry>
+<entry>
     <title>Compiling Love2D with LuaJIT</title>
     <link href="http://osa1.net/posts/2013-06-08-compiling-love2d-with-luajit.html" />
     <id>http://osa1.net/posts/2013-06-08-compiling-love2d-with-luajit.html</id>
