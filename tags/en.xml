@@ -8,8 +8,27 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-06-20T00:00:00Z</updated>
+    <updated>2013-06-21T00:00:00Z</updated>
     <entry>
+    <title>ANNOUNCE: Shen.hs -- Haskell port of Shen</title>
+    <link href="http://osa1.net/posts/2013-06-21-ann-shen-hs.html" />
+    <id>http://osa1.net/posts/2013-06-21-ann-shen-hs.html</id>
+    <published>2013-06-21T00:00:00Z</published>
+    <updated>2013-06-21T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’m copying <a href="https://groups.google.com/forum/?hl=en#!topic/qilang/GKVN4E_ntWw">my email</a> sent to Shen mailing list:</p>
+<blockquote>
+<p>Hi all,</p>
+<p>I had started writing a port of Shen in Haskell some time ago. Unfortunately it never reached a stable state. And now I can’t spare enough time to fix bugs and improve performance. So I thought maybe it’s a good time to announce it and wait for contributions.</p>
+<p>By ‘not stable’ I don’t mean it’s in a terrible state. For example, Shen test suite runs with following results:</p>
+<pre><code>passed ... 94.0 
+failed ...34.0 
+pass rate ...73.4375% </code></pre>
+<p>.. it’s not hopelessly bad. It probably has one or two deadly bugs and that causes dozens of tests to fail.</p>
+<p>Anyway, that’s it for now. Github repository is here: <a href="https://github.com/osa1/Shen.hs">https://github.com/osa1/Shen.hs</a> .</p>
+<p>If you try please tell me your thoughts!</p>
+</blockquote>]]></summary>
+</entry>
+<entry>
     <title>My first interview experience: Jane Street</title>
     <link href="http://osa1.net/posts/2013-06-20-first-interview-jane-street.html" />
     <id>http://osa1.net/posts/2013-06-20-first-interview-jane-street.html</id>
@@ -460,143 +479,6 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <p>The obvious solution is creating a new syntax for defining objects. That syntax should be allowed only in top-level of a file, ie. you can’t use object definition syntax inside of a function.</p>
 <p>But then a new language that is not Lua would be invented. I deliberately wanted to avoid this situation because in my opinion, it’s slightly missing the point of that kind of languages. I don’t like CoffeeScript’s additional compile step to my workflow. One nice property of dynamic languages is that we don’t have any visible intermediate steps between writing the source code and running it. All intermediate steps(parsing, compiling to some kind of byte-code, like Python does) are completely hidden to programmer.</p>
 <p>Maybe the problem is that I’m looking for a perfect solution which does not exist in reality. I’m not sure how can I overcome this problem, I don’t want to work on programs full of hacks in my free time(well, I don’t want to work on this kind of programs in <em>any</em> time, but doing that as a hobby is more unbearable).</p>]]></summary>
-</entry>
-<entry>
-    <title>THREE.js axis helper</title>
-    <link href="http://osa1.net/posts/2013-04-17-THREEjs-axis-helper.html" />
-    <id>http://osa1.net/posts/2013-04-17-THREEjs-axis-helper.html</id>
-    <published>2013-04-17T00:00:00Z</published>
-    <updated>2013-04-17T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’m using <a href="http://threejs.org">THREE.js</a> for a project I’m working on. This is my first experience programming a 3D environment and I’m having hard times wrapping my head around 3D coordinate system.</p>
-<p>So I wrote a helper function that draws axis arrows to the scene center to help me see how to translate/rotate my objects.</p>
-<pre class="sourceCode coffee"><code class="sourceCode coffee">drawAxisHelpers <span class="kw">=</span> <span class="fu">(params = {}) -&gt;</span>
-    params<span class="kw">.</span>radius <span class="kw">=</span> params<span class="kw">.</span>radius <span class="kw">||</span> <span class="fl">0.05</span>
-    params<span class="kw">.</span>height <span class="kw">=</span> params<span class="kw">.</span>height <span class="kw">||</span> <span class="dv">2</span>
-    params<span class="kw">.</span>scene  <span class="kw">=</span> params<span class="kw">.</span>scene  <span class="kw">||</span> scene
-
-    arrowGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> <span class="dv">0</span><span class="kw">,</span> <span class="dv">2</span> <span class="kw">*</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">5</span>
-
-    xAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0xFF0000</span>
-    xAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height
-    xAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> xAxisGeometry<span class="kw">,</span> xAxisMaterial
-    xArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> xAxisMaterial
-    xAxisMesh<span class="kw">.</span>add xArrowMesh
-    xArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    xAxisMesh<span class="kw">.</span>rotation<span class="kw">.</span>z  <span class="kw">-=</span> <span class="dv">90</span> <span class="kw">*</span> <span class="ot">Math</span><span class="kw">.</span>PI <span class="kw">/</span> <span class="dv">180</span>
-    xAxisMesh<span class="kw">.</span>position<span class="kw">.</span>x  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    params<span class="kw">.</span>scene<span class="kw">.</span>add xAxisMesh
-
-    yAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0x00FF00</span>
-    yAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height
-    yAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> yAxisGeometry<span class="kw">,</span> yAxisMaterial
-    yArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> yAxisMaterial
-    yAxisMesh<span class="kw">.</span>add yArrowMesh
-    yArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    yAxisMesh<span class="kw">.</span>position<span class="kw">.</span>y  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    params<span class="kw">.</span>scene<span class="kw">.</span>add yAxisMesh
-
-    zAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0x0000FF</span>
-    zAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height
-    zAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> zAxisGeometry<span class="kw">,</span> zAxisMaterial
-    zArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> zAxisMaterial
-    zAxisMesh<span class="kw">.</span>add zArrowMesh
-    zAxisMesh<span class="kw">.</span>rotation<span class="kw">.</span>x  <span class="kw">+=</span> <span class="dv">90</span> <span class="kw">*</span> <span class="ot">Math</span><span class="kw">.</span>PI <span class="kw">/</span> <span class="dv">180</span>
-    zArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    zAxisMesh<span class="kw">.</span>position<span class="kw">.</span>z  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    params<span class="kw">.</span>scene<span class="kw">.</span>add zAxisMesh</code></pre>
-<p><code>drawAxisHelpers</code> function takes named parameters, all optional. <code>radius</code> and <code>height</code> are for sizes of arrows, and <code>scene</code> is the scene object to draw arrows. When isn’t provided, a global <code>scene</code> object is used.</p>
-<p>Here’s an example: (you can zoom in/out with mouse scroll, move around with left/right clicks)</p>
-<canvas id="target" width=600 height=600 style="background-color: #39342E; float: center;"></canvas>
-
-<p>In this example I used <code>OrbitAndPanControls</code> class to enable zooming/moving around with mouse. I copied this class from Udacity’s ‘CS291 - Interactive 3D Rendering’ course’s examples. You can see this post’s source to learn more.</p>
-<script src="/js/three.min.js"></script>
-<script src="/js/OrbitAndPanControls.js"></script>
-<script type="text/javascript">
-  // Generated by CoffeeScript 1.6.2
-  var camera, cameraControls, canvas, clock, drawAxisHelpers, render, renderer;
-
-  canvas = document.getElementById("target");
-
-  renderer = new THREE.WebGLRenderer({
-    canvas: canvas
-  });
-
-  renderer.setSize(canvas.width, canvas.height);
-
-  clock = new THREE.Clock();
-
-  window.scene = new THREE.Scene();
-
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-  cameraControls = new THREE.OrbitAndPanControls(camera, renderer.domElement);
-
-  cameraControls.target.set(0, 0, 0);
-
-  drawAxisHelpers = function(params) {
-    var arrowGeometry, xArrowMesh, xAxisGeometry, xAxisMaterial, xAxisMesh, yArrowMesh, yAxisGeometry, yAxisMaterial, yAxisMesh, zArrowMesh, zAxisGeometry, zAxisMaterial, zAxisMesh;
-
-    if (params == null) {
-      params = {};
-    }
-    params.radius = params.radius || 0.05;
-    params.height = params.height || 2;
-    params.scene = params.scene || scene;
-    arrowGeometry = new THREE.CylinderGeometry(0, 2 * params.radius, params.height / 5);
-    xAxisMaterial = new THREE.MeshBasicMaterial({
-      color: 0xFF0000
-    });
-    xAxisGeometry = new THREE.CylinderGeometry(params.radius, params.radius, params.height);
-    xAxisMesh = new THREE.Mesh(xAxisGeometry, xAxisMaterial);
-    xArrowMesh = new THREE.Mesh(arrowGeometry, xAxisMaterial);
-    xAxisMesh.add(xArrowMesh);
-    xArrowMesh.position.y += params.height / 2;
-    xAxisMesh.rotation.z -= 90 * Math.PI / 180;
-    xAxisMesh.position.x += params.height / 2;
-    params.scene.add(xAxisMesh);
-    yAxisMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00FF00
-    });
-    yAxisGeometry = new THREE.CylinderGeometry(params.radius, params.radius, params.height);
-    yAxisMesh = new THREE.Mesh(yAxisGeometry, yAxisMaterial);
-    yArrowMesh = new THREE.Mesh(arrowGeometry, yAxisMaterial);
-    yAxisMesh.add(yArrowMesh);
-    yArrowMesh.position.y += params.height / 2;
-    yAxisMesh.position.y += params.height / 2;
-    params.scene.add(yAxisMesh);
-    zAxisMaterial = new THREE.MeshBasicMaterial({
-      color: 0x0000FF
-    });
-    zAxisGeometry = new THREE.CylinderGeometry(params.radius, params.radius, params.height);
-    zAxisMesh = new THREE.Mesh(zAxisGeometry, zAxisMaterial);
-    zArrowMesh = new THREE.Mesh(arrowGeometry, zAxisMaterial);
-    zAxisMesh.add(zArrowMesh);
-    zAxisMesh.rotation.x += 90 * Math.PI / 180;
-    zArrowMesh.position.y += params.height / 2;
-    zAxisMesh.position.z += params.height / 2;
-    return params.scene.add(zAxisMesh);
-  };
-
-  drawAxisHelpers();
-
-  camera.position.z = 5;
-
-  render = function() {
-    var delta;
-
-    delta = clock.getDelta();
-    cameraControls.update(delta);
-    requestAnimationFrame(render);
-    return renderer.render(scene, camera);
-  };
-
-  render();
-</script>
-
-
-
-
-]]></summary>
 </entry>
 
 </feed>
