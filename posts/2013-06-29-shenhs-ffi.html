@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Shen.hs FFI</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Shen.hs FFI</h1>
+
+<p><strong>June 29, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/shen.html">shen</a>.</p>
+
+<p>Shen.hs now has a simple way to call Haskell functions. As an example, I removed some non-standard KLambda functions from <a href="https://github.com/osa1/Shen.hs/blob/master/src/KLambda/Fun.hs"><code>Fun.hs</code></a>(standard primitive functions are defined there). Instead, they live in a <a href="https://github.com/osa1/Shen.hs/blob/master/dynload_test/Debug.hs">separate module</a> now, and I load them in run-time when I’m debugging.</p>
+<h3 id="how-it-works">How it works</h3>
+<p>Shen.hs is now exports it’s modules as a library. This is required to allow writing Shen.hs functions in Haskell.</p>
+<p><code>KLambda.Types</code> module export all required type information to start writing Shen.hs functions in Haskell. All your functions should have the type <code>KlFun1</code>. To make converting Haskell functions with higher arity(ie. <code>KlFun2</code>, <code>KlFun3</code>) to <code>KlFun1</code>, all <code>KlFun</code> instances now have a <code>mkFun1 :: a -&gt; KlFun1</code> method.</p>
+<p>As an example, <a href="https://github.com/osa1/Shen.hs/blob/master/dynload_test/Debug.hs"><code>Debug.hs</code></a> module functions with types <code>KlFun2</code>, <code>KlFun3</code> etc. To call them from within Shen.hs, they are all wrapped with <code>mkFun1</code> function.</p>
+<p>After defining functions with type <code>KlFun1</code> and compiling it, you should call <code>dynload</code> primitive to load functions. Here’s an example session that demonstrates loading and using debugging functions:</p>
+<pre><code>$ Shen.hs --shen &quot;/home/omer/Shen/hs_yeni/K Lambda&quot;
+loading file: /home/omer/Shen/hs_yeni/K Lambda/toplevel.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/core.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/sys.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/sequent.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/yacc.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/reader.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/prolog.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/track.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/load.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/writer.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/macros.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/declarations.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/t-star.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/types.kl ...loaded.
+
+Shen 2010, copyright (C) 2010 Mark Tarver
+released under the Shen license
+www.shenlanguage.org, version 12
+running under Haskell, implementation: GHC
+port 0.1 ported by Ömer Sinan Ağacan
+
+
+(0-) (cd &quot;/home/omer/Shen/hs_yeni/dynload_test&quot;)
+&quot;/home/omer/Shen/hs_yeni/dynload_test/&quot;
+
+(1-) (dynload &quot;Debug.o&quot; &quot;debug1F&quot;)
+&lt;function&gt;
+
+(2-) (debug1F &quot;calling haskell function -- &quot; 1 2)
+calling haskell function -- 1 :: TyNum
+
+2
+
+(3-)</code></pre>
+<p>Note that you need both <code>.hi</code> and <code>.o</code> files to be able to load the library dynamically.</p>
+<h3 id="status-of-shen.hs">Status of Shen.hs</h3>
+<p>Before this additional feature I had fixed a bug and now Shen.hs fails in 8 tests in Test Suite distributed with Shen source. All errors are related and probably there is only one bug. Unfortunately narrowing bug’s scope is very hard at this point. Pull requests are welcome.</p>
+<p>If you encounter any bugs please open an issue in <a href="https://github.com/osa1/Shen.hs">Github repository</a>.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

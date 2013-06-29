@@ -8,8 +8,60 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-06-21T00:00:00Z</updated>
+    <updated>2013-06-29T00:00:00Z</updated>
     <entry>
+    <title>Shen.hs FFI</title>
+    <link href="http://osa1.net/posts/2013-06-29-shenhs-ffi.html" />
+    <id>http://osa1.net/posts/2013-06-29-shenhs-ffi.html</id>
+    <published>2013-06-29T00:00:00Z</published>
+    <updated>2013-06-29T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Shen.hs now has a simple way to call Haskell functions. As an example, I removed some non-standard KLambda functions from <a href="https://github.com/osa1/Shen.hs/blob/master/src/KLambda/Fun.hs"><code>Fun.hs</code></a>(standard primitive functions are defined there). Instead, they live in a <a href="https://github.com/osa1/Shen.hs/blob/master/dynload_test/Debug.hs">separate module</a> now, and I load them in run-time when I’m debugging.</p>
+<h2 id="how-it-works">How it works</h2>
+<p>Shen.hs is now exports it’s modules as a library. This is required to allow writing Shen.hs functions in Haskell.</p>
+<p><code>KLambda.Types</code> module export all required type information to start writing Shen.hs functions in Haskell. All your functions should have the type <code>KlFun1</code>. To make converting Haskell functions with higher arity(ie. <code>KlFun2</code>, <code>KlFun3</code>) to <code>KlFun1</code>, all <code>KlFun</code> instances now have a <code>mkFun1 :: a -&gt; KlFun1</code> method.</p>
+<p>As an example, <a href="https://github.com/osa1/Shen.hs/blob/master/dynload_test/Debug.hs"><code>Debug.hs</code></a> module functions with types <code>KlFun2</code>, <code>KlFun3</code> etc. To call them from within Shen.hs, they are all wrapped with <code>mkFun1</code> function.</p>
+<p>After defining functions with type <code>KlFun1</code> and compiling it, you should call <code>dynload</code> primitive to load functions. Here’s an example session that demonstrates loading and using debugging functions:</p>
+<pre><code>$ Shen.hs --shen &quot;/home/omer/Shen/hs_yeni/K Lambda&quot;
+loading file: /home/omer/Shen/hs_yeni/K Lambda/toplevel.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/core.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/sys.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/sequent.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/yacc.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/reader.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/prolog.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/track.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/load.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/writer.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/macros.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/declarations.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/t-star.kl ...loaded.
+loading file: /home/omer/Shen/hs_yeni/K Lambda/types.kl ...loaded.
+
+Shen 2010, copyright (C) 2010 Mark Tarver
+released under the Shen license
+www.shenlanguage.org, version 12
+running under Haskell, implementation: GHC
+port 0.1 ported by Ömer Sinan Ağacan
+
+
+(0-) (cd &quot;/home/omer/Shen/hs_yeni/dynload_test&quot;)
+&quot;/home/omer/Shen/hs_yeni/dynload_test/&quot;
+
+(1-) (dynload &quot;Debug.o&quot; &quot;debug1F&quot;)
+&lt;function&gt;
+
+(2-) (debug1F &quot;calling haskell function -- &quot; 1 2)
+calling haskell function -- 1 :: TyNum
+
+2
+
+(3-)</code></pre>
+<p>Note that you need both <code>.hi</code> and <code>.o</code> files to be able to load the library dynamically.</p>
+<h2 id="status-of-shen.hs">Status of Shen.hs</h2>
+<p>Before this additional feature I had fixed a bug and now Shen.hs fails in 8 tests in Test Suite distributed with Shen source. All errors are related and probably there is only one bug. Unfortunately narrowing bug’s scope is very hard at this point. Pull requests are welcome.</p>
+<p>If you encounter any bugs please open an issue in <a href="https://github.com/osa1/Shen.hs">Github repository</a>.</p>]]></summary>
+</entry>
+<entry>
     <title>ANNOUNCE: Shen.hs -- Haskell port of Shen</title>
     <link href="http://osa1.net/posts/2013-06-21-ann-shen-hs.html" />
     <id>http://osa1.net/posts/2013-06-21-ann-shen-hs.html</id>
@@ -894,62 +946,6 @@ addIndentations [] <span class="fu">=</span> []</code></pre>
 <hr />
 <ol>
 <li id="fn1"><p>Tabii ki istisnalar olabilir. Bunu yapabilen kütüphanelerin nasıl yapabildiğini birazdan anlatacağım, bağlam bağımsızlığın dışına çıkıyorlar.<a href="#fnref1">↩</a></p></li>
-</ol>
-</div>]]></summary>
-</entry>
-<entry>
-    <title>IO monadında hayat, monad transformerlar ve XMonad</title>
-    <link href="http://osa1.net/posts/2012-04-22-io-monadinda-hayat-xmonad.html" />
-    <id>http://osa1.net/posts/2012-04-22-io-monadinda-hayat-xmonad.html</id>
-    <published>2012-04-22T00:00:00Z</published>
-    <updated>2012-04-22T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Bir süredir Haskell yazan biri olarak kafama takılan birkaç şeyden bahsedeceğim.</p>
-<p>IO monadının içerisi yan etkilerle dolu, neredeyse imperative bir dünya. Her türlü mutable değişkenleri değiştirebilir(<a href="http://www.haskell.org/ghc/docs/latest/html/libraries/base/Data-IORef.html">IORef</a>, <a href="http://www.haskell.org/ghc/docs/latest/html/libraries/base/Control-Concurrent-MVar.html">MVar</a>, <a href="http://hackage.haskell.org/packages/archive/stm/2.3/doc/html/Control-Concurrent-STM-TMVar.html">TMVar</a>, <a href="http://www.haskell.org/ghc/docs/latest/html/libraries/array-0.4.0.0/Data-Array-MArray.html">MArray</a>, ve benim aklıma gelmeyen/bilmediğim dahası), threadlar oluşturabilir, dosyalardan okuma/dosyalara yazma yapabilir, exception atıp yakalyabilir, ve bunlar gibi fonksiyonel programlarda kısıtlı ve fonksiyonel koddan ayrı tutulmaya çalışılan bir sürü şey yapabilirsiniz.</p>
-<p>Haskell’de bir IO işleminin sonucunu, IO işleminden ayıramıyorsunuz. Tüm IO işlemini bir başlangıç durumu ve bunun üzerine yapılacak hareketlerin sıralı bir listesi gibi düşünebiliriz. Tüm Haskell programları <code>IO ()</code> tipine sahip bir <code>main</code> fonksiyonu ile çalıştırılır ve tüm IO işlemleri bu <code>main</code> fonksiyonunun parametre olarak aldığı<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>bu IO monadı üzerinde çalışmak zorunda. Programın ömrü boyunca tek bir IO monadı olabiliyor ve bu da <code>main</code> fonnksiyonunda kullanılan IO monadı. Bu şu anlama geliyor, başka bir fonksiyondan IO işlemi yapacaksanız, bu <code>main</code>den çağırılmak zorunda, veya <code>main</code>den çağırılan başka bir IO fonksiyonundan.</p>
-<p>Bu iki pratikte şu anlama geliyor: Hiçbir saf fonksiyondan IO yapamazsınız ve IO yapan fonksiyonları çağıramazsınız. Saf fonksiyonlarla yan etkilere sahip fonksiyonları birbirinden ayırmak zorundasınız yani<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
-<p>Bu bir yandan kullanıcıyı kısıtlarken bir yandan daha fonksiyonel programlar yapmamızı sağlıyor. Yani zaten örneğin ML dillerinde veya Scheme gibi fonksiyonel bir yol izleyen dillerde fonksiyonel kısmı yan etkilerden ayırmak beklenen bir davranış. Haskell ile bir oyun yaptığınızda, çizim yapan tüm fonksiyonlarınız, diğer fonksiyonlardan ayrı olmak zorunda. Oyun durumuyla alakalı birşeyler hesapladığınız bir fonksiyonda ekrana birşeyler çizdiremezsiniz.</p>
-<p>Aslında iş biraz daha abartı, monadları bir “içerik”(state, reader, writer monadlarındaki gibi) veya bir başlangıç durumu + “hareketler”(IO monadındaki gibi) tuttuğunu düşünün. Monadlar ile çalışan fonksiyonlar genelde monadın o anki içeriğini alıp, yeni bir içerik ile beraber bir değer dönen fonksiyonlar oluyor. Bu fonksiyonların birden fazla monad ile çalışmasını daha zor bir hale getiriyor ve farkında olmadan, örneğin oyun durumunu güncelleyen, state monadı ile çalışan fonksiyonlarınızla list monadı ile non-deterministic hesaplamalar yaptığınız fonksiyonları birbirinden ayırmış oluyorsunuz.</p>
-<p>Bu ilk başta güzel gözükse de, birden fazla monad ile çalışmak isteyebileceğiniz çok fazla durum var, ve bu durumlar için çok güzel bir çözüm var aslında.</p>
-<h2 id="monad-transformerlar">Monad transformerlar</h2>
-<p>Neden “transformer” dendiğini anlamadığım bu şeyler aslında<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup> yukarıda bahsettiğim monad tanımındaki “içerik” kısmında, içerik olarak bir de başka bir monadı daha tutan monadlar oluyor. Bu sayede bu içerikdeki monad üzerinde de işlemler yapabiliyorsunuz. Bu arada monad transformer aslında normal bir monad, hiçbir farkı yok. Yani 4-5 tane monadı bu şekilde iç içe koyabilir, bir fonksiyonda bu monadlar ile çalışabilirsiniz.</p>
-<p>Bunun çok da mantıklı olmadığı bariz, bizim yapmaya çalıştığımız zaten fonksiyonları sorumluluklarına göre birbirinden ayırıp, programı daha modüler, anlaşılır, hatasız bir hale getirmek ve bu yaptığımız tam tersi olmuş oluyor. Reddit ortamında bu son zamanlarda <a href="http://www.reddit.com/r/haskell/comments/rd2t5/i_love_rwst_r_w_s_io_a_to_ease_the_transition/">şöyle bir mesajda</a> tartışıldı.</p>
-<p>Yine de bazı durumlarda gerekli ve alternatifiniz olmayabiliyor. Örneğin XMonad’daki gibi.</p>
-<p>XMonad’da programın değişken durumu <code>XState</code>, çalışma süresi boyunca değişmeyecek bazı ayarları <code>XConf</code> veri yapısında tutuluyor. Bilmeyenler için, kendisi bir <a href="http://en.wikipedia.org/wiki/Tiling_window_manager">tiling window manager</a>, ve bu da sürekli IO yapması(çizimler vs.) gerektiği anlamına geliyor. <a href="http://www.haskell.org/haskellwiki/All_About_Monads#The_Reader_monad">Reader</a> monadı tam olarak<code>XConf</code>un tüm fonksyonlara açıkça parametre olarak göndermeden fonksiyonlar arasında paylaşılması için, <a href="http://www.haskell.org/haskellwiki/All_About_Monads#The_State_monad">State</a> monadı da tam olarak <code>XState</code>i paylaşma ve değiştirme işi için uygun. Çizim için de IO monadı gerekiyor. XMonad fonksiyonları çoğu zaman bu 3ünü birden kullandığından, şöyle bir transformer oluşturmuşlar:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">X</span> a <span class="fu">=</span> <span class="dt">X</span> (<span class="dt">ReaderT</span> <span class="dt">XConf</span> (<span class="dt">StateT</span> <span class="dt">XState</span> <span class="dt">IO</span>) a)
-    <span class="kw">deriving</span> (<span class="kw">Functor</span>, <span class="kw">Monad</span>, <span class="dt">MonadIO</span>, <span class="dt">MonadState</span> <span class="dt">XState</span>, <span class="dt">MonadReader</span> <span class="dt">XConf</span>, <span class="dt">Typeable</span>)</code></pre>
-<p>Üç monadı da içeren bir transformer<sup><a href="#fn4" class="footnoteRef" id="fnref4">4</a></sup> Buna da X adını vermişler(süper isim değil mi :) . Bu sayede örneğin <code>(WindowSet -&gt; WindowSet) -&gt; X ()</code> tipinde bir fonksiyondan, <code>ask</code> gibi bir reader monad fonksiyonu, <code>modify</code> gibi bir state monad fonksiyonu ve IO fonksiyonları çağırabiliyorlar.</p>
-<p>Aslında bunun gibi içerisinde IO monadı bulunan transformerlarda IO yapabilmeyi kolaylaştırmak için bir typeclass bile var, MonadIO:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">MonadIO</span> m <span class="kw">where</span>
-<span class="ot">    liftIO ::</span> <span class="dt">IO</span> a <span class="ot">-&gt;</span> m a</code></pre>
-<p>Tam detaylarını bilmesem de, benim anladığım, <code>GeneralizedNewtypeDeriving</code> eklentisi ile GHC’de IO monadını sahip herhangi bir monad transformerı otomatik olarak <code>MonadIO</code> haline getirebiliyorsunuz. Detaylar <a href="http://www.haskell.org/ghc/docs/7.4.1/html/users_guide/deriving.html">şurda</a>.</p>
-<p>XMonad kodunu okumaya devam ediyorum, öğrenilecek çok şey var. Ben şunu söyleyecektim aslında, eğer kontrollü bir şekilde yapılmazsa, transformerlar ve özellikle IO çok tehlikeli olabiliyor.</p>
-<p>Bir süredir geliştirdiğim bir server var, tüm socket işlemleri IO monadı ile çalıştğından çoğu fonksiyonum IO monadı ile çalışıyor. Sunucu multi-threaded, ve threadlar arasında senkronizasyonu sağlamak için tuttuğum <code>MVar</code>lar IO monadında değiştirilebiliyor. Bu durumda çoğu fonksiyonumda <code>MVar</code>ları değiştirip, yeni threadlar oluşturabiliyor, file IO vb. her türlü yan etkili şeyler yapabiliyorum.</p>
-<p>Kodun bu kısmını azaltmak için epey uğraştım, fonksiyonel bir çekirdek oluşturmaya çalıştım ama sonuç olarak sunucunun en temel işlemleri, threadlar arasında senkronize bir şekilde bazı durumları tutmak ve socket üzerinden okuyup yazmak. Her türlü IO monadı ile çalışmak zorundayım.</p>
-<p>Programın kaynağını muhtemelen bir haftaya açmış olurum. Bu sırada Haskell ile yazılmış başka sunucuların kodlarını inceleyeceğim. GHC hackerlarından <a href="http://research.microsoft.com/en-us/people/simonpj/">Simon P. Jones</a>un <a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/marktoberdorf/">Tackling the awkward squad: monadic input/output, concurrency, exceptions, and foreign-language calls in Haskell</a> makalesi tam olarak bu konulardan bahsediyor ve süper yazılmış. Haskell ile uğraşıyorsanız veya en azından yan etkilerin Haskell dünyasında nasıl karşılandığını merak ediyorsanız en azından ilk bölümü mutlaka okuyun.</p>
-<hr />
-<p>Applicative functorlar için sorun yok, typeclass şu şekilde:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> (<span class="kw">Functor</span> f) <span class="ot">=&gt;</span> <span class="kw">Applicative</span> f <span class="kw">where</span>
-<span class="ot">    pure  ::</span> a <span class="ot">-&gt;</span> f a
-<span class="ot">    (&lt;*&gt;) ::</span> f (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b</code></pre>
-<p>Her applicative functor’un functor olması burda sağlanmış. Fakat monadlar için bu geçerli değil:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Monad</span> m <span class="kw">where</span>
-<span class="ot">    return ::</span> a <span class="ot">-&gt;</span> m a
-<span class="ot">    (&gt;&gt;=)  ::</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b</code></pre>
-<p>Bu tanım, <a href="http://www.haskell.org/haskellwiki/Typeclassopedia#Monad">Typeclassopedia</a>da belirtildiği gibi, şu şekilde olabilirdi:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> (<span class="kw">Applicative</span> m) <span class="ot">=&gt;</span> <span class="kw">Monad</span> m <span class="kw">where</span>
-<span class="ot">    (&gt;&gt;=) ::</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b</code></pre>
-<p>Bir kere her nedense bu böyle yapılmamış ve şimdi bu hale getirdiğimizde mevcut kodlardaki tüm <code>return</code>leri <code>pure</code> ile, tüm <code>liftM</code>leri <code>fmap</code> ile, tüm <code>ap</code>ları <code>&lt;*&gt;</code> ile değiştirmek gerekiyor.</p>
-<p>Bu bir de şu anlama geliyor, eğer bir monad yazmışsanız, birkaç satırda bunu applicative functor haline de getirebilirsiniz. Ve bunu yapmanız applicative tarzda programlamak isteyen birine kolaylık sağlamış olur, veya applicativelar üzerinde çalışan fonksiyonları kullanabilirsiniz. X monadında yaptıkları gibi:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Applicative</span> <span class="dt">X</span> <span class="kw">where</span>
-    pure <span class="fu">=</span> <span class="fu">return</span>
-    (<span class="fu">&lt;*&gt;</span>) <span class="fu">=</span> ap</code></pre>
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>Aslında parametre olarak mı alıyor, yoksa başka bir şekilde mi bilmiyorum. IO monad implementasyonu standartda belirtilmemiş, implementasyon detayı.<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p><code>unsafePerformIO</code> ve benzerlerinin farkındayım.<a href="#fnref2">↩</a></p></li>
-<li id="fn3"><p>Monad stack falan daha uygun olurmuş sanki, ortada bir “dönüştürme” işlemi yok sonuçta.<a href="#fnref3">↩</a></p></li>
-<li id="fn4"><p>Bu arada hazır denk gelmişken ilginç birşeyden bahsedeceğim. Matematiksel olarak, tüm monadlar aslında applicative functor, ve tüm applicative functorlar aslında functor. Fakat Haskell’de, bazı geriye uyumluluk sorunları yüzünden bu tam olarak sağlanamıyor.<a href="#fnref4">↩</a></p></li>
 </ol>
 </div>]]></summary>
 </entry>
