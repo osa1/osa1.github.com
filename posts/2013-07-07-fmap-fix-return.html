@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - fmap fix return</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">fmap fix return</h1>
+
+<p><strong>July  7, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+
+<p>While floating across the internets, I came across a blog with title <code>fmap fix return</code>. I immediately run ghci and queried it’s type:</p>
+<pre class="ghci"><code>ghci&gt; :t fmap fix return
+fmap fix return :: a -&gt; a</code></pre>
+<p>We know that only value with type <code>forall a. a -&gt; a</code> (other than bottom) is identity function(<code>id</code> in Haskell). I found it very interesting, <code>fmap fix return</code> gives us identity function!</p>
+<p>I got a pen and paper and started evaluating expressions to understand how does that give us the identity function.</p>
+<p>First, let’s note our actors:</p>
+<pre><code>fmap :: Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+-- instance specific implementation
+
+fix  :: (a -&gt; a) -&gt; a
+fix f = let x = f x in x
+
+return :: Monad m =&gt; a -&gt; m a
+-- instance specific implementation</code></pre>
+<p>A very important thing to realize at this point is which monad and functor instances are used for <code>return</code> and <code>fmap</code>. To realize this, observe that we get a function as return value of <code>fmap</code>. Which means <code>Functor f =&gt; f b</code> is <code>a -&gt; a</code>, or written in a different style to see it’s functor property: <code>((-&gt;) a) a</code>, so our functor here is <code>(-&gt;) a</code>.</p>
+<p>After that, we need to look up functor and monad instances for <code>(-&gt;) a</code>. Since it’s 2:30 AM here, I wanted to derive that too.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Functor</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span>
+     <span class="fu">fmap</span> <span class="fu">=</span> (<span class="fu">.</span>)</code></pre>
+<p>It’s very easy to derive just by looking specialized version of <code>fmap</code>s type for <code>((-&gt;) a)</code>: <code>fmap :: (a1 -&gt; b) -&gt; (a -&gt; a1) -&gt; (a -&gt; b)</code>.</p>
+<p>We can easily prove that it satisfies functor laws:</p>
+<pre><code>fmap id f
+= id . f
+= f
+
+fmap (p . q) &lt;-&gt; (fmap p) . (fmap q)
+(fmap p) . (fmap q) f
+= fmap p . (q . f)
+= p . q . f
+= fmap (p . q) f</code></pre>
+<p>Monad instance can also be derived from types of <code>return</code> and <code>&gt;&gt;=</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span>
+    <span class="fu">return</span>   <span class="fu">=</span> <span class="fu">const</span>
+    f <span class="fu">&gt;&gt;=</span> fn <span class="fu">=</span> \r <span class="ot">-&gt;</span> fn (f r) r</code></pre>
+<p>(I found Monad instance of <code>((-&gt;) a)</code> very interesting, especially the <code>&gt;&gt;=</code> part. I couldn’t come up with a problem that makes use of this instance, I’ll investigate that after some sleep)</p>
+<p>It satisfies monad laws:</p>
+<pre><code>-- left identity
+return a &gt;&gt;= f
+= const a &gt;&gt;= f
+= \r -&gt; f ((const a) r) r
+= \r -&gt; f a r
+= f a
+
+-- right identity
+m &gt;&gt;= return
+= \r -&gt; return (m r) r
+= \r -&gt; (const (m r) r)
+= \r -&gt; m r
+= m
+
+-- associativity
+(m &gt;&gt;= f) &gt;&gt;= g &lt;-&gt; m &gt;&gt;= (\x -&gt; f x &gt;&gt;= g)
+
+let's first write `p` for `m &gt;&gt;= f`
+
+= p &gt;&gt;= g
+= \r1 -&gt; g (p r1) r1
+
+let's also evaluaute p
+
+p = m &gt;&gt;= f
+= \r2 -&gt; f (m r2) r2
+
+substitute new p
+
+= \r1 -&gt; g ((\r2 -&gt; f (m r2) r2) r1) r1
+= \r1 -&gt; g (f (m r1) r1) r1
+= \r -&gt; g (f (m r) r) r
+
+now let's also evaluate right hand side of equation
+
+m &gt;&gt;= (\x -&gt; f x &gt;&gt;= g)
+= m &gt;&gt;= (\x -&gt; (    f x &gt;&gt;= g    )) -- just added a paren for clarity
+= m &gt;&gt;= (\x -&gt; (\r -&gt; g (f x r) r))
+
+let write `p` for `\x -&gt; (\r -&gt; g (f x r) r)`
+
+= m &gt;&gt;= p
+= \r1 -&gt; p (m r1) r1
+
+put p back
+
+= \r1 -&gt; (\x -&gt; (\r -&gt; g (f x r) r)) (m r1) r1
+= \r1 -&gt; (\r -&gt; g (f (m r1) r)) r1
+= \r1 -&gt; g (f (m r1) r1)</code></pre>
+<p>For those who have no idea what’s above, I’m basically proving some equalities by substituting expressions with their equivalents. This is a benefit for working on a purely functional language, which means referential transparency.</p>
+<p>OK, now with these <code>return</code> and <code>fmap</code> implementations in mind, let’s evaluate <code>fmap fix return</code>:</p>
+<pre><code>fmap fix return
+= fix . return
+= \r -&gt; fix (return r)
+= \r -&gt; fix (const r)
+= \r -&gt; (\f = let x = f x in x) (const r)
+= \r -&gt; let x = (const r) x in x
+
+since `const a _ = a`, we have x = r here
+
+= \r -&gt; r</code></pre>
+<p>.. which is the identity function.</p>
+<p>Thus <code>fmap fix return</code> demystified.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

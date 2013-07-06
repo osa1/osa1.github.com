@@ -8,8 +8,113 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-06-29T00:00:00Z</updated>
+    <updated>2013-07-07T00:00:00Z</updated>
     <entry>
+    <title>fmap fix return</title>
+    <link href="http://osa1.net/posts/2013-07-07-fmap-fix-return.html" />
+    <id>http://osa1.net/posts/2013-07-07-fmap-fix-return.html</id>
+    <published>2013-07-07T00:00:00Z</published>
+    <updated>2013-07-07T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>While floating across the internets, I came across a blog with title <code>fmap fix return</code>. I immediately run ghci and queried it’s type:</p>
+<pre class="ghci"><code>ghci&gt; :t fmap fix return
+fmap fix return :: a -&gt; a</code></pre>
+<p>We know that only value with type <code>forall a. a -&gt; a</code> (other than bottom) is identity function(<code>id</code> in Haskell). I found it very interesting, <code>fmap fix return</code> gives us identity function!</p>
+<p>I got a pen and paper and started evaluating expressions to understand how does that give us the identity function.</p>
+<p>First, let’s note our actors:</p>
+<pre><code>fmap :: Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+-- instance specific implementation
+
+fix  :: (a -&gt; a) -&gt; a
+fix f = let x = f x in x
+
+return :: Monad m =&gt; a -&gt; m a
+-- instance specific implementation</code></pre>
+<p>A very important thing to realize at this point is which monad and functor instances are used for <code>return</code> and <code>fmap</code>. To realize this, observe that we get a function as return value of <code>fmap</code>. Which means <code>Functor f =&gt; f b</code> is <code>a -&gt; a</code>, or written in a different style to see it’s functor property: <code>((-&gt;) a) a</code>, so our functor here is <code>(-&gt;) a</code>.</p>
+<p>After that, we need to look up functor and monad instances for <code>(-&gt;) a</code>. Since it’s 2:30 AM here, I wanted to derive that too.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Functor</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span>
+     <span class="fu">fmap</span> <span class="fu">=</span> (<span class="fu">.</span>)</code></pre>
+<p>It’s very easy to derive just by looking specialized version of <code>fmap</code>s type for <code>((-&gt;) a)</code>: <code>fmap :: (a1 -&gt; b) -&gt; (a -&gt; a1) -&gt; (a -&gt; b)</code>.</p>
+<p>We can easily prove that it satisfies functor laws:</p>
+<pre><code>fmap id f
+= id . f
+= f
+
+fmap (p . q) &lt;-&gt; (fmap p) . (fmap q)
+(fmap p) . (fmap q) f
+= fmap p . (q . f)
+= p . q . f
+= fmap (p . q) f</code></pre>
+<p>Monad instance can also be derived from types of <code>return</code> and <code>&gt;&gt;=</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span>
+    <span class="fu">return</span>   <span class="fu">=</span> <span class="fu">const</span>
+    f <span class="fu">&gt;&gt;=</span> fn <span class="fu">=</span> \r <span class="ot">-&gt;</span> fn (f r) r</code></pre>
+<p>(I found Monad instance of <code>((-&gt;) a)</code> very interesting, especially the <code>&gt;&gt;=</code> part. I couldn’t come up with a problem that makes use of this instance, I’ll investigate that after some sleep)</p>
+<p>It satisfies monad laws:</p>
+<pre><code>-- left identity
+return a &gt;&gt;= f
+= const a &gt;&gt;= f
+= \r -&gt; f ((const a) r) r
+= \r -&gt; f a r
+= f a
+
+-- right identity
+m &gt;&gt;= return
+= \r -&gt; return (m r) r
+= \r -&gt; (const (m r) r)
+= \r -&gt; m r
+= m
+
+-- associativity
+(m &gt;&gt;= f) &gt;&gt;= g &lt;-&gt; m &gt;&gt;= (\x -&gt; f x &gt;&gt;= g)
+
+let&#39;s first write `p` for `m &gt;&gt;= f`
+
+= p &gt;&gt;= g
+= \r1 -&gt; g (p r1) r1
+
+let&#39;s also evaluaute p
+
+p = m &gt;&gt;= f
+= \r2 -&gt; f (m r2) r2
+
+substitute new p
+
+= \r1 -&gt; g ((\r2 -&gt; f (m r2) r2) r1) r1
+= \r1 -&gt; g (f (m r1) r1) r1
+= \r -&gt; g (f (m r) r) r
+
+now let&#39;s also evaluate right hand side of equation
+
+m &gt;&gt;= (\x -&gt; f x &gt;&gt;= g)
+= m &gt;&gt;= (\x -&gt; (    f x &gt;&gt;= g    )) -- just added a paren for clarity
+= m &gt;&gt;= (\x -&gt; (\r -&gt; g (f x r) r))
+
+let write `p` for `\x -&gt; (\r -&gt; g (f x r) r)`
+
+= m &gt;&gt;= p
+= \r1 -&gt; p (m r1) r1
+
+put p back
+
+= \r1 -&gt; (\x -&gt; (\r -&gt; g (f x r) r)) (m r1) r1
+= \r1 -&gt; (\r -&gt; g (f (m r1) r)) r1
+= \r1 -&gt; g (f (m r1) r1)</code></pre>
+<p>For those who have no idea what’s above, I’m basically proving some equalities by substituting expressions with their equivalents. This is a benefit for working on a purely functional language, which means referential transparency.</p>
+<p>OK, now with these <code>return</code> and <code>fmap</code> implementations in mind, let’s evaluate <code>fmap fix return</code>:</p>
+<pre><code>fmap fix return
+= fix . return
+= \r -&gt; fix (return r)
+= \r -&gt; fix (const r)
+= \r -&gt; (\f = let x = f x in x) (const r)
+= \r -&gt; let x = (const r) x in x
+
+since `const a _ = a`, we have x = r here
+
+= \r -&gt; r</code></pre>
+<p>.. which is the identity function.</p>
+<p>Thus <code>fmap fix return</code> demystified.</p>]]></summary>
+</entry>
+<entry>
     <title>Shen.hs FFI</title>
     <link href="http://osa1.net/posts/2013-06-29-shenhs-ffi.html" />
     <id>http://osa1.net/posts/2013-06-29-shenhs-ffi.html</id>
@@ -859,93 +964,6 @@ anyTerm <span class="fu">=</span> <span class="fu">id</span></code></pre>
 <hr />
 <ol>
 <li id="fn1"><p>To list all extensions, I run GHCi, type <code>:set -X</code> and then run auto-complete, it says “Display all 167 possibilities?” on GHC 7.4.1, 82 of them are starting with <code>-XNo</code>.<a href="#fnref1">↩</a></p></li>
-</ol>
-</div>]]></summary>
-</entry>
-<entry>
-    <title>Gramerlerde bağlam bağımsızlık ve indentation-based gramerlerin çözümlenmesi</title>
-    <link href="http://osa1.net/posts/2012-06-12-gramerlerde-baglam-bagmszlk-ve-indentation-based-gramerlerin-cozumlenmesi.html" />
-    <id>http://osa1.net/posts/2012-06-12-gramerlerde-baglam-bagmszlk-ve-indentation-based-gramerlerin-cozumlenmesi.html</id>
-    <published>2012-06-12T00:00:00Z</published>
-    <updated>2012-06-12T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>(Yazıda terimleri Türkçe kullanmaya çalıştım, bağlam bağımsız = context-free, çözümleme = parsing, indentation-based ve lexing/lexer için güzel bir Türkçe karşılık bulamadım, önerilere açığım.)</p>
-<p>Indentation-based gramerlerin çözümlenmesi her zamankinden biraz daha zor. Sebebi bunların aslında bağlam bağımsız(bu kelime grubu bana çok anlamsız geliyor, context-free yani) olmaması. Birazdan bunun ne anlama geldiğinden bahsedeceğim. <code>lex</code> programının Haskell karşılığı olan Alex için kod örnekleri vereceğim. Şu anda elimde çalışan bir derleyici olsa da, kaynak kodunu açmam için epey bir vakit var sanırım.</p>
-<p>Çoğu ayrıştırıcı kütüphane/programlar aslında bağlam bağımsız gramerlerin bazı alt kümelerini ayrıştırabiliyor(yeterince esnek olanlarıyla bağlam bağımsız olmayan bazı örnekleri de çözümleyebiliyorsunuz, örneğin çözümleme aşamasında bazı durum değişkenleri tutarak). Örneğin aşağıdan yukarı(bottom-up) veya yukarıdan aşağı(top-down) bir yol izlemelerine göre, LL(n), LR(n), LALR, SLR, PEG(packrat çözümleyiciler) gibi. Genel olarak tüm bağlam bağımsız gramerleri(BNF şeklinde gösterilebildikleri sürece, ve tüm bağlam bağımsız gramerler BNF formunda gösterilebiliyorlar) çözümleyebilen algoritmalar olsa da(örneğin CYK, Unger algoritmaları), bu yöntemler zaman ve bazen bellek kullanımı açısından verimsiz olduklarındaın ve aslında programlama dilleri gramerlerinde çoğu zaman bağlam bağımsız gramerlerin bazı özelliklere sahip olabilen alt kümelerini kullandığımızdan, çözümleyiciler de bağlam-bağımsız gramerlerin çeşitli alt kümeleri üzerinde çalışıyorlar.</p>
-<p>Bir dilin bağlam bağımsız olduğunu bağlam bağımsız bir gramerle ifade edilip edilemeyeceğinden anlıyoruz. Bağlam bağımsız gramerde şu anlama geliyor: tüm dönüşümler, <code>A</code> bir değişken ve <code>a</code> değişkenler ve terminaller dizisi olmak üzere, <code>A -&gt; a</code> şeklinde olmalı. Dönüşümün sol tarafında sadece bir değişken oluyor yani. Bu aslında şu anlama geliyor: <code>A</code> gördüğümüz her yerde, herhangi bir başka duruma(yani <em>context</em>e) bakmaksızın dönüşümü yapabiliyorz. Bağlam bağımlı olma durumda ise örneğin şöyle oluyor: <code>xAb -&gt; xab</code>. Burda <code>A</code>yı dönüştürebilmek için, etrafını da kontrol etmemiz, yani durum/içerikten haberdar olmamız gerekiyor.</p>
-<p>Peki indentation-based gramerlerle ne alakası var? Bu tip gramerleri kullanan bir dil düşünelim, Python veya YAML mesela. Bu dillerde bir blokun bittiğini anlamamız için, önceki satır hakkında bilgi sahibi olmamız gerekiyor. Örneğin bir önceki satırın kaç birim girintilenmiş olduğunu bilmemiz lazım. Eğer şu anda incelemdiğimiz satır ondan çok girintilenmişse, yeni bir blok başlangıcı, az girintilenmişse bir veya birde fazla blok bitişi anlamına geliyor.</p>
-<p>Bu da indentation-based gramerleri <em>bağlam bağımlı</em> yapıyor. Yani şu anda kullanılan neredeyse hiçbir çözümleyici kütüphane/programla bunu ayrıştıramazsınız<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> Çoğu zaten tüm bağlam bağımsız gramerleri bile çözümleyemiyor.</p>
-<p>İşin sırrı lexing aşamasında, satır satır girintilemeleri takip edip, satır başlarında ne kadar değişiklik olduğuna göre gerekli <code>indent</code> ve <code>dedent</code> tokenlarını oluşturmak. Çözümleme aşamasında yapamayıp, daha güçsüz olmasına rağmen(bkz. düzenli diller, DFA) lexing aşamasında bunu yapabilmemizin sebebi şu, çözümleme aşaması daha kompleks olduğundan, kütüphaneler kullanıcıya daha az imkan veriyor. Çoğunda BNF formuna yakın bir formda(dilin izin verdiği ölçüde, veya kimisi farklı bir formattan programlama diline derleme yapıyor, mesela Bison, ANTLR, bu yazıda bahsettiğim Happy) ifade edilmiş bağlam bağımlı gramerlerden direkt olarak parse tree oluşturuyor ve bu sürece çok fazla müdahele edemiyoruz. Lexing aşamasında bunu çözdüğümüzde çözümleme aşamasına bağlam bağımsız bir gramer ile çözümleyebileceğimiz bir dil sunmuş oluyoruz.</p>
-<p>Algoritma şu: Tamamen boşluk karakterlerinden oluşmayan her satır için, eğer bir önceki satırdaki girintileme daha azsa, bir tane <em>indent</em> tokenı oluştur, eğer daha azsa, ne kadar daha az olduğuna göre, bir veya birkaç tane <em>dedent</em> tokenı oluştur. Bu tokenlar aslında <code>{</code> ve <code>}</code> kullanan dillerdeki bu karakterlerle tamamen aynı anlama geliyor yani(veya Pascal tarzı syntax kullanılıyorsa, <em>begin/do</em> ve <em>end</em> kelimeleri).</p>
-<p>Alex’de bu işi şöyle yapıyorum(kodun sadece alakalı kısımlarını koyuyorum):</p>
-<pre><code>...
-$whitespace = [\ \t\b]
-...
-\n $whitespace* \n { skip }
-\n $whitespace*    { setIndent }
-$whitespace+       { skip }
-...</code></pre>
-<p>İkinci satır tamamen boşluklardan oluşan satırı hiç hesaba katmıyor. Üçüncü satır eğer satırda boşluklardan başka karakter varsa, girintilemeyi hesap ediyor ve gerekli işlemleri yapıyor(birazdan geleceğiz). 3. satır da satır içindeki normal boşluk karakterleri.</p>
-<p>Bir önceki satırın girintileme sayısını tutmak istediğimizden, wrapper olarak <code>monadUserState</code> kullanmamız gerekiyor. Bu durumda Alex bir veri tipi ve veri tipi için bir başlangıç durumu istiyor:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">AlexUserState</span> <span class="fu">=</span> <span class="dt">AlexUserState</span> {<span class="ot"> indent ::</span> <span class="dt">Int</span> }
-<span class="ot">alexInitUserState ::</span> <span class="dt">AlexUserState</span>
-alexInitUserState <span class="fu">=</span> <span class="dt">AlexUserState</span> <span class="dv">0</span></code></pre>
-<p>Artık burda başka ne gibi durumlara ihtiyacınız varsa eklersiniz. Bu durum(state) üzerinde çalışmak için 2 tane yardımcı fonksiyon tanımlayacağım:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getLexerIndentLevel ::</span> <span class="dt">Alex</span> <span class="dt">Int</span>
-getLexerIndentLevel <span class="fu">=</span> <span class="dt">Alex</span> <span class="fu">$</span> \s<span class="fu">@</span><span class="dt">AlexState</span>{alex_ust<span class="fu">=</span>ust} <span class="ot">-&gt;</span> <span class="kw">Right</span> (s, indent ust)
-<span class="ot">setLexerIndentLevel ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Alex</span> ()
-setLexerIndentLevel i <span class="fu">=</span> <span class="dt">Alex</span> <span class="fu">$</span> \s<span class="fu">@</span><span class="dt">AlexState</span>{alex_ust<span class="fu">=</span>ust} <span class="ot">-&gt;</span> <span class="kw">Right</span> (s{alex_ust<span class="fu">=</span>(<span class="dt">AlexUserState</span> i)}, ())</code></pre>
-<p>Ne yaptıkları sanırım barizdir. Bu aşamadan sonra asıl işi <code>setIndent</code> fonksiyonu yapıyor. Bu fonksiyon İlk verdiğim kod parçasındaki regex ne zaman bir eşleşse, eşlesen karakter dizisi ile çağırılacak:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">...</span>
-<span class="kw">data</span> <span class="dt">LexemeClass</span>
-    <span class="fu">...</span>
-    <span class="fu">|</span> <span class="dt">LTIndent</span> <span class="dt">Int</span>
-    <span class="fu">|</span> <span class="dt">LTDedent</span> <span class="dt">Int</span>
-    <span class="fu">|</span> <span class="dt">LIndent</span>
-    <span class="fu">|</span> <span class="dt">LDedent</span>
-    <span class="fu">...</span>
-    <span class="kw">deriving</span> (<span class="kw">Show</span>, <span class="kw">Eq</span>)
-<span class="fu">...</span>
-<span class="ot">setIndent ::</span> <span class="dt">AlexInput</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Alex</span> <span class="dt">Lexeme</span>
-setIndent input<span class="fu">@</span>(p, _, _, str) i <span class="fu">=</span> <span class="kw">do</span>
-    <span class="co">--let !x = unsafePerformIO $ putStrLn str</span>
-    lastIndent <span class="ot">&lt;-</span> getLexerIndentLevel
-    currIndent <span class="ot">&lt;-</span> countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) <span class="dv">0</span> <span class="co">-- first char is always \n</span>
-    <span class="kw">if</span> (lastIndent <span class="fu">&lt;</span> currIndent) <span class="kw">then</span>
-        <span class="kw">do</span> setLexerIndentLevel currIndent
-           mkL (<span class="dt">LTIndent</span> (currIndent <span class="fu">-</span> lastIndent)) input i
-    <span class="kw">else</span> <span class="kw">if</span> (lastIndent <span class="fu">&gt;</span> currIndent) <span class="kw">then</span>
-        <span class="kw">do</span> setLexerIndentLevel currIndent
-           mkL (<span class="dt">LTDedent</span> (lastIndent <span class="fu">-</span> currIndent)) input i
-    <span class="kw">else</span> alexMonadScan
-  <span class="kw">where</span>
-    countIndent str total
-        <span class="fu">|</span> <span class="fu">take</span> <span class="dv">1</span> str <span class="fu">==</span> <span class="st">&quot;\t&quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">1</span>
-                                  countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
-        <span class="fu">|</span> <span class="fu">take</span> <span class="dv">4</span> str <span class="fu">==</span> <span class="st">&quot;    &quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">4</span>
-                                    countIndent (<span class="fu">drop</span> <span class="dv">4</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
-        <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="fu">return</span> total</code></pre>
-<p>Burda bir problem, aslında bir eşleşmede birden fazla token oluşturamadığımızdan(Alex’in bir kısıtlaması, belki de bir yolu vardır ama ben bulamamışımdır), ben <code>LTDedent</code> adlı bir lexeme oluşturuyorum, burdaki <code>T</code> temporary, yani geçici anlamına geliyor. Çünkü daha sonra token listesinden bu elemanları silip başka tokenlar ekleyeceğim. Bu tokenların her biri ne kadar <em>indent</em> veya <em>dedent</em> olduğunu tutuyor. Yani örneğin bir önceki satıra göre 2 birim dışarı çıkmışsa, <code>LTIndent 2</code> ile bir <code>LexemeClass</code> oluşturuyorum. Daha sonra bunu 2 ayrı <code>LIndent</code>e dönüştürmeliyim ki, dilimin <code>{</code> ve <code>}</code> gibi karakterler kullanan dillerden hiçbir farkı kalmasın(bu arada şimdi farkettim, <code>LTIndent</code> diye bir sınıfa ihtiyacım yok, çünkü zaten bir önceki satırdan daha fazla girintilenmişse kesin olarak bir yeni blok oluşmuştur, bir ara düzeltirim artık :).</p>
-<p><code>runAlex</code> fonksiyonu yardımıyla <code>Lexeme</code> listesini elde ettikten sonra şu şekilde bu tokenları ayrı ayrı girintileme tokenları ile değiştiriyorum(kod tekrarı için kusura bakmayın :P )</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addIndentations ::</span> [<span class="dt">Lexeme</span>] <span class="ot">-&gt;</span> [<span class="dt">Lexeme</span>]
-<span class="co">-- ML style pattern matching for patterns with same cases or maybe view patterns</span>
-<span class="co">-- could be useful here</span>
-addIndentations (lex<span class="fu">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTIndent</span> c) _)<span class="fu">:</span>ls) <span class="fu">=</span>
-    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]
-  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
-                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LIndent</span> <span class="kw">Nothing</span>)<span class="fu">:</span>(iter <span class="fu">lex</span> (c<span class="fu">-</span><span class="dv">1</span>))
-addIndentations (lex<span class="fu">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTDedent</span> c) _)<span class="fu">:</span>ls) <span class="fu">=</span>
-    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]
-  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
-                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LDedent</span> <span class="kw">Nothing</span>)<span class="fu">:</span>(iter <span class="fu">lex</span> (c<span class="fu">-</span><span class="dv">1</span>))
-addIndentations (l<span class="fu">:</span>ls) <span class="fu">=</span> l<span class="fu">:</span>(addIndentations ls)
-addIndentations [] <span class="fu">=</span> []</code></pre>
-<p>Ve böylece bağlam bağımlı bir grameri, lexing aşamasında basit bir hileyle bağlam bağımsız hale getirmiş oluyoruz. Indentation-based gramerlerde yapılabilecek en mantıklı iş bu gibi. Bağlam bağımlı gramerleri çözümlemek için bilinen çok iyi algoritmalar/kütüphaneler/programlar var ve bu iş lexing aşamasında çok kolay yapılabiliyor.</p>
-<p>Değişik olduğunu düşündüğüm bir programlama dili üzerinde çalışıyorum, beklemede kalın :P .</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>Tabii ki istisnalar olabilir. Bunu yapabilen kütüphanelerin nasıl yapabildiğini birazdan anlatacağım, bağlam bağımsızlığın dışına çıkıyorlar.<a href="#fnref1">↩</a></p></li>
 </ol>
 </div>]]></summary>
 </entry>
