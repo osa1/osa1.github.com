@@ -25,13 +25,13 @@
 <p>One way to achieve this is enabling line numbers. But I don’t like this solution because line numbers cause unnecessary noise in the screen.</p>
 <p>As a solution, I was using <code>foldcolumn</code>, which, like line numbers, puts some space on the left side to show some folding information. It’s a nice solution if you never use folding in your code, and I wasn’t using folding in my code, but now I’m using folding and foldcolumn looks horrible:</p>
 <div class="figure">
-<img src="http://osa1.net/media/vimtip1/foldmethodmarker1.png" />
+<img src="../images/vimtip1/foldmethodmarker1.png" />
 </div>
 <p>A nasty trick to make this folding guides hidden is making folding guides’ foreground and background color the same, and same as you colorscheme’s background color:</p>
 <pre class="vimscript"><code>autocmd Colorscheme * highlight FoldColumn guifg=bg guibg=bg</code></pre>
 <p>Put this in your .vimrc, somewhere before setting your colorscheme(ie. before <code>colorscheme ...</code> line) and whenever you change color colorscheme, foldcolumn’s colors will be set and folding guides will be hidden.</p>
 <div class="figure">
-<img src="http://osa1.net/media/vimtip1/foldmethodmarker2.png" />
+<img src="../images/vimtip1/foldmethodmarker2.png" />
 </div>
 <p>How does it work: <code>bg</code> and <code>fg</code> are two special variables that will be set by vim automagically whenever you set <code>Normal</code> colors by calling <code>:highlight Normal [options]</code> and all colorschemes do that because that’s the way to set vim’s background color and default text color.</p>
 <p><code>autocmd Colorscheme *</code> makes this command run whenever you set your colorscheme by calling <code>:colorscheme ...</code> command. And now you have clear left margin. Enjoy.</p>
