@@ -8,8 +8,113 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-07-16T00:00:00Z</updated>
+    <updated>2013-07-21T00:00:00Z</updated>
     <entry>
+    <title>Non-local returns in functional programs</title>
+    <link href="http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html" />
+    <id>http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html</id>
+    <published>2013-07-21T00:00:00Z</published>
+    <updated>2013-07-21T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Let’s say we want to get nth visited element in depth-first traversal of a tree. Doing this is almost too easy in a language with statements(all imperative languages, some functional ones): Just run the depth-first traversal algorithm with explicit stack, and use <code>return</code> when you visit nth node.</p>
+<p>In an expression language(Haskell, some Lisp languages) this is somewhat tricky.</p>
+<p>Since I almost always prefer simplest possible solution of a problem, this would be my first attempt in a real-world situation:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Tree</span> a
+    <span class="fu">=</span> <span class="dt">Branch</span> [<span class="dt">Tree</span> a]
+    <span class="fu">|</span> <span class="dt">Leaf</span> a
+
+<span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]
+toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> <span class="fu">concatMap</span> toList bs
+toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> [a]
+
+<span class="ot">dfsNth ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+dfsNth tree n <span class="fu">=</span> listToMaybe <span class="fu">.</span> <span class="fu">drop</span> n <span class="fu">$</span> toList tree</code></pre>
+<p>One concern about this function may be that the complexity of list generation. It’s hard to predict complexity of this function, but traversing the whole tree just to get first element of it would be costly anyway.</p>
+<p>But thanks to lazy evaluation, this function still not very bad. Because only required parts of the intermediate list will be generated. To see why you can do two things: 1) Just place some <code>Debug.Trace.trace</code> calls in <code>toList</code> function and see how many times a leaf node is visited and 2) evaluate this function by hand and observe unevaluated thunks.</p>
+<p>Let’s just do the first one, since it’s easier:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]
+toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> <span class="fu">concatMap</span> toList bs
+toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> trace <span class="st">&quot;leaf node visited&quot;</span> [a]
+
+<span class="fu">...</span>
+
+testTree <span class="fu">=</span> <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">1</span>, <span class="dt">Leaf</span> <span class="dv">2</span> ], <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">3</span> ], <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">4</span> ] ] ] ]</code></pre>
+<pre><code>ghci&gt; dfsNth testTree 0
+leaf node visited
+Just 1
+
+ghci&gt; dfsNth testTree 1
+leaf node visited
+leaf node visited
+Just 2
+
+ghci&gt; dfsNth testTree 10
+leaf node visited
+leaf node visited
+leaf node visited
+leaf node visited
+Nothing</code></pre>
+<hr />
+<p>Other solutions are still worth exploring. When I think of “returning in the middle of a function” in Haskell, I always think <code>Either</code>. It’s monad definition is a great fit for this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> (<span class="dt">Either</span> e) <span class="kw">where</span>
+    <span class="fu">return</span>        <span class="fu">=</span> <span class="kw">Right</span>
+    <span class="kw">Left</span>  l <span class="fu">&gt;&gt;=</span> _ <span class="fu">=</span> <span class="kw">Left</span> l
+    <span class="kw">Right</span> r <span class="fu">&gt;&gt;=</span> k <span class="fu">=</span> k r</code></pre>
+<p>So when <code>Left data</code> used in monadic bind(<code>&gt;&gt;=</code>), second parameter just ignored and <code>Left data</code> is returned. Just like returning in the middle of a function in imperative setting, by ignoring rest of statements.</p>
+<p>Using monad instance of Either, we can easily implement our function:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dfsNth&#39; ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+dfsNth&#39; tree n <span class="fu">=</span>
+    <span class="kw">case</span> iter tree n <span class="kw">of</span>
+      <span class="kw">Left</span> a  <span class="ot">-&gt;</span> <span class="kw">Just</span> a
+      <span class="kw">Right</span> i <span class="ot">-&gt;</span> <span class="kw">Nothing</span>
+  <span class="kw">where</span>
+<span class="ot">    iter ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> a <span class="dt">Int</span>
+    iter (<span class="dt">Branch</span> []) n     <span class="fu">=</span> <span class="fu">return</span> n
+    iter (<span class="dt">Branch</span> (b<span class="fu">:</span>bs)) n <span class="fu">=</span> <span class="kw">do</span>
+      n&#39; <span class="ot">&lt;-</span> iter b n
+      iter (<span class="dt">Branch</span> bs) n&#39;
+    iter (<span class="dt">Leaf</span> a) <span class="dv">0</span> <span class="fu">=</span> <span class="kw">Left</span> a
+    iter <span class="dt">Leaf</span>{}   n <span class="fu">=</span> <span class="fu">return</span> (n <span class="fu">-</span> <span class="dv">1</span>)</code></pre>
+<p>It works exactly like our first implementation, but without generating an intermediate list.</p>
+<h2 id="exceptions-and-either-monad">Exceptions and Either monad</h2>
+<p>If I were using OCaml, I’d probably implement this function using an exception.</p>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">exception</span> <span class="dt">NonLocal</span> <span class="kw">of</span> <span class="dt">int</span>
+
+<span class="kw">type</span> &#39;a tree =
+  | <span class="dt">Branch</span> <span class="kw">of</span> (&#39;a tree) <span class="dt">list</span>
+  | <span class="dt">Leaf</span>   <span class="kw">of</span> &#39;a
+
+<span class="kw">let</span> dfs_nth tree n =
+  <span class="kw">let</span> <span class="kw">rec</span> iter tree n =
+    <span class="kw">match</span> tree <span class="kw">with</span>
+    | <span class="dt">Branch</span> [] -&gt;
+        n
+    | <span class="dt">Branch</span> (b :: bs) -&gt;
+        iter (<span class="dt">Branch</span> bs) (iter b n)
+    | <span class="dt">Leaf</span> a -&gt;
+        <span class="kw">if</span> n = 0 <span class="kw">then</span> raise (<span class="dt">NonLocal</span> a) <span class="kw">else</span> n - 1
+  <span class="kw">in</span>
+  <span class="kw">try</span>
+    iter tree n;
+    <span class="dt">None</span>
+  <span class="kw">with</span>
+    | <span class="dt">NonLocal</span> a -&gt; <span class="dt">Some</span> a</code></pre>
+<p>An interesting thing to realize here is that this solution is very similar to our Haskell solution. In Haskell, Either is an instance of <code>MonadError</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Error</span> e <span class="ot">=&gt;</span> <span class="dt">MonadError</span> e (<span class="dt">Either</span> e) <span class="kw">where</span>
+    throwError             <span class="fu">=</span> <span class="kw">Left</span>
+    <span class="kw">Left</span>  l <span class="ot">`catchError`</span> h <span class="fu">=</span> h l
+    <span class="kw">Right</span> r <span class="ot">`catchError`</span> _ <span class="fu">=</span> <span class="kw">Right</span> r</code></pre>
+<p>This means if you replace <code>Left</code>s with <code>throwError</code> (just like <code>raise</code> in OCaml code), you have a similar solution with OCaml.</p>
+<p>This doesn’t mean exceptions are same thing as Either types in functional programming. There are just too many differences that I won’t delve into in this post. With an exception, you can return from arbitrary deep contexts(ie. function calls), which is not easily possible with Either types. This is why exceptions sometimes referred as <em>non-local returns</em>.</p>
+<p>We discussed this stuff over OCaml IRC channel, and smart people over there gave me some really good insights about non-local returns and exceptions. I’ll probably delve into details in another blog post. I’m especially interested in functional solutions that we can have in Haskell.</p>
+<p>For the curious, for now I’ll just leave these two links here: (I haven’t read that links yet, but they’re probably related)</p>
+<ul>
+<li><a href="https://ocaml.janestreet.com/?q=node/91">https://ocaml.janestreet.com/?q=node/91</a></li>
+<li><a href="http://functional-orbitz.blogspot.se/2013/01/introduction-to-resultt-vs-exceptions.html">http://functional-orbitz.blogspot.se/2013/01/introduction-to-resultt-vs-exceptions.html</a></li>
+</ul>
+<p>Several other ideas also discussed at IRC channel, some of them were using delimited continuations, or passing a handler function as parameter and just calling it instead of raising an exception. I’ll continue investigating this stuff later.</p>
+<p>I also came across this <a href="http://stackoverflow.com/questions/6915701/is-non-local-return-in-scala-new">StackOverflow post</a> that explains how Scala’s non-local returns implemented as exceptions internally. Interesting stuff.</p>]]></summary>
+</entry>
+<entry>
     <title>Apparently I'm not going to Jane Street</title>
     <link href="http://osa1.net/posts/2013-07-16-jane-street-interview-2.html" />
     <id>http://osa1.net/posts/2013-07-16-jane-street-interview-2.html</id>
@@ -403,64 +508,6 @@ set&lt;some_type&gt; s;
     max_number_of_something = s.size();</code></pre>
 <p>The problem with this code is that this conditional will never be taken, and no errors will be raised either. This is because type of <code>s.size()</code> is unsigned and in the expression <code>s.size() &gt; max_number_of_something</code>, <code>max_number_of_something</code> will be casted to unsigned, implicitly. So <code>-1</code> is now <code>4294967295</code> and no other 32bit unsigned integer is bigger than that number.</p>
 <p>Another reason to not to like weak typing and implicit type casts.</p>]]></summary>
-</entry>
-<entry>
-    <title>A converter from Lua tables to JavaScript objects</title>
-    <link href="http://osa1.net/posts/2013-05-06-lua-tables-to-js-objs.html" />
-    <id>http://osa1.net/posts/2013-05-06-lua-tables-to-js-objs.html</id>
-    <published>2013-05-06T00:00:00Z</published>
-    <updated>2013-05-06T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I wrote a simple Haskell program to convert some data encoded as Lua tables to JavaScript objects/arrays to be used in another project of mine:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span>
-<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-<span class="kw">import</span>           Language.Lua.Parser
-<span class="kw">import</span>           Language.Lua.Types
-
-<span class="kw">import</span> <span class="kw">qualified</span> Language.ECMAScript3.Syntax       <span class="kw">as</span> JS
-<span class="kw">import</span>           Language.ECMAScript3.PrettyPrint  (renderExpression)
-
-<span class="kw">import</span>           System.Environment                (getArgs)
-<span class="kw">import</span>           Control.Monad
-<span class="kw">import</span>           Prelude                           <span class="kw">hiding</span> (exp)
-
-<span class="ot">unsupported ::</span> <span class="kw">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b
-unsupported <span class="fu">=</span> <span class="fu">error</span> <span class="fu">.</span> (<span class="st">&quot;unsupported exp: &quot;</span> <span class="fu">++</span>) <span class="fu">.</span> <span class="fu">show</span>
-
-<span class="kw">class</span> <span class="dt">ToJsExp</span> a <span class="kw">where</span>
-<span class="ot">    toJsExp ::</span> a <span class="ot">-&gt;</span> <span class="dt">JS.Expression</span> ()
-
-<span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Exp</span> a) <span class="kw">where</span>
-    toJsExp (<span class="dt">Nil</span> _) <span class="fu">=</span> <span class="dt">JS.NullLit</span> ()
-    toJsExp (<span class="dt">Bool</span> _ bool) <span class="fu">=</span> <span class="dt">JS.BoolLit</span> () bool
-    toJsExp (<span class="dt">Number</span> _ num) <span class="fu">=</span> <span class="dt">JS.NumLit</span> () (<span class="fu">read</span> num)
-    toJsExp (<span class="dt">String</span> _ str) <span class="fu">=</span> <span class="dt">JS.StringLit</span> () str
-    toJsExp (<span class="dt">TableConst</span> _ table) <span class="fu">=</span> toJsExp table
-    toJsExp unsupportedexp <span class="fu">=</span> unsupported (<span class="fu">fmap</span> (<span class="fu">const</span> ()) unsupportedexp)
-
-<span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Table</span> a) <span class="kw">where</span>
-    toJsExp (<span class="dt">Table</span> _ fields)
-      <span class="fu">|</span> <span class="fu">all</span> arrField fields <span class="fu">=</span>
-          <span class="dt">JS.ArrayLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">Field</span> _ <span class="fu">exp</span>) <span class="ot">-&gt;</span> toJsExp <span class="fu">exp</span>) fields
-      <span class="fu">|</span> <span class="fu">all</span> objField fields <span class="fu">=</span>
-          <span class="dt">JS.ObjectLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">NamedField</span> _ (<span class="dt">Name</span> _ name) <span class="fu">exp</span>) <span class="ot">-&gt;</span> (<span class="dt">JS.PropId</span> () (<span class="dt">JS.Id</span> () name), toJsExp <span class="fu">exp</span>)) fields
-      <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> unsupported (<span class="fu">map</span> (<span class="fu">fmap</span> (<span class="fu">const</span> ())) fields)
-
-      <span class="kw">where</span>
-        arrField <span class="dt">Field</span>{} <span class="fu">=</span> <span class="kw">True</span>
-        arrField _       <span class="fu">=</span> <span class="kw">False</span>
-
-        objField <span class="dt">NamedField</span>{} <span class="fu">=</span> <span class="kw">True</span>
-        objField _            <span class="fu">=</span> <span class="kw">False</span>
-
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-    args <span class="ot">&lt;-</span> getArgs
-    contents <span class="ot">&lt;-</span> <span class="fu">readFile</span> (<span class="fu">head</span> args)
-    <span class="kw">case</span> parseText <span class="fu">exp</span> contents <span class="kw">of</span>
-      <span class="kw">Left</span> err <span class="ot">-&gt;</span> <span class="fu">print</span> err
-      <span class="kw">Right</span> result <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre>
-<p>It uses <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>, a Lua parser and pretty-printer which I wrote to use in some other project of mine(a static analysis tool for Lua, I have big plans about it) and <a href="http://hackage.haskell.org/package/language-ecmascript">language-ecmascript</a>, JavaScript parser and pretty-printer.</p>]]></summary>
 </entry>
 
 </feed>

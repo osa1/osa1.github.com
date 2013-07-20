@@ -8,8 +8,113 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-07-07T00:00:00Z</updated>
+    <updated>2013-07-21T00:00:00Z</updated>
     <entry>
+    <title>Non-local returns in functional programs</title>
+    <link href="http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html" />
+    <id>http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html</id>
+    <published>2013-07-21T00:00:00Z</published>
+    <updated>2013-07-21T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Let’s say we want to get nth visited element in depth-first traversal of a tree. Doing this is almost too easy in a language with statements(all imperative languages, some functional ones): Just run the depth-first traversal algorithm with explicit stack, and use <code>return</code> when you visit nth node.</p>
+<p>In an expression language(Haskell, some Lisp languages) this is somewhat tricky.</p>
+<p>Since I almost always prefer simplest possible solution of a problem, this would be my first attempt in a real-world situation:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Tree</span> a
+    <span class="fu">=</span> <span class="dt">Branch</span> [<span class="dt">Tree</span> a]
+    <span class="fu">|</span> <span class="dt">Leaf</span> a
+
+<span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]
+toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> <span class="fu">concatMap</span> toList bs
+toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> [a]
+
+<span class="ot">dfsNth ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+dfsNth tree n <span class="fu">=</span> listToMaybe <span class="fu">.</span> <span class="fu">drop</span> n <span class="fu">$</span> toList tree</code></pre>
+<p>One concern about this function may be that the complexity of list generation. It’s hard to predict complexity of this function, but traversing the whole tree just to get first element of it would be costly anyway.</p>
+<p>But thanks to lazy evaluation, this function still not very bad. Because only required parts of the intermediate list will be generated. To see why you can do two things: 1) Just place some <code>Debug.Trace.trace</code> calls in <code>toList</code> function and see how many times a leaf node is visited and 2) evaluate this function by hand and observe unevaluated thunks.</p>
+<p>Let’s just do the first one, since it’s easier:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]
+toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> <span class="fu">concatMap</span> toList bs
+toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> trace <span class="st">&quot;leaf node visited&quot;</span> [a]
+
+<span class="fu">...</span>
+
+testTree <span class="fu">=</span> <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">1</span>, <span class="dt">Leaf</span> <span class="dv">2</span> ], <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">3</span> ], <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">4</span> ] ] ] ]</code></pre>
+<pre><code>ghci&gt; dfsNth testTree 0
+leaf node visited
+Just 1
+
+ghci&gt; dfsNth testTree 1
+leaf node visited
+leaf node visited
+Just 2
+
+ghci&gt; dfsNth testTree 10
+leaf node visited
+leaf node visited
+leaf node visited
+leaf node visited
+Nothing</code></pre>
+<hr />
+<p>Other solutions are still worth exploring. When I think of “returning in the middle of a function” in Haskell, I always think <code>Either</code>. It’s monad definition is a great fit for this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> (<span class="dt">Either</span> e) <span class="kw">where</span>
+    <span class="fu">return</span>        <span class="fu">=</span> <span class="kw">Right</span>
+    <span class="kw">Left</span>  l <span class="fu">&gt;&gt;=</span> _ <span class="fu">=</span> <span class="kw">Left</span> l
+    <span class="kw">Right</span> r <span class="fu">&gt;&gt;=</span> k <span class="fu">=</span> k r</code></pre>
+<p>So when <code>Left data</code> used in monadic bind(<code>&gt;&gt;=</code>), second parameter just ignored and <code>Left data</code> is returned. Just like returning in the middle of a function in imperative setting, by ignoring rest of statements.</p>
+<p>Using monad instance of Either, we can easily implement our function:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dfsNth&#39; ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+dfsNth&#39; tree n <span class="fu">=</span>
+    <span class="kw">case</span> iter tree n <span class="kw">of</span>
+      <span class="kw">Left</span> a  <span class="ot">-&gt;</span> <span class="kw">Just</span> a
+      <span class="kw">Right</span> i <span class="ot">-&gt;</span> <span class="kw">Nothing</span>
+  <span class="kw">where</span>
+<span class="ot">    iter ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> a <span class="dt">Int</span>
+    iter (<span class="dt">Branch</span> []) n     <span class="fu">=</span> <span class="fu">return</span> n
+    iter (<span class="dt">Branch</span> (b<span class="fu">:</span>bs)) n <span class="fu">=</span> <span class="kw">do</span>
+      n&#39; <span class="ot">&lt;-</span> iter b n
+      iter (<span class="dt">Branch</span> bs) n&#39;
+    iter (<span class="dt">Leaf</span> a) <span class="dv">0</span> <span class="fu">=</span> <span class="kw">Left</span> a
+    iter <span class="dt">Leaf</span>{}   n <span class="fu">=</span> <span class="fu">return</span> (n <span class="fu">-</span> <span class="dv">1</span>)</code></pre>
+<p>It works exactly like our first implementation, but without generating an intermediate list.</p>
+<h2 id="exceptions-and-either-monad">Exceptions and Either monad</h2>
+<p>If I were using OCaml, I’d probably implement this function using an exception.</p>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">exception</span> <span class="dt">NonLocal</span> <span class="kw">of</span> <span class="dt">int</span>
+
+<span class="kw">type</span> &#39;a tree =
+  | <span class="dt">Branch</span> <span class="kw">of</span> (&#39;a tree) <span class="dt">list</span>
+  | <span class="dt">Leaf</span>   <span class="kw">of</span> &#39;a
+
+<span class="kw">let</span> dfs_nth tree n =
+  <span class="kw">let</span> <span class="kw">rec</span> iter tree n =
+    <span class="kw">match</span> tree <span class="kw">with</span>
+    | <span class="dt">Branch</span> [] -&gt;
+        n
+    | <span class="dt">Branch</span> (b :: bs) -&gt;
+        iter (<span class="dt">Branch</span> bs) (iter b n)
+    | <span class="dt">Leaf</span> a -&gt;
+        <span class="kw">if</span> n = 0 <span class="kw">then</span> raise (<span class="dt">NonLocal</span> a) <span class="kw">else</span> n - 1
+  <span class="kw">in</span>
+  <span class="kw">try</span>
+    iter tree n;
+    <span class="dt">None</span>
+  <span class="kw">with</span>
+    | <span class="dt">NonLocal</span> a -&gt; <span class="dt">Some</span> a</code></pre>
+<p>An interesting thing to realize here is that this solution is very similar to our Haskell solution. In Haskell, Either is an instance of <code>MonadError</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Error</span> e <span class="ot">=&gt;</span> <span class="dt">MonadError</span> e (<span class="dt">Either</span> e) <span class="kw">where</span>
+    throwError             <span class="fu">=</span> <span class="kw">Left</span>
+    <span class="kw">Left</span>  l <span class="ot">`catchError`</span> h <span class="fu">=</span> h l
+    <span class="kw">Right</span> r <span class="ot">`catchError`</span> _ <span class="fu">=</span> <span class="kw">Right</span> r</code></pre>
+<p>This means if you replace <code>Left</code>s with <code>throwError</code> (just like <code>raise</code> in OCaml code), you have a similar solution with OCaml.</p>
+<p>This doesn’t mean exceptions are same thing as Either types in functional programming. There are just too many differences that I won’t delve into in this post. With an exception, you can return from arbitrary deep contexts(ie. function calls), which is not easily possible with Either types. This is why exceptions sometimes referred as <em>non-local returns</em>.</p>
+<p>We discussed this stuff over OCaml IRC channel, and smart people over there gave me some really good insights about non-local returns and exceptions. I’ll probably delve into details in another blog post. I’m especially interested in functional solutions that we can have in Haskell.</p>
+<p>For the curious, for now I’ll just leave these two links here: (I haven’t read that links yet, but they’re probably related)</p>
+<ul>
+<li><a href="https://ocaml.janestreet.com/?q=node/91">https://ocaml.janestreet.com/?q=node/91</a></li>
+<li><a href="http://functional-orbitz.blogspot.se/2013/01/introduction-to-resultt-vs-exceptions.html">http://functional-orbitz.blogspot.se/2013/01/introduction-to-resultt-vs-exceptions.html</a></li>
+</ul>
+<p>Several other ideas also discussed at IRC channel, some of them were using delimited continuations, or passing a handler function as parameter and just calling it instead of raising an exception. I’ll continue investigating this stuff later.</p>
+<p>I also came across this <a href="http://stackoverflow.com/questions/6915701/is-non-local-return-in-scala-new">StackOverflow post</a> that explains how Scala’s non-local returns implemented as exceptions internally. Interesting stuff.</p>]]></summary>
+</entry>
+<entry>
     <title>fmap fix return</title>
     <link href="http://osa1.net/posts/2013-07-07-fmap-fix-return.html" />
     <id>http://osa1.net/posts/2013-07-07-fmap-fix-return.html</id>
@@ -840,132 +945,6 @@ tok t <span class="fu">=</span> (satisfy <span class="fu">$</span> (<span class=
 <p><code>.. &lt;?&gt; show t</code> part is required for error reporting. See my <a href="http://stackoverflow.com/questions/12167329/haskell-parsec-error-messages-are-less-helpful-while-using-custom-tokens">SO question</a> for details.</p>
 <p>Now, when using Parsec, generally there’s no need to separate lexing stage. Because as you can see above, it just makes code more complex, and adds no more flexibility. Instead of writing <code>tok $ Ide &quot;some-identifier&quot;</code>, you can always write <code>ide &quot;some-identifier&quot;</code> with a <code>ide</code> parser.</p>
 <p>Still, I think understanding how to make this helps for at least two reasons. First, now you can work on any streams, not just character streams using Parsec’s <code>Char</code> token. And second, writing lexers can still help in some situations, like parsing indentation-based grammars. In that case, you can generate indent-dedent tokens in lexing stage, and make parser code more clean because it will be less <em>context-dependent</em> (I never tried that with Parsec, though) .</p>]]></summary>
-</entry>
-<entry>
-    <title>Some GHC extensions I use</title>
-    <link href="http://osa1.net/posts/2012-07-31-some-ghc-extensions.html" />
-    <id>http://osa1.net/posts/2012-07-31-some-ghc-extensions.html</id>
-    <published>2012-07-31T00:00:00Z</published>
-    <updated>2012-07-31T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>GHC is a huge compiler. On GHC 7.4.1, I can see 85 optional language extensions<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> Some of them are just adding some syntactic sugar(<code>NamedFieldPuns</code>, <code>RecordWildCards</code>), and some of them are extensions to type system(<code>GADTs</code>, <code>Rank2Types</code>). As a new Haskeller, I only know and use a small subset of this features, and in this post I’ll write about it.</p>
-<h3 id="namedfieldpuns-and-recordwildcards">NamedFieldPuns and RecordWildCards</h3>
-<p>This is some really simple syntactic sugar for pattern matching some names in records. Normally you’d do:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)
-someFun <span class="dt">T</span>{n2<span class="fu">=</span>n2, n3<span class="fu">=</span>n3} <span class="fu">=</span> (n2, n3)</code></pre>
-<p>But instead of assigning some names to members of a record with same names, with help of <code>NamedFieldPuns</code>, you could just write:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)
-someFun <span class="dt">T</span>{n3, n2} <span class="fu">=</span> (n2, n3)</code></pre>
-<p>It’s that simple. <code>RecordWildCards</code> doing something similar. Instead of writing <code>someFun T{n1,n2,n3}</code>, you just write <code>someFun T{..}</code>.</p>
-<p>These are purely syntactic, so they can be used for any place that you can use pattern matching or destructuring(ie. <code>let .. in ..</code> or <code>where</code> clauses). Really helpful when working on data constructors that have 4+ members.</p>
-<p>Most interesting use of <code>RecordWildCards</code> I’ve seen was <a href="http://hpaste.org/71626">this implementation</a> of localised module imports(I think this implementation can also be used for first-class modules).</p>
-<h3 id="overloadedstrings">OverloadedStrings</h3>
-<p>This really helps when working on <a href="http://hackage.haskell.org/package/text-0.11.2.2"><code>Text</code></a> data. When you are passing a function a <code>Text</code> data, instead of using <code>pack &quot;some string&quot;</code>, you can just use <code>&quot;some string&quot;</code> and compiler resolves the type of the string, adds required code etc.</p>
-<p>Basically it provides a way to create instances of <code>class IsString a where fromString :: String -&gt; a</code> using string syntax. It’s mostly used with <code>Data.Text</code>, <code>ByteString.Text</code> etc.</p>
-<h3 id="gadts">GADTs</h3>
-<p>This is by far my favorite type system extension. This is mostly because I’m working on an interpreter, and GADTs are great for representing syntax trees.</p>
-<p>To understand advantages of GADTs, first let’s think about how we can represent syntax tree for a simple language. Let some part of our sytax be(in a BNF-like format):</p>
-<pre><code>&lt;var&gt;   = String
-&lt;abst&gt;  = &quot;(&quot; &quot;λ&quot; &quot;(&quot; {&lt;var&gt; [&quot; &quot;]}* &quot;)&quot; &lt;term&gt; &quot;)&quot;
-&lt;app&gt;   = &quot;(&quot; &lt;term&gt; {&lt;term&gt; [&quot; &quot;]}* &quot;)&quot;
-&lt;term&gt;  = &lt;var&gt; | &lt;abst&gt; | &lt;app&gt;</code></pre>
-<p>So, variables, lambda abstractions, and applications. Just like in untyped lambda calculus. Now let’s try to encode this format in Haskell:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="dt">Var</span> <span class="dt">String</span>
-          <span class="fu">|</span> <span class="dt">Abst</span> [<span class="fu">??</span>] <span class="dt">Term</span>
-          <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Term</span> <span class="dt">Term</span></code></pre>
-<p>What should we write in place of <code>??</code> ? Writing <code>Term</code> is obviously wrong, since then we could be ill-formed data(for instance, think about a syntax like that: <code>(λ ((λ (a) ..)) ...)</code> we used lambda abstraction in place of lambda parameter names).</p>
-<p>If the term <code>var</code> just consists of a String, then we can directly use String as a first member of <code>Abst</code> constructor, but think term <code>var</code> as a really complex constructor. I’m trying to make examples as clear and simple as possible.</p>
-<p>One way to fix that is to use “smart constructors”. What this really means is that we can hide some data constructors in our module(ie. write exported names in module explicitly) and export some constructor function in place of them. With the help of a trick we can give users a more controlled way of creating data(in our case this means that we can prevent caller from creating ill-formed syntax tree).</p>
-<p>First, let’s see the data type trick:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T1</span>
-<span class="kw">data</span> <span class="dt">T2</span>
-<span class="kw">data</span> <span class="dt">SomeData</span> a <span class="fu">=</span> <span class="dt">Data1</span> <span class="dt">String</span> <span class="fu">|</span> <span class="dt">Data2</span> <span class="dt">Int</span>
-  <span class="kw">deriving</span> <span class="kw">Show</span></code></pre>
-<p>This is interesting because data types T1 and T2 don’t have any constructors. So there is literally no way to create data in that types. Second interesting point in <code>SomeData a</code> is, the <code>a</code> variable is not used by data constructors(<code>Data1</code> and <code>Data2</code>). This code still works:</p>
-<pre><code>ghci&gt; :t Data1 &quot;ok&quot;
-Data1 &quot;ok&quot; :: SomeData a
-ghci&gt; :t Data2 123
-Data2 123 :: SomeData a
-ghci&gt; Data1 &quot;ok&quot; :: SomeData Int
-Data1 &quot;ok&quot;
-ghci&gt; Data1 &quot;ok&quot; :: SomeData Char
-Data1 &quot;ok&quot;</code></pre>
-<p>If we could find a way to distinguish types of data created with <code>Data1</code> and <code>Data2</code>, we’re done. This is where smart constructors take place:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">data1 ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T1</span>
-data1 <span class="fu">=</span> <span class="dt">Data1</span>
-<span class="ot">data2 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T2</span>
-data2 <span class="fu">=</span> <span class="dt">Data2</span></code></pre>
-<p>We’re telling to compiler that data created with <code>data1</code> constructor will be the type of <code>SomeData T1</code>. Now if we hide <code>Data1</code> and <code>Data2</code> data constructors and export <code>data1</code> and <code>data2</code> functions, there is no way for user create ill-formed data types like <code>Data1 &quot;ok&quot; :: SomeData SomeUnrelatedType</code> like we done in past example.</p>
-<pre><code>ghci&gt; data1 &quot;ok&quot; :: SomeData Int
-
-&lt;interactive&gt;:48:1:
-    Couldn&#39;t match expected type `Int&#39; with actual type `T1&#39;
-    Expected type: SomeData Int
-      Actual type: SomeData T1
-    In the return type of a call of `data1&#39;
-    In the expression: data1 &quot;ok&quot; :: SomeData Int</code></pre>
-<p>Now we can encode our syntax in Haskell like this:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Var</span>
-<span class="kw">data</span> <span class="dt">Abst</span>
-<span class="kw">data</span> <span class="dt">App</span>
-<span class="kw">data</span> <span class="dt">AnyTerm</span>
-<span class="kw">data</span> <span class="dt">Term</span> a <span class="fu">=</span> <span class="dt">Var</span> <span class="dt">String</span>
-            <span class="fu">|</span> <span class="dt">Abst</span> [<span class="dt">Term</span> <span class="dt">Var</span>] (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)
-            <span class="fu">|</span> <span class="dt">App</span> (<span class="dt">Term</span> <span class="dt">AnyTerm</span>) (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)
-<span class="ot">var ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span>
-var <span class="fu">=</span> <span class="dt">Var</span>
-<span class="ot">abst ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span>
-abst <span class="fu">=</span> <span class="dt">Abst</span>
-<span class="ot">app ::</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span>
-app <span class="fu">=</span> <span class="dt">App</span>
-anyTerm <span class="fu">=</span> <span class="fu">id</span></code></pre>
-<p>Now I’m omitting some parts without explaining since this post is already long enough. But the point should be clear by now. Let’s see this in action:</p>
-<pre><code>ghci&gt; abst [(abst [var &quot;p1&quot;] (anyTerm (var &quot;p1&quot;)))] (anyTerm (var &quot;somevar&quot;))
-
-&lt;interactive&gt;:63:8:
-    Couldn&#39;t match expected type `Var&#39; with actual type `Abst&#39;
-    Expected type: Term Var
-      Actual type: Term Abst
-    In the return type of a call of `abst&#39;
-    In the expression: (abst [var &quot;p1&quot;] (anyTerm (var &quot;p1&quot;)))</code></pre>
-<p>Nice! Just like what we wanted. GADTs help for creating smart “data constructors” so that we don’t have to hide data constructors and export some smart constructor functions. Here’s the same code with GADTs:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Var</span>
-<span class="kw">data</span> <span class="dt">Abst</span>
-<span class="kw">data</span> <span class="dt">App</span>
-<span class="kw">data</span> <span class="dt">Term</span> a <span class="kw">where</span>
-    <span class="dt">Var</span><span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span>
-    <span class="dt">Abst</span><span class="ot"> ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span>
-    <span class="dt">App</span><span class="ot"> ::</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span>
-<span class="kw">data</span> <span class="dt">AnyTerm</span> <span class="kw">where</span>
-    <span class="dt">AnyTerm</span><span class="ot"> ::</span><span class="dt">Term</span> a <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span></code></pre>
-<p>This code should be clear. All we do is to specify constructor’s return type.</p>
-<p>This is really great improvement. Think of a more complex syntax tree, with a lot more constructors. The parser already checks for invalid syntax, so actually there’s no way to create ill-formed syntax tree since parser rejects the code.</p>
-<p>If you don’t use GADTs or phantom types, you have to check for ill-formed syntax in your evaluator(or reducer or compiler or whatever) even if there’s no way for parser to generate ill-formed syntax tree. For instance, you’d have to check for <code>Var [(App ..)] ...</code> in your <code>eval :: Env -&gt; Term -&gt; Val</code> function.</p>
-<p>The worst part of GADTs is that you can’t use <code>deriving</code> clause in data type declaration(can anyone explain why?). In my case, that means I have to write some big amounts of code just to be able to print out the data for debugging purposes. For instance, I had to write some repetitive code like this:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Show</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>
-    <span class="fu">...</span>
-    <span class="fu">show</span> (<span class="dt">Lambda</span> params ret body) <span class="fu">=</span> <span class="st">&quot;(lambda (&quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> params) <span class="fu">++</span> <span class="st">&quot;) : &quot;</span> <span class="fu">++</span> <span class="fu">show</span> ret <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> body) <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
-    <span class="fu">show</span> (<span class="dt">If</span> ifE thenE elseE) <span class="fu">=</span> <span class="st">&quot;(&quot;</span> <span class="fu">++</span> intercalate <span class="st">&quot;,&quot;</span> [<span class="fu">show</span> ifE, <span class="fu">show</span> thenE, <span class="fu">show</span> elseE] <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
-    <span class="co">-- same repetitive code for each data constructor, it&#39;s really pain when the syntax grows bigger and when you frequently make some changes on it.</span></code></pre>
-<p>I also had to write same amount of code just to be able to run tests on my parser(ie. I need to compare hand-written syntax tree with parser generated syntax tree).</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Eq</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>
-    <span class="fu">...</span>
-    <span class="dt">Lambda</span> p1 b1 <span class="fu">==</span> <span class="dt">Lambda</span> p2 b2 <span class="fu">=</span> p1 <span class="fu">==</span> p2 <span class="fu">&amp;&amp;</span> b1 <span class="fu">==</span> b2
-    <span class="dt">If</span> i1 t1 e1 <span class="fu">==</span> <span class="dt">If</span> i2 t2 e2 <span class="fu">=</span> i1 <span class="fu">==</span> i2 <span class="fu">&amp;&amp;</span> t1 <span class="fu">==</span> t2 <span class="fu">&amp;&amp;</span> e1 <span class="fu">==</span> e2
-    <span class="fu">...</span>
-    _ <span class="fu">==</span> _ <span class="fu">=</span> <span class="kw">False</span></code></pre>
-<h3 id="further-reading">Further reading:</h3>
-<ul>
-<li><a href="http://www.haskell.org/haskellwiki/Phantom_type">Phantom type on Haskell wiki</a>. Phantom types are data types without constructors, like we’ve used in examples. I first met with this concept in <a href="http://vimeo.com/14313378">Yaron Minsky’s great talk on effective ML</a>. I highly recommend it.</li>
-<li><a href="http://www.haskell.org/ghc/docs/latest/html/users_guide/data-type-extensions.html#gadt">GHC user’s guide on GADTs</a>.</li>
-<li><a href="http://www.haskell.org/haskellwiki/GADT">GADTs on Haskell wiki</a>.</li>
-</ul>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>To list all extensions, I run GHCi, type <code>:set -X</code> and then run auto-complete, it says “Display all 167 possibilities?” on GHC 7.4.1, 82 of them are starting with <code>-XNo</code>.<a href="#fnref1">↩</a></p></li>
-</ol>
-</div>]]></summary>
 </entry>
 
 </feed>
