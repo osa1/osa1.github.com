@@ -8,8 +8,21 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-07-21T00:00:00Z</updated>
+    <updated>2013-07-22T00:00:00Z</updated>
     <entry>
+    <title>ANNOUNCE: My first academic work is now open source</title>
+    <link href="http://osa1.net/posts/2013-07-22-sqml-open-sourced.html" />
+    <id>http://osa1.net/posts/2013-07-22-sqml-open-sourced.html</id>
+    <published>2013-07-22T00:00:00Z</published>
+    <updated>2013-07-22T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Our work at Ozyegin University with Prof. Baris Aktemur is now open source.</p>
+<ul>
+<li>Home page: <a href="http://srl.ozyegin.edu.tr/projects/subtypedQuotedML/">http://srl.ozyegin.edu.tr/projects/subtypedQuotedML/</a></li>
+<li>Github repository: <a href="https://github.com/ozusrl/SubtypedQuotedML">https://github.com/ozusrl/SubtypedQuotedML</a></li>
+</ul>
+<p>If you have trouble compiling/running it, please file an issue at Github page.</p>]]></summary>
+</entry>
+<entry>
     <title>Non-local returns in functional programs</title>
     <link href="http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html" />
     <id>http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html</id>
@@ -491,23 +504,6 @@ false.</code></pre>
 <p>Thankfully, renaming it works. Just rename that so file with required file.</p>
 <p>I’m working on some Lua libraries written in C++, and testing gets painful when you can’t be sure which libraries you’re library is linked against. For this reason I don’t install Lua to <code>/usr</code> or <code>/usr/local</code>, and manually specify header/object file locations while compiling my library. So I removed all LuaJIT files from <code>/usr/lib</code>, <code>/usr/include</code>, etc. But to make Love2D work, I need <code>libluajit-5.1.so.2</code>. So I created a <code>lib</code> folder in my home dir, moved LuaJIT file there, and add that folder to <code>$LD_LIBRARY_PATH</code> environment variable. With this, I had a Love2D working with latest LuaJIT.</p>
 <p>Hope this helps other people who want LuaJIT enabled Love2D on Linux.</p>]]></summary>
-</entry>
-<entry>
-    <title>Implicit casts</title>
-    <link href="http://osa1.net/posts/2013-05-25-implicit-casts.html" />
-    <id>http://osa1.net/posts/2013-05-25-implicit-casts.html</id>
-    <published>2013-05-25T00:00:00Z</published>
-    <updated>2013-05-25T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I wrote a C++ code like this:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> max_number_of_something = -<span class="dv">1</span>;
-set&lt;some_type&gt; s;
-
-...
-
-<span class="kw">if</span> (s.size() &gt; max_number_of_something)
-    max_number_of_something = s.size();</code></pre>
-<p>The problem with this code is that this conditional will never be taken, and no errors will be raised either. This is because type of <code>s.size()</code> is unsigned and in the expression <code>s.size() &gt; max_number_of_something</code>, <code>max_number_of_something</code> will be casted to unsigned, implicitly. So <code>-1</code> is now <code>4294967295</code> and no other 32bit unsigned integer is bigger than that number.</p>
-<p>Another reason to not to like weak typing and implicit type casts.</p>]]></summary>
 </entry>
 
 </feed>
