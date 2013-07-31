@@ -8,8 +8,25 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-07-22T00:00:00Z</updated>
+    <updated>2013-07-31T00:00:00Z</updated>
     <entry>
+    <title>MANTI - Prolog implementation in 515 lines of Haskell</title>
+    <link href="http://osa1.net/posts/2013-07-31-announce-manti.html" />
+    <id>http://osa1.net/posts/2013-07-31-announce-manti.html</id>
+    <published>2013-07-31T00:00:00Z</published>
+    <updated>2013-07-31T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p><a href="https://github.com/osa1/MANTI">MANTI</a> is a pure Prolog implementation in 515 lines of Haskell. It’s only implements pure parts, meaning it doesn’t have cuts, IO predicates, non-pure arithmetic(<code>is</code> structures in modern Prolog implementation) or other structures that break logical reasoning of Prolog programs.</p>
+<p>Here are some example Prolog programs that currently runs under MANTI: (you can find these in <code>tests/</code> folder in source repository)</p>
+<ul>
+<li><a href="https://github.com/osa1/MANTI/blob/master/tests/einstein.pl">Einstein’s riddle</a> – also called Zebra Puzzle. You can see problem definition in <a href="http://en.wikipedia.org/wiki/Zebra_Puzzle">Wikipedia - Zebra Puzzle</a>.</li>
+<li><a href="https://github.com/osa1/MANTI/blob/master/tests/nqueens.pl">N-queens problem</a> (not that it takes some time to solve it for board bigger than 5x5, reasons for that slowness explained below)</li>
+<li><a href="https://github.com/osa1/MANTI/blob/master/tests/zurg.pl">Escape from Zurg puzzle</a> - you can see a paper with definition of this problem <a href="http://web.engr.oregonstate.edu/~erwig/zurg/">here</a>.</li>
+</ul>
+<p>My aim while writing MANTI was to make it as simple as possible, yet a complete Prolog implementation that is capable to solve some real problems. For this reasons, it doesn’t have arithmetic, list structures and list operations built-in. Instead, arithmetic is implemented using <a href="http://en.wikipedia.org/wiki/Peano_axioms">Peano definitions</a>, you can see the implementation <a href="https://github.com/osa1/MANTI/blob/master/tests/peano.pl">here</a>. List operations are also implemented in MANTI itself, you can see definitions <a href="https://github.com/osa1/MANTI/blob/master/tests/list.pl">here</a>. List syntax is nothing special, it’s just a syntactic sugar that destructs to ordinary Prolog functors(you can see parser for list syntax <a href="https://github.com/osa1/MANTI/blob/master/src/Parser.hs#L80">here</a>).</p>
+<p>For these reasons(and probably others, for instance, unification and <code>not</code> connective are implemented in most inefficient ways possible), it’s very slow. Also, there’s no way to disable occurs check without recompiling MANTI.</p>
+<p>It’s mostly done and I don’t think I’ll work more on that. I hope you find MANTI useful(for learning purposes or others).</p>]]></summary>
+</entry>
+<entry>
     <title>ANNOUNCE: My first academic work is now open source</title>
     <link href="http://osa1.net/posts/2013-07-22-sqml-open-sourced.html" />
     <id>http://osa1.net/posts/2013-07-22-sqml-open-sourced.html</id>
@@ -489,21 +506,6 @@ false.</code></pre>
 <p>These are my explanations to reasons of why STL operations are slower.</p>
 <p>Still, I don’t think adding C/C++ containers in Lua is completely pointless. Significant memory savings may be possible with C/C++ containers. For example, 32 flags can be held in a 32bit integer in C/C++, but to do this in Lua, you need to use a double for every flag, and a table. A double is 8 bytes in my 64bit machine. And with 32 flags it costs you 32*8 = 256 bytes. In C/C++ you can have it with only 4 bytes.</p>
 <p>There may be also performance advantages for really complex algorithms, but I don’t have a particular example in mind.</p>]]></summary>
-</entry>
-<entry>
-    <title>Compiling Love2D with LuaJIT</title>
-    <link href="http://osa1.net/posts/2013-06-08-compiling-love2d-with-luajit.html" />
-    <id>http://osa1.net/posts/2013-06-08-compiling-love2d-with-luajit.html</id>
-    <published>2013-06-08T00:00:00Z</published>
-    <updated>2013-06-08T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>For some reason, I couldn’t load my dynamic library(compiled to <code>.so</code>) in Love2D linked with Lua 5.1.5. It was failing with <code>undefined symbol: lua_getfield</code> error. Interesting point is that I could load same library from directly in Lua 5.1.5 interpreter, which is the same thing as Love2D’s Lua interpreter. They’re compiled with same headers and linked with same object files.</p>
-<p>I wasted several hours trying to compile Love2D with LuaJIT with the hope of loading my library from Love2D. I had tried loading my library from several different Lua versions before, Lua 5.1.5, Lua 5.2.5 and LuaJIT 2.0.2, and everything had worked perfectly. So I was expecting it to work with Love2D’s Lua interpreter too.</p>
-<p>The problem was that Love2D’s configure script was not using environment variables to look for headers/object files. I was using same environment variables to build some other programs that use LuaJIT, and only Love2D had that problem.</p>
-<p>To overcome this, I had to install LuaJIT to <code>/usr/</code>. There no way to compile Love2D with LuaJIT other than installing LuaJIT to <code>/usr/</code>. Installing <code>/usr/local/</code> doesn’t work. Setting environment variables(<code>LDFLAGS</code>, <code>LIBS</code> and <code>CPPFLAGS</code>) doesn’t work.</p>
-<p>After that, I could compile Love2D. But that wasn’t enough because then generated executable was failing with <code>libluajit-5.1.so.2: cannot open shared object file: No such file or directory</code>. The reason of this error is latest version of LuaJIT generates a library file with different name: <code>libluajit-5.1.so.2.0.2</code>. This makes sense, I think most C/C++ libraries use same naming conventions.</p>
-<p>Thankfully, renaming it works. Just rename that so file with required file.</p>
-<p>I’m working on some Lua libraries written in C++, and testing gets painful when you can’t be sure which libraries you’re library is linked against. For this reason I don’t install Lua to <code>/usr</code> or <code>/usr/local</code>, and manually specify header/object file locations while compiling my library. So I removed all LuaJIT files from <code>/usr/lib</code>, <code>/usr/include</code>, etc. But to make Love2D work, I need <code>libluajit-5.1.so.2</code>. So I created a <code>lib</code> folder in my home dir, moved LuaJIT file there, and add that folder to <code>$LD_LIBRARY_PATH</code> environment variable. With this, I had a Love2D working with latest LuaJIT.</p>
-<p>Hope this helps other people who want LuaJIT enabled Love2D on Linux.</p>]]></summary>
 </entry>
 
 </feed>

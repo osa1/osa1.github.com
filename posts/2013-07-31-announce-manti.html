@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - MANTI - Prolog implementation in 515 lines of Haskell</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">MANTI - Prolog implementation in 515 lines of Haskell</h1>
+
+<p><strong>July 31, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/prolog.html">prolog</a>.</p>
+
+<p><a href="https://github.com/osa1/MANTI">MANTI</a> is a pure Prolog implementation in 515 lines of Haskell. It’s only implements pure parts, meaning it doesn’t have cuts, IO predicates, non-pure arithmetic(<code>is</code> structures in modern Prolog implementation) or other structures that break logical reasoning of Prolog programs.</p>
+<p>Here are some example Prolog programs that currently runs under MANTI: (you can find these in <code>tests/</code> folder in source repository)</p>
+<ul>
+<li><a href="https://github.com/osa1/MANTI/blob/master/tests/einstein.pl">Einstein’s riddle</a> – also called Zebra Puzzle. You can see problem definition in <a href="http://en.wikipedia.org/wiki/Zebra_Puzzle">Wikipedia - Zebra Puzzle</a>.</li>
+<li><a href="https://github.com/osa1/MANTI/blob/master/tests/nqueens.pl">N-queens problem</a> (not that it takes some time to solve it for board bigger than 5x5, reasons for that slowness explained below)</li>
+<li><a href="https://github.com/osa1/MANTI/blob/master/tests/zurg.pl">Escape from Zurg puzzle</a> - you can see a paper with definition of this problem <a href="http://web.engr.oregonstate.edu/~erwig/zurg/">here</a>.</li>
+</ul>
+<p>My aim while writing MANTI was to make it as simple as possible, yet a complete Prolog implementation that is capable to solve some real problems. For this reasons, it doesn’t have arithmetic, list structures and list operations built-in. Instead, arithmetic is implemented using <a href="http://en.wikipedia.org/wiki/Peano_axioms">Peano definitions</a>, you can see the implementation <a href="https://github.com/osa1/MANTI/blob/master/tests/peano.pl">here</a>. List operations are also implemented in MANTI itself, you can see definitions <a href="https://github.com/osa1/MANTI/blob/master/tests/list.pl">here</a>. List syntax is nothing special, it’s just a syntactic sugar that destructs to ordinary Prolog functors(you can see parser for list syntax <a href="https://github.com/osa1/MANTI/blob/master/src/Parser.hs#L80">here</a>).</p>
+<p>For these reasons(and probably others, for instance, unification and <code>not</code> connective are implemented in most inefficient ways possible), it’s very slow. Also, there’s no way to disable occurs check without recompiling MANTI.</p>
+<p>It’s mostly done and I don’t think I’ll work more on that. I hope you find MANTI useful(for learning purposes or others).</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -8,8 +8,25 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-07-21T00:00:00Z</updated>
+    <updated>2013-07-31T00:00:00Z</updated>
     <entry>
+    <title>MANTI - Prolog implementation in 515 lines of Haskell</title>
+    <link href="http://osa1.net/posts/2013-07-31-announce-manti.html" />
+    <id>http://osa1.net/posts/2013-07-31-announce-manti.html</id>
+    <published>2013-07-31T00:00:00Z</published>
+    <updated>2013-07-31T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p><a href="https://github.com/osa1/MANTI">MANTI</a> is a pure Prolog implementation in 515 lines of Haskell. It’s only implements pure parts, meaning it doesn’t have cuts, IO predicates, non-pure arithmetic(<code>is</code> structures in modern Prolog implementation) or other structures that break logical reasoning of Prolog programs.</p>
+<p>Here are some example Prolog programs that currently runs under MANTI: (you can find these in <code>tests/</code> folder in source repository)</p>
+<ul>
+<li><a href="https://github.com/osa1/MANTI/blob/master/tests/einstein.pl">Einstein’s riddle</a> – also called Zebra Puzzle. You can see problem definition in <a href="http://en.wikipedia.org/wiki/Zebra_Puzzle">Wikipedia - Zebra Puzzle</a>.</li>
+<li><a href="https://github.com/osa1/MANTI/blob/master/tests/nqueens.pl">N-queens problem</a> (not that it takes some time to solve it for board bigger than 5x5, reasons for that slowness explained below)</li>
+<li><a href="https://github.com/osa1/MANTI/blob/master/tests/zurg.pl">Escape from Zurg puzzle</a> - you can see a paper with definition of this problem <a href="http://web.engr.oregonstate.edu/~erwig/zurg/">here</a>.</li>
+</ul>
+<p>My aim while writing MANTI was to make it as simple as possible, yet a complete Prolog implementation that is capable to solve some real problems. For this reasons, it doesn’t have arithmetic, list structures and list operations built-in. Instead, arithmetic is implemented using <a href="http://en.wikipedia.org/wiki/Peano_axioms">Peano definitions</a>, you can see the implementation <a href="https://github.com/osa1/MANTI/blob/master/tests/peano.pl">here</a>. List operations are also implemented in MANTI itself, you can see definitions <a href="https://github.com/osa1/MANTI/blob/master/tests/list.pl">here</a>. List syntax is nothing special, it’s just a syntactic sugar that destructs to ordinary Prolog functors(you can see parser for list syntax <a href="https://github.com/osa1/MANTI/blob/master/src/Parser.hs#L80">here</a>).</p>
+<p>For these reasons(and probably others, for instance, unification and <code>not</code> connective are implemented in most inefficient ways possible), it’s very slow. Also, there’s no way to disable occurs check without recompiling MANTI.</p>
+<p>It’s mostly done and I don’t think I’ll work more on that. I hope you find MANTI useful(for learning purposes or others).</p>]]></summary>
+</entry>
+<entry>
     <title>Non-local returns in functional programs</title>
     <link href="http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html" />
     <id>http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html</id>
@@ -887,64 +904,6 @@ return value of StringOfExp: (10 + (20 * (30 + 40)))</code></pre>
 <li id="fn2"><p>Haskell örneğinde yorumlayıcıların tipleri farklı olduğundan ikisine aynı muameleyi yapamıyoruz, farkındayım. Tamamen aynı tipte yorumlayıcılar için Fay için verdiğim linklere göz atabilirsiniz.<a href="#fnref2">↩</a></p></li>
 </ol>
 </div>]]></summary>
-</entry>
-<entry>
-    <title>Separating lexing and parsing stages in Parsec</title>
-    <link href="http://osa1.net/posts/2012-08-30-separating-lexing-and-parsing-in-parsec.html" />
-    <id>http://osa1.net/posts/2012-08-30-separating-lexing-and-parsing-in-parsec.html</id>
-    <published>2012-08-30T00:00:00Z</published>
-    <updated>2012-08-30T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I really love Parsec. After using it several months now, I can’t think of parsing anything other than Parsec.</p>
-<p>After I started working on more complex grammars, I thought maybe it could be good idea to separate lexing stage, since it may lead parser with simpler code. After some experimenting, a SO question, and reading some part of Parsec’s source, I finally managed to separate lexing and parsing. Now I’ll explain how to do that.</p>
-<p>In lexing stage, other than writing ordinary token parsers, we also need to handle token positions. Each token moves the cursor, and saving this is needed for error reporing(and maybe some other reasons). In our case, simplest tokens are characters, and since we’re using Parsec’s built-in <code>Char</code> token, we don’t need to handle characters’ positions. But we need to save each token’s positions because we won’t be using Char tokens in parsing stage, we will be using our custom tokens.</p>
-<p>You can see the full source <a href="https://gist.github.com/3507011">here</a>.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Token</span> <span class="fu">=</span> <span class="dt">Ide</span> <span class="dt">String</span>
-           <span class="fu">|</span> <span class="dt">LBrack</span>
-           <span class="fu">|</span> <span class="dt">RBrack</span>
-           <span class="fu">|</span> <span class="dt">LBrace</span>
-           <span class="fu">|</span> <span class="dt">RBrace</span>
-           <span class="fu">|</span> <span class="dt">Keyword</span> <span class="dt">String</span>
-    <span class="kw">deriving</span> (<span class="kw">Show</span>, <span class="kw">Eq</span>)</code></pre>
-<p>Token types should be instances of <code>Eq</code> to be able to test for equality while parsing, and <code>Show</code> to be able to print in error situations(actually you can use any function for testing for equality and printing, but I find this way easier).</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">TokenPos</span> <span class="fu">=</span> (<span class="dt">Token</span>, <span class="dt">SourcePos</span>)</code></pre>
-<p>So we will be using <code>(Token, SourcePos)</code> pairs for tokens with positions of them in source. Now parsers are simple:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ide ::</span> <span class="dt">Parser</span> <span class="dt">TokenPos</span>
-ide <span class="fu">=</span> <span class="kw">do</span>
-    pos <span class="ot">&lt;-</span> getPosition
-    fc  <span class="ot">&lt;-</span> oneOf firstChar
-    r   <span class="ot">&lt;-</span> optionMaybe (many <span class="fu">$</span> oneOf rest)
-    spaces
-    <span class="fu">return</span> <span class="fu">$</span> <span class="fu">flip</span> (,) pos <span class="fu">$</span> <span class="kw">case</span> r <span class="kw">of</span>
-                 <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">Ide</span> [fc]
-                 <span class="kw">Just</span> s  <span class="ot">-&gt;</span> <span class="dt">Ide</span> <span class="fu">$</span> [fc] <span class="fu">++</span> s
-  <span class="kw">where</span> firstChar <span class="fu">=</span> [<span class="ch">&#39;A&#39;</span><span class="fu">..</span><span class="ch">&#39;Z&#39;</span>] <span class="fu">++</span> [<span class="ch">&#39;a&#39;</span><span class="fu">..</span><span class="ch">&#39;z&#39;</span>] <span class="fu">++</span> <span class="st">&quot;_&quot;</span>
-        rest      <span class="fu">=</span> firstChar <span class="fu">++</span> [<span class="ch">&#39;0&#39;</span><span class="fu">..</span><span class="ch">&#39;9&#39;</span>]</code></pre>
-<p>This is a simple identifier parser(or lexer). Note the <code>pos &lt;- getPosition</code> part.</p>
-<p>After more lexers like this, we need a <code>tokenize</code> function to generate token stream:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">tokenize ::</span> <span class="dt">SourceName</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">ParseError</span> [<span class="dt">TokenPos</span>]
-tokenize <span class="fu">=</span> runParser tokens ()</code></pre>
-<p>In parsing stage, we have several problems. One is that now we can’t use Parsec’s <code>parseTest</code> function, which I almost always use for testing purposes. Because now we need to pass the string to lexer, and then pass it’s output to parser. So I wrote this:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Text.Parsec <span class="kw">as</span> P
-<span class="fu">...</span>
-<span class="ot">parseTest  ::</span> <span class="kw">Show</span> a <span class="ot">=&gt;</span> <span class="dt">Parsec</span> [<span class="dt">TokenPos</span>] () a <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-parseTest p s <span class="fu">=</span>
-    <span class="kw">case</span> tokenize <span class="st">&quot;test&quot;</span> s <span class="kw">of</span>
-        <span class="kw">Left</span> e    <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="fu">$</span> <span class="fu">show</span> e
-        <span class="kw">Right</span> ts&#39; <span class="ot">-&gt;</span> P.parseTest p ts&#39;</code></pre>
-<p><code>satisfy</code> gets a predicate on token, and return a token parser using Parsec’s <code>tokenPrim</code> function, which takes 3 functions as parameters, one for printing the token(to be used in error reporting), one for updating the current position, and one for returning the result after calling predicate. I adapted this function from Parsec’s string parsers:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">advance ::</span> <span class="dt">SourcePos</span> <span class="ot">-&gt;</span> t <span class="ot">-&gt;</span> [<span class="dt">TokenPos</span>] <span class="ot">-&gt;</span> <span class="dt">SourcePos</span>
-advance _ _ ((_, pos) <span class="fu">:</span> _) <span class="fu">=</span> pos
-advance pos _ [] <span class="fu">=</span> pos
-<span class="ot">satisfy ::</span> (<span class="dt">TokenPos</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Token</span>
-satisfy f <span class="fu">=</span> tokenPrim <span class="fu">show</span>
-                      advance
-                      (\c <span class="ot">-&gt;</span> <span class="kw">if</span> f c <span class="kw">then</span> <span class="kw">Just</span> (<span class="fu">fst</span> c) <span class="kw">else</span> <span class="kw">Nothing</span>)</code></pre>
-<p>Last function, <code>tok</code>, takes a token and returns a token parser:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">tok ::</span> <span class="dt">Token</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Token</span>
-tok t <span class="fu">=</span> (satisfy <span class="fu">$</span> (<span class="fu">==</span> t) <span class="fu">.</span> <span class="fu">fst</span>) <span class="fu">&lt;?&gt;</span> <span class="fu">show</span> t</code></pre>
-<p><code>.. &lt;?&gt; show t</code> part is required for error reporting. See my <a href="http://stackoverflow.com/questions/12167329/haskell-parsec-error-messages-are-less-helpful-while-using-custom-tokens">SO question</a> for details.</p>
-<p>Now, when using Parsec, generally there’s no need to separate lexing stage. Because as you can see above, it just makes code more complex, and adds no more flexibility. Instead of writing <code>tok $ Ide &quot;some-identifier&quot;</code>, you can always write <code>ide &quot;some-identifier&quot;</code> with a <code>ide</code> parser.</p>
-<p>Still, I think understanding how to make this helps for at least two reasons. First, now you can work on any streams, not just character streams using Parsec’s <code>Char</code> token. And second, writing lexers can still help in some situations, like parsing indentation-based grammars. In that case, you can generate indent-dedent tokens in lexing stage, and make parser code more clean because it will be less <em>context-dependent</em> (I never tried that with Parsec, though) .</p>]]></summary>
 </entry>
 
 </feed>
