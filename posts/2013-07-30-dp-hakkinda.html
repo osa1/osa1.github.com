@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Dinamik programlama hakkında</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Dinamik programlama hakkında</h1>
+
+<p><strong>July 31, 2013</strong> - Tagged as: <a href="../tags/tr.html">tr</a>.</p>
+
+<p>Bu yazı, inanılmaz yoğun olduğum bir dönemde, acele içerisinde, kulakta müzik ile, 1 saat içerisinde yazılmış bir dinamik programlama tutorialıdır. Belki bir fayda sağlar diye bloguma da koymak istedim. Aslında bir ders kapsamında yazıldı(anlatım kısmı daha önceden yapılmıştı, rapor yazamamıştım).</p>
+<p>Yanlışlık görürseniz lütfen yorum kısmında belirtin.</p>
+<hr />
+<h3 id="giriş">Giriş</h3>
+<p>Dinamik programlama, problemlerin bazı özellikleri sağlaması şartıyla, çözümlerin kompleksliğini düşürmeyi amaçlayan bir programlama yöntemidir.</p>
+<p>Bir problemin şu iki şartı sağladığını düşünelim:</p>
+<ul>
+<li>Büyük problemin optimal çözümü aynı problemin küçük örneklerinin optimal çözümlerine bağldır.</li>
+<li>Bu küçük problemler büyük problemin çözümü sırasında defalarca çözülmektedir.</li>
+</ul>
+<p>Bu durumda küçük problemlerin çözümlerini bir şekilde saklayarak problemlerin yeniden çözülmesi önlenmiş olur ve sonuçta daha verimli bir algoritma elde etmiş oluruz.</p>
+<p>Basit ve klasik bir örnek ile başlayalım,</p>
+<p>(her bir örnek birbirinden farklı çözüm ve düşünme tekniklerini içermekte)</p>
+<h3 id="örnek-1-para-üstü-problemi">Örnek 1: Para üstü problemi</h3>
+<p>Elimizde farklı değerlerde bozuk paralar var, N para üstünü en az miktarda bozuk para vererek tamamlamak istiyoruz. Elimizde 1 değerinde bozuk para var, dolayısıyla her miktarda para üstünü verebiliriz.</p>
+<p>Öncelikle bu çözüm için aç gözlü bir algoritmanın neden çalışmayacağını gözlemleyelim(diğer türlü çözüm aç gözlü bir algoritma olurdu).</p>
+<p>37 para üstü vermek istiyoruz ve elimizde 10, 9 ve 1 değerlerinde bozukluklar var. Aç gözlü bir algoritma bu miktarı şöyle tamamlayacaktır:</p>
+<pre><code>10 - 10 - 10 - 1 - 1 - 1 - 1 - 1 - 1 - 1 -- toplamda 10 bozuk para.</code></pre>
+<p>Fakat aslında daha iyi bir çözüm mevcut:</p>
+<pre><code>10 - 9 - 9 - 9 -- toplamda 4 para.</code></pre>
+<p>Aç gözlü algoritmanın bu problem için çalışmadığını gözlemlemiş olduk. Dinamik programlamaya geçmeden önce ikinci adım olarak bu problemin optimal çözümünü(yani en az miktarda bozuk para ile çözecek çözüm) bulan özyineli bir algoritma yazalım.</p>
+<p>N değerinde para üstü tamamlamaya çalışıyor olalım ve A, B, C, … diye isimlendirdiğimiz bozuk paralarımız olsun. Bu durumda optimal çözüm için ya A değerinde bir bozuk para verip, N - A para üstünü tamamlamaya çalışırız(özyineleme), veya B değerinde bir bozuk para verip, N - B para üstünü tamamlamaya çalışırız(özyineleme) … ta ki tüm paraları deneyene kadar. Bu çözümün C++ programı şeklinde ifade edilmiş hali şöyle:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(<span class="dt">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
+{
+  <span class="kw">if</span> (amount == <span class="dv">0</span>)
+    <span class="kw">return</span> <span class="dv">0</span>;
+
+  <span class="dt">int</span> result = -<span class="dv">1</span>;
+
+  <span class="kw">for</span> (<span class="dt">unsigned</span> coin : coins) {
+    <span class="kw">if</span> (amount &gt;= coin) {
+      <span class="dt">int</span> r = findMinCoin(coins, amount - coin) + <span class="dv">1</span>;
+      <span class="kw">if</span> (result == -<span class="dv">1</span> || r &lt; result)
+        result = r;
+    }
+  }
+
+  <span class="kw">return</span> result;
+}</code></pre>
+<p>Bu özyineli çözüm bize dinamik programlama yapabilmek için aradığımız iki şarttan birini sağladığımızı söylüyor.</p>
+<p><code>findMinCoin</code>in optimal çözümü bulduğunu varsayalım. <code>amount - coin</code> kısmı bize alt problemlerin çözümünü aradığımızı gösteriyor, ve bu çözümü yine <code>findMinCoin</code> aradığımızdan ve <code>findMinCoin</code> optimal çözümü bulduğundan, dinamik programlama yapabilmemiz için gereken ilk şartı sağlamış oluyoruz.</p>
+<p>Diyelim ki varsayımımız yanlıştı ve <code>findMinCoin</code> optimal çözümü bulmuyordu. Bu durumda zaten çözümümüz yanlış oluyor, çünkü <code>findMinCoin</code>i asıl problemimizin optimal çözümünü bulmak için çağırıyoruz.</p>
+<p>Dinamik programlamanın ikinci şartı için problemin hangi alt problemin kaç kere çağırıldığını farketmemiz gerekiyor. Bunun için şöyle bir gözlem yapalım:</p>
+<p>Para üstümüz 37 ve paralarımız 10, 9 ve 1 (ilk örnek). 37’den 25’e gitmenin çok yolu var, bunlardan bazıları:</p>
+<pre><code>10 - 1 - 1
+9 - 1 - 1 - 1
+1 - 1 - 1 - 1 …. - 1 (12 tane)</code></pre>
+<p>Tüm bu durumlar için 25 para üstünü tamamlamayı çözen alt problemimiz paylaşılacak. <code>findMinCoin(coins, 25)</code> çağrısının en azından 3 kere yapıldığını göstermiş olduk. Daha pek çok alt problemin paylaşıldığı benzer bir şekilde kolayca gözlemlenebilir.</p>
+<p>Bu durumda, neden <code>findMinCoin(coins, 25)</code> çağrısının cevabını bir yerde saklayıp, gerektiğinde yeniden çözmek yerine cevabı sakladığımız yerden okuyup vermiyoruz? Bu arada tüm özyineli çağrılar için <code>coins</code> parametresinin hep aynı olduğuna dikkat.</p>
+<p>Bu dönüş değerlerinin bir yerde saklanıp, yeniden hesaplanmamasına <em>memoization</em> adı veriliyor ve dinamik programlama yapmanın en temel yöntemlerinden biri.</p>
+<p>Öncelikle memoization’ın bize ne kazandıracağını farkedelim. İlk çözümümüzde her bir para üstü için problemimiz bozuk para sayısı kadar özyineli çağrı yapacak.</p>
+<p>M para üstümüz olsun ve N tane bozuk paramız olsun. Bu durumda M için N tane özyineli çağrı yapılacak. Kabaca, elimizdeki en küçük paranın 1 olduğunu düşündüğümüzde, bu özyineli çağrılar M kere yapılacak. Her seviyede N özyineli çağrı bize O(M ^ N) kompleksliğinde bir algoritma verecektir.</p>
+<p>Her bir alt problemi memozation yardımıyla bir kere çözdüğümüz durumda ise, tamamlamak istediğimiz para üstümüz M olduğundan ve M - 1 alt probleme sahip olduğumuzdan O(M*N) bir komplekslik elde edeceğiz.</p>
+<p>Örnek implementasyon şöyle:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(vector&lt;<span class="dt">int</span>&gt; table, <span class="dt">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
+{
+  <span class="kw">if</span> (table[amount] != -<span class="dv">1</span>)
+    <span class="co">// problem daha onceden cozulmus, cevaba tablodan bak</span>
+    <span class="kw">return</span> table[amount];
+
+  <span class="co">// problem henuz cozulmemis, coz</span>
+  <span class="kw">for</span> (<span class="dt">unsigned</span> coin : coins) {
+    <span class="kw">if</span> (amount &gt;= coin) {
+      <span class="dt">int</span> r = <span class="dv">1</span> + findMinCoin(table, coins, amount - coin);
+      <span class="kw">if</span> (table[amount] == -<span class="dv">1</span> || r &lt; table[amount])
+        table[amount] = r;
+    }
+  }
+
+  <span class="kw">return</span> table[amount];
+}</code></pre>
+<p>Bu noktada özyineli çağrı yapmadan yapılabilecek alternatif bir çözüm için şunu farketmek gerekir: 0 para üstü için cevap zaten belli. 1 para üstü için cevabımızı sadece 1 değerinde bozuk para verip, 0 alt problemi için tabloya bakarak çözebiliriz. Diyelim ki 10 için çözüyoruz, 1 para verip 9 için cevaba tablodan bakmak isteriz, veya 9 para verip 1 için tabloya bakmak isteriz, veya 10 para verip 0 için tabloya bakmak isteriz vs. Yani aslında tabloda bir M değerinden önceki tüm değerler için cevap belliyse, kolayca o değerler arasından gerekli değerlere bakarak tabloda M’i doldurabiliriz. Bu da bizi 0. elemandan başlayarak tüm tabloyu adımlayarak doldurmayı içeren şu çözüme götürür:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> fillMinCoin(<span class="dt">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, vector&lt;<span class="dt">int</span>&gt; &amp;tbl, <span class="dt">unsigned</span> amount)
+{
+  <span class="kw">for</span> (<span class="dt">unsigned</span> coin : coins)
+    <span class="kw">if</span> (amount &gt;= coin &amp;&amp;
+        (tbl[amount - coin] + <span class="dv">1</span> &lt; tbl[amount]
+         || tbl[amount] == -<span class="dv">1</span>))
+      tbl[amount] = tbl[amount - coin] + <span class="dv">1</span>;
+}</code></pre>
+<p>Daha sonra bu tablodan gerekli elemana bakarak cevabı öğrenmiş oluruz. Bu şekilde bir çözüm dinamik programlamanın doğasını bize daha iyi gösteriyor. Dinamik programlama temelde tablolamaya dayanıyor.</p>
+<h3 id="örnek-2-en-uzun-artan-altdizi-problemi">Örnek 2: En uzun artan altdizi problemi</h3>
+<p>İki harf dizisi(string) düşünelim. En uzun artan altdizi, şu şekilde tanımlanmıştır:</p>
+<p>A1 A2 A3 … AN</p>
+<p>Her bir harf hem ilk dizide hem ikinci dizide bulunmakta, ve herhangi bir A N-1, A N için A N - 1 ilk dizide A N’den önce bulunmakta ve A N - 1 ikinci dizide A N’den önce bulunmaktadır.</p>
+<p>Örnek:</p>
+<pre><code>String 1: cbeb
+String 2: fdceb
+
+Cevap: ceb</code></pre>
+<p>olacaktır. c harfi birinci dizide ilk eleman, ikinci dizide 3. eleman olarak bulunuyor, e ilk dizide 3., ikinci dizide 4. eleman, b harfi ilk dizide 4. eleman, ikinci dizide 5. eleman olarak bulunmakta.</p>
+<p>Bir probleme dinamik programlamanın uygulanabileceğini görmek için önce başta anlatılan iki şart kontrol edilmelidir. Bunun için güzel bir yolun problemin özyineli bir çözümünü yapmak olduğunu daha önceden anlatmıştık. Şimdi bu sorunu özyineli bir şekilde nasıl çözebileceğimize bakalım. Girdilerimiz S1 ve S2 olsun:</p>
+<ul>
+<li>Herhangi birinin boş string olması dorumunda cevabımız boş string olacaktır.</li>
+<li>Diğer durumda, S1 ve S2’nin son harflerini düşünelim:</li>
+<li>Eğer bu harfler aynı ise, cevabımıza dahil olacak bir harfi bulduk demektir. Problemin geriye kalanı S1 ve S2 stringlerinin son harfleri çıkarılmış halleri için çözülmeli ve bu son harf cevaba eklenmelidir.</li>
+<li>Eğer harfler farklı ise, iki ayrı alt problem elde ederiz: ya S1 stringinin tamamı ve S2’nin son harfi hariç olan kısmı bize en uzun cevabı verecektir, veya S1 stringinin en son harfi hariç kısmı ile S2’nin tamamı en uzun cevabı verecektir. İkisini de çözeriz ve daha uzun olan cevap çözümümüz olur.</li>
+</ul>
+<p>Bu çözümün Haskell implementasyonu şu şekilde: (sadelik açısından bu kısım C++ ile yazılmadı, dinamik programlama hali C++ ile verilecek)</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">solve ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
+solve s1 s2
+  <span class="fu">|</span> <span class="fu">null</span> s1 <span class="fu">||</span> <span class="fu">null</span> s2 <span class="fu">=</span> <span class="st">&quot;&quot;</span>
+solve s1 s2 <span class="fu">=</span>
+    <span class="kw">let</span> (h1, t1) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">length</span> s1 <span class="fu">-</span> <span class="dv">1</span>) s1
+        (h2, t2) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">length</span> s2 <span class="fu">-</span> <span class="dv">1</span>) s2
+     <span class="kw">in</span> <span class="kw">if</span> t1 <span class="fu">==</span> t1 
+          <span class="kw">then</span> solve h1 h2 <span class="fu">++</span> t1
+          <span class="kw">else</span>
+            <span class="kw">let</span> result1  <span class="fu">=</span> solve h1 s2
+                result2  <span class="fu">=</span> solve s1 h2
+             <span class="kw">in</span> <span class="kw">if</span> <span class="fu">length</span> result1 <span class="fu">&gt;</span> <span class="fu">length</span> result2
+                  <span class="kw">then</span> result1
+                  <span class="kw">else</span> result2</code></pre>
+<p>Çözümün kompleksliğini düşünelim: Birbirine eşit olmayan M ve N uzunluğunda iki string düşünelim, M ve N - 1 uzunluğunda, M - 1 ve N uzunluğunda ve M - 1, N - 1 uzunluğunda stringler için özyineli çağrılar yapılacak. Her birinden yine 3 farklı özyineli çağrı ve toplamda M + N seviyede her seviyede 3 çağrı yapılacağından O((M + N) ^ 3) kompleksliğinde bir algoritmamız olur.</p>
+<p>Dinamik programlamanın mümkün olduğunu görmek için fonksiyonun iki string girdimizin ilk kaç harfi üzerinden çağırıldığını bir ağaç üzerinden takip etmek yeterli olacaktır.</p>
+<p>Bu durumda stringlerin ilk kaç harfi için çözümü bulduğumuzu iki boyutlu bir tabloda tutabiliriz. Örneğin tablodaki (3, 5) elemanı bize ilk stringin ilk 3 elemanı, ikinci stringin ilk 5 elemanı için bulduğumuz çözümü verecektir.</p>
+<p>Yazıyı kısa tutmak adına bu noktadan sonra direkt olarak adımlayarak tablo doldurma şeklinde düşünelim. Problemin M ve N harflik hali için (M - 1, N), (M - 1, N - 1) ve (M, N - 1) lik hallerini çözmemiz gerekecek. Tablo üzerinde düşündüğümüzde, eğer tabloyu satır satır doldurursak, her bir sonraki adımda gerekli önceki adımları zaten elde etmiş olduğumuz görülebilir.</p>
+<p>Burada tabloda tutacağımız her bir değer iki şeyi göstermeli, 1) string uzunluğu cinsinden cevap 2) o adıma geldiğimizde eğer iki stringin de son harflerini cevaba katıyorsak, bu stringin hangi harf olduğu.</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> solve(table &amp;tbl,
+    <span class="dt">const</span> string &amp;str1, <span class="dt">const</span> string &amp;str2)
+{
+  <span class="kw">for</span> (us i = <span class="dv">0</span>; i &lt; str1.size(); i++)
+    <span class="kw">if</span> (str2[<span class="dv">0</span>] == str1[i])
+      tbl(i, <span class="dv">0</span>) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(' ', <span class="dv">1</span>);
+    <span class="kw">else</span>
+      tbl(i, <span class="dv">0</span>) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(' ', <span class="dv">0</span>);
+
+  <span class="kw">for</span> (us i = <span class="dv">0</span>; i &lt; str2.size(); i++)
+    <span class="kw">if</span> (str1[<span class="dv">0</span>] == str2[i])
+      tbl(<span class="dv">0</span>, i) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(' ', <span class="dv">1</span>);
+    <span class="kw">else</span>
+      tbl(<span class="dv">0</span>, i) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(' ', <span class="dv">0</span>);
+
+  <span class="kw">for</span> (us i = <span class="dv">1</span>; i &lt; str1.size(); i++)
+    <span class="kw">for</span> (us j = <span class="dv">1</span>; j &lt; str2.size(); j++)
+      <span class="kw">if</span> (str1[i] == str2[j])
+        tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(str1[i], tbl(i - <span class="dv">1</span>, j - <span class="dv">1</span>)-&gt;second + <span class="dv">1</span>);
+      <span class="kw">else</span> {
+        us s1 = tbl(i - <span class="dv">1</span>, j)-&gt;second;
+        us s2 = tbl(i, j - <span class="dv">1</span>)-&gt;second;
+
+        <span class="kw">if</span> (s1 &gt; s2)
+          tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(' ', s1);
+        <span class="kw">else</span>
+          tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(' ', s2);
+      }
+}</code></pre>
+<p>Bu çözümdeki iç içe iki for döngüsü tablonun tamamını bir turda ve her bir adım için 3 işlemde doldurduğumuzu gösteriyor ve çözümümüz dolayısıyla O(M*N).</p>
+<p>Bu problemin alıştırması <a href="http://www.spoj.com/SPOJ/problems/TLCS/">http://www.spoj.com/SPOJ/problems/TLCS/</a> adresinden yapılabilir.</p>
+<h3 id="aşağıdan-yukarıya-ve-yukarıdan-aşağıya-çözümler">Aşağıdan-yukarıya ve yukarıdan-aşağıya çözümler</h3>
+<p>Bu noktada iki farklı dinamik programlama tekniği görmüş olduk. Biri memoization, biri ise adımlayarak tablo doldurma. Aralarında birkaç temel farklılık var.</p>
+<p>Memoization çözümünde tabloyu nasıl dolduracağımızı düşünmemize gerek kalmadı. Eğer tabloda cevap bulunmamışsa, o yerdeki cevabın bulunması için özyineli çağrı yapıldı. Bu şekilde çözüme “yukarıdan-aşağı (top-down)” diyoruz.</p>
+<p>İkinci çözüm yöntemimiz adımlayarak tablo doldurmaydı. Bu çözümün güzel yanı özyineli çağrı yapılmaması, fakat dezavantajı tabloyu nasıl bir sırayla dolduracağımızı düşünüp bulmamızı gerektirmesi. Diğer türlü, tabloda bir sonraki konumu doldururken aradığımız bir cevaba ulaşamayabiliriz.</p>
+<p>Komplekslik olarak aralarında bir fark yok. Şahsi görüşüm memoization çözümünün daha güzel olduğu yönünde. Sebebi de yukarıda bahsettiğim gibi, tablo doldurma sırasını düşünmemize gerek olmaması.</p>
+<h3 id="bir-soru-barkod">Bir soru: Barkod</h3>
+<p>Sorunun tanımını orjinal kaynaktan okuyabilirsiniz: <a href="http://codeforces.com/problemset/problem/225/C">http://codeforces.com/problemset/problem/225/C</a></p>
+<p>Her bir kolonu tamamen beyaza ve tamamen siyaha boyamanın masraflarını biliyor olalım.</p>
+<p>N. kolonu beyaza boyamak istediğimizi düşünelim, en az A en fazla B genişliğinde kolonlar istiyor olalım. Bu durumda X = [A … B] aralığı için N - X. kolonun siyah, [N - X + 1 … N] aralığındaki kolonların beyaz olması bize bir cevap verir(renklerin tam tersi olma durumu 2. bir cevap).</p>
+<p>Burada farkedilmesi gereken şen, N - X. kolonun siyah olması aslında bir alt problem, ve en doğal ifade edilme şeklide bir özyineli fonksiyon ile olur.</p>
+<p>Peki alt problemler paylaşılıyor mu? Şöyle düşünelim, en az 5, en fazla 10 genişliğinde kolonlar istiyor olalım ve şu anda 15. kolonu boyuyor olalım. Bu durumda 10, 9, 8, 7, … 6. kolona kadar olan kısımlar için aynı problemi yeniden çözeceğiz. 16. kolon için ise 19, 9, … 7. kolona kadar olan kısımları bir yeniden çözmemiz gerekecek. Ciddi miktarda alt problem paylaşılıyor.</p>
+<p>Herhangi bir kolon için sadece o kolondan önceki kolonların cevabına ihtiyaç duyuyor olmamız tek boyutlu bir tabloda dinamik programlama yapabileceğimizi gösteriyor. Bu durumda şöyle bir cevap elde ediyoruz:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">unsigned</span> us;
+...
+<span class="dt">void</span> solveDP(vector&lt;<span class="dt">int</span>&gt; &amp;tblWhites, vector&lt;<span class="dt">int</span>&gt; &amp;tblBlacks,
+             <span class="dt">const</span> vector&lt;us&gt; &amp;colWhites, <span class="dt">const</span> vector&lt;us&gt; &amp;colBlacks,
+             us idx, <span class="dt">const</span> us min, <span class="dt">const</span> us max)
+{
+  <span class="kw">if</span> (idx &lt; max) {
+    tblWhites[idx] = sumInclusive(colBlacks, <span class="dv">0</span>, idx);
+    tblBlacks[idx] = sumInclusive(colWhites, <span class="dv">0</span>, idx);
+  }
+
+  <span class="dt">const</span> us startIdx = idx &lt; max ? <span class="dv">0</span> : idx - max;
+  <span class="dt">const</span> us endIdx   = idx - min;
+
+  <span class="kw">for</span> (us i = startIdx; i &lt;= endIdx; i++) {
+    <span class="kw">if</span> (tblBlacks[i] != -<span class="dv">1</span>) {
+      us cost = tblBlacks[i] + sumInclusive(colBlacks, i + <span class="dv">1</span>, idx);
+      <span class="kw">if</span> (tblWhites[idx] == -<span class="dv">1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblWhites[idx]))
+        tblWhites[idx] = cost;
+    }
+
+    <span class="kw">if</span> (tblWhites[i] != -<span class="dv">1</span>) {
+      us cost = tblWhites[i] + sumInclusive(colWhites, i + <span class="dv">1</span>, idx);
+      <span class="kw">if</span> (tblBlacks[idx] == -<span class="dv">1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblBlacks[idx]))
+        tblBlacks[idx] = cost;
+    }
+  }
+}</code></pre>
+<h3 id="bir-soru-two-out-of-three">Bir soru: “Two out of three”</h3>
+<p>Bu soru önceki sorudan daha ilginç olmamakla beraber, memoization/tablolama yapma şekli biraz değişik olduğundan anlatmak istedim: <a href="http://codeforces.com/problemset/problem/82/D">http://codeforces.com/problemset/problem/82/D</a> .</p>
+<p>Sıradaki son 3 elemandan 2 elemanın sürekli azalacağını biliyoruz, ve alt problem bu iki eleman hariç elemanlar için çözülecek. Fakat bu 3 elemandan seçilmeyen elemanı memoization işleminde nasıl kullanabiliriz? Sıradan ayrılan iki insan alt problemin sıradaki ilk 2 eleman hariç olan kısmı olduğunu gösteriyor. 3 kişiden seçilmeyen bir kişi de algoritmaya ekstra bir parametre olarak verildiğinde karşımıza şöyle bir sonuç çıkıyor:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> solve(<span class="dt">int</span> lastElem, <span class="dt">int</span> offset, <span class="dt">const</span> vector&lt;<span class="dt">int</span>&gt; &amp;ppl,
+    matrix&lt;<span class="dt">int</span>&gt; &amp;tbl, matrix&lt;<span class="dt">int</span>&gt; &amp;steps)
+{
+  <span class="kw">if</span> (lastElem &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
+    <span class="kw">return</span> <span class="dv">0</span>;
+  <span class="kw">if</span> (offset &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
+    <span class="kw">return</span> ppl[lastElem];
+
+  <span class="kw">if</span> (tbl(lastElem, offset) != -<span class="dv">1</span>)
+    <span class="kw">return</span> tbl(lastElem, offset);
+
+  <span class="dt">int</span> tmp[<span class="dv">3</span>];
+  tmp[<span class="dv">0</span>] = max(ppl[lastElem], ppl[offset]) + solve(offset + <span class="dv">1</span>, offset + <span class="dv">2</span>, ppl, tbl, steps);
+  tmp[<span class="dv">1</span>] = max(ppl[lastElem], ppl[offset + <span class="dv">1</span>]) + solve(offset, offset + <span class="dv">2</span>, ppl, tbl, steps);
+  tmp[<span class="dv">2</span>] = max(ppl[offset], ppl[offset + <span class="dv">1</span>]) + solve(lastElem, offset + <span class="dv">2</span>, ppl, tbl, steps);
+
+  <span class="dt">int</span> idmin = min_element(tmp, tmp + <span class="dv">3</span>) - tmp;
+  steps(lastElem, offset) = idmin;
+
+  <span class="kw">return</span> tbl(lastElem, offset) = tmp[idmin];
+}</code></pre>
+<p>Alt problemlerin nasıl paylaşıldığı daha önceden anlatıldığı gibi görülebilir.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
