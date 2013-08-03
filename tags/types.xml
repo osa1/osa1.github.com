@@ -238,10 +238,10 @@ c := (fun x -&gt; x+1);
 <p>Let-polymorphism has some interesting properties. It’s simple, but it still accepts realistic programs. And even though its worst-case efficiency is exponential on the size of input program, most realistic programs don’t hit the worst case and have linear time complexity. For this reason, let-polymorphism is named as the ‘sweet-spot’ of type systems.</p>
 <p>Another great property of HM type system is that it can be reduced to constraint generation and solving steps. These separate steps lead to a more modular algorithm, with changeable constraint generators and solvers. HM(X)<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup> is a formalization of this observation.</p>
 <h1 id="row-polymorphism">Row polymorphism</h1>
-<p>Rows are a way to encode ‘labeled sums’. A sum type is a type that contains some other types; for example, a pair is a sum type of two other types (<code>(int * bool)</code> is a sum type with <code>int</code> and <code>bool</code> parts).</p>
-<p>A ‘labeled sum’ is a sum type, but with labels. For instance:</p>
+<p>Rows are a way to encode ‘labeled products’. A product type is a type that contains some other types; for example, a pair is a product type of two other types (<code>(int * bool)</code> is a product type with <code>int</code> and <code>bool</code> parts).</p>
+<p>A ‘labeled sum’ is a product type, but with labels. For instance:</p>
 <pre><code>type error = { code : int; reason : string }</code></pre>
-<p>is just like an <code>(int * string)</code> type, but it has labels for subparts. There are severals ways to encode labeled sums as rows. Here’s one way:</p>
+<p>is just like an <code>(int * string)</code> type, but it has labels for subparts. There are severals ways to encode labeled products as rows. Here’s one way:</p>
 <pre><code>type error = { code : abs int; reason : abs int; rho[code,int] }</code></pre>
 <p>This syntax is similar to Rémy’s, which was also used in our project. Last <code>rho</code> is the polymorphic part, it means that an error type is a row type with <code>code</code> and <code>reason</code> fields with gives types, but with a polymorphic part that can be unified with any record except the fields labeled with <code>code</code> or <code>int</code> (some systems accept field repetition, like in Daan Leijen’s “Extensible records with scoped labels”).</p>
 <p>Row polymorphism gives us a subtyping-like effect. For example, this function:</p>
@@ -253,8 +253,8 @@ c := (fun x -&gt; x+1);
 <p>Multi-stage programming languages makes distinguished evaluation stages in run-time. Some part of the program can be generated depending on some user input.</p>
 <p>Evaluation is done at stage 0. A program generated in staged 0 has stage 1, program generated in stage 1 has stage 2 etc. This notion of separate stages has some semantic effects. Each stage has a scope, but most systems offer a mechanism to lift a value from a lower stage.</p>
 <p>Being able to generate code in run-time gives us a way to specialize algorithms depending on user input. Let’s look at a classic example:</p>
-<pre><code>let rec pow_body_gen n = 
-  if n = 0 then &lt;1&gt; 
+<pre><code>let rec pow_body_gen n =
+  if n = 0 then &lt;1&gt;
   else &lt;a * ~(pow_body_gen (n-1))&gt;;;</code></pre>
 <p><code>pow_body_gen</code> takes an integer <code>n</code> and returns the code <code>a * a * a * ... * 1</code>, a to the power of n. With the help of this function, we can generate a specialized function <code>power_five</code> which raises an integer to the power 5, but without running a loop or recursively calling a function:</p>
 <pre><code>let rec power_five a = &lt;let a = ~lift(a) in ~(pow_body_gen 5)&gt;;;</code></pre>
