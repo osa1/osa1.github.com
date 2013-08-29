@@ -8,8 +8,17 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-07-31T00:00:00Z</updated>
+    <updated>2013-08-29T00:00:00Z</updated>
     <entry>
+    <title>Internet</title>
+    <link href="http://osa1.net/posts/2013-08-29-internet.html" />
+    <id>http://osa1.net/posts/2013-08-29-internet.html</id>
+    <published>2013-08-29T00:00:00Z</published>
+    <updated>2013-08-29T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p><a href="http://i.imgur.com/dx7sVXj.jpg">Şunu</a> görüp, önceki bazı tecrübe ve gözlemlerle beraber üzerinde biraz düşündükten sonra internetin anlamını çözdüğünü düşündüm:</p>
+<p>“muhtemelen hepsi uydurma ama yine de güzel”</p>]]></summary>
+</entry>
+<entry>
     <title>Dinamik programlama hakkında</title>
     <link href="http://osa1.net/posts/2013-07-30-dp-hakkinda.html" />
     <id>http://osa1.net/posts/2013-07-30-dp-hakkinda.html</id>
@@ -761,25 +770,6 @@ add sp, 4</code></pre>
 <p>Birkaç aydır neredeyse her gün akademik makaleler vb. okuyan ama hala formal anlatımları anlamayı inanılmaz zor bulan(ama yine de en azından sabırla uğraşıp, anlayabilen) biri olarak, bundan daha iyi bir özet görmemiştim.</p>
 <p>Zaten birinin tahtaya çıkıp ders anlatmasına da bu yüzden ihtiyacımız yok mu? Kağıt üzerinde, hiçbir konuda farklı yorumlamaya fırsat bırakmayacak ve bir yandan da özlü bir şekilde meseleyi anlatabilecek formal bir dille öğrenmeye kalktığımıza, yeterli sabrı gösteremeyip, yeterli emeği veremeyiz. Sebebi de, yazıda bahsedildiği gibi, yazar tarafından formal bir dil ile ifade edilmiş meseleleri kendi anlayışımıza göre tercüme etmek zorunda olmamız.</p>
 <p>Okul ortamı benim için biraz da bu yüzden moral bozucu aslında. Bir hafta boyunca bir makaleyi anlamaya çalışıp, anladıktan sonra sözlü olarak başka birine ne kadar kolay bir şekilde anlatılabileceğini farkettiğimde, “keşke biri bana anlatıyor olsaymış” diye düşünüyorum. Bir haftamı değil birkaç saatimi vermem yetebilirdi o zaman.</p>]]></summary>
-</entry>
-<entry>
-    <title>call/cc [2]</title>
-    <link href="http://osa1.net/posts/2012-08-09-callcc-2.html" />
-    <id>http://osa1.net/posts/2012-08-09-callcc-2.html</id>
-    <published>2012-08-09T00:00:00Z</published>
-    <updated>2012-08-09T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Scheme çok ilginç bir dil. Çok küçük olmasına rağmen(R5RS 50 sayfa, R6RS 90 sayfa, aradaki fark büyük oranda kütüphanelerden kaynaklanıyor) programlama dilleri camiasından sürekli tartışma konusu, ve bir sonraki standard konusundaki tartışmalar neredeyse hiçbir zaman bitmiyor. Çok fazla tartışmalı özelliği var. Kendisine göre devasa boyutlardaki dillerde bile Scheme’inkiler kadar tartışılan özellikler yoktur büyük ihtimalle(gerçi bu biraz da Scheme camiasının çok sayıda programlama dili meraklısı içermesi ile alakalı olabilir).</p>
-<p><code>call/cc</code> bu özelliklerden biri, hakkında buralarda birşeyler yazmıştım. <code>call/cc</code> benim gözümde, birazdan bahsedeceğim yazıdaki tabiriyle, “ultimate abstraction of control” idi. Kendi dilime de call/cc’yi programın kontrol akışı üzerinde değişiklikler gerektiren yapıları implement etmek için kullnacaktım.</p>
-<p>Bugün internetteki favori sayfalarımdan <a href="http://okmij.org/ftp/">okmij</a>de <a href="http://okmij.org/ftp/continuations/against-callcc.html">“An argument against call/cc”</a> adlı yazıya denk geldim. Meraklısı olan varsa kaçırmasın.</p>
-<p>call/cc’nin neden kötü bir soyutlama olduğunu 7 madde halinde incelemiş. Benim anladığım, tüm bu problemleri delimited continuationlarla çözebiliriz. Delimited continuationlara giriş için <a href="http://pllab.is.ocha.ac.jp/~asai/cw2011tutorial/main-e.pdf">Introduction to Programming with Shift and Reset</a>e bakabilirsiniz. Ben epey anlaşılır buldum(OchaCaml’ı yükleyip denemedim gerçi, içinde yama uygulamayı da içeren birkaç maddelik kurulum komutu var, şaka gibi). Bir maddede <code>dynamic-wind</code>den bahsetmiş. <code>dynamic-wind</code> ile ilk kez bu yazıda karşılaştım, ve anladığım kadarıyla delimited continuationlar buna olan ihtiyacı ortadan kaldırmıyor. Sonuçta örneğin bir dosyaya erişim yapıldığı durumda, continuation dosyanın referansını içerecektir ve daha sonradan bu continuation kullnıldığında, delimited olsa da olmasa da, aynı kaynakların alınıp(dosyanın açılması, sunucuya bağlanılması vs.), işlem sonrasında kapatılması gerekir.</p>
-<p>Static bir tip sistemi ve lexical scope ile call/cc implementasyonu benim için zaten yeterince zor bir problem. Belki de tamamen kaldırıp, Lua usulü biraz daha genelleştirilmiş generatorlar<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>ile yola devam etmeliyim.</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p><a href="http://dl.acm.org/citation.cfm?id=1462167&amp;CFID=125136476&amp;CFTOKEN=41020401">Revisiting coroutines</a><a href="#fnref1">↩</a></p></li>
-</ol>
-</div>]]></summary>
 </entry>
 
 </feed>
