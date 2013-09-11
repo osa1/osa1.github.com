@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - On proof automations</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">On proof automations</h1>
+
+<p><strong>September 11, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/coq.html">coq</a>.</p>
+
+<p>While working with constructive systems, at the lowest level you can directly construct proof objects by writing programs. But for realistic scenarios, this is probably too hard to do. Coq and Idris like languages provide an alternative way to construct proof objects: tactics. Tactics provide a way to derive proofs in a way that is somewhat like informal proofs given in spoken languages. But theorems you’re trying to prove is already too complex, and in some parts, very repetitive.</p>
+<p>That <em>tactics</em> Coq like theorem provers provide also help you construct proofs with some automation commands. For instance, you can apply same steps several times, until you prove some subgoals. Or you can search for a proof by applying some steps in different combinations.</p>
+<p>What doesn’t make sense to me is that in general you cannot really use that automation methods before manually writing long and hard proof by hand and showing that your theorem is really a theorem and it indeed has some repetitive parts.</p>
+<p>And at this point you’re probably better off leaving the proof as-is because replacing explicit steps with some magic commands(I’ll come to this point later) only makes the proof harder to read, without any other advantages.</p>
+<p>I have similar ideas for <code>auto</code> tactic. What it does is that it searches for a proof by applying different combinations of <code>apply</code> and <code>intros</code> tactics(with some limitations – it only uses apply for hypothesis and hint database which you generate while defining inductive definitions).</p>
+<p>Now my problem with <code>auto</code> is that you can only use it when you absolutely sure that your theorem is indeed a theorem – that is, it has a proof. And how can you know that your theorem is correct? The only way to know this is to write a proof for it. Now let’s say <code>auto</code> tactic fails, and when this happens it can’t really say anything. Why did it fail? It may be because your proof is actually too long and it searched for a while but couldn’t find a proof(you can specify search depth as an optional parameter of <code>auto</code> tactic). Or maybe your hint base is not good enough. Or maybe your theorem is not actually a theorem and you cannot prove it.</p>
+<p>So both proof search tactics and repetition elimination tactics have this same common problem: you cannot know that they work before writing the proof itself. And automation generally makes the proof unreadable.</p>
+<p>Adam Chilpala’s “Certified Programming with Dependent Types” book encourages that automated way of proving. You have that complicated theorem that you don’t even understand what it is saying? No problem, <code>crush</code> tactic(which is not standard, distributed with CPDT book) will prove it for you in one command.</p>
+<p>I’m not saying that <code>crush</code> like tactics are necessarily bad and you shouldn’t use it. I’d probably use it in real world when I need a proof that <code>crush</code> can generate and I don’t have time or motivation to do it myself.</p>
+<p>And repetition elimination tactics are useful when you have a syntax tree with 15 constructors and you’re proving some theorem that’s relevant with only one of that constructors – 14 subgoals can be easily proved by some clever use of <code>;</code> operator in Coq.</p>
+<p>What I’m saying that is several things:</p>
+<ul>
+<li>Automated proofs can make proofs harder to read and most of the time you already need to have written the long proof to see that it has repetitive parts or at least it is provable. (certainly there are cases where you’ll find yourself trying to prove something wrong)</li>
+<li>Once a long proof is written, there is little or no need to remove that proof and replace it with an automated version. (one reason to do that is to have same proof working even after some inductive definitions is expanded/changed)</li>
+<li>Most importantly, <code>crush</code> like automation tactics are pure black magic and doesn’t really teach you anthing. As a hobbyist who self-study all this, I prefer learning the principles instead of scripts and magic commands and black boxes.</li>
+</ul>
+<p>For this reasons I’m trying to use proof automation as little as possible.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
