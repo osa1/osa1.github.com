@@ -8,8 +8,28 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-09-11T00:00:00Z</updated>
+    <updated>2013-09-17T00:00:00Z</updated>
     <entry>
+    <title>On proof automations -- part 2</title>
+    <link href="http://osa1.net/posts/2013-09-17-proof-automation-2.html" />
+    <id>http://osa1.net/posts/2013-09-17-proof-automation-2.html</id>
+    <published>2013-09-17T00:00:00Z</published>
+    <updated>2013-09-17T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p><a href="http://adam.chlipala.net/">Adam Chilpala’s</a> <a href="http://adam.chlipala.net/cpdt/">Certified Programming with Dependent Types</a> has a great discussion on writing automated proofs and readability of proofs. Highly recommended. Chapter 16(page 319 on current revision).</p>
+<p>I think one key thing to realize about interactive theorem proving is that there is no perfect, or maybe even good, solution to the problem of proof representation. Tactics help, but without automation tactic based proofs are just too fragile(every change in definitions implies changes in proofs) and verbose. But automated proofs are very hard to read, and it’s very hard to modify automated proofs for changes. CPDT book has a great example of this. Let’s think of this proof(I’ll skip the definitions, just think some simple arithmetic expressions language just like you could find in any elementary programming language theory book)</p>
+<pre class="coq"><code>Theorem eval_times : forall k e,
+    eval (times k e) = k * eval e.
+Proof.
+  induction e as [| ? IHe1 ? IHe 2]; [
+    trivial
+    | simpl; rewrite IHe1; rewrite IHe2; rewrite mult_plus_distr_l; trivial ].
+Qed.</code></pre>
+<p>And now let’s say you added one more constructor to arithmetic expression syntax. How to change this proof to adopt the changes? I don’t think there’s a way to do that without first writing the version without automation. And that brings us back to my first post.</p>
+<p>I think the reason why I think too much about this stuff instead of writing some proofs is that I look for elegance and simplicity in my programs. And only if necessary I try to make my programs efficient(fast, small, whatever). After some simple trivial proofs that I did for learning I never found my proofs satisfactory. They are either very very long and repetitive or very hard to understand and modify. It’s very hard to find a sweet-spot in proofs that is not very repetitive and long and still possible to read and understand.</p>
+<p>You can always apply methods you learned to make your programs easier to read and modify, like moving some code to a new function with a useful name and formal parameters etc. but in the case of proofs it’s also very hard to find what pieces are considered worthy to be a lemma and what would be useful name for it.</p>
+<p>My ideas about proof automation is changed from “no way I use them” to “okay they can be very useful for eliminating repetition without adding obscurity to the proof” in one day. I’ll continue writing Coq proofs for while and probably add new posts on this topic later.</p>]]></summary>
+</entry>
+<entry>
     <title>On proof automations</title>
     <link href="http://osa1.net/posts/2013-09-11-proof-automation.html" />
     <id>http://osa1.net/posts/2013-09-11-proof-automation.html</id>
