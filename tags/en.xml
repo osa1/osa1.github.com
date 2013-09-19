@@ -8,8 +8,79 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-09-17T00:00:00Z</updated>
+    <updated>2013-09-19T00:00:00Z</updated>
     <entry>
+    <title>Quick rant: K Framework is broken</title>
+    <link href="http://osa1.net/posts/2013-09-19-k-framework-broken.html" />
+    <id>http://osa1.net/posts/2013-09-19-k-framework-broken.html</id>
+    <published>2013-09-19T00:00:00Z</published>
+    <updated>2013-09-19T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<h2 id="quick-rant-k-framework-is-broken">Quick Rant: K Framework is broken</h2>
+<p>In this short rant I’ll demonstrate how K Framework is broken and how you can avoid the problem. If you don’t know what is K Framework or don’t use it, you probably want to ignore this post.</p>
+<p>Let’s think this completely useless K module:</p>
+<pre><code>module TEST
+
+  syntax Exp ::= &quot;nilExp&quot;
+               | return(Exp) [strict]
+
+  syntax Val ::= &quot;nil&quot;
+
+  syntax KResult ::=  Val
+
+  rule nilExp =&gt; nil ... [nil]
+
+endmodule</code></pre>
+<p>and this TEST program:</p>
+<pre><code>return(nilExp)</code></pre>
+<p>what do you think this program has in K cell when it gets stuck? It’s not really hard to guess. Since we annotate <code>return(Exp)</code> syntax with <code>strict</code>, it’s argument gets evaluated according to our <code>nil</code> rule and then it gets stuck. At this point K cell will be:</p>
+<pre><code>&lt;k&gt;
+    return ( nil )
+&lt;/k&gt;</code></pre>
+<p>which may not be very surprising for you, but there’s something wrong going on here. In our syntax declaration we defined argument or <code>return</code> to be an <code>Exp</code>, but in the term in our K cell it’s <code>Val</code>.</p>
+<p>At this point you can say that this is how heating/cooling works an there’s nothing wrong here but then we have another problem: there’s no way for the user to write rules that does exactly what heating/cooling rules do. In our example above you’d expect from strictness annotation to generate rules like this:</p>
+<pre><code>rule return(E:Exp) =&gt; E ~&gt; return(HOLE)
+rule V:Val ~&gt; return(HOLE) =&gt; return(V)</code></pre>
+<p>but this is not a valid rule and it fails with the this error message:</p>
+<pre><code>[Error] Critical: type error: unexpected term &#39;V:Val &#39; of sort &#39;Val&#39;, expected sort &#39;Exp&#39;.
+        File: /home/omer/K/lua-semantics/test/test.k
+        Location: (11,35,11,36)</code></pre>
+<p>and what’s more confusing is that even though K generated rule somehow generates the term <code>return(Val)</code>, you cannot match it in your rules because this term is actually ill-typed:</p>
+<pre><code>rule return(V:Val) =&gt; .
+...
+[Error] Critical: type error: unexpected term &#39;V:Val &#39; of sort &#39;Val&#39;, expected sort &#39;Exp&#39;.
+        File: /home/omer/K/lua-semantics/test/test.k
+        Location: (11,10,11,15)</code></pre>
+<p>which means there’s no way for you to work on this term. This time you’re stuck :-p</p>
+<p>We discussed this on k-user mailing list a bit but there isn’t really a solution – we only have a workaround. Here’s the reason of this problem(quoted from mailing list <a href="http://lists.cs.uiuc.edu/pipermail/k-user/2013-September/000475.html">discussion</a>):</p>
+<blockquote>
+<p>Your grammar is only enforced during parsing.</p>
+<p>After the definition is compiled, return is just a label that may be applied to a list of children.</p>
+<p>In particular, the automatically generated cooling rule only puts a side condition that enforces IsKResult, which nil passes.</p>
+</blockquote>
+<p>Wow, this sounds like really broken to me. Anyway, only solution I could find to this is to add <code>Val</code> syntactic category to a member of <code>Exp</code> syntactic category. This is an obvious solution, but very bad one also. Because by having distinguished <code>Val</code> and <code>Exp</code> syntactic categories what I’m trying to do is to force my program to get stuck as soon as possible when something went wrong, instead of continuing evaluation and get stuck at a point where very very far from where the error actually occured.</p>
+<p>Rest of this post is also sent to k-list mailing list and contains my ideas on implementing strictness annotations. These ideas may be wrong – I’m only a beginner K user.</p>
+<hr />
+<p>This is how I’d design strictness annotations(but I’m probably wrong since I’m just a beginner in K).</p>
+<p>Let’s say I have this syntax:</p>
+<pre><code>syntax Exp ::= P(Exp, Exp, Exp) [strict]</code></pre>
+<p>for intermediate steps while fully evaluating this expression, I’d design the K framework so that these syntax and rules would be automatically generated:</p>
+<pre><code>syntax K ::= P__rw_1(Val, Exp, Exp) [strict]
+           | P__rw_2(Exp, Val, Exp) [strict]
+           | P__rw_3(Exp, Exp, Val) [strict]
+
+rule P(E1, E2, E3) =&gt; E1 ~&gt; P__rw_1(HOLE, E2, E3)
+rule P(E1, E2, E3) =&gt; E2 ~&gt; P__rw_1(E1, HOLE, E3)
+rule P(E1, E2, E3) =&gt; E3 ~&gt; P__rw_1(E1, E2, HOLE)
+
+rule V:Val ~&gt; P__rw_1(HOLE, E2, E3) =&gt; P__rw_1(V, E2, E3)
+rule V:Val ~&gt; P__rw_2(E1, HOLE, E3) =&gt; P__rw_2(E1, V, E3)
+rule V:Val ~&gt; P__rw_3(E1, E2, HOLE) =&gt; P__rw_3(E1, E2, V)</code></pre>
+<p>and then same rule generation scheme applies to <code>P__rw_1</code>, <code>P__rw_2</code>, <code>P__rw_3</code> too. In the end we’ll end up with:</p>
+<pre><code>syntax K ::= P__rw(Val, Val, Val)</code></pre>
+<p>and this would give the user full control of evaluation with strongly typed manner. (ie. without fighting with K framework parser)</p>
+<p>(<code>strict[n]</code>, <code>seqstrict</code> etc. rules are specialized cases of this general strictness rule generation scheme)</p>]]></summary>
+</entry>
+<entry>
     <title>On proof automations -- part 2</title>
     <link href="http://osa1.net/posts/2013-09-17-proof-automation-2.html" />
     <id>http://osa1.net/posts/2013-09-17-proof-automation-2.html</id>
@@ -375,27 +446,6 @@ pass rate ...73.4375% </code></pre>
 <p>Anyway, that’s it for now. Github repository is here: <a href="https://github.com/osa1/Shen.hs">https://github.com/osa1/Shen.hs</a> .</p>
 <p>If you try please tell me your thoughts!</p>
 </blockquote>]]></summary>
-</entry>
-<entry>
-    <title>My first interview experience: Jane Street</title>
-    <link href="http://osa1.net/posts/2013-06-20-first-interview-jane-street.html" />
-    <id>http://osa1.net/posts/2013-06-20-first-interview-jane-street.html</id>
-    <published>2013-06-20T00:00:00Z</published>
-    <updated>2013-06-20T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>A few hours ago I had my first interview ever. I had applied to Jane Street’s software development internship position last Sunday(16 June), and they returned to me on Monday(17 June), and we had an interview today(20 June). It was overall a very good experience.</p>
-<p>I should say I’m a bit sad about this interview, because I couldn’t answer the questions with details I could answer and I gave wrong answers to some questions that I know very well. Still, I think I wasn’t bad in general. What happens next will be clear in few days.</p>
-<p>We started with some generic personal questions like what I know, what I write, why did I applied to this internship etc. and I couldn’t give good answers even to this questions. For example, at some point I’m asked “what do you like about functional programs”, if you sit next to me in a class and ask me same question, I can give you a 50-minute lecture, but while at interview I just couldn’t do that.</p>
-<p>Anyway, we then moved to technical question.</p>
-<p>As for first question I’m asked to list 5 unix programs with 2 letters. I immediately listed <code>vi</code> and <code>ls</code>, after some thought I added <code>sh</code>, <code>ld</code>, <code>ln</code> and <code>nm</code>. I’m asked for what does <code>ld</code> do, and I wrongly answered “shows dynamically loaded libraries of an ELF binary”. My interviewer later asked me if I ever used that command, lol. It was funny that I said yes and explained how I used it, haha. The program I explained here is actually <code>ldd</code>, and <code>ld</code> is actually a linker(and I knew it very well, even though I have never called it manually). I also gave wrong answer to <code>nm</code>, I said “it shows string in a binary”, which was wrong because that what <code>strings</code> does. I should have said “shows symbols in a binary”. And I use these tools frequently!</p>
-<p>For second question I’m asked “how would I count a list of files in a folder and it’s subfolders”. I said I’m not that good in shell environment so I wrote a small Python program instead. This was easy. (btw, I made a mistake even in this code by first writing a Python program that prints file paths instead of counting files, haha. Later I’m warned and I fixed the code :-D )</p>
-<p>For third question I’m asked to tell what I know about garbage collectors and garbage collection techniques. I said the purpose of garbage collectors, and then mentioned reference counting technique. Later I’m asked to list some languages that does and doesn’t have automatic garbage collection.</p>
-<p>Fourth question was to write and explain a <code>map</code> function that works on lists. It was trivial.</p>
-<p>Fifth question was to write and explain <code>fold</code> function. I mentioned both left and right folds, wrote <code>foldl</code> in Haskell syntax and said that it’s a tail recursive process. At this point I’m also asked why is it tail recursive and what does tail recursive mean.</p>
-<p>I think one nice question at this part is that the question of “does being tail-recursive matters in Haskell, because it’s lazy by default”. I think my interviewer wanted to test me if I understand orthogonality of laziness and tail recursion.</p>
-<p>Last question, which I failed to give a correct answer was “you have a 5-sided fair dice, and you want to make a fair choice between 7 choices, how can you do it?”. Now this is by no means a hard question and I solved harder problems, but at that time I just couldn’t answer it.</p>
-<p>One interesting observation I made while I’m trying to solve this problem was that thinking in a language and translating ideas to another one at the same time is hard. After few seconds of silence my interviewer asked me to say what I’m thinking. I was bad at this.</p>
-<p>Anyway, I think I did good enough. I’ll post on updates, wish me luck :-) .</p>
-<p><strong>EDIT: I’ve just got an email from Jane Street, we will make another interview, this time with someone from NY office :-)</strong></p>]]></summary>
 </entry>
 
 </feed>

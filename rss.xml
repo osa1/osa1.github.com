@@ -8,8 +8,79 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-09-17T00:00:00Z</updated>
+    <updated>2013-09-19T00:00:00Z</updated>
     <entry>
+    <title>Quick rant: K Framework is broken</title>
+    <link href="http://osa1.net/posts/2013-09-19-k-framework-broken.html" />
+    <id>http://osa1.net/posts/2013-09-19-k-framework-broken.html</id>
+    <published>2013-09-19T00:00:00Z</published>
+    <updated>2013-09-19T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<h2 id="quick-rant-k-framework-is-broken">Quick Rant: K Framework is broken</h2>
+<p>In this short rant I’ll demonstrate how K Framework is broken and how you can avoid the problem. If you don’t know what is K Framework or don’t use it, you probably want to ignore this post.</p>
+<p>Let’s think this completely useless K module:</p>
+<pre><code>module TEST
+
+  syntax Exp ::= &quot;nilExp&quot;
+               | return(Exp) [strict]
+
+  syntax Val ::= &quot;nil&quot;
+
+  syntax KResult ::=  Val
+
+  rule nilExp =&gt; nil ... [nil]
+
+endmodule</code></pre>
+<p>and this TEST program:</p>
+<pre><code>return(nilExp)</code></pre>
+<p>what do you think this program has in K cell when it gets stuck? It’s not really hard to guess. Since we annotate <code>return(Exp)</code> syntax with <code>strict</code>, it’s argument gets evaluated according to our <code>nil</code> rule and then it gets stuck. At this point K cell will be:</p>
+<pre><code>&lt;k&gt;
+    return ( nil )
+&lt;/k&gt;</code></pre>
+<p>which may not be very surprising for you, but there’s something wrong going on here. In our syntax declaration we defined argument or <code>return</code> to be an <code>Exp</code>, but in the term in our K cell it’s <code>Val</code>.</p>
+<p>At this point you can say that this is how heating/cooling works an there’s nothing wrong here but then we have another problem: there’s no way for the user to write rules that does exactly what heating/cooling rules do. In our example above you’d expect from strictness annotation to generate rules like this:</p>
+<pre><code>rule return(E:Exp) =&gt; E ~&gt; return(HOLE)
+rule V:Val ~&gt; return(HOLE) =&gt; return(V)</code></pre>
+<p>but this is not a valid rule and it fails with the this error message:</p>
+<pre><code>[Error] Critical: type error: unexpected term &#39;V:Val &#39; of sort &#39;Val&#39;, expected sort &#39;Exp&#39;.
+        File: /home/omer/K/lua-semantics/test/test.k
+        Location: (11,35,11,36)</code></pre>
+<p>and what’s more confusing is that even though K generated rule somehow generates the term <code>return(Val)</code>, you cannot match it in your rules because this term is actually ill-typed:</p>
+<pre><code>rule return(V:Val) =&gt; .
+...
+[Error] Critical: type error: unexpected term &#39;V:Val &#39; of sort &#39;Val&#39;, expected sort &#39;Exp&#39;.
+        File: /home/omer/K/lua-semantics/test/test.k
+        Location: (11,10,11,15)</code></pre>
+<p>which means there’s no way for you to work on this term. This time you’re stuck :-p</p>
+<p>We discussed this on k-user mailing list a bit but there isn’t really a solution – we only have a workaround. Here’s the reason of this problem(quoted from mailing list <a href="http://lists.cs.uiuc.edu/pipermail/k-user/2013-September/000475.html">discussion</a>):</p>
+<blockquote>
+<p>Your grammar is only enforced during parsing.</p>
+<p>After the definition is compiled, return is just a label that may be applied to a list of children.</p>
+<p>In particular, the automatically generated cooling rule only puts a side condition that enforces IsKResult, which nil passes.</p>
+</blockquote>
+<p>Wow, this sounds like really broken to me. Anyway, only solution I could find to this is to add <code>Val</code> syntactic category to a member of <code>Exp</code> syntactic category. This is an obvious solution, but very bad one also. Because by having distinguished <code>Val</code> and <code>Exp</code> syntactic categories what I’m trying to do is to force my program to get stuck as soon as possible when something went wrong, instead of continuing evaluation and get stuck at a point where very very far from where the error actually occured.</p>
+<p>Rest of this post is also sent to k-list mailing list and contains my ideas on implementing strictness annotations. These ideas may be wrong – I’m only a beginner K user.</p>
+<hr />
+<p>This is how I’d design strictness annotations(but I’m probably wrong since I’m just a beginner in K).</p>
+<p>Let’s say I have this syntax:</p>
+<pre><code>syntax Exp ::= P(Exp, Exp, Exp) [strict]</code></pre>
+<p>for intermediate steps while fully evaluating this expression, I’d design the K framework so that these syntax and rules would be automatically generated:</p>
+<pre><code>syntax K ::= P__rw_1(Val, Exp, Exp) [strict]
+           | P__rw_2(Exp, Val, Exp) [strict]
+           | P__rw_3(Exp, Exp, Val) [strict]
+
+rule P(E1, E2, E3) =&gt; E1 ~&gt; P__rw_1(HOLE, E2, E3)
+rule P(E1, E2, E3) =&gt; E2 ~&gt; P__rw_1(E1, HOLE, E3)
+rule P(E1, E2, E3) =&gt; E3 ~&gt; P__rw_1(E1, E2, HOLE)
+
+rule V:Val ~&gt; P__rw_1(HOLE, E2, E3) =&gt; P__rw_1(V, E2, E3)
+rule V:Val ~&gt; P__rw_2(E1, HOLE, E3) =&gt; P__rw_2(E1, V, E3)
+rule V:Val ~&gt; P__rw_3(E1, E2, HOLE) =&gt; P__rw_3(E1, E2, V)</code></pre>
+<p>and then same rule generation scheme applies to <code>P__rw_1</code>, <code>P__rw_2</code>, <code>P__rw_3</code> too. In the end we’ll end up with:</p>
+<pre><code>syntax K ::= P__rw(Val, Val, Val)</code></pre>
+<p>and this would give the user full control of evaluation with strongly typed manner. (ie. without fighting with K framework parser)</p>
+<p>(<code>strict[n]</code>, <code>seqstrict</code> etc. rules are specialized cases of this general strictness rule generation scheme)</p>]]></summary>
+</entry>
+<entry>
     <title>On proof automations -- part 2</title>
     <link href="http://osa1.net/posts/2013-09-17-proof-automation-2.html" />
     <id>http://osa1.net/posts/2013-09-17-proof-automation-2.html</id>
@@ -534,58 +605,6 @@ since `const a _ = a`, we have x = r here
 = \r -&gt; r</code></pre>
 <p>.. which is the identity function.</p>
 <p>Thus <code>fmap fix return</code> demystified.</p>]]></summary>
-</entry>
-<entry>
-    <title>Shen.hs FFI</title>
-    <link href="http://osa1.net/posts/2013-06-29-shenhs-ffi.html" />
-    <id>http://osa1.net/posts/2013-06-29-shenhs-ffi.html</id>
-    <published>2013-06-29T00:00:00Z</published>
-    <updated>2013-06-29T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Shen.hs now has a simple way to call Haskell functions. As an example, I removed some non-standard KLambda functions from <a href="https://github.com/osa1/Shen.hs/blob/master/src/KLambda/Fun.hs"><code>Fun.hs</code></a>(standard primitive functions are defined there). Instead, they live in a <a href="https://github.com/osa1/Shen.hs/blob/master/dynload_test/Debug.hs">separate module</a> now, and I load them in run-time when I’m debugging.</p>
-<h2 id="how-it-works">How it works</h2>
-<p>Shen.hs is now exports it’s modules as a library. This is required to allow writing Shen.hs functions in Haskell.</p>
-<p><code>KLambda.Types</code> module export all required type information to start writing Shen.hs functions in Haskell. All your functions should have the type <code>KlFun1</code>. To make converting Haskell functions with higher arity(ie. <code>KlFun2</code>, <code>KlFun3</code>) to <code>KlFun1</code>, all <code>KlFun</code> instances now have a <code>mkFun1 :: a -&gt; KlFun1</code> method.</p>
-<p>As an example, <a href="https://github.com/osa1/Shen.hs/blob/master/dynload_test/Debug.hs"><code>Debug.hs</code></a> module functions with types <code>KlFun2</code>, <code>KlFun3</code> etc. To call them from within Shen.hs, they are all wrapped with <code>mkFun1</code> function.</p>
-<p>After defining functions with type <code>KlFun1</code> and compiling it, you should call <code>dynload</code> primitive to load functions. Here’s an example session that demonstrates loading and using debugging functions:</p>
-<pre><code>$ Shen.hs --shen &quot;/home/omer/Shen/hs_yeni/K Lambda&quot;
-loading file: /home/omer/Shen/hs_yeni/K Lambda/toplevel.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/core.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/sys.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/sequent.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/yacc.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/reader.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/prolog.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/track.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/load.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/writer.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/macros.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/declarations.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/t-star.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/types.kl ...loaded.
-
-Shen 2010, copyright (C) 2010 Mark Tarver
-released under the Shen license
-www.shenlanguage.org, version 12
-running under Haskell, implementation: GHC
-port 0.1 ported by Ömer Sinan Ağacan
-
-
-(0-) (cd &quot;/home/omer/Shen/hs_yeni/dynload_test&quot;)
-&quot;/home/omer/Shen/hs_yeni/dynload_test/&quot;
-
-(1-) (dynload &quot;Debug.o&quot; &quot;debug1F&quot;)
-&lt;function&gt;
-
-(2-) (debug1F &quot;calling haskell function -- &quot; 1 2)
-calling haskell function -- 1 :: TyNum
-
-2
-
-(3-)</code></pre>
-<p>Note that you need both <code>.hi</code> and <code>.o</code> files to be able to load the library dynamically.</p>
-<h2 id="status-of-shen.hs">Status of Shen.hs</h2>
-<p>Before this additional feature I had fixed a bug and now Shen.hs fails in 8 tests in Test Suite distributed with Shen source. All errors are related and probably there is only one bug. Unfortunately narrowing bug’s scope is very hard at this point. Pull requests are welcome.</p>
-<p>If you encounter any bugs please open an issue in <a href="https://github.com/osa1/Shen.hs">Github repository</a>.</p>]]></summary>
 </entry>
 
 </feed>
