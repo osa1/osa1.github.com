@@ -8,8 +8,91 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-09-17T00:00:00Z</updated>
+    <updated>2013-09-23T00:00:00Z</updated>
     <entry>
+    <title>On proof automations -- part 3</title>
+    <link href="http://osa1.net/posts/2013-09-23-proof-automation-3.html" />
+    <id>http://osa1.net/posts/2013-09-23-proof-automation-3.html</id>
+    <published>2013-09-23T00:00:00Z</published>
+    <updated>2013-09-23T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Over the past several days I learned few things that changed my ideas about proof automation. See my first two posts about proof automation here: <a href="/posts/2013-09-11-proof-automation.html">#1</a> <a href="/posts/2013-09-17-proof-automation-2.html">#2</a></p>
+<p>First, it’s really possible to use proof automation without first writing the whole proof. After started working on theorems defined on more complex languages, I realized one thing: Most of the cases of inductions/inversions are trivial to solve. Generally you only interested in one or two cases, while you have in total 20 cases. Why not use automation to eliminate 18 cases automatically? Proving that parts manually only makes it more obscure.</p>
+<p>Second thing I learned is that automations like <code>auto</code>, <code>eauto</code>, <code>iauto</code> never perform <code>rewrite</code>, <code>subst</code>, case analysis(<code>inversion</code>, <code>destruct</code>, maybe others?) and induction. I think this is very important point, because this means that your proofs still have to resemble the structure of your non-automated proofs(i.e. structure of your terms). Which prevents your proofs from being too much magical.</p>
+<p>Now let’s work on an example to see how some automation is good thing. I’ll prove progress property of STLC(simply-typed lambda calculus), as defined in <a href="www.cis.upenn.edu/~bcpierce/sf/">Software Foundations</a> chapter <a href="http://www.cis.upenn.edu/~bcpierce/sf/Stlc.html">Stlc</a>.</p>
+<p>Here’s an initial version without using any kind of automation.</p>
+<pre class="coq"><code>Theorem progress_no_auto : forall t T,
+     empty |- t \in T -&gt;
+     value t \/ exists t&#39;, t ==&gt; t&#39;.
+Proof.
+  intros t T TD. remember (@empty ty).
+  (* induction on typing derivation *)
+  has_type_cases (induction TD) Case.
+  Case &quot;T_Var&quot;.
+    (* this case is impossible because vars are not well-typed in empty env,
+       find a contradiction *)
+    rewrite Heqp in H. inversion H.
+  Case &quot;T_Abs&quot;.
+    (* lambdas are values *)
+    left. apply v_abs.
+  Case &quot;T_App&quot;.
+    (* well-typed applications should take a step *)
+    right. destruct IHTD1. assumption.
+    SCase &quot;t1 is a value&quot;. destruct IHTD2. assumption.
+      SSCase &quot;t2 is a value&quot;.
+        (* t1 should be a lambda *)
+        inversion TD1; subst; inversion H. (* inversion on typing derivation of t1,
+                                              most cases can be eliminated with inversion H,
+                                              because t1 can only be lambda expression to be well-typed *)
+        SSSCase &quot;t1 is tabs&quot;. eexists. apply ST_AppAbs. assumption.
+      SSCase &quot;t2 can take a step&quot;.
+        inversion H0. eexists. apply ST_App2. assumption. apply H1.
+    SCase &quot;t1 can take a step&quot;. inversion H. eexists. apply ST_App1. apply H0.
+  Case &quot;T_True&quot;. left. constructor.
+  Case &quot;T_False&quot;. left. constructor.
+  Case &quot;T_If&quot;.
+    (* well-typed T_If can always take a step *)
+    destruct IHTD1. assumption.
+    SCase &quot;t1 is value&quot;. inversion H; subst.
+      SSCase &quot;t1 is a lambda&quot;. inversion TD1.
+      SSCase &quot;t1 is ttrue&quot;. right. exists t2. constructor.
+      SSCase &quot;t1 is tfalse&quot;. right. exists t3. constructor.
+    SCase &quot;t1 can take a step&quot;. inversion H; subst. right.
+      exists (tif x0 t2 t3). constructor. assumption.
+Qed.</code></pre>
+<p>I leave comments to explain what’s going on. The point here is not to get shortest proof, but to show with some automation proofs could be more readable.</p>
+<p>When you look to this proof you can realize that our interesting cases are:</p>
+<ul>
+<li><code>T_Var</code> case, in which we need to show that it’s impossible.</li>
+<li><code>T_App</code> and <code>T_If</code> cases, in which we need to use induction hypothesis.</li>
+</ul>
+<p><code>T_Abs</code>, <code>T_True</code> and <code>T_False</code> cases are completely trivial and we don’t want to make our proof harder to write, read and maintain more.</p>
+<p>Second thing to realize that, if you count <code>;</code> operator as a automation, then it makes me using automation even in that proof. In the case of <code>T_App</code>, I’m eliminating all cases of <code>t1</code>(because for <code>T_App</code> to be well-typed, <code>t1</code> can only be a lambda abstraction – other cases should be eliminated with contradictions) with <code>inversion H; subst.</code>. Without <code>;</code> operator, I would have to write this:</p>
+<pre class="coq"><code>inversion TD1; subst.
+SSSCase &quot;t1 is tvar&quot;. inversion H.
+SSSCase &quot;t1 is tabs&quot;. eexists. apply ST_AppAbs. assumption.
+SSSCase &quot;t1 is tapp&quot;. inversion H.
+SSSCase &quot;t1 is tif&quot;. inversion H.</code></pre>
+<p>and when the language gets bigger, more cases with just <code>inversion H</code> would follow.</p>
+<p>Now here’s an automated version:</p>
+<pre class="coq"><code>Theorem progress : forall t T,
+     empty |- t \in T -&gt;
+     value t \/ exists t&#39;, t ==&gt; t&#39;.
+Proof with eauto.
+  intros t T TD. remember (@empty ty). has_type_cases (induction TD) Case; auto.
+  Case &quot;T_Var&quot;. rewrite Heqp in H. inversion H.
+  Case &quot;T_App&quot;. right. destruct IHTD1...
+    SCase &quot;t1 is a value&quot;. destruct IHTD2...
+      SSCase &quot;t2 is a value&quot;. inversion TD1; subst; try (solve by inversion)...
+      SSCase &quot;t2 can take a step&quot;. inversion H0; subst...
+    SCase &quot;t1 can take a step&quot;. inversion H; subst...
+  Case &quot;T_If&quot;. right. destruct IHTD1. assumption.
+    SCase &quot;t1 is a value&quot;. inversion H; subst; eauto.
+      SSCase &quot;t1 is tabs&quot;. solve by inversion.
+    SCase &quot;t1 can take a step&quot;. inversion H...
+Qed.</code></pre>
+<p>IMO this proof is a lot more simple and readable. It eliminates all trivial cases and only leave us with interesting ones. And even in that cases we simply finished with <code>...</code> or explicitly running <code>auto</code>/<code>eauto</code>.</p>]]></summary>
+</entry>
+<entry>
     <title>On proof automations -- part 2</title>
     <link href="http://osa1.net/posts/2013-09-17-proof-automation-2.html" />
     <id>http://osa1.net/posts/2013-09-17-proof-automation-2.html</id>
