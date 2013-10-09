@@ -8,8 +8,105 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2011-12-31T00:00:00Z</updated>
+    <updated>2013-10-09T00:00:00Z</updated>
     <entry>
+    <title>Parametric polymorphism and unboxed representations</title>
+    <link href="http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html" />
+    <id>http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html</id>
+    <published>2013-10-09T00:00:00Z</published>
+    <updated>2013-10-09T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>This post was written 5 months ago – I just found it in my Github Gist archive and realized it’s not published. I’m publishing it now.</p>
+<hr />
+<p>It’s just occurred to me that we can’t have parametric polymorphism for unboxed values, unless that unboxed values share same layout in memory, or you duplicate polymorphic definition for each instance. This may be obvious for most of you but I just realized this while working on a Java project and found it interesting.</p>
+<p>I think this is also the reason why we can’t instantiate generics in Java with primitive types.</p>
+<p>Here’s an explanation:</p>
+<p>Let’s think this C++ code:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
+{
+  <span class="dt">int</span> a, b;
+  test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}
+};
+
+<span class="kw">struct</span> test3
+{
+  <span class="dt">int</span> a, b, c;
+  test3(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) : a(a), b(b), c(c) {}
+};
+
+<span class="dt">void</span> f2() {}
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+T f3(T t)
+{
+  t.a = <span class="dv">20</span>;
+  <span class="kw">return</span> t;
+}
+
+<span class="dt">int</span> main()
+{
+  test2 t2(<span class="dv">1</span>, <span class="dv">2</span>);
+  test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);
+  f3&lt;test2&gt;(t2);
+  f3&lt;test3&gt;(t3);
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<p>The key thing to realize here is that I’m passing parameter by value, ie. values are copied to function stack frame. But this function is still polymorphic on parameter type. This is possible in C++ because for each distinct instance of <code>f3</code>, a specialized code will be generated. To observe this, I put a breakpoint to that <code>f3</code> function and looked to disassembly output.</p>
+<pre><code>        18	T f3(T t)
+0x400af6  &lt;+0x0000&gt;         push   rbp
+0x400af7  &lt;+0x0001&gt;         mov    rbp,rsp
+0x400afa  &lt;+0x0004&gt;         mov    QWORD PTR [rbp-0x10],rdi
+        19	{
+        20	  t.a = 20;
+0x400afe  &lt;+0x0008&gt;         mov    DWORD PTR [rbp-0x10],0x14
+        21	  return t;
+0x400b05  &lt;+0x000f&gt;         mov    rax,QWORD PTR [rbp-0x10]
+        22	}
+0x400b09  &lt;+0x0013&gt;         pop    rbp
+0x400b0a  &lt;+0x0014&gt;         ret</code></pre>
+<p>And this is for second call:</p>
+<pre><code>        18	T f3(T t)
+0x400b0b  &lt;+0x0000&gt;         push   rbp
+0x400b0c  &lt;+0x0001&gt;         mov    rbp,rsp
+0x400b0f  &lt;+0x0004&gt;         mov    rdx,rdi
+0x400b12  &lt;+0x0007&gt;         mov    eax,esi
+0x400b14  &lt;+0x0009&gt;         mov    QWORD PTR [rbp-0x20],rdx
+0x400b18  &lt;+0x000d&gt;         mov    DWORD PTR [rbp-0x18],eax
+        19	{
+        20	  t.a = 20;
+0x400b1b  &lt;+0x0010&gt;         mov    DWORD PTR [rbp-0x20],0x14
+        21	  return t;
+0x400b22  &lt;+0x0017&gt;         mov    rax,QWORD PTR [rbp-0x20]
+0x400b26  &lt;+0x001b&gt;         mov    QWORD PTR [rbp-0x10],rax
+0x400b2a  &lt;+0x001f&gt;         mov    eax,DWORD PTR [rbp-0x18]
+0x400b2d  &lt;+0x0022&gt;         mov    DWORD PTR [rbp-0x8],eax
+0x400b30  &lt;+0x0025&gt;         mov    rax,QWORD PTR [rbp-0x10]
+0x400b34  &lt;+0x0029&gt;         mov    edx,DWORD PTR [rbp-0x8]
+        22	}
+0x400b37  &lt;+0x002c&gt;         pop    rbp
+0x400b38  &lt;+0x002d&gt;         ret</code></pre>
+<p>So what happened here is two new functions is generated from the definition, one with type <code>test2 f3(test2)</code> and one with type <code>test3 f3(test3)</code>. This gives a great opportunity, for instance, we can have this function:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+T someFun(T arg1, T arg2)
+{
+  <span class="kw">return</span> arg1 + arg2;
+}
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> *argv[])
+{
+  std::cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
+  std::cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
+
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<p>..which is impossible to have in Java, without manually overloading the method definition.</p>
+<p>(An off-topic but interesting note: I was expecting <code>SP</code> to be set here, but here it’s not set. I think the reason is that the compiler is clever enough to see there is no recursive calls, so no need to set <code>SP</code>, when I added a dummy function call in the middle of <code>f3</code>, <code>SP</code> is got set)</p>
+<p>So in a way, C++ generics are gives us the most general way for parametric polymorphism. For any type you instantiated the template with, it generates a specialized definition. And if that definition is accepted by type checker, you’re fine.</p>
+<p>This also why we don’t need a template definition like <code>template &lt;class C : HasY&gt;</code>. Because that <code>HasY</code> information is completely redundant. If specialized code is well-typed, than it’s OK.</p>
+<p>This is also one of the reasons why compiling C++ programs takes that long.</p>]]></summary>
+</entry>
+<entry>
     <title>ctpop ve bitmapler</title>
     <link href="http://osa1.net/posts/2011-12-31-ctpop-ve-bitmapler.html" />
     <id>http://osa1.net/posts/2011-12-31-ctpop-ve-bitmapler.html</id>
@@ -316,134 +413,6 @@ Segmentation fault</code></pre>
 <li><p>Av gridin sınırlarına olan uzaklığını bilmez. Eğer avcı ona çarprazdan yaklaşmışsa, önce Y ekseninde kaçmaya çalışır, kaçacak yeri kalmadığında X ekseninde eğer gideibliyorsa sağa, gidemiyorsa sola kaçar. Avın yakalanma süresini kısaltmak için herhangi birşey yapmaz. Sadece öncelikleri vardır, onlara göre hareket eder, bu, duruma göre yakalanma süresini bazen kısaltır, bazen de uzatır. Random kütüphanesi falan kullanmadım.</p></li>
 <li><p>Grid çizme işlemi static gridCiz methodu ile yapılmaktadır. Bu method 6 arg alır, grid’in X ve Y uzunluğu, prey’in X ve Y koordinatı, hunter’ın X ve Y koordinatı.</p></li>
 </ul>]]></summary>
-</entry>
-<entry>
-    <title>Bil113 Lab 1. arasınav cevapları</title>
-    <link href="http://osa1.net/posts/2010-10-18-bil113-lab-1-arasinav-cevaplari.html" />
-    <id>http://osa1.net/posts/2010-10-18-bil113-lab-1-arasinav-cevaplari.html</id>
-    <published>2010-10-18T00:00:00Z</published>
-    <updated>2010-10-18T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Birkaç güne dersin sayfasında cevaplar açıklanır muhtemelen, en azından alternatif olarak, sınavda benim yazdığım cevaplar:</p>
-<p>Soru 1: Girilen iki kesiri toplayıp çarpıp yine a/b şeklinde ifade etme:</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
-<span class="kw">public</span> <span class="kw">class</span> Soru1 {
-
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
-    
-        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
-        System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İlk kesirin pay ve paydasını giriniz : &quot;</span>);
-        <span class="dt">int</span> pay1 = girdi.<span class="fu">nextInt</span>();
-        <span class="dt">int</span> payda1 = girdi.<span class="fu">nextInt</span>();
-        System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İkinci kesirin pay ve paydasını giriniz : &quot;</span>);
-        <span class="dt">int</span> pay2 = girdi.<span class="fu">nextInt</span>();
-        <span class="dt">int</span> payda2 = girdi.<span class="fu">nextInt</span>();
-    
-        <span class="dt">int</span> sonucToplamPay, sonucToplamPayda, sonucCarpimPay, sonucCarpimPayda;
-    
-        sonucToplamPayda = payda1 * payda2;
-        sonucToplamPay = pay1*payda2 + pay2*payda1;
-    
-        sonucCarpimPay = pay1*pay2;
-        sonucCarpimPayda = payda1*payda2;
-    
-        System.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; + &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucToplamPay + <span class="st">&quot;/&quot;</span> + sonucToplamPayda);
-        System.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; * &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucCarpimPay + <span class="st">&quot;/&quot;</span> + sonucCarpimPayda);
-    }
-}</code></pre>
-<p>Soru 2: Girilen 3 sayıyı küçükten büyüğe sıralama. Aşağıdaki kod eşitlik durumunda da düzgün çalışıyor(<em>daha kısa bir şekilde çözen var mı?</em>):</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
-<span class="kw">public</span> <span class="kw">class</span> Soru2 {
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
-    
-        <span class="dt">boolean</span> devam = <span class="kw">true</span>;
-    
-        <span class="kw">while</span> (devam) {
-            Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
-            <span class="dt">int</span> a = girdi.<span class="fu">nextInt</span>();
-            <span class="dt">int</span> b = girdi.<span class="fu">nextInt</span>();
-            <span class="dt">int</span> c = girdi.<span class="fu">nextInt</span>();
-        
-            <span class="kw">if</span> (a &gt; b) {
-                <span class="kw">if</span> (b &gt; c) {
-                    System.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + a);
-                } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; b veya b == c durumu</span>
-                    <span class="kw">if</span> (a &gt; c) {
-                        System.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + a);
-                    } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; a veya a == c durumu</span>
-                        System.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + c);
-                    }
-                }
-            } <span class="kw">else</span> { <span class="co">// b &gt; a veya b == a durumu</span>
-                <span class="kw">if</span> (a &gt; c) { <span class="co">// b &gt; a &gt; c</span>
-                    System.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + b);
-                } <span class="kw">else</span> { <span class="co">// b &gt; a, c &gt; a veya a == c</span>
-                    <span class="kw">if</span> (b &gt; c) { <span class="co">// b &gt; c &gt; a</span>
-                        System.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + b);
-                    } <span class="kw">else</span> { <span class="co">// c &gt; b &gt; a veya c == b &gt; a</span>
-                        System.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + c);
-                    }
-                }
-            }
-        
-            System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Devam?&quot;</span>);
-            girdi.<span class="fu">nextLine</span>(); <span class="co">// bug gibi birşey</span>
-            <span class="kw">if</span> (girdi.<span class="fu">nextLine</span>().<span class="fu">equals</span>(<span class="st">&quot;hayır&quot;</span>)) {
-                devam = <span class="kw">false</span>;
-            }
-        }
-    }
-}</code></pre>
-<p>Soru 3: Girilen cümledeki büyük harfleri küçük, küçük harfleri büyük harfe çevirme(türkçe karakter girilmeyecek). Her harf için, eğer harfin büyültülmüş hali kendisine eşitse, harfi küçülttüm, değilse büyülttüm. Bir arkadaş da ASCII tablosundan küçük ve büyük harflerin aralığını tespit edip yapmış.</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
-<span class="kw">public</span> <span class="kw">class</span> Soru3 {
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
-    
-        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
-        String str = girdi.<span class="fu">nextLine</span>();
-        String harf;
-    
-        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; str.<span class="fu">length</span>(); i++) {
-            harf = str.<span class="fu">substring</span>(i, i<span class="dv">+1</span>);
-            <span class="kw">if</span> (harf.<span class="fu">equals</span>(harf.<span class="fu">toLowerCase</span>())) { <span class="co">// harf zaten kucuk</span>
-                System.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toUpperCase</span>());
-            } <span class="kw">else</span> { <span class="co">// harf buyuk</span>
-                System.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toLowerCase</span>());
-            }
-        }
-    }
-}</code></pre>
-<p>Soru 4: Guess my number. 1 ile 100 arasında bir sayı tutulacak.</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Random;</span>
-<span class="kw">import java.util.Scanner;</span>
-<span class="kw">public</span> <span class="kw">class</span> Soru4 {
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
-    
-        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
-    
-        Random r = <span class="kw">new</span> Random();
-        <span class="dt">int</span> randomNumber = Math.<span class="fu">abs</span>(r.<span class="fu">nextInt</span>());
-        randomNumber = (randomNumber % <span class="dv">100</span>) + <span class="dv">1</span>;
-    
-        <span class="dt">int</span> tahminSayisi = <span class="dv">1</span>;
-        <span class="dt">int</span> tahmin = -<span class="dv">1</span>;
-    
-        System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Bilgisayar 1 ile 100 arasında bir sayı tuttu.&quot;</span>);
-    
-        <span class="kw">while</span> (!(tahmin == randomNumber)) {    
-            System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Tahmininiz? &quot;</span>);
-            tahmin = girdi.<span class="fu">nextInt</span>();
-            <span class="kw">if</span> (tahmin &lt; randomNumber) {
-                System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi arttırın.&quot;</span>);
-            } <span class="kw">else</span> <span class="kw">if</span> (tahmin &gt; randomNumber) {
-                System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi azaltın.&quot;</span>);
-            } <span class="kw">else</span> {
-                System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tebrikler, &quot;</span> + tahminSayisi + <span class="st">&quot; tahminde sayıyı bildiniz.&quot;</span>);
-            }
-            tahminSayisi++;
-        } <span class="co">// while biter</span>
-    }
-}</code></pre>
-<p>Alternatif çözümü olan var mı?</p>]]></summary>
 </entry>
 
 </feed>

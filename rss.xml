@@ -8,8 +8,105 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-09-23T00:00:00Z</updated>
+    <updated>2013-10-09T00:00:00Z</updated>
     <entry>
+    <title>Parametric polymorphism and unboxed representations</title>
+    <link href="http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html" />
+    <id>http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html</id>
+    <published>2013-10-09T00:00:00Z</published>
+    <updated>2013-10-09T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>This post was written 5 months ago – I just found it in my Github Gist archive and realized it’s not published. I’m publishing it now.</p>
+<hr />
+<p>It’s just occurred to me that we can’t have parametric polymorphism for unboxed values, unless that unboxed values share same layout in memory, or you duplicate polymorphic definition for each instance. This may be obvious for most of you but I just realized this while working on a Java project and found it interesting.</p>
+<p>I think this is also the reason why we can’t instantiate generics in Java with primitive types.</p>
+<p>Here’s an explanation:</p>
+<p>Let’s think this C++ code:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
+{
+  <span class="dt">int</span> a, b;
+  test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}
+};
+
+<span class="kw">struct</span> test3
+{
+  <span class="dt">int</span> a, b, c;
+  test3(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) : a(a), b(b), c(c) {}
+};
+
+<span class="dt">void</span> f2() {}
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+T f3(T t)
+{
+  t.a = <span class="dv">20</span>;
+  <span class="kw">return</span> t;
+}
+
+<span class="dt">int</span> main()
+{
+  test2 t2(<span class="dv">1</span>, <span class="dv">2</span>);
+  test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);
+  f3&lt;test2&gt;(t2);
+  f3&lt;test3&gt;(t3);
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<p>The key thing to realize here is that I’m passing parameter by value, ie. values are copied to function stack frame. But this function is still polymorphic on parameter type. This is possible in C++ because for each distinct instance of <code>f3</code>, a specialized code will be generated. To observe this, I put a breakpoint to that <code>f3</code> function and looked to disassembly output.</p>
+<pre><code>        18	T f3(T t)
+0x400af6  &lt;+0x0000&gt;         push   rbp
+0x400af7  &lt;+0x0001&gt;         mov    rbp,rsp
+0x400afa  &lt;+0x0004&gt;         mov    QWORD PTR [rbp-0x10],rdi
+        19	{
+        20	  t.a = 20;
+0x400afe  &lt;+0x0008&gt;         mov    DWORD PTR [rbp-0x10],0x14
+        21	  return t;
+0x400b05  &lt;+0x000f&gt;         mov    rax,QWORD PTR [rbp-0x10]
+        22	}
+0x400b09  &lt;+0x0013&gt;         pop    rbp
+0x400b0a  &lt;+0x0014&gt;         ret</code></pre>
+<p>And this is for second call:</p>
+<pre><code>        18	T f3(T t)
+0x400b0b  &lt;+0x0000&gt;         push   rbp
+0x400b0c  &lt;+0x0001&gt;         mov    rbp,rsp
+0x400b0f  &lt;+0x0004&gt;         mov    rdx,rdi
+0x400b12  &lt;+0x0007&gt;         mov    eax,esi
+0x400b14  &lt;+0x0009&gt;         mov    QWORD PTR [rbp-0x20],rdx
+0x400b18  &lt;+0x000d&gt;         mov    DWORD PTR [rbp-0x18],eax
+        19	{
+        20	  t.a = 20;
+0x400b1b  &lt;+0x0010&gt;         mov    DWORD PTR [rbp-0x20],0x14
+        21	  return t;
+0x400b22  &lt;+0x0017&gt;         mov    rax,QWORD PTR [rbp-0x20]
+0x400b26  &lt;+0x001b&gt;         mov    QWORD PTR [rbp-0x10],rax
+0x400b2a  &lt;+0x001f&gt;         mov    eax,DWORD PTR [rbp-0x18]
+0x400b2d  &lt;+0x0022&gt;         mov    DWORD PTR [rbp-0x8],eax
+0x400b30  &lt;+0x0025&gt;         mov    rax,QWORD PTR [rbp-0x10]
+0x400b34  &lt;+0x0029&gt;         mov    edx,DWORD PTR [rbp-0x8]
+        22	}
+0x400b37  &lt;+0x002c&gt;         pop    rbp
+0x400b38  &lt;+0x002d&gt;         ret</code></pre>
+<p>So what happened here is two new functions is generated from the definition, one with type <code>test2 f3(test2)</code> and one with type <code>test3 f3(test3)</code>. This gives a great opportunity, for instance, we can have this function:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+T someFun(T arg1, T arg2)
+{
+  <span class="kw">return</span> arg1 + arg2;
+}
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> *argv[])
+{
+  std::cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
+  std::cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
+
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<p>..which is impossible to have in Java, without manually overloading the method definition.</p>
+<p>(An off-topic but interesting note: I was expecting <code>SP</code> to be set here, but here it’s not set. I think the reason is that the compiler is clever enough to see there is no recursive calls, so no need to set <code>SP</code>, when I added a dummy function call in the middle of <code>f3</code>, <code>SP</code> is got set)</p>
+<p>So in a way, C++ generics are gives us the most general way for parametric polymorphism. For any type you instantiated the template with, it generates a specialized definition. And if that definition is accepted by type checker, you’re fine.</p>
+<p>This also why we don’t need a template definition like <code>template &lt;class C : HasY&gt;</code>. Because that <code>HasY</code> information is completely redundant. If specialized code is well-typed, than it’s OK.</p>
+<p>This is also one of the reasons why compiling C++ programs takes that long.</p>]]></summary>
+</entry>
+<entry>
     <title>On proof automations -- part 3</title>
     <link href="http://osa1.net/posts/2013-09-23-proof-automation-3.html" />
     <id>http://osa1.net/posts/2013-09-23-proof-automation-3.html</id>
@@ -479,111 +576,6 @@ solve s1 s2 <span class="fu">=</span>
 <li>Github repository: <a href="https://github.com/ozusrl/SubtypedQuotedML">https://github.com/ozusrl/SubtypedQuotedML</a></li>
 </ul>
 <p>If you have trouble compiling/running it, please file an issue at Github page.</p>]]></summary>
-</entry>
-<entry>
-    <title>Non-local returns in functional programs</title>
-    <link href="http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html" />
-    <id>http://osa1.net/posts/2013-07-21-nonlocal-return-in-fp.html</id>
-    <published>2013-07-21T00:00:00Z</published>
-    <updated>2013-07-21T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Let’s say we want to get nth visited element in depth-first traversal of a tree. Doing this is almost too easy in a language with statements(all imperative languages, some functional ones): Just run the depth-first traversal algorithm with explicit stack, and use <code>return</code> when you visit nth node.</p>
-<p>In an expression language(Haskell, some Lisp languages) this is somewhat tricky.</p>
-<p>Since I almost always prefer simplest possible solution of a problem, this would be my first attempt in a real-world situation:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Tree</span> a
-    <span class="fu">=</span> <span class="dt">Branch</span> [<span class="dt">Tree</span> a]
-    <span class="fu">|</span> <span class="dt">Leaf</span> a
-
-<span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]
-toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> <span class="fu">concatMap</span> toList bs
-toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> [a]
-
-<span class="ot">dfsNth ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
-dfsNth tree n <span class="fu">=</span> listToMaybe <span class="fu">.</span> <span class="fu">drop</span> n <span class="fu">$</span> toList tree</code></pre>
-<p>One concern about this function may be that the complexity of list generation. It’s hard to predict complexity of this function, but traversing the whole tree just to get first element of it would be costly anyway.</p>
-<p>But thanks to lazy evaluation, this function still not very bad. Because only required parts of the intermediate list will be generated. To see why you can do two things: 1) Just place some <code>Debug.Trace.trace</code> calls in <code>toList</code> function and see how many times a leaf node is visited and 2) evaluate this function by hand and observe unevaluated thunks.</p>
-<p>Let’s just do the first one, since it’s easier:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]
-toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> <span class="fu">concatMap</span> toList bs
-toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> trace <span class="st">&quot;leaf node visited&quot;</span> [a]
-
-<span class="fu">...</span>
-
-testTree <span class="fu">=</span> <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">1</span>, <span class="dt">Leaf</span> <span class="dv">2</span> ], <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">3</span> ], <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">4</span> ] ] ] ]</code></pre>
-<pre><code>ghci&gt; dfsNth testTree 0
-leaf node visited
-Just 1
-
-ghci&gt; dfsNth testTree 1
-leaf node visited
-leaf node visited
-Just 2
-
-ghci&gt; dfsNth testTree 10
-leaf node visited
-leaf node visited
-leaf node visited
-leaf node visited
-Nothing</code></pre>
-<hr />
-<p>Other solutions are still worth exploring. When I think of “returning in the middle of a function” in Haskell, I always think <code>Either</code>. It’s monad definition is a great fit for this:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> (<span class="dt">Either</span> e) <span class="kw">where</span>
-    <span class="fu">return</span>        <span class="fu">=</span> <span class="kw">Right</span>
-    <span class="kw">Left</span>  l <span class="fu">&gt;&gt;=</span> _ <span class="fu">=</span> <span class="kw">Left</span> l
-    <span class="kw">Right</span> r <span class="fu">&gt;&gt;=</span> k <span class="fu">=</span> k r</code></pre>
-<p>So when <code>Left data</code> used in monadic bind(<code>&gt;&gt;=</code>), second parameter just ignored and <code>Left data</code> is returned. Just like returning in the middle of a function in imperative setting, by ignoring rest of statements.</p>
-<p>Using monad instance of Either, we can easily implement our function:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dfsNth&#39; ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
-dfsNth&#39; tree n <span class="fu">=</span>
-    <span class="kw">case</span> iter tree n <span class="kw">of</span>
-      <span class="kw">Left</span> a  <span class="ot">-&gt;</span> <span class="kw">Just</span> a
-      <span class="kw">Right</span> i <span class="ot">-&gt;</span> <span class="kw">Nothing</span>
-  <span class="kw">where</span>
-<span class="ot">    iter ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> a <span class="dt">Int</span>
-    iter (<span class="dt">Branch</span> []) n     <span class="fu">=</span> <span class="fu">return</span> n
-    iter (<span class="dt">Branch</span> (b<span class="fu">:</span>bs)) n <span class="fu">=</span> <span class="kw">do</span>
-      n&#39; <span class="ot">&lt;-</span> iter b n
-      iter (<span class="dt">Branch</span> bs) n&#39;
-    iter (<span class="dt">Leaf</span> a) <span class="dv">0</span> <span class="fu">=</span> <span class="kw">Left</span> a
-    iter <span class="dt">Leaf</span>{}   n <span class="fu">=</span> <span class="fu">return</span> (n <span class="fu">-</span> <span class="dv">1</span>)</code></pre>
-<p>It works exactly like our first implementation, but without generating an intermediate list.</p>
-<h2 id="exceptions-and-either-monad">Exceptions and Either monad</h2>
-<p>If I were using OCaml, I’d probably implement this function using an exception.</p>
-<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">exception</span> <span class="dt">NonLocal</span> <span class="kw">of</span> <span class="dt">int</span>
-
-<span class="kw">type</span> &#39;a tree =
-  | <span class="dt">Branch</span> <span class="kw">of</span> (&#39;a tree) <span class="dt">list</span>
-  | <span class="dt">Leaf</span>   <span class="kw">of</span> &#39;a
-
-<span class="kw">let</span> dfs_nth tree n =
-  <span class="kw">let</span> <span class="kw">rec</span> iter tree n =
-    <span class="kw">match</span> tree <span class="kw">with</span>
-    | <span class="dt">Branch</span> [] -&gt;
-        n
-    | <span class="dt">Branch</span> (b :: bs) -&gt;
-        iter (<span class="dt">Branch</span> bs) (iter b n)
-    | <span class="dt">Leaf</span> a -&gt;
-        <span class="kw">if</span> n = 0 <span class="kw">then</span> raise (<span class="dt">NonLocal</span> a) <span class="kw">else</span> n - 1
-  <span class="kw">in</span>
-  <span class="kw">try</span>
-    iter tree n;
-    <span class="dt">None</span>
-  <span class="kw">with</span>
-    | <span class="dt">NonLocal</span> a -&gt; <span class="dt">Some</span> a</code></pre>
-<p>An interesting thing to realize here is that this solution is very similar to our Haskell solution. In Haskell, Either is an instance of <code>MonadError</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Error</span> e <span class="ot">=&gt;</span> <span class="dt">MonadError</span> e (<span class="dt">Either</span> e) <span class="kw">where</span>
-    throwError             <span class="fu">=</span> <span class="kw">Left</span>
-    <span class="kw">Left</span>  l <span class="ot">`catchError`</span> h <span class="fu">=</span> h l
-    <span class="kw">Right</span> r <span class="ot">`catchError`</span> _ <span class="fu">=</span> <span class="kw">Right</span> r</code></pre>
-<p>This means if you replace <code>Left</code>s with <code>throwError</code> (just like <code>raise</code> in OCaml code), you have a similar solution with OCaml.</p>
-<p>This doesn’t mean exceptions are same thing as Either types in functional programming. There are just too many differences that I won’t delve into in this post. With an exception, you can return from arbitrary deep contexts(ie. function calls), which is not easily possible with Either types. This is why exceptions sometimes referred as <em>non-local returns</em>.</p>
-<p>We discussed this stuff over OCaml IRC channel, and smart people over there gave me some really good insights about non-local returns and exceptions. I’ll probably delve into details in another blog post. I’m especially interested in functional solutions that we can have in Haskell.</p>
-<p>For the curious, for now I’ll just leave these two links here: (I haven’t read that links yet, but they’re probably related)</p>
-<ul>
-<li><a href="https://ocaml.janestreet.com/?q=node/91">https://ocaml.janestreet.com/?q=node/91</a></li>
-<li><a href="http://functional-orbitz.blogspot.se/2013/01/introduction-to-resultt-vs-exceptions.html">http://functional-orbitz.blogspot.se/2013/01/introduction-to-resultt-vs-exceptions.html</a></li>
-</ul>
-<p>Several other ideas also discussed at IRC channel, some of them were using delimited continuations, or passing a handler function as parameter and just calling it instead of raising an exception. I’ll continue investigating this stuff later.</p>
-<p>I also came across this <a href="http://stackoverflow.com/questions/6915701/is-non-local-return-in-scala-new">StackOverflow post</a> that explains how Scala’s non-local returns implemented as exceptions internally. Interesting stuff.</p>]]></summary>
 </entry>
 
 </feed>

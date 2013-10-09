@@ -8,8 +8,105 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-09-23T00:00:00Z</updated>
+    <updated>2013-10-09T00:00:00Z</updated>
     <entry>
+    <title>Parametric polymorphism and unboxed representations</title>
+    <link href="http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html" />
+    <id>http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html</id>
+    <published>2013-10-09T00:00:00Z</published>
+    <updated>2013-10-09T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>This post was written 5 months ago – I just found it in my Github Gist archive and realized it’s not published. I’m publishing it now.</p>
+<hr />
+<p>It’s just occurred to me that we can’t have parametric polymorphism for unboxed values, unless that unboxed values share same layout in memory, or you duplicate polymorphic definition for each instance. This may be obvious for most of you but I just realized this while working on a Java project and found it interesting.</p>
+<p>I think this is also the reason why we can’t instantiate generics in Java with primitive types.</p>
+<p>Here’s an explanation:</p>
+<p>Let’s think this C++ code:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
+{
+  <span class="dt">int</span> a, b;
+  test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}
+};
+
+<span class="kw">struct</span> test3
+{
+  <span class="dt">int</span> a, b, c;
+  test3(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) : a(a), b(b), c(c) {}
+};
+
+<span class="dt">void</span> f2() {}
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+T f3(T t)
+{
+  t.a = <span class="dv">20</span>;
+  <span class="kw">return</span> t;
+}
+
+<span class="dt">int</span> main()
+{
+  test2 t2(<span class="dv">1</span>, <span class="dv">2</span>);
+  test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);
+  f3&lt;test2&gt;(t2);
+  f3&lt;test3&gt;(t3);
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<p>The key thing to realize here is that I’m passing parameter by value, ie. values are copied to function stack frame. But this function is still polymorphic on parameter type. This is possible in C++ because for each distinct instance of <code>f3</code>, a specialized code will be generated. To observe this, I put a breakpoint to that <code>f3</code> function and looked to disassembly output.</p>
+<pre><code>        18	T f3(T t)
+0x400af6  &lt;+0x0000&gt;         push   rbp
+0x400af7  &lt;+0x0001&gt;         mov    rbp,rsp
+0x400afa  &lt;+0x0004&gt;         mov    QWORD PTR [rbp-0x10],rdi
+        19	{
+        20	  t.a = 20;
+0x400afe  &lt;+0x0008&gt;         mov    DWORD PTR [rbp-0x10],0x14
+        21	  return t;
+0x400b05  &lt;+0x000f&gt;         mov    rax,QWORD PTR [rbp-0x10]
+        22	}
+0x400b09  &lt;+0x0013&gt;         pop    rbp
+0x400b0a  &lt;+0x0014&gt;         ret</code></pre>
+<p>And this is for second call:</p>
+<pre><code>        18	T f3(T t)
+0x400b0b  &lt;+0x0000&gt;         push   rbp
+0x400b0c  &lt;+0x0001&gt;         mov    rbp,rsp
+0x400b0f  &lt;+0x0004&gt;         mov    rdx,rdi
+0x400b12  &lt;+0x0007&gt;         mov    eax,esi
+0x400b14  &lt;+0x0009&gt;         mov    QWORD PTR [rbp-0x20],rdx
+0x400b18  &lt;+0x000d&gt;         mov    DWORD PTR [rbp-0x18],eax
+        19	{
+        20	  t.a = 20;
+0x400b1b  &lt;+0x0010&gt;         mov    DWORD PTR [rbp-0x20],0x14
+        21	  return t;
+0x400b22  &lt;+0x0017&gt;         mov    rax,QWORD PTR [rbp-0x20]
+0x400b26  &lt;+0x001b&gt;         mov    QWORD PTR [rbp-0x10],rax
+0x400b2a  &lt;+0x001f&gt;         mov    eax,DWORD PTR [rbp-0x18]
+0x400b2d  &lt;+0x0022&gt;         mov    DWORD PTR [rbp-0x8],eax
+0x400b30  &lt;+0x0025&gt;         mov    rax,QWORD PTR [rbp-0x10]
+0x400b34  &lt;+0x0029&gt;         mov    edx,DWORD PTR [rbp-0x8]
+        22	}
+0x400b37  &lt;+0x002c&gt;         pop    rbp
+0x400b38  &lt;+0x002d&gt;         ret</code></pre>
+<p>So what happened here is two new functions is generated from the definition, one with type <code>test2 f3(test2)</code> and one with type <code>test3 f3(test3)</code>. This gives a great opportunity, for instance, we can have this function:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+T someFun(T arg1, T arg2)
+{
+  <span class="kw">return</span> arg1 + arg2;
+}
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> *argv[])
+{
+  std::cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
+  std::cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
+
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<p>..which is impossible to have in Java, without manually overloading the method definition.</p>
+<p>(An off-topic but interesting note: I was expecting <code>SP</code> to be set here, but here it’s not set. I think the reason is that the compiler is clever enough to see there is no recursive calls, so no need to set <code>SP</code>, when I added a dummy function call in the middle of <code>f3</code>, <code>SP</code> is got set)</p>
+<p>So in a way, C++ generics are gives us the most general way for parametric polymorphism. For any type you instantiated the template with, it generates a specialized definition. And if that definition is accepted by type checker, you’re fine.</p>
+<p>This also why we don’t need a template definition like <code>template &lt;class C : HasY&gt;</code>. Because that <code>HasY</code> information is completely redundant. If specialized code is well-typed, than it’s OK.</p>
+<p>This is also one of the reasons why compiling C++ programs takes that long.</p>]]></summary>
+</entry>
+<entry>
     <title>On proof automations -- part 3</title>
     <link href="http://osa1.net/posts/2013-09-23-proof-automation-3.html" />
     <id>http://osa1.net/posts/2013-09-23-proof-automation-3.html</id>
@@ -366,111 +463,6 @@ dfsNth&#39; tree n <span class="fu">=</span>
 <p>I won’t write about last two interviews because I’m asked to not to write about questions.</p>
 <p>Now I’m looking for Haskell jobs for my last internship and I just applied to Galois. I’ll keep posting updates here. Wish me luck.</p>
 <p><em>EDIT: I got response to my job application email from Galois, saying that they would not be able to sponsor me for my visa application. Which means I’m still looking for jobs.</em></p>]]></summary>
-</entry>
-<entry>
-    <title>fmap fix return</title>
-    <link href="http://osa1.net/posts/2013-07-07-fmap-fix-return.html" />
-    <id>http://osa1.net/posts/2013-07-07-fmap-fix-return.html</id>
-    <published>2013-07-07T00:00:00Z</published>
-    <updated>2013-07-07T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>While floating across the internets, I came across a blog with title <code>fmap fix return</code>. I immediately run ghci and queried it’s type:</p>
-<pre class="ghci"><code>ghci&gt; :t fmap fix return
-fmap fix return :: a -&gt; a</code></pre>
-<p>We know that only value with type <code>forall a. a -&gt; a</code> (other than bottom) is identity function(<code>id</code> in Haskell). I found it very interesting, <code>fmap fix return</code> gives us identity function!</p>
-<p>I got a pen and paper and started evaluating expressions to understand how does that give us the identity function.</p>
-<p>First, let’s note our actors:</p>
-<pre><code>fmap :: Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
--- instance specific implementation
-
-fix  :: (a -&gt; a) -&gt; a
-fix f = let x = f x in x
-
-return :: Monad m =&gt; a -&gt; m a
--- instance specific implementation</code></pre>
-<p>A very important thing to realize at this point is which monad and functor instances are used for <code>return</code> and <code>fmap</code>. To realize this, observe that we get a function as return value of <code>fmap</code>. Which means <code>Functor f =&gt; f b</code> is <code>a -&gt; a</code>, or written in a different style to see it’s functor property: <code>((-&gt;) a) a</code>, so our functor here is <code>(-&gt;) a</code>.</p>
-<p>After that, we need to look up functor and monad instances for <code>(-&gt;) a</code>. Since it’s 2:30 AM here, I wanted to derive that too.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Functor</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span>
-     <span class="fu">fmap</span> <span class="fu">=</span> (<span class="fu">.</span>)</code></pre>
-<p>It’s very easy to derive just by looking specialized version of <code>fmap</code>s type for <code>((-&gt;) a)</code>: <code>fmap :: (a1 -&gt; b) -&gt; (a -&gt; a1) -&gt; (a -&gt; b)</code>.</p>
-<p>We can easily prove that it satisfies functor laws:</p>
-<pre><code>fmap id f
-= id . f
-= f
-
-fmap (p . q) &lt;-&gt; (fmap p) . (fmap q)
-(fmap p) . (fmap q) f
-= fmap p . (q . f)
-= p . q . f
-= fmap (p . q) f</code></pre>
-<p>Monad instance can also be derived from types of <code>return</code> and <code>&gt;&gt;=</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span>
-    <span class="fu">return</span>   <span class="fu">=</span> <span class="fu">const</span>
-    f <span class="fu">&gt;&gt;=</span> fn <span class="fu">=</span> \r <span class="ot">-&gt;</span> fn (f r) r</code></pre>
-<p>(I found Monad instance of <code>((-&gt;) a)</code> very interesting, especially the <code>&gt;&gt;=</code> part. I couldn’t come up with a problem that makes use of this instance, I’ll investigate that after some sleep)</p>
-<p>It satisfies monad laws:</p>
-<pre><code>-- left identity
-return a &gt;&gt;= f
-= const a &gt;&gt;= f
-= \r -&gt; f ((const a) r) r
-= \r -&gt; f a r
-= f a
-
--- right identity
-m &gt;&gt;= return
-= \r -&gt; return (m r) r
-= \r -&gt; (const (m r) r)
-= \r -&gt; m r
-= m
-
--- associativity
-(m &gt;&gt;= f) &gt;&gt;= g &lt;-&gt; m &gt;&gt;= (\x -&gt; f x &gt;&gt;= g)
-
-let&#39;s first write `p` for `m &gt;&gt;= f`
-
-= p &gt;&gt;= g
-= \r1 -&gt; g (p r1) r1
-
-let&#39;s also evaluaute p
-
-p = m &gt;&gt;= f
-= \r2 -&gt; f (m r2) r2
-
-substitute new p
-
-= \r1 -&gt; g ((\r2 -&gt; f (m r2) r2) r1) r1
-= \r1 -&gt; g (f (m r1) r1) r1
-= \r -&gt; g (f (m r) r) r
-
-now let&#39;s also evaluate right hand side of equation
-
-m &gt;&gt;= (\x -&gt; f x &gt;&gt;= g)
-= m &gt;&gt;= (\x -&gt; (    f x &gt;&gt;= g    )) -- just added a paren for clarity
-= m &gt;&gt;= (\x -&gt; (\r -&gt; g (f x r) r))
-
-let write `p` for `\x -&gt; (\r -&gt; g (f x r) r)`
-
-= m &gt;&gt;= p
-= \r1 -&gt; p (m r1) r1
-
-put p back
-
-= \r1 -&gt; (\x -&gt; (\r -&gt; g (f x r) r)) (m r1) r1
-= \r1 -&gt; (\r -&gt; g (f (m r1) r)) r1
-= \r1 -&gt; g (f (m r1) r1)</code></pre>
-<p>For those who have no idea what’s above, I’m basically proving some equalities by substituting expressions with their equivalents. This is a benefit for working on a purely functional language, which means referential transparency.</p>
-<p>OK, now with these <code>return</code> and <code>fmap</code> implementations in mind, let’s evaluate <code>fmap fix return</code>:</p>
-<pre><code>fmap fix return
-= fix . return
-= \r -&gt; fix (return r)
-= \r -&gt; fix (const r)
-= \r -&gt; (\f = let x = f x in x) (const r)
-= \r -&gt; let x = (const r) x in x
-
-since `const a _ = a`, we have x = r here
-
-= \r -&gt; r</code></pre>
-<p>.. which is the identity function.</p>
-<p>Thus <code>fmap fix return</code> demystified.</p>]]></summary>
 </entry>
 
 </feed>
