@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Observability of bottom values</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Observability of bottom values</h1>
+
+<p><strong>November  3, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/java.html">java</a>.</p>
+
+<p>While ranting about how much I hate about null values in Java(and other langauges) on Haskell IRC channel, someone in the channel reminded me that we have <code>undefined</code> in Haskell, which is actually similar to null values in some sense.</p>
+<p>The difference between Haskell’s <code>undefined</code> and null values in other languages is that Haskell’s <code>undefined</code> is <em>unobservable</em>. This means you can’t test for a value being <code>undefined</code> or not in Haskell, but you can test for null values in Java and other languages.</p>
+<p>This means you can’t rely on some values being <code>undefined</code> or not. This makes it only useful for 1) unreachable code and 2) filling some parts in the code for now just to make it compile and later complete that parts(and I’m using <code>undefined</code> for this purpose very often).</p>
+<p>This is what makes Haskell’s <code>undefined</code> a useful feature, while null values is clearly <em>Considered Harmful</em>™.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

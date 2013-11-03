@@ -8,8 +8,19 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-10-21T00:00:00Z</updated>
+    <updated>2013-11-03T00:00:00Z</updated>
     <entry>
+    <title>Observability of bottom values</title>
+    <link href="http://osa1.net/posts/2013-11-03-observability-of-nulls.html" />
+    <id>http://osa1.net/posts/2013-11-03-observability-of-nulls.html</id>
+    <published>2013-11-03T00:00:00Z</published>
+    <updated>2013-11-03T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>While ranting about how much I hate about null values in Java(and other langauges) on Haskell IRC channel, someone in the channel reminded me that we have <code>undefined</code> in Haskell, which is actually similar to null values in some sense.</p>
+<p>The difference between Haskell’s <code>undefined</code> and null values in other languages is that Haskell’s <code>undefined</code> is <em>unobservable</em>. This means you can’t test for a value being <code>undefined</code> or not in Haskell, but you can test for null values in Java and other languages.</p>
+<p>This means you can’t rely on some values being <code>undefined</code> or not. This makes it only useful for 1) unreachable code and 2) filling some parts in the code for now just to make it compile and later complete that parts(and I’m using <code>undefined</code> for this purpose very often).</p>
+<p>This is what makes Haskell’s <code>undefined</code> a useful feature, while null values is clearly <em>Considered Harmful</em>™.</p>]]></summary>
+</entry>
+<entry>
     <title>Memoized parsing in continuation-passing style</title>
     <link href="http://osa1.net/posts/2013-10-21-memoized-parsing-cps.html" />
     <id>http://osa1.net/posts/2013-10-21-memoized-parsing-cps.html</id>
@@ -396,19 +407,6 @@ Qed.</code></pre>
 <p>My aim while writing MANTI was to make it as simple as possible, yet a complete Prolog implementation that is capable to solve some real problems. For this reasons, it doesn’t have arithmetic, list structures and list operations built-in. Instead, arithmetic is implemented using <a href="http://en.wikipedia.org/wiki/Peano_axioms">Peano definitions</a>, you can see the implementation <a href="https://github.com/osa1/MANTI/blob/master/tests/peano.pl">here</a>. List operations are also implemented in MANTI itself, you can see definitions <a href="https://github.com/osa1/MANTI/blob/master/tests/list.pl">here</a>. List syntax is nothing special, it’s just a syntactic sugar that destructs to ordinary Prolog functors(you can see parser for list syntax <a href="https://github.com/osa1/MANTI/blob/master/src/Parser.hs#L80">here</a>).</p>
 <p>For these reasons(and probably others, for instance, unification and <code>not</code> connective are implemented in most inefficient ways possible), it’s very slow. Also, there’s no way to disable occurs check without recompiling MANTI.</p>
 <p>It’s mostly done and I don’t think I’ll work more on that. I hope you find MANTI useful(for learning purposes or others).</p>]]></summary>
-</entry>
-<entry>
-    <title>ANNOUNCE: My first academic work is now open source</title>
-    <link href="http://osa1.net/posts/2013-07-22-sqml-open-sourced.html" />
-    <id>http://osa1.net/posts/2013-07-22-sqml-open-sourced.html</id>
-    <published>2013-07-22T00:00:00Z</published>
-    <updated>2013-07-22T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Our work at Ozyegin University with Prof. Baris Aktemur is now open source.</p>
-<ul>
-<li>Home page: <a href="http://srl.ozyegin.edu.tr/projects/subtypedQuotedML/">http://srl.ozyegin.edu.tr/projects/subtypedQuotedML/</a></li>
-<li>Github repository: <a href="https://github.com/ozusrl/SubtypedQuotedML">https://github.com/ozusrl/SubtypedQuotedML</a></li>
-</ul>
-<p>If you have trouble compiling/running it, please file an issue at Github page.</p>]]></summary>
 </entry>
 
 </feed>
