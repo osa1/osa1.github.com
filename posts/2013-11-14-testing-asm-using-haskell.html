@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Testing assembly programs using Haskell, QuickCheck (and FFI)</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Testing assembly programs using Haskell, QuickCheck (and FFI)</h1>
+
+<p><strong>November 14, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/asm.html">asm</a>, <a href="../tags/ffi.html">ffi</a>.</p>
+
+<p>I’ve been studying 64bit calling conventions for x64 family recently. To do this, I was writing some function in assembly and then calling my functions from a C program to be sure that parameter passing and returning values are working correctly.</p>
+<p>It generally works fine, and linking C program with assembly programs are easy enough. Today I got the idea of using Haskell + QuickCheck to test my assembly programs, this way I could also be more confident that not only parameter passing/return values work correctly, but my implementation of algorithm in assembly is also correct.</p>
+<p>Linking assembly programs with a Haskell program is surprisingly easy. In the rest of this post, I’ll explain how to compile and link power function written in assembly to test program written in Haskell.</p>
+<p>Here’s a power function that works on 64bit unsigned numbers, implemented using x64 ABI conventions:</p>
+<pre class="assembly"><code>section .text
+global power
+power:
+	mov rbx, rdi        ; move first parameter to rbx
+	mov rcx, rsi        ; move second parameter to rcx
+
+	cmp rcx, 0          ; return 1 if power is 0
+	je end_power_one
+
+	mov rax, rbx        ; move result to rax for multiplication
+
+power_loop_start:
+	cmp rcx, 1
+	je end_power
+
+	mul rbx
+	dec rcx
+	jmp power_loop_start
+
+end_power_one:
+	mov rax, 1
+
+end_power:
+	ret</code></pre>
+<p>This is written using <a href="http://www.nasm.us/">Netwide Assembler</a>(best assembly syntax, IMO). Since we’re working on 64bit system, we need to compile it to <code>elf64</code> format:</p>
+<pre><code>nasm -f elf64 power_lib.s -o power_lib.o</code></pre>
+<p>Once we have our compiled file for power function, we need to declare it in Haskell as a foreign function, using correct types. A short tour in <code>Foreign.C.Types</code> library showed that <code>CULong</code> type is actually a newtype wrapper around <code>Word64</code>, which is 64bit unsigned number type:</p>
+<pre><code>ghci&gt; :m + Foreign.C.Types 
+ghci&gt; :info CULong
+newtype CULong = CULong GHC.Word.Word64
+        -- Defined in `Foreign.C.Types'</code></pre>
+<p>(not that this part should be different on 32bit systems – eg. on 32bit system you should see <code>CULong GHC.Word.Word32</code> instead of <code>Word64</code>)</p>
+<p>We also need a <code>Arbitrary</code> instance for <code>CULong</code> type to be able to use QuickCheck on this type. Since <code>CULong</code> is just a newtype wrapper over <code>Word64</code>, and <code>Word64</code> already has instance defined in QuickCheck library, we can have that for free. In the end, our test code is:</p>
+<pre class="sourceCode Haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> Foreign.C.Types
+<span class="kw">import</span> Test.QuickCheck
+
+foreign <span class="kw">import</span> ccall &quot;power&quot;
+<span class="ot">    power ::</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span>
+
+<span class="kw">instance</span> <span class="dt">Arbitrary</span> <span class="dt">CULong</span> <span class="kw">where</span>
+    arbitrary <span class="fu">=</span> <span class="fu">fmap</span> <span class="dt">CULong</span> arbitrary
+    shrink (<span class="dt">CULong</span> i) <span class="fu">=</span> <span class="fu">map</span> <span class="dt">CULong</span> <span class="fu">$</span> shrink i
+
+test_prop b p <span class="fu">=</span> power b p <span class="fu">==</span> b <span class="fu">^</span> p
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> quickCheck test_prop</code></pre>
+<p>and that’s it. Very simple, 16 lines of code. To compile this, I also wrote a Makefile:</p>
+<pre class="sourceCode makefile"><code class="sourceCode makefile"><span class="dv">power:</span><span class="dt"> power_test.hs power_lib.o</span>
+	ghc --make <span class="ch">$^</span>
+
+<span class="dv">power_lib.o:</span><span class="dt"> power_lib.s</span>
+	nasm -f elf64 <span class="ch">$&lt;</span> -o <span class="ch">$@</span>
+
+<span class="dv">clean:</span>
+	<span class="ch">-</span><span class="fu">rm power_lib.o</span>
+	<span class="ch">-</span><span class="fu">rm power_test power_test.hi power_test.o</span></code></pre>
+<p>(this may be helpful to see how compilation work)</p>
+<p>I think this is also a good demonstration of how easy it is to interact with foreign functions in Haskell.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
