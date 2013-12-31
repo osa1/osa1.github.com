@@ -8,8 +8,47 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-11-14T00:00:00Z</updated>
+    <updated>2013-12-30T00:00:00Z</updated>
     <entry>
+    <title>Fun C compile time assertion trick</title>
+    <link href="http://osa1.net/posts/2013-12-30-fun-c-compile-time-trick.html" />
+    <id>http://osa1.net/posts/2013-12-30-fun-c-compile-time-trick.html</id>
+    <published>2013-12-30T00:00:00Z</published>
+    <updated>2013-12-30T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>It’s been long time since I wrote an interesting post but I still don’t have anything interesting and short enough for me to explain in a blog post. Anyway, here’s a fun C compile time assertion trick that I found in libSDL 2 codebase:</p>
+<p>In C we have <code>typedef</code> which can be used for defining type synonyms. This code:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> test;</code></pre>
+<p>Defines <code>test</code> as type synonym for int, and then you can replace <code>int</code>s in variable declarations with <code>test</code>.</p>
+<p>Interestingly, you can also use illegal type names for typedefs, like this:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">10</span>];</code></pre>
+<p>This is funny, because you can’t use <code>foo[10]</code> as type of a variable, so I don’t understand why this syntax is allowed. I think the reason is that a <code>typedef</code> is just like declaration and shares same syntax with it, so this is allowed. Still, this declaration looks pretty useless to me.</p>
+<p>Anyway, apparently there are some other interesting uses of <code>typedef</code>s. This code:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[-<span class="dv">1</span>];</code></pre>
+<p>fails with:</p>
+<pre><code>test.c:13:17: error: &#39;foo&#39; declared as an array with a negative size
+typedef int foo[-1];
+                ^~</code></pre>
+<p>Furthermore, there are some expression-like C syntax that are actually evaluated at compile time<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>. For example:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">3-4</span>];</code></pre>
+<p>Here <code>3-4</code> looks like an expression, but it’s actually evaluated at compile-time and thus this code fails with same error as above.</p>
+<p>Using this two tricks, we can have some king of compile-time assertions, like libSDL people use:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define COMPILE_TIME_ASSERT(name, x) \</span>
+  <span class="kw">typedef</span> <span class="dt">int</span> dummy_ ## name[(x) * <span class="dv">2</span> - <span class="dv">1</span>]
+
+<span class="kw">typedef</span> <span class="dt">uint16_t</span> Uint16;
+
+COMPILE_TIME_ASSERT(uint16, <span class="kw">sizeof</span>(Uint16) == <span class="dv">2</span>);</code></pre>
+<p>This code checks in compile time if <code>Uint16</code> really represents 2 bytes in memory and it fails to compile if it doesn’t. Interesting part here is that <code>(x) * 2 - 1</code> expression evaluated at compile-time.<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>These are called <em>constant expressions</em> and specified in C11 standard(<a href="http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf">draft</a>) section 6.6.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Note that the <code>x</code> here will be already replaced with some other expression, passed with macro call.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>Testing assembly programs using Haskell, QuickCheck (and FFI)</title>
     <link href="http://osa1.net/posts/2013-11-14-testing-asm-using-haskell.html" />
     <id>http://osa1.net/posts/2013-11-14-testing-asm-using-haskell.html</id>
@@ -438,30 +477,6 @@ Qed.</code></pre>
 <p>I think the reason why I think too much about this stuff instead of writing some proofs is that I look for elegance and simplicity in my programs. And only if necessary I try to make my programs efficient(fast, small, whatever). After some simple trivial proofs that I did for learning I never found my proofs satisfactory. They are either very very long and repetitive or very hard to understand and modify. It’s very hard to find a sweet-spot in proofs that is not very repetitive and long and still possible to read and understand.</p>
 <p>You can always apply methods you learned to make your programs easier to read and modify, like moving some code to a new function with a useful name and formal parameters etc. but in the case of proofs it’s also very hard to find what pieces are considered worthy to be a lemma and what would be useful name for it.</p>
 <p>My ideas about proof automation is changed from “no way I use them” to “okay they can be very useful for eliminating repetition without adding obscurity to the proof” in one day. I’ll continue writing Coq proofs for while and probably add new posts on this topic later.</p>]]></summary>
-</entry>
-<entry>
-    <title>On proof automations</title>
-    <link href="http://osa1.net/posts/2013-09-11-proof-automation.html" />
-    <id>http://osa1.net/posts/2013-09-11-proof-automation.html</id>
-    <published>2013-09-11T00:00:00Z</published>
-    <updated>2013-09-11T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>While working with constructive systems, at the lowest level you can directly construct proof objects by writing programs. But for realistic scenarios, this is probably too hard to do. Coq and Idris like languages provide an alternative way to construct proof objects: tactics. Tactics provide a way to derive proofs in a way that is somewhat like informal proofs given in spoken languages. But theorems you’re trying to prove is already too complex, and in some parts, very repetitive.</p>
-<p>That <em>tactics</em> Coq like theorem provers provide also help you construct proofs with some automation commands. For instance, you can apply same steps several times, until you prove some subgoals. Or you can search for a proof by applying some steps in different combinations.</p>
-<p>What doesn’t make sense to me is that in general you cannot really use that automation methods before manually writing long and hard proof by hand and showing that your theorem is really a theorem and it indeed has some repetitive parts.</p>
-<p>And at this point you’re probably better off leaving the proof as-is because replacing explicit steps with some magic commands(I’ll come to this point later) only makes the proof harder to read, without any other advantages.</p>
-<p>I have similar ideas for <code>auto</code> tactic. What it does is that it searches for a proof by applying different combinations of <code>apply</code> and <code>intros</code> tactics(with some limitations – it only uses apply for hypothesis and hint database which you generate while defining inductive definitions).</p>
-<p>Now my problem with <code>auto</code> is that you can only use it when you absolutely sure that your theorem is indeed a theorem – that is, it has a proof. And how can you know that your theorem is correct? The only way to know this is to write a proof for it. Now let’s say <code>auto</code> tactic fails, and when this happens it can’t really say anything. Why did it fail? It may be because your proof is actually too long and it searched for a while but couldn’t find a proof(you can specify search depth as an optional parameter of <code>auto</code> tactic). Or maybe your hint base is not good enough. Or maybe your theorem is not actually a theorem and you cannot prove it.</p>
-<p>So both proof search tactics and repetition elimination tactics have this same common problem: you cannot know that they work before writing the proof itself. And automation generally makes the proof unreadable.</p>
-<p>Adam Chilpala’s “Certified Programming with Dependent Types” book encourages that automated way of proving. You have that complicated theorem that you don’t even understand what it is saying? No problem, <code>crush</code> tactic(which is not standard, distributed with CPDT book) will prove it for you in one command.</p>
-<p>I’m not saying that <code>crush</code> like tactics are necessarily bad and you shouldn’t use it. I’d probably use it in real world when I need a proof that <code>crush</code> can generate and I don’t have time or motivation to do it myself.</p>
-<p>And repetition elimination tactics are useful when you have a syntax tree with 15 constructors and you’re proving some theorem that’s relevant with only one of that constructors – 14 subgoals can be easily proved by some clever use of <code>;</code> operator in Coq.</p>
-<p>What I’m saying that is several things:</p>
-<ul>
-<li>Automated proofs can make proofs harder to read and most of the time you already need to have written the long proof to see that it has repetitive parts or at least it is provable. (certainly there are cases where you’ll find yourself trying to prove something wrong)</li>
-<li>Once a long proof is written, there is little or no need to remove that proof and replace it with an automated version. (one reason to do that is to have same proof working even after some inductive definitions is expanded/changed)</li>
-<li>Most importantly, <code>crush</code> like automation tactics are pure black magic and doesn’t really teach you anthing. As a hobbyist who self-study all this, I prefer learning the principles instead of scripts and magic commands and black boxes.</li>
-</ul>
-<p>For this reasons I’m trying to use proof automation as little as possible.</p>]]></summary>
 </entry>
 
 </feed>

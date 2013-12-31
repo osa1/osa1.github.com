@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>osa1.net - Posts tagged c</title>
+    <link href="http://osa1.net/tags/c.xml" rel="self" />
+    <link href="http://osa1.net" />
+    <id>http://osa1.net/tags/c.xml</id>
+    <author>
+        <name>Ömer Sinan Ağacan</name>
+        <email>omeragaca@gmail.com</email>
+    </author>
+    <updated>2013-12-30T00:00:00Z</updated>
+    <entry>
+    <title>Fun C compile time assertion trick</title>
+    <link href="http://osa1.net/posts/2013-12-30-fun-c-compile-time-trick.html" />
+    <id>http://osa1.net/posts/2013-12-30-fun-c-compile-time-trick.html</id>
+    <published>2013-12-30T00:00:00Z</published>
+    <updated>2013-12-30T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>It’s been long time since I wrote an interesting post but I still don’t have anything interesting and short enough for me to explain in a blog post. Anyway, here’s a fun C compile time assertion trick that I found in libSDL 2 codebase:</p>
+<p>In C we have <code>typedef</code> which can be used for defining type synonyms. This code:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> test;</code></pre>
+<p>Defines <code>test</code> as type synonym for int, and then you can replace <code>int</code>s in variable declarations with <code>test</code>.</p>
+<p>Interestingly, you can also use illegal type names for typedefs, like this:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">10</span>];</code></pre>
+<p>This is funny, because you can’t use <code>foo[10]</code> as type of a variable, so I don’t understand why this syntax is allowed. I think the reason is that a <code>typedef</code> is just like declaration and shares same syntax with it, so this is allowed. Still, this declaration looks pretty useless to me.</p>
+<p>Anyway, apparently there are some other interesting uses of <code>typedef</code>s. This code:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[-<span class="dv">1</span>];</code></pre>
+<p>fails with:</p>
+<pre><code>test.c:13:17: error: &#39;foo&#39; declared as an array with a negative size
+typedef int foo[-1];
+                ^~</code></pre>
+<p>Furthermore, there are some expression-like C syntax that are actually evaluated at compile time<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>. For example:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">3-4</span>];</code></pre>
+<p>Here <code>3-4</code> looks like an expression, but it’s actually evaluated at compile-time and thus this code fails with same error as above.</p>
+<p>Using this two tricks, we can have some king of compile-time assertions, like libSDL people use:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define COMPILE_TIME_ASSERT(name, x) \</span>
+  <span class="kw">typedef</span> <span class="dt">int</span> dummy_ ## name[(x) * <span class="dv">2</span> - <span class="dv">1</span>]
+
+<span class="kw">typedef</span> <span class="dt">uint16_t</span> Uint16;
+
+COMPILE_TIME_ASSERT(uint16, <span class="kw">sizeof</span>(Uint16) == <span class="dv">2</span>);</code></pre>
+<p>This code checks in compile time if <code>Uint16</code> really represents 2 bytes in memory and it fails to compile if it doesn’t. Interesting part here is that <code>(x) * 2 - 1</code> expression evaluated at compile-time.<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>These are called <em>constant expressions</em> and specified in C11 standard(<a href="http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf">draft</a>) section 6.6.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Note that the <code>x</code> here will be already replaced with some other expression, passed with macro call.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+
+</feed>
