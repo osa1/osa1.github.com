@@ -187,49 +187,49 @@
 <p>One problem here is that there’s no way to know which tags to put in template file. I wrote this file mostly by looking to source code of <code>bindDigestiveSplices</code>, trial-and-error, and some open source examples.</p>
 <p>Output should be something like: (after creating the template file, see below)</p>
 <p>Case 1:</p>
-<pre><code>Nothing</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">Nothing</span></code></pre>
 <p>because POST request environment is not valid, so it’s not possible to create a User object.</p>
-<pre><code>&lt;form method='POST' enctype='application/x-www-form-urlencoded'&gt;
-    &lt;label for='userform.username'&gt;Username: &lt;/label&gt;
-    &lt;input type='text' id='userform.username' name='userform.username' value /&gt;
+<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;form</span><span class="ot"> method=</span><span class="st">'POST'</span><span class="ot"> enctype=</span><span class="st">'application/x-www-form-urlencoded'</span><span class="kw">&gt;</span>
+    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">'userform.username'</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/label&gt;</span>
+    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">'text'</span><span class="ot"> id=</span><span class="st">'userform.username'</span><span class="ot"> name=</span><span class="st">'userform.username'</span><span class="ot"> value</span> <span class="kw">/&gt;</span>
 
 
-    &lt;label for='userform.email'&gt;Email: &lt;/label&gt;
-    &lt;input type='text' id='userform.email' name='userform.email' value /&gt;
-    &lt;ul&gt;&lt;li&gt;invalid email&lt;/li&gt;&lt;/ul&gt;
+    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">'userform.email'</span><span class="kw">&gt;</span>Email: <span class="kw">&lt;/label&gt;</span>
+    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">'text'</span><span class="ot"> id=</span><span class="st">'userform.email'</span><span class="ot"> name=</span><span class="st">'userform.email'</span><span class="ot"> value</span> <span class="kw">/&gt;</span>
+    <span class="kw">&lt;ul&gt;&lt;li&gt;</span>invalid email<span class="kw">&lt;/li&gt;&lt;/ul&gt;</span>
 
-    &lt;input type='submit' /&gt;
-&lt;/form&gt;</code></pre>
+    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">'submit'</span> <span class="kw">/&gt;</span>
+<span class="kw">&lt;/form&gt;</span></code></pre>
 <p>User form is generated without filling any values and no error messages.</p>
 <p>Case 2:</p>
-<pre><code>Nothing</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">Nothing</span></code></pre>
 <p>because email information in POST request environment is invalid.</p>
-<pre><code>&lt;form method='POST' enctype='application/x-www-form-urlencoded'&gt;
-    &lt;label for='userform.username'&gt;Username: &lt;/label&gt;
-    &lt;input type='text' id='userform.username' name='userform.username' value='testuser' /&gt;
+<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;form</span><span class="ot"> method=</span><span class="st">'POST'</span><span class="ot"> enctype=</span><span class="st">'application/x-www-form-urlencoded'</span><span class="kw">&gt;</span>
+    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">'userform.username'</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/label&gt;</span>
+    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">'text'</span><span class="ot"> id=</span><span class="st">'userform.username'</span><span class="ot"> name=</span><span class="st">'userform.username'</span><span class="ot"> value=</span><span class="st">'testuser'</span> <span class="kw">/&gt;</span>
 
 
-    &lt;label for='userform.email'&gt;Email: &lt;/label&gt;
-    &lt;input type='text' id='userform.email' name='userform.email' value='invalidemail' /&gt;
-    &lt;ul&gt;&lt;li&gt;invalid email&lt;/li&gt;&lt;/ul&gt;
+    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">'userform.email'</span><span class="kw">&gt;</span>Email: <span class="kw">&lt;/label&gt;</span>
+    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">'text'</span><span class="ot"> id=</span><span class="st">'userform.email'</span><span class="ot"> name=</span><span class="st">'userform.email'</span><span class="ot"> value=</span><span class="st">'invalidemail'</span> <span class="kw">/&gt;</span>
+    <span class="kw">&lt;ul&gt;&lt;li&gt;</span>invalid email<span class="kw">&lt;/li&gt;&lt;/ul&gt;</span>
 
-    &lt;input type='submit' /&gt;
-&lt;/form&gt;</code></pre>
+    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">'submit'</span> <span class="kw">/&gt;</span>
+<span class="kw">&lt;/form&gt;</span></code></pre>
 <p>User form is generated with fields filled and an error message is rendered.</p>
 <p>Case 3:</p>
-<pre><code>Just (User {uUsername = &quot;testuser&quot;, uEmail = &quot;valid@email.com&quot;, uKarma = 0})</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">Just</span> (<span class="dt">User</span> {uUsername <span class="fu">=</span> <span class="st">&quot;testuser&quot;</span>, uEmail <span class="fu">=</span> <span class="st">&quot;valid@email.com&quot;</span>, uKarma <span class="fu">=</span> <span class="dv">0</span>})</code></pre>
 <p>Since form data is valid, a User object is created.</p>
-<pre><code>&lt;form method='POST' enctype='application/x-www-form-urlencoded'&gt;
-    &lt;label for='userform.username'&gt;Username: &lt;/label&gt;
-    &lt;input type='text' id='userform.username' name='userform.username' value='testuser' /&gt;
+<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;form</span><span class="ot"> method=</span><span class="st">'POST'</span><span class="ot"> enctype=</span><span class="st">'application/x-www-form-urlencoded'</span><span class="kw">&gt;</span>
+    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">'userform.username'</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/label&gt;</span>
+    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">'text'</span><span class="ot"> id=</span><span class="st">'userform.username'</span><span class="ot"> name=</span><span class="st">'userform.username'</span><span class="ot"> value=</span><span class="st">'testuser'</span> <span class="kw">/&gt;</span>
 
 
-    &lt;label for='userform.email'&gt;Email: &lt;/label&gt;
-    &lt;input type='text' id='userform.email' name='userform.email' value='valid@email.com' /&gt;
+    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">'userform.email'</span><span class="kw">&gt;</span>Email: <span class="kw">&lt;/label&gt;</span>
+    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">'text'</span><span class="ot"> id=</span><span class="st">'userform.email'</span><span class="ot"> name=</span><span class="st">'userform.email'</span><span class="ot"> value=</span><span class="st">'valid@email.com'</span> <span class="kw">/&gt;</span>
 
 
-    &lt;input type='submit' /&gt;
-&lt;/form&gt;</code></pre>
+    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">'submit'</span> <span class="kw">/&gt;</span>
+<span class="kw">&lt;/form&gt;</span></code></pre>
 <p>.. and for is created with values filled, no error messages is rendered.</p>
 <p>Note the form and input ids and names. The name passed to <code>postForm</code> is used as prefix of generated HTML elements, and thus also used in POST request environments.</p>
 <p>I hope this post helps starters with digestive-functors and heist.</p>
