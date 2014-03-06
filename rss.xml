@@ -8,8 +8,24 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-01-17T00:00:00Z</updated>
+    <updated>2014-03-06T00:00:00Z</updated>
     <entry>
+    <title>Proving soundness of simply typed multi-staged lambda-calculus</title>
+    <link href="http://osa1.net/posts/2014-03-06-proving-simply-typed-multi-staged-lc.html" />
+    <id>http://osa1.net/posts/2014-03-06-proving-simply-typed-multi-staged-lc.html</id>
+    <published>2014-03-06T00:00:00Z</published>
+    <updated>2014-03-06T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>First part of my first non-trivial(e.g. something other than a Software Foundations exercise) Coq program is finally done. I learned Coq from Software Foundations, but I didn’t finish to book. I still know only very basic tactics, which I think one of the reasons why my proofs are so long. You can see the source <a href="https://github.com/osa1/StagedLambda/blob/master/Lc.v">here</a>.</p>
+<p>Some random notes about implementation:</p>
+<ul>
+<li>I’m looking to improve proofs. I have a lot more to implement for the rest of the program until deadline, so I may not be able to refactor current proofs very much, but at one point I want to simplify the proofs and use more advanced tactics.</li>
+<li>Currently only <code>inversion</code>, <code>destruct</code>, <code>induction</code>, <code>rewrite</code>, <code>assumption</code>, <code>assert</code>, <code>constructor</code>, <code>auro</code>, <code>simpl</code>, <code>intro</code>/<code>intros</code>, <code>apply</code>, <code>right</code>/<code>left</code>, <code>exists</code>, <code>unfold</code>, <code>subst</code>, <code>reflexivity</code>, <code>remember</code> and <code>generalize</code> tactics are used.</li>
+<li>Language definition is almost the same as in papers. There is one difference, we implemented substitutions as a function. In reality, substitution in multi-staged lambda-calculus is not a function. I believe this doesn’t effect correctness of theorems. At one point I’ll refactor the code and define substitution as a relation.</li>
+<li>I used <code>Case</code>, <code>SCase</code>, <code>SSCase</code> … constructs from SFlib extensively.</li>
+</ul>
+<p>Now I’m going to implement lambda-calculus with row-polymorphic records. I expect this to be at least 2x harder, since polymorphism is involved. Let’s see how it goes …</p>]]></summary>
+</entry>
+<entry>
     <title>Güncelleme</title>
     <link href="http://osa1.net/posts/2014-01-17-guncelleme.html" />
     <id>http://osa1.net/posts/2014-01-17-guncelleme.html</id>
@@ -539,103 +555,6 @@ main <span class="fu">=</span> quickCheck test_prop</code></pre>
 <li id="fn1"><p><a href="http://fsl.cs.illinois.edu/index.php/Main_Page">University of Illinois at Urbana-Champaign, Formal Systems Lab</a><a href="#fnref1">↩</a></p></li>
 </ol>
 </div>]]></summary>
-</entry>
-<entry>
-    <title>Parametric polymorphism and unboxed representations</title>
-    <link href="http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html" />
-    <id>http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html</id>
-    <published>2013-10-09T00:00:00Z</published>
-    <updated>2013-10-09T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>This post was written 5 months ago – I just found it in my Github Gist archive and realized it’s not published. I’m publishing it now.</p>
-<hr />
-<p>It’s just occurred to me that we can’t have parametric polymorphism for unboxed values, unless that unboxed values share same layout in memory, or you duplicate polymorphic definition for each instance. This may be obvious for most of you but I just realized this while working on a Java project and found it interesting.</p>
-<p>I think this is also the reason why we can’t instantiate generics in Java with primitive types.</p>
-<p>Here’s an explanation:</p>
-<p>Let’s think this C++ code:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
-{
-  <span class="dt">int</span> a, b;
-  test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}
-};
-
-<span class="kw">struct</span> test3
-{
-  <span class="dt">int</span> a, b, c;
-  test3(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) : a(a), b(b), c(c) {}
-};
-
-<span class="dt">void</span> f2() {}
-
-<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
-T f3(T t)
-{
-  t.a = <span class="dv">20</span>;
-  <span class="kw">return</span> t;
-}
-
-<span class="dt">int</span> main()
-{
-  test2 t2(<span class="dv">1</span>, <span class="dv">2</span>);
-  test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);
-  f3&lt;test2&gt;(t2);
-  f3&lt;test3&gt;(t3);
-  <span class="kw">return</span> <span class="dv">0</span>;
-}</code></pre>
-<p>The key thing to realize here is that I’m passing parameter by value, ie. values are copied to function stack frame. But this function is still polymorphic on parameter type. This is possible in C++ because for each distinct instance of <code>f3</code>, a specialized code will be generated. To observe this, I put a breakpoint to that <code>f3</code> function and looked to disassembly output.</p>
-<pre><code>        18	T f3(T t)
-0x400af6  &lt;+0x0000&gt;         push   rbp
-0x400af7  &lt;+0x0001&gt;         mov    rbp,rsp
-0x400afa  &lt;+0x0004&gt;         mov    QWORD PTR [rbp-0x10],rdi
-        19	{
-        20	  t.a = 20;
-0x400afe  &lt;+0x0008&gt;         mov    DWORD PTR [rbp-0x10],0x14
-        21	  return t;
-0x400b05  &lt;+0x000f&gt;         mov    rax,QWORD PTR [rbp-0x10]
-        22	}
-0x400b09  &lt;+0x0013&gt;         pop    rbp
-0x400b0a  &lt;+0x0014&gt;         ret</code></pre>
-<p>And this is for second call:</p>
-<pre><code>        18	T f3(T t)
-0x400b0b  &lt;+0x0000&gt;         push   rbp
-0x400b0c  &lt;+0x0001&gt;         mov    rbp,rsp
-0x400b0f  &lt;+0x0004&gt;         mov    rdx,rdi
-0x400b12  &lt;+0x0007&gt;         mov    eax,esi
-0x400b14  &lt;+0x0009&gt;         mov    QWORD PTR [rbp-0x20],rdx
-0x400b18  &lt;+0x000d&gt;         mov    DWORD PTR [rbp-0x18],eax
-        19	{
-        20	  t.a = 20;
-0x400b1b  &lt;+0x0010&gt;         mov    DWORD PTR [rbp-0x20],0x14
-        21	  return t;
-0x400b22  &lt;+0x0017&gt;         mov    rax,QWORD PTR [rbp-0x20]
-0x400b26  &lt;+0x001b&gt;         mov    QWORD PTR [rbp-0x10],rax
-0x400b2a  &lt;+0x001f&gt;         mov    eax,DWORD PTR [rbp-0x18]
-0x400b2d  &lt;+0x0022&gt;         mov    DWORD PTR [rbp-0x8],eax
-0x400b30  &lt;+0x0025&gt;         mov    rax,QWORD PTR [rbp-0x10]
-0x400b34  &lt;+0x0029&gt;         mov    edx,DWORD PTR [rbp-0x8]
-        22	}
-0x400b37  &lt;+0x002c&gt;         pop    rbp
-0x400b38  &lt;+0x002d&gt;         ret</code></pre>
-<p>So what happened here is two new functions is generated from the definition, one with type <code>test2 f3(test2)</code> and one with type <code>test3 f3(test3)</code>. This gives a great opportunity, for instance, we can have this function:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
-
-<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
-T someFun(T arg1, T arg2)
-{
-  <span class="kw">return</span> arg1 + arg2;
-}
-
-<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> *argv[])
-{
-  std::cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
-  std::cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
-
-  <span class="kw">return</span> <span class="dv">0</span>;
-}</code></pre>
-<p>..which is impossible to have in Java, without manually overloading the method definition.</p>
-<p>(An off-topic but interesting note: I was expecting <code>SP</code> to be set here, but here it’s not set. I think the reason is that the compiler is clever enough to see there is no recursive calls, so no need to set <code>SP</code>, when I added a dummy function call in the middle of <code>f3</code>, <code>SP</code> is got set)</p>
-<p>So in a way, C++ generics are gives us the most general way for parametric polymorphism. For any type you instantiated the template with, it generates a specialized definition. And if that definition is accepted by type checker, you’re fine.</p>
-<p>This also why we don’t need a template definition like <code>template &lt;class C : HasY&gt;</code>. Because that <code>HasY</code> information is completely redundant. If specialized code is well-typed, than it’s OK.</p>
-<p>This is also one of the reasons why compiling C++ programs takes that long.</p>]]></summary>
 </entry>
 
 </feed>

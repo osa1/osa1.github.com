@@ -8,8 +8,24 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2013-04-15T00:00:00Z</updated>
+    <updated>2014-03-06T00:00:00Z</updated>
     <entry>
+    <title>Proving soundness of simply typed multi-staged lambda-calculus</title>
+    <link href="http://osa1.net/posts/2014-03-06-proving-simply-typed-multi-staged-lc.html" />
+    <id>http://osa1.net/posts/2014-03-06-proving-simply-typed-multi-staged-lc.html</id>
+    <published>2014-03-06T00:00:00Z</published>
+    <updated>2014-03-06T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>First part of my first non-trivial(e.g. something other than a Software Foundations exercise) Coq program is finally done. I learned Coq from Software Foundations, but I didn’t finish to book. I still know only very basic tactics, which I think one of the reasons why my proofs are so long. You can see the source <a href="https://github.com/osa1/StagedLambda/blob/master/Lc.v">here</a>.</p>
+<p>Some random notes about implementation:</p>
+<ul>
+<li>I’m looking to improve proofs. I have a lot more to implement for the rest of the program until deadline, so I may not be able to refactor current proofs very much, but at one point I want to simplify the proofs and use more advanced tactics.</li>
+<li>Currently only <code>inversion</code>, <code>destruct</code>, <code>induction</code>, <code>rewrite</code>, <code>assumption</code>, <code>assert</code>, <code>constructor</code>, <code>auro</code>, <code>simpl</code>, <code>intro</code>/<code>intros</code>, <code>apply</code>, <code>right</code>/<code>left</code>, <code>exists</code>, <code>unfold</code>, <code>subst</code>, <code>reflexivity</code>, <code>remember</code> and <code>generalize</code> tactics are used.</li>
+<li>Language definition is almost the same as in papers. There is one difference, we implemented substitutions as a function. In reality, substitution in multi-staged lambda-calculus is not a function. I believe this doesn’t effect correctness of theorems. At one point I’ll refactor the code and define substitution as a relation.</li>
+<li>I used <code>Case</code>, <code>SCase</code>, <code>SSCase</code> … constructs from SFlib extensively.</li>
+</ul>
+<p>Now I’m going to implement lambda-calculus with row-polymorphic records. I expect this to be at least 2x harder, since polymorphism is involved. Let’s see how it goes …</p>]]></summary>
+</entry>
+<entry>
     <title>Internship report - type inference, row polymorphism, and multi-stage programming</title>
     <link href="http://osa1.net/posts/2013-04-15-internship.report.html" />
     <id>http://osa1.net/posts/2013-04-15-internship.report.html</id>

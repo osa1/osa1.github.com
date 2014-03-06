@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Proving soundness of simply typed multi-staged lambda-calculus</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Proving soundness of simply typed multi-staged lambda-calculus</h1>
+
+<p><strong>March  6, 2014</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/coq.html">coq</a>, <a href="../tags/plt.html">plt</a>.</p>
+
+<p>First part of my first non-trivial(e.g. something other than a Software Foundations exercise) Coq program is finally done. I learned Coq from Software Foundations, but I didn’t finish to book. I still know only very basic tactics, which I think one of the reasons why my proofs are so long. You can see the source <a href="https://github.com/osa1/StagedLambda/blob/master/Lc.v">here</a>.</p>
+<p>Some random notes about implementation:</p>
+<ul>
+<li>I’m looking to improve proofs. I have a lot more to implement for the rest of the program until deadline, so I may not be able to refactor current proofs very much, but at one point I want to simplify the proofs and use more advanced tactics.</li>
+<li>Currently only <code>inversion</code>, <code>destruct</code>, <code>induction</code>, <code>rewrite</code>, <code>assumption</code>, <code>assert</code>, <code>constructor</code>, <code>auro</code>, <code>simpl</code>, <code>intro</code>/<code>intros</code>, <code>apply</code>, <code>right</code>/<code>left</code>, <code>exists</code>, <code>unfold</code>, <code>subst</code>, <code>reflexivity</code>, <code>remember</code> and <code>generalize</code> tactics are used.</li>
+<li>Language definition is almost the same as in papers. There is one difference, we implemented substitutions as a function. In reality, substitution in multi-staged lambda-calculus is not a function. I believe this doesn’t effect correctness of theorems. At one point I’ll refactor the code and define substitution as a relation.</li>
+<li>I used <code>Case</code>, <code>SCase</code>, <code>SSCase</code> … constructs from SFlib extensively.</li>
+</ul>
+<p>Now I’m going to implement lambda-calculus with row-polymorphic records. I expect this to be at least 2x harder, since polymorphism is involved. Let’s see how it goes …</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
