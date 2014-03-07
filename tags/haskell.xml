@@ -39,7 +39,7 @@ int  <span class="fu">=</span> <span class="fu">fmap</span> (<span class="dt">In
       then fail &quot;recursion&quot;
       else putState $ S.insert i is
 
-resetMarks = modifyState (const S.empty)</code></pre>
+resetMarks = putState S.empty</code></pre>
 <p>Now the interesting part, <code>add</code> parser marks itself as first thing to do, and calls <code>exp</code> parser. Since <code>exp</code> parser is entry point, this means an indirect recursive call. When same <code>putMark</code> call is made, Parsec runs failure actions instead of going into infinte loop:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">add <span class="fu">=</span> <span class="kw">do</span>
     putMark <span class="dv">1</span>
@@ -56,10 +56,10 @@ resetMarks = modifyState (const S.empty)</code></pre>
 <pre><code>ghci&gt; runParser exp S.empty &quot;&quot; &quot;1 + 2 + 3 + 4&quot;
 Right (Add (Int 1) (Add (Int 2) (Add (Int 3) (Int 4))))</code></pre>
 <p>You can observe that parser gets into an infinite loop when marks are removed. Here’s an example demonstrating the error message:</p>
-<pre><code>rec = putMark 0 &gt;&gt; rec &gt;&gt; resetMarks
+<pre class="sourceCode haskell"><code class="sourceCode haskell">rec <span class="fu">=</span> putMark <span class="dv">0</span> <span class="fu">&gt;&gt;</span> rec <span class="fu">&gt;&gt;</span> resetMarks
 
-ghci&gt; runParser rec S.empty &quot;&quot; &quot;&quot;
-Left (line 1, column 1):
+ghci<span class="fu">&gt;</span> runParser rec S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;&quot;</span>
+<span class="kw">Left</span> (line <span class="dv">1</span>, column <span class="dv">1</span>)<span class="fu">:</span>
 recursion</code></pre>
 <p>One problem with this approach is that it requires more typing, and you should be careful too. Marks can be placed using TemplateHaskell to ensure unique numbers are given to each <code>putMark</code> call. As a second improvement, I think with some modifications on Parsec we can make Parsec to reset marks when a token is consumed(using <em>consumed-ok</em> continuation of <code>ParsecT</code>).</p>
 <p>You can see the complete program <a href="https://gist.github.com/osa1/9414577">here</a>.</p>
