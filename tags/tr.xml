@@ -8,8 +8,24 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-01-17T00:00:00Z</updated>
+    <updated>2014-03-29T00:00:00Z</updated>
     <entry>
+    <title>Güncelleme 2</title>
+    <link href="http://osa1.net/posts/2014-03-29-guncelleme-2.html" />
+    <id>http://osa1.net/posts/2014-03-29-guncelleme-2.html</id>
+    <published>2014-03-29T00:00:00Z</published>
+    <updated>2014-03-29T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Çeşitli sebeplerden artık eskisi kadar uzun ve teknik yazılar yazma fırsatı bulamıyorum. Bundan sonra sık sık kısa güncellemeler girmeyi deneyeceğim. İlk güncelleme yazım <a href="/posts/2014-01-17-guncelleme.html">şuradaydı</a>.</p>
+<p>17 Ocak’dan beri epey önemli olay oldu, sırasız bir şekilde şöyle özetleyebilirim:</p>
+<ul>
+<li>Indiana Üniversitesi’nden doktoraya kabul edildim. Bu benim için bir hayalin gerçek olması bir bakıma. Indiana Üniversitesi her ne kadar çok süper bir üniversite olmasa da 1) PL araştırmalarında Top 20’de 2) Benim ilgi alanlarıma çok uygun araştırmalar oluyor 3) 6 tane çalışabileceğim hocaya sahip 4) UIUC stajım sırasında ziyaret edip kampüsü gezdiğim, öğrencilerle ve hocalarla tanıştığım, dolayısıyla bildiğim ve sevdiğim bir yer. Başarılı bir öğrenci olmadığım da göz önünde bulundurulduğunda benim için ne kadar önemli bir imkan olduğunu farkedilebilir. Sonbahar döneminde başlayacağım bir aksilik olmazsa. Bir RA pozisyonundan yararlanacağım fakat henüz araştırma konum kesinlik kazanmadı.</li>
+<li>Google Summer of Code 2014’e başvurdum. Proposal’ım <a href="http://www.google-melange.com/gsoc/proposal/public/google/gsoc2014/osa1/5629499534213120">şurada</a>. Kabul edilmem durumunda yaz boyunca GHCJS üzerinde çalışacağım, benim için çok önemli bir fırsat. Kabul edilme ihtimalim camiadan görüştüğüm tecrübeli insanlar tarafından epey yüksek görülüyor, fakat tabii ki Haskell.org’a verilecek kontenjan, diğer başvurular ve başka pek çok şeyle alakalı.</li>
+<li>Tip 1 diyabet olduğum ortaya çıktı. Özellikle teşhisten önceki hafta ve insülin almaya başladıktan sonraki birkaç hafta(şu anda 2. haftadayım) çok zor geçti/geçmekte. Çalışmalarım azalmış ve performansım epey düşmüş durumda, fakat toparlayacakmışım. Yeni hayat tarzıma alıştıkça muhtemelen diyabet ile alakalı yazılar görebilirsiniz buralarda :)</li>
+<li>Canım sıkıldıkca minCaml dilini C’ye derlemek ile uğraşıyorum. Gitub alanımdan görebilirsiniz. minCaml eğitim amaçlı oluşturulmuş bir OCaml/SML alt kümesi.</li>
+</ul>
+<p>Ayrıca 11 Nisan’dan sonra TOBB ETÜ ile ilişkimi kesmiş olacağım(sonunda!!!!). Sonrasında Nisan sonunda girmem gereken Almanca sınavı var(TOBB ETÜ’deki 2. yabancı dil saçmalığı) ve başarılı olduğumda diplomamı alacağım.</p>]]></summary>
+</entry>
+<entry>
     <title>Güncelleme</title>
     <link href="http://osa1.net/posts/2014-01-17-guncelleme.html" />
     <id>http://osa1.net/posts/2014-01-17-guncelleme.html</id>
@@ -682,98 +698,6 @@ Yani recordlar gibi elinizde nispeten kompleks bir tip olduğunda(en basitinden,
 <p>İkinci olarak, birşeyi yapmaya mecbur kalmak da benzer bir etki oluşturuyor ki bunu çoğu kişi gözlemlemiştir(özellikle mesleklerini hobilerinden seçenler, mesela ben ;-( ).</p>
 <hr />
 <p>Bu gibi konulara merak duyuyorsanız okumanızı tavsiye ettiğim keyifli bir yazı olmuş.</p>]]></summary>
-</entry>
-<entry>
-    <title>Assembly programları için kod organizasyonu hakkında</title>
-    <link href="http://osa1.net/posts/2012-11-12-assembly-kod-organizasyonu.html" />
-    <id>http://osa1.net/posts/2012-11-12-assembly-kod-organizasyonu.html</id>
-    <published>2012-11-12T00:00:00Z</published>
-    <updated>2012-11-12T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Düzenlenip yayınlanmayı bekleyen süper yazılar olmasına rağmen şu anda mikroişlemciler sınavı çıkışı bunu yazıyor olamam epey garip.</p>
-<p>Her ne kadar 2. vizeden çıkmış olsak da, henüz umudu kesmeyenlerin ve gelecek dönemlerin işine yarayabileceğini düşündüğüm, derste -bana göre yanlış olarak- hiç bahsedilmeyen birkaç şeyden bahsedeceğim.</p>
-<p>Ana fikir şu, bu ders kapsamında veya genel olarak x86 ASM kodlarken, bazı <em>convention</em>lar takip etmek program organizasyonu açısından çok faydalı oluyor ve ben birazdan bahsedeceğim conventionlar olmadan ben programlayamazdım.</p>
-<p>Bunlardan ilk bahsedeceğim tamamen kozmetik, kodun okunaklığını arttıran ve aslında tamamen programcının yorumlaması gereken basit bir düzenleme.</p>
-<p>Etiketleri yerleştirirken, kendi uydurduğum <em>scope</em> kuralları uyguluyorum. Yazdığım kod şu şartları sağlıyor:</p>
-<ul>
-<li>Zıplama yapılırken, zıplamayı yapan kod ile zıplaya yapılan etikete sahip kod aynı miktarda girintilenmiş olmalı.</li>
-<li>Bu iki kısım kod arasında daha az girintilenmiş başka kod olmamalı.</li>
-</ul>
-<p>Örnek olarak aşağıdaki kod, henüz deadline’ı gelmemiş bir ödevin çözümünün bir parçası. Programın tamamını koyamıyorum o yüzden, sadece etiketleri yerleştireceğim:</p>
-<pre><code>...
-
-kopyala:
-    ...
-    
-    kopyala_dongu:
-        ...
-    
-    ...
-
-sirala:
-    ...
-
-    sirala_dongu:  
-        ...
-   
-    sirala_son:     
-        ...
-
-kaydir:
-    ...
-    
-    kaydir_dongu:
-        ...
-            
-    kaydir_son:
-        ...</code></pre>
-<p>Yukarıdaki maddeleri açıklamak için birkaç örnek: <code>sirala_dongu</code>den <code>sirala_son</code>a atlanabilir, ama <code>kaydir_dongu</code>ye atlanamaz, çünkü arada daha az girintilenmiş kod var(<code>kaydir</code> prosedürüne ait). Her yerden <code>kaydir</code>, <code>sirala</code> ve <code>kopyala</code> <em>çağırılabilir</em>(<code>call</code>), ancak hiçbir yerden zıplanamaz. Bunun gibi. Bunları takip ettiğinizde, kod çok daha okunaklı bir hale geliyor diye düşünmekteyim.</p>
-<p>İkinci kısım aslında daha önemli, prosedür oluşturma ve çağırma hakkında.</p>
-<p>Anlatacağım convention, <a href="http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl">cdecl</a> olarak bilinen, x86-32 sistemlerde C fonksiyonlarının derlenme şekli.</p>
-<p>Yapılan şey şu, fonksiyon parametreleri, sondan başlanarak(örneğin 3 parametre varsa, ilk önce 3. parametre) stacke pushlanır. Daha sonra <code>call</code> yapılır. Fonksiyon, önce bp’yi stacke atarak yedekler(<code>push bp</code>), daha sonra parametrelere ve local değişkenlere erişmek için, <code>bp</code>(base pointer)ye <code>sp</code>(stack pointer)ı atar(<code>mov bp, sp</code>). Bu aşamadan sonra, artık <code>[bp+2]</code> bp’nin eski değerini, <code>[bp+4]</code> birinci parametreyi, <code>[bp+6]</code> 2. parametreyi verir.</p>
-<p>Bir sonraki aşama olarak, fonksiyon içerisinde kullanılacak local değişken kadar stackde yer açılır. Örneğin 1 değişken varsa, <code>sub sp, 2</code>, 2 değişken varsa <code>sub sp, 4</code> ile stack’de yer açılır. Bu sayede fonksiyon içerisinden başka bir fonksiyon çağırdığımızda, local değişkenlerin üzerine birşey yazılmaz. Aslında <code>bp</code>yi de benzer bir sebeple yedeklemiştik. Başka bir fonksiyon çağırıldığında, bp’yi kendi değişklenlerine ve parametrelerine erişmek için değiştirecek. Birazdan göreceğimiz gibi fonksiyon dönüş yaparken <code>bp</code>yi eski haline getirecek.</p>
-<p>stack’de yer açtıkdan sonra da local değişkenlere, 1. değişken için <code>[bp-2]</code>, 2. değişken için <code>[bp-4]</code> ile erişebiliyoruz.</p>
-<p>NOT: Bu arada eğer farkedilmediyse belirteyim, 16bit 8086 işlemcilerden bahsediyorum. 32 bit sistemlerde stack pointerını 1 değer için 2 değil 4 azaltmanız gerekecek. Bir diğer farkedilmesi gereken şey de, stack pointer’ın pushlandığında <em>azaldığı</em>.</p>
-<p>Fonksiyon işini bitirdiğinde, <code>sp</code>ye local değişkenleri silmek için <code>bp</code>yi atamalı(<code>mov sp, bp</code>, hatırlarsanız fonksiyon çağırıldığında <code>mov bp, sp</code> yapmıştık, ve daha sonra local değişkenler için <code>sp</code>yi kaydırmıştık). Bu aşamada stack’in tepesinde bp’nin eski değeri var. <code>pop bp</code> ile bunu <code>bp</code>ye yükledikten sonra <code>ret</code> ile dönüş yapabiliriz.</p>
-<p>Bu arada fonksiyon dönüş değerini <code>ax</code>e koyuyor.</p>
-<p>Bundan sonra son olarak yapılması gereken şey, fonksiyonu çağıran kod parametreleri stacke atmıştı, ama temizleyen olmadı. 2 parametre için <code>add sp, 4</code> gibi bir kod ile stack temizlenebilir.</p>
-<p>Anlaşılması için bir üs alma fonksiyonu yazacağım. Fonksiyonun adı <code>power</code> olsun. Çağırılışı şu şekilde:</p>
-<pre><code>push 2          ; ikinci parametre
-push 5          ; birinci parametre
-call power
-add sp, 4</code></pre>
-<p>En sonunda stackin temizlendiğine dikkat. Bu koddan sonra <code>ax</code>de fonksiyonun dönüş değeri olmuş olacak.</p>
-<p>Fonksiyon ise şöyle:</p>
-<pre><code>power:
-    push bp             ; bp&#39;nin eski değerini yedekle
-    mov bp, sp          ; bp := sp.
-    sub sp, 2           ; 1 local değişken için stackde yer aç
-    
-    mov bx, [bp+4]      ; birinci parametreyi bx&#39;e yükle
-    mov cx, [bp+6]      ; ikinci parametreyi cx&#39;e yükle
-    
-    mov [bp-2], bx      ; bx&#39;i birinci local değişkene ata
-
-    power_loop_start:
-        cmp cx, 1
-        je power_end
-        
-        mov ax, [bp-2]
-        mul bx
-        
-        mov [bp-2], ax
-        dec cx
-        jmp power_loop_start        
-        
-    power_end:
-        ; birinci local değişkenimiz fonksiyonun dönüş değeri
-        ; bu değeri ax&#39;e yükle
-        mov ax, [bp-2]
-        mov sp, bp        ; sp&#39;yi eski haline getir
-        pop bp            ; bp&#39;yi eski haline getir
-        ret               ; dön</code></pre>
-<p>İşte x86-32’de C fonksiyonları buna benzer bir şekilde derleniyor. 64bit sistemlerde ekstradan 8 yazmaç olduğundan, parametreler direkt olarak stacke atılmaktansa yazmaçlara yazılıyormuş. Başka dillerde de, dilin ihtiyaçlarına göre farklı yollar izleniyor. Örneğin C++ dilindeki <code>this</code> pointerları her seferinde stacke atılmaktansa, sürekli sabit bir yazmaça yükleniyor olabilir.</p>
-<p>Bazı calling conventionlar için özet bilgiye Wikipedia sayfalarından ulaşabilirsiniz: <a href="http://en.wikipedia.org/wiki/X86_calling_conventions">X86 calling conventions</a>, <a href="http://en.wikipedia.org/wiki/Calling_convention">bazı farklı mimariler için conventionlar</a>, <a href="http://refspecs.linuxfoundation.org/lsb.shtml">Linux ortamında kullanılan çeşitli conventionlar</a>. Onun dışında AMD64 için <a href="http://www.x86-64.org/">ABI</a>. Intel <a href="http://www.intel.com/content/www/us/en/processors/architectures-software-developer-manuals.html">IA manualları</a>nda da ABIlardan bahsediliyordu yanlış hatırlamıyorsam.</p>
-<p>Bu arada her fonksiyon çağırılışında stacki temizlemek, fonksiyonların kaç parametre aldığının fonksiyonun kendisinin her zaman bilmesi durumunda, gereksiz. Yukarıda C conventionlarından bahsettiğimden, ve C’de örneğin <a href="http://en.cppreference.com/w/c/io/fscanf"><code>sscanf</code></a> gibi fonksiyonlar değişik sayılarda parametre alabildiğinden, temizleme işlemini parametreleri gönderen taraf yapıyor.</p>]]></summary>
 </entry>
 
 </feed>
