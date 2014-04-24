@@ -8,8 +8,19 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-03-07T00:00:00Z</updated>
+    <updated>2014-04-24T00:00:00Z</updated>
     <entry>
+    <title>I'm accepted into GSoC and I'll be hacking on GHCJS this summer</title>
+    <link href="http://osa1.net/posts/2014-04-24-accepted-to-gsoc.html" />
+    <id>http://osa1.net/posts/2014-04-24-accepted-to-gsoc.html</id>
+    <published>2014-04-24T00:00:00Z</published>
+    <updated>2014-04-24T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’m accepted into Google Summer of Code 2014 and I’ll be working on adding profiling support to GHCJS. This is very exciting for me, I’ll be hacking on JavaScript backend of my favorite compiler(GHC) all summer and get paid :)</p>
+<p>I can’t wait to start hacking, but unfortunately I still have one last and very important exam before my graduation from undergraduate school on 26th April and I have to study hard for that. After that, I’ll be hacking on GHCJS all summer long.</p>
+<p>Stay tuned for updates about my work and live demos that you can run from within your browser, thanks to GHCJS.</p>
+<p>You can see all accepted proposals of Haskell organization <a href="http://www.google-melange.com/gsoc/org2/google/gsoc2014/haskell">here</a>.</p>]]></summary>
+</entry>
+<entry>
     <title>An idea to handle left-recursion in Parsec</title>
     <link href="http://osa1.net/posts/2014-03-07-parsec-left-recursion.html" />
     <id>http://osa1.net/posts/2014-03-07-parsec-left-recursion.html</id>
@@ -716,58 +727,6 @@ since `const a _ = a`, we have x = r here
 = \r -&gt; r</code></pre>
 <p>.. which is the identity function.</p>
 <p>Thus <code>fmap fix return</code> demystified.</p>]]></summary>
-</entry>
-<entry>
-    <title>Shen.hs FFI</title>
-    <link href="http://osa1.net/posts/2013-06-29-shenhs-ffi.html" />
-    <id>http://osa1.net/posts/2013-06-29-shenhs-ffi.html</id>
-    <published>2013-06-29T00:00:00Z</published>
-    <updated>2013-06-29T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Shen.hs now has a simple way to call Haskell functions. As an example, I removed some non-standard KLambda functions from <a href="https://github.com/osa1/Shen.hs/blob/master/src/KLambda/Fun.hs"><code>Fun.hs</code></a>(standard primitive functions are defined there). Instead, they live in a <a href="https://github.com/osa1/Shen.hs/blob/master/dynload_test/Debug.hs">separate module</a> now, and I load them in run-time when I’m debugging.</p>
-<h2 id="how-it-works">How it works</h2>
-<p>Shen.hs is now exports it’s modules as a library. This is required to allow writing Shen.hs functions in Haskell.</p>
-<p><code>KLambda.Types</code> module export all required type information to start writing Shen.hs functions in Haskell. All your functions should have the type <code>KlFun1</code>. To make converting Haskell functions with higher arity(ie. <code>KlFun2</code>, <code>KlFun3</code>) to <code>KlFun1</code>, all <code>KlFun</code> instances now have a <code>mkFun1 :: a -&gt; KlFun1</code> method.</p>
-<p>As an example, <a href="https://github.com/osa1/Shen.hs/blob/master/dynload_test/Debug.hs"><code>Debug.hs</code></a> module functions with types <code>KlFun2</code>, <code>KlFun3</code> etc. To call them from within Shen.hs, they are all wrapped with <code>mkFun1</code> function.</p>
-<p>After defining functions with type <code>KlFun1</code> and compiling it, you should call <code>dynload</code> primitive to load functions. Here’s an example session that demonstrates loading and using debugging functions:</p>
-<pre><code>$ Shen.hs --shen &quot;/home/omer/Shen/hs_yeni/K Lambda&quot;
-loading file: /home/omer/Shen/hs_yeni/K Lambda/toplevel.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/core.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/sys.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/sequent.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/yacc.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/reader.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/prolog.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/track.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/load.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/writer.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/macros.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/declarations.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/t-star.kl ...loaded.
-loading file: /home/omer/Shen/hs_yeni/K Lambda/types.kl ...loaded.
-
-Shen 2010, copyright (C) 2010 Mark Tarver
-released under the Shen license
-www.shenlanguage.org, version 12
-running under Haskell, implementation: GHC
-port 0.1 ported by Ömer Sinan Ağacan
-
-
-(0-) (cd &quot;/home/omer/Shen/hs_yeni/dynload_test&quot;)
-&quot;/home/omer/Shen/hs_yeni/dynload_test/&quot;
-
-(1-) (dynload &quot;Debug.o&quot; &quot;debug1F&quot;)
-&lt;function&gt;
-
-(2-) (debug1F &quot;calling haskell function -- &quot; 1 2)
-calling haskell function -- 1 :: TyNum
-
-2
-
-(3-)</code></pre>
-<p>Note that you need both <code>.hi</code> and <code>.o</code> files to be able to load the library dynamically.</p>
-<h2 id="status-of-shen.hs">Status of Shen.hs</h2>
-<p>Before this additional feature I had fixed a bug and now Shen.hs fails in 8 tests in Test Suite distributed with Shen source. All errors are related and probably there is only one bug. Unfortunately narrowing bug’s scope is very hard at this point. Pull requests are welcome.</p>
-<p>If you encounter any bugs please open an issue in <a href="https://github.com/osa1/Shen.hs">Github repository</a>.</p>]]></summary>
 </entry>
 
 </feed>

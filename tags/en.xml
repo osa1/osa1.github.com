@@ -8,8 +8,19 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-03-07T00:00:00Z</updated>
+    <updated>2014-04-24T00:00:00Z</updated>
     <entry>
+    <title>I'm accepted into GSoC and I'll be hacking on GHCJS this summer</title>
+    <link href="http://osa1.net/posts/2014-04-24-accepted-to-gsoc.html" />
+    <id>http://osa1.net/posts/2014-04-24-accepted-to-gsoc.html</id>
+    <published>2014-04-24T00:00:00Z</published>
+    <updated>2014-04-24T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’m accepted into Google Summer of Code 2014 and I’ll be working on adding profiling support to GHCJS. This is very exciting for me, I’ll be hacking on JavaScript backend of my favorite compiler(GHC) all summer and get paid :)</p>
+<p>I can’t wait to start hacking, but unfortunately I still have one last and very important exam before my graduation from undergraduate school on 26th April and I have to study hard for that. After that, I’ll be hacking on GHCJS all summer long.</p>
+<p>Stay tuned for updates about my work and live demos that you can run from within your browser, thanks to GHCJS.</p>
+<p>You can see all accepted proposals of Haskell organization <a href="http://www.google-melange.com/gsoc/org2/google/gsoc2014/haskell">here</a>.</p>]]></summary>
+</entry>
+<entry>
     <title>An idea to handle left-recursion in Parsec</title>
     <link href="http://osa1.net/posts/2014-03-07-parsec-left-recursion.html" />
     <id>http://osa1.net/posts/2014-03-07-parsec-left-recursion.html</id>
@@ -594,103 +605,6 @@ main <span class="fu">=</span> quickCheck test_prop</code></pre>
     <updated>2013-10-16T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I had this idea about implementing code completion on dynamic languages. Statically inferring information in dynamic languages is hard and never accurate enough. In my opinion, we should take a step towards dynamically checking the code by having some kind of abstract interpretation of the language that allows us infer required information and then running programs in this interpretation.</p>
 <p>I didn’t figure out the details yet. I just wanted to write here as a TODO.</p>]]></summary>
-</entry>
-<entry>
-    <title>Parametric polymorphism and unboxed representations</title>
-    <link href="http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html" />
-    <id>http://osa1.net/posts/2013-10-09-parametric-polymorphism-and-unboxed-repr.html</id>
-    <published>2013-10-09T00:00:00Z</published>
-    <updated>2013-10-09T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>This post was written 5 months ago – I just found it in my Github Gist archive and realized it’s not published. I’m publishing it now.</p>
-<hr />
-<p>It’s just occurred to me that we can’t have parametric polymorphism for unboxed values, unless that unboxed values share same layout in memory, or you duplicate polymorphic definition for each instance. This may be obvious for most of you but I just realized this while working on a Java project and found it interesting.</p>
-<p>I think this is also the reason why we can’t instantiate generics in Java with primitive types.</p>
-<p>Here’s an explanation:</p>
-<p>Let’s think this C++ code:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
-{
-  <span class="dt">int</span> a, b;
-  test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}
-};
-
-<span class="kw">struct</span> test3
-{
-  <span class="dt">int</span> a, b, c;
-  test3(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) : a(a), b(b), c(c) {}
-};
-
-<span class="dt">void</span> f2() {}
-
-<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
-T f3(T t)
-{
-  t.a = <span class="dv">20</span>;
-  <span class="kw">return</span> t;
-}
-
-<span class="dt">int</span> main()
-{
-  test2 t2(<span class="dv">1</span>, <span class="dv">2</span>);
-  test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);
-  f3&lt;test2&gt;(t2);
-  f3&lt;test3&gt;(t3);
-  <span class="kw">return</span> <span class="dv">0</span>;
-}</code></pre>
-<p>The key thing to realize here is that I’m passing parameter by value, ie. values are copied to function stack frame. But this function is still polymorphic on parameter type. This is possible in C++ because for each distinct instance of <code>f3</code>, a specialized code will be generated. To observe this, I put a breakpoint to that <code>f3</code> function and looked to disassembly output.</p>
-<pre><code>        18	T f3(T t)
-0x400af6  &lt;+0x0000&gt;         push   rbp
-0x400af7  &lt;+0x0001&gt;         mov    rbp,rsp
-0x400afa  &lt;+0x0004&gt;         mov    QWORD PTR [rbp-0x10],rdi
-        19	{
-        20	  t.a = 20;
-0x400afe  &lt;+0x0008&gt;         mov    DWORD PTR [rbp-0x10],0x14
-        21	  return t;
-0x400b05  &lt;+0x000f&gt;         mov    rax,QWORD PTR [rbp-0x10]
-        22	}
-0x400b09  &lt;+0x0013&gt;         pop    rbp
-0x400b0a  &lt;+0x0014&gt;         ret</code></pre>
-<p>And this is for second call:</p>
-<pre><code>        18	T f3(T t)
-0x400b0b  &lt;+0x0000&gt;         push   rbp
-0x400b0c  &lt;+0x0001&gt;         mov    rbp,rsp
-0x400b0f  &lt;+0x0004&gt;         mov    rdx,rdi
-0x400b12  &lt;+0x0007&gt;         mov    eax,esi
-0x400b14  &lt;+0x0009&gt;         mov    QWORD PTR [rbp-0x20],rdx
-0x400b18  &lt;+0x000d&gt;         mov    DWORD PTR [rbp-0x18],eax
-        19	{
-        20	  t.a = 20;
-0x400b1b  &lt;+0x0010&gt;         mov    DWORD PTR [rbp-0x20],0x14
-        21	  return t;
-0x400b22  &lt;+0x0017&gt;         mov    rax,QWORD PTR [rbp-0x20]
-0x400b26  &lt;+0x001b&gt;         mov    QWORD PTR [rbp-0x10],rax
-0x400b2a  &lt;+0x001f&gt;         mov    eax,DWORD PTR [rbp-0x18]
-0x400b2d  &lt;+0x0022&gt;         mov    DWORD PTR [rbp-0x8],eax
-0x400b30  &lt;+0x0025&gt;         mov    rax,QWORD PTR [rbp-0x10]
-0x400b34  &lt;+0x0029&gt;         mov    edx,DWORD PTR [rbp-0x8]
-        22	}
-0x400b37  &lt;+0x002c&gt;         pop    rbp
-0x400b38  &lt;+0x002d&gt;         ret</code></pre>
-<p>So what happened here is two new functions is generated from the definition, one with type <code>test2 f3(test2)</code> and one with type <code>test3 f3(test3)</code>. This gives a great opportunity, for instance, we can have this function:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
-
-<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
-T someFun(T arg1, T arg2)
-{
-  <span class="kw">return</span> arg1 + arg2;
-}
-
-<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> *argv[])
-{
-  std::cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
-  std::cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
-
-  <span class="kw">return</span> <span class="dv">0</span>;
-}</code></pre>
-<p>..which is impossible to have in Java, without manually overloading the method definition.</p>
-<p>(An off-topic but interesting note: I was expecting <code>SP</code> to be set here, but here it’s not set. I think the reason is that the compiler is clever enough to see there is no recursive calls, so no need to set <code>SP</code>, when I added a dummy function call in the middle of <code>f3</code>, <code>SP</code> is got set)</p>
-<p>So in a way, C++ generics are gives us the most general way for parametric polymorphism. For any type you instantiated the template with, it generates a specialized definition. And if that definition is accepted by type checker, you’re fine.</p>
-<p>This also why we don’t need a template definition like <code>template &lt;class C : HasY&gt;</code>. Because that <code>HasY</code> information is completely redundant. If specialized code is well-typed, than it’s OK.</p>
-<p>This is also one of the reasons why compiling C++ programs takes that long.</p>]]></summary>
 </entry>
 
 </feed>
