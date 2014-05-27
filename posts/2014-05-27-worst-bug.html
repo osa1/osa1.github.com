@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - The GHC bug that ruined my day</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">The GHC bug that ruined my day</h1>
+
+<p><strong>May 27, 2014</strong> - Tagged as: <a href="../tags/haskell.html">haskell</a>.</p>
+
+<p>I just came across a very serious GHC bug that prevents me from making progress on my GHCJS project. It looks like it’s very hard to come up with a minimal program that reproduces the bug. Here’s a very long way to reproduce it:</p>
+<ul>
+<li><p>Install <a href="https://github.com/ghcjs/Cabal">patched Cabal for GHCJS</a>.</p></li>
+<li><p>Clone <a href="https://github.com/osa1/ghcjs">my fork of GHCJS</a>, switch to <code>work</code> branch and install it.</p></li>
+<li><p>Delete <code>~/.ghcjs</code> folder if you already have one.</p></li>
+<li><p>Run <code>ghcjs-boot --init --prof -v</code> and wait for it to fail with segmentation fault while compiling profiling object files for <code>base</code> library. Segmentation fault is reported as <code>ExitFailure (-11)</code> by Cabal.</p></li>
+<li><p>Since we run <code>ghcjs-boot</code> in verbose mode(using <code>-v</code> parameter), at this point it should have printed what command it was running when the error occured. It should be a very very long command, starting with something like <code>/home/omer/.cabal/bin/ghcjs --make -fbuilding-cabal-package -O -prof ...</code>. Copy that command because that’s how we reproduce the error.</p></li>
+<li><p>Now to trace the bug, we need to compile GHCJS for debugging. Note that booting GHCJS with debugging build takes forever, so we first installed GHCJS and built some libraries using that fast build. To compile for debugging, first run <code>cabal clean</code> and then <code>cabal install --disable-executable-stripping --ghc-options=-debug</code>.</p></li>
+<li><p>Move to <code>~/.ghcjs/&lt;your platform&gt;/ghcjs-boot/boot/base</code> and run the command you copied from <code>ghcjs-boot</code> verbose output when the error happened for first time. You should get the same error very fast.</p></li>
+<li><p>At that point you can use gdb and friends. On my system gdb backtrace gives this:</p></li>
+</ul>
+<pre><code>[  5 of 202] Compiling GHC.Unicode[boot] ( GHC/Unicode.hs-boot, dist/build/GHC/Unicode.js_p_o-boot )
+Detaching after fork from child process 3382.
+[  6 of 202] Compiling GHC.IO[boot]     ( GHC/IO.hs-boot, dist/build/GHC/IO.js_p_o-boot )
+Detaching after fork from child process 3383.
+[  7 of 202] Compiling GHC.Exception[boot] ( GHC/Exception.lhs-boot, dist/build/GHC/Exception.js_p_o-boot )
+Detaching after fork from child process 3384.
+[ 51 of 202] Compiling GHC.Fingerprint[boot] ( GHC/Fingerprint.hs-boot, dist/build/GHC/Fingerprint.js_p_o-boot )
+Detaching after fork from child process 3385.
+[ 55 of 202] Compiling GHC.IO.Exception[boot] ( GHC/IO/Exception.hs-boot, dist/build/GHC/IO/Exception.js_p_o-boot )
+Detaching after fork from child process 3386.
+[ 75 of 202] Compiling Foreign.C.Types  ( Foreign/C/Types.hs, dist/build/Foreign/C/Types.js_p_o )
+
+Program received signal SIGSEGV, Segmentation fault.
+0x000000000425d5c4 in LOOKS_LIKE_CLOSURE_PTR (p=0x0) at includes/rts/storage/ClosureMacros.h:258
+258     includes/rts/storage/ClosureMacros.h: No such file or directory.
+(gdb) bt
+#0  0x000000000425d5c4 in LOOKS_LIKE_CLOSURE_PTR (p=0x0) at includes/rts/storage/ClosureMacros.h:258
+#1  0x000000000425f776 in scavenge_mutable_list1 (bd=0x7fffe5c02a00, gen=0x4d1fd48) at rts/sm/Scav.c:1400
+#2  0x000000000425fa13 in scavenge_capability_mut_Lists1 (cap=0x4cfe5c0 &lt;MainCapability&gt;) at rts/sm/Scav.c:1493
+#3  0x0000000004256b66 in GarbageCollect (collect_gen=0, do_heap_census=rtsFalse, gc_type=2, 
+    cap=0x4cfe5c0 &lt;MainCapability&gt;) at rts/sm/GC.c:342
+#4  0x00000000042454a3 in scheduleDoGC (pcap=0x7fffffffc198, task=0x4d32b60, force_major=rtsFalse)
+    at rts/Schedule.c:1650
+#5  0x0000000004243de4 in schedule (initialCapability=0x4cfe5c0 &lt;MainCapability&gt;, task=0x4d32b60)
+    at rts/Schedule.c:553
+#6  0x0000000004246436 in scheduleWaitThread (tso=0x7ffff6708d60, ret=0x0, pcap=0x7fffffffc2c0) at rts/Schedule.c:2346
+#7  0x000000000423e9b4 in rts_evalLazyIO (cap=0x7fffffffc2c0, p=0x477f850, ret=0x0) at rts/RtsAPI.c:500
+#8  0x0000000004241666 in real_main () at rts/RtsMain.c:63
+#9  0x0000000004241759 in hs_main (argc=237, argv=0x7fffffffc448, main_closure=0x477f850, rts_config=...)
+    at rts/RtsMain.c:114
+#10 0x0000000000408ea7 in main ()</code></pre>
+<p>Thanks to Luite Stegeman for helping me with debugging. We could reproduce this error on 64bit Linux and 64bit OS X. I don’t know how to track down this bug but it just made making progress in my project impossible.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
