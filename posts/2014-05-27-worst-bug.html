@@ -64,6 +64,8 @@ Program received signal SIGSEGV, Segmentation fault.
     at rts/RtsMain.c:114
 #10 0x0000000000408ea7 in main ()</code></pre>
 <p>Thanks to Luite Stegeman for helping me with debugging. We could reproduce this error on 64bit Linux and 64bit OS X. I don’t know how to track down this bug but it just made making progress in my project impossible.</p>
+<hr />
+<p>EDIT: I just found a workaround: run GHCJS with <code>+RTS -G1</code>. I was reading code of functions in the backtrace and I realized some RTS parameters are used. By playing with them changing randomly, I found this. Some details about this parameter is explained in <a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/Storage/GC">GHC Trac GC section</a>(see “generational gc” parts). Unfortunately with this RTS parameter GHCJS runs at least 100x slower(at least in debug build) so even though I can boot GHCJS with my changes it’s not very usable since I sometimes boot it 10 times a day in this stage of the development.</p>
 
 <hr />
 <div id="disqus_thread"></div>
