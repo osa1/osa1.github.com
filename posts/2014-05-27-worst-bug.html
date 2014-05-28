@@ -51,7 +51,7 @@ Program received signal SIGSEGV, Segmentation fault.
 #0  0x000000000425d5c4 in LOOKS_LIKE_CLOSURE_PTR (p=0x0) at includes/rts/storage/ClosureMacros.h:258
 #1  0x000000000425f776 in scavenge_mutable_list1 (bd=0x7fffe5c02a00, gen=0x4d1fd48) at rts/sm/Scav.c:1400
 #2  0x000000000425fa13 in scavenge_capability_mut_Lists1 (cap=0x4cfe5c0 &lt;MainCapability&gt;) at rts/sm/Scav.c:1493
-#3  0x0000000004256b66 in GarbageCollect (collect_gen=0, do_heap_census=rtsFalse, gc_type=2, 
+#3  0x0000000004256b66 in GarbageCollect (collect_gen=0, do_heap_census=rtsFalse, gc_type=2,
     cap=0x4cfe5c0 &lt;MainCapability&gt;) at rts/sm/GC.c:342
 #4  0x00000000042454a3 in scheduleDoGC (pcap=0x7fffffffc198, task=0x4d32b60, force_major=rtsFalse)
     at rts/Schedule.c:1650
@@ -66,6 +66,23 @@ Program received signal SIGSEGV, Segmentation fault.
 <p>Thanks to Luite Stegeman for helping me with debugging. We could reproduce this error on 64bit Linux and 64bit OS X. I don’t know how to track down this bug but it just made making progress in my project impossible.</p>
 <hr />
 <p>EDIT: I just found a workaround: run GHCJS with <code>+RTS -G1</code>. I was reading code of functions in the backtrace and I realized some RTS parameters are used. By playing with them changing randomly, I found this. Some details about this parameter is explained in <a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/Storage/GC">GHC Trac GC section</a>(see “generational gc” parts). Unfortunately with this RTS parameter GHCJS runs at least 100x slower(at least in debug build) so even though I can boot GHCJS with my changes it’s not very usable since I sometimes boot it 10 times a day in this stage of the development.</p>
+<hr />
+<p>EDIT 2: My workaround did not work great – now compilation is failing in some other stage:</p>
+<pre><code>Failed to install base-4.7.0.0
+Last 10 lines of the build log ( /home/omer/.cabal/logs/base-4.7.0.0.log ):
+[  4 of 202] Compiling Unsafe.Coerce    ( Unsafe/Coerce.hs, dist/build/Unsafe/Coerce.js_p_o )
+[  5 of 202] Compiling GHC.Unicode[boot] ( GHC/Unicode.hs-boot, dist/build/GHC/Unicode.js_p_o-boot )
+[  6 of 202] Compiling GHC.IO[boot]     ( GHC/IO.hs-boot, dist/build/GHC/IO.js_p_o-boot )
+[  7 of 202] Compiling GHC.Exception[boot] ( GHC/Exception.lhs-boot, dist/build/GHC/Exception.js_p_o-boot )
+[  8 of 202] Compiling GHC.Err          ( GHC/Err.lhs, dist/build/GHC/Err.js_p_o )
+[  9 of 202] Compiling GHC.Base         ( GHC/Base.lhs, dist/build/GHC/Base.js_p_o )
+[ 10 of 202] Compiling Data.Maybe       ( Data/Maybe.hs, dist/build/Data/Maybe.js_p_o )
+[ 11 of 202] Compiling GHC.List         ( GHC/List.lhs, dist/build/GHC/List.js_p_o )
+[ 12 of 202] Compiling GHC.Num          ( GHC/Num.lhs, dist/build/GHC/Num.js_p_o )
+[ 13 of 202] Compiling GHC.Show         ( GHC/Show.lhs, dist/build/GHC/Show.js_p_o )
+cabal: Error: some packages failed to install:
+base-4.7.0.0 failed during the building phase. The exception was:
+ExitFailure (-11)</code></pre>
 
 <hr />
 <div id="disqus_thread"></div>
