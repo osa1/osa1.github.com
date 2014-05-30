@@ -102,7 +102,31 @@ Last 10 lines of the build log ( /home/omer/.cabal/logs/base-4.7.0.0.log ):
 cabal: Error: some packages failed to install:
 base-4.7.0.0 failed during the building phase. The exception was:
 ExitFailure (-11)</code></pre>
-<p>However, when I tried to run the command that led to this segfault in gdb to see if it gives a different backtrace, it worked fine and no segfaults happened.</p>]]></summary>
+<p>However, when I tried to run the command that led to this segfault in gdb to see if it gives a different backtrace, it worked fine and no segfaults happened.</p>
+<hr />
+<p>EDIT 3: There has been some changes in GHCJS codegen and I wanted to try this using that new codegen(I rebased my patches for new version). It’s still happening, but now in different file:</p>
+<pre><code>[112 of 202] Compiling System.Posix.Types ( System/Posix/Types.hs, dist/build/System/Posix/Types.js_p_o )
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000000004254434 in LOOKS_LIKE_CLOSURE_PTR (p=0x0) at includes/rts/storage/ClosureMacros.h:258
+258     includes/rts/storage/ClosureMacros.h: No such file or directory.
+(gdb) bt
+#0  0x0000000004254434 in LOOKS_LIKE_CLOSURE_PTR (p=0x0) at includes/rts/storage/ClosureMacros.h:258
+#1  0x00000000042565e6 in scavenge_mutable_list1 (bd=0x7fffe5800c40, gen=0x4d17d48) at rts/sm/Scav.c:1400
+#2  0x0000000004256883 in scavenge_capability_mut_Lists1 (cap=0x4cf6340 &lt;MainCapability&gt;) at rts/sm/Scav.c:1493
+#3  0x000000000424d9d6 in GarbageCollect (collect_gen=0, do_heap_census=rtsFalse, gc_type=2, 
+    cap=0x4cf6340 &lt;MainCapability&gt;) at rts/sm/GC.c:342
+#4  0x000000000423c313 in scheduleDoGC (pcap=0x7fffffffc198, task=0x4d2ab60, force_major=rtsFalse)
+    at rts/Schedule.c:1650
+#5  0x000000000423ac54 in schedule (initialCapability=0x4cf6340 &lt;MainCapability&gt;, task=0x4d2ab60)
+    at rts/Schedule.c:553
+#6  0x000000000423d2a6 in scheduleWaitThread (tso=0x7ffff6708d60, ret=0x0, pcap=0x7fffffffc2c0) at rts/Schedule.c:2346
+#7  0x0000000004235824 in rts_evalLazyIO (cap=0x7fffffffc2c0, p=0x4776850, ret=0x0) at rts/RtsAPI.c:500
+#8  0x00000000042384d6 in real_main () at rts/RtsMain.c:63
+#9  0x00000000042385c9 in hs_main (argc=237, argv=0x7fffffffc448, main_closure=0x4776850, rts_config=...)
+    at rts/RtsMain.c:114
+#10 0x0000000000408ea7 in main ()</code></pre>
+<p>Backtrace is same. I think it’s interesting that this problem is happening while compiling <code>Types</code> modules in 2/3 of the cases(<code>Foreign.C.Types</code> and <code>System.Posix.Types</code>). As far as I can see this two modules are using <code>INTEGRAL_TYPE</code> extensively, which creates a newtype and implements <code>Read</code> and <code>Show</code> instances. Other problematic module, <code>GHC.Show</code> also implements same instances, but does that manually instead of calling <code>INTEGRAL_TYPE</code>. I wonder if it could be related with that.</p>]]></summary>
 </entry>
 
 </feed>
