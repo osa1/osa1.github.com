@@ -34,5 +34,75 @@
 <p>Now I can close my browser tabs in peace…</p>
 <p>Bonus content: Here’s a <a href="http://osa1.net/posts/2014-05-27-worst-bug.html">horror story</a> that is probably related with a GHC RTS bug and making progress in my work impossible.</p>]]></summary>
 </entry>
+<entry>
+    <title>The GHC bug that ruined my day</title>
+    <link href="http://osa1.net/posts/2014-05-27-worst-bug.html" />
+    <id>http://osa1.net/posts/2014-05-27-worst-bug.html</id>
+    <published>2014-05-27T00:00:00Z</published>
+    <updated>2014-05-27T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I just came across a very serious GHC bug that prevents me from making progress on my GHCJS project. It looks like it’s very hard to come up with a minimal program that reproduces the bug. Here’s a very long way to reproduce it:</p>
+<ul>
+<li><p>Install <a href="https://github.com/ghcjs/Cabal">patched Cabal for GHCJS</a>.</p></li>
+<li><p>Clone <a href="https://github.com/osa1/ghcjs">my fork of GHCJS</a>, switch to <code>work</code> branch and install it.</p></li>
+<li><p>Delete <code>~/.ghcjs</code> folder if you already have one.</p></li>
+<li><p>Run <code>ghcjs-boot --init --prof -v</code> and wait for it to fail with segmentation fault while compiling profiling object files for <code>base</code> library. Segmentation fault is reported as <code>ExitFailure (-11)</code> by Cabal.</p></li>
+<li><p>Since we run <code>ghcjs-boot</code> in verbose mode(using <code>-v</code> parameter), at this point it should have printed what command it was running when the error occured. It should be a very very long command, starting with something like <code>/home/omer/.cabal/bin/ghcjs --make -fbuilding-cabal-package -O -prof ...</code>. Copy that command because that’s how we reproduce the error.</p></li>
+<li><p>Now to trace the bug, we need to compile GHCJS for debugging. Note that booting GHCJS with debugging build takes forever, so we first installed GHCJS and built some libraries using that fast build. To compile for debugging, first run <code>cabal clean</code> and then <code>cabal install --disable-executable-stripping --ghc-options=-debug</code>.</p></li>
+<li><p>Move to <code>~/.ghcjs/&lt;your platform&gt;/ghcjs-boot/boot/base</code> and run the command you copied from <code>ghcjs-boot</code> verbose output when the error happened for first time. You should get the same error very fast.</p></li>
+<li><p>At that point you can use gdb and friends. On my system gdb backtrace gives this:</p></li>
+</ul>
+<pre><code>[  5 of 202] Compiling GHC.Unicode[boot] ( GHC/Unicode.hs-boot, dist/build/GHC/Unicode.js_p_o-boot )
+Detaching after fork from child process 3382.
+[  6 of 202] Compiling GHC.IO[boot]     ( GHC/IO.hs-boot, dist/build/GHC/IO.js_p_o-boot )
+Detaching after fork from child process 3383.
+[  7 of 202] Compiling GHC.Exception[boot] ( GHC/Exception.lhs-boot, dist/build/GHC/Exception.js_p_o-boot )
+Detaching after fork from child process 3384.
+[ 51 of 202] Compiling GHC.Fingerprint[boot] ( GHC/Fingerprint.hs-boot, dist/build/GHC/Fingerprint.js_p_o-boot )
+Detaching after fork from child process 3385.
+[ 55 of 202] Compiling GHC.IO.Exception[boot] ( GHC/IO/Exception.hs-boot, dist/build/GHC/IO/Exception.js_p_o-boot )
+Detaching after fork from child process 3386.
+[ 75 of 202] Compiling Foreign.C.Types  ( Foreign/C/Types.hs, dist/build/Foreign/C/Types.js_p_o )
+
+Program received signal SIGSEGV, Segmentation fault.
+0x000000000425d5c4 in LOOKS_LIKE_CLOSURE_PTR (p=0x0) at includes/rts/storage/ClosureMacros.h:258
+258     includes/rts/storage/ClosureMacros.h: No such file or directory.
+(gdb) bt
+#0  0x000000000425d5c4 in LOOKS_LIKE_CLOSURE_PTR (p=0x0) at includes/rts/storage/ClosureMacros.h:258
+#1  0x000000000425f776 in scavenge_mutable_list1 (bd=0x7fffe5c02a00, gen=0x4d1fd48) at rts/sm/Scav.c:1400
+#2  0x000000000425fa13 in scavenge_capability_mut_Lists1 (cap=0x4cfe5c0 &lt;MainCapability&gt;) at rts/sm/Scav.c:1493
+#3  0x0000000004256b66 in GarbageCollect (collect_gen=0, do_heap_census=rtsFalse, gc_type=2,
+    cap=0x4cfe5c0 &lt;MainCapability&gt;) at rts/sm/GC.c:342
+#4  0x00000000042454a3 in scheduleDoGC (pcap=0x7fffffffc198, task=0x4d32b60, force_major=rtsFalse)
+    at rts/Schedule.c:1650
+#5  0x0000000004243de4 in schedule (initialCapability=0x4cfe5c0 &lt;MainCapability&gt;, task=0x4d32b60)
+    at rts/Schedule.c:553
+#6  0x0000000004246436 in scheduleWaitThread (tso=0x7ffff6708d60, ret=0x0, pcap=0x7fffffffc2c0) at rts/Schedule.c:2346
+#7  0x000000000423e9b4 in rts_evalLazyIO (cap=0x7fffffffc2c0, p=0x477f850, ret=0x0) at rts/RtsAPI.c:500
+#8  0x0000000004241666 in real_main () at rts/RtsMain.c:63
+#9  0x0000000004241759 in hs_main (argc=237, argv=0x7fffffffc448, main_closure=0x477f850, rts_config=...)
+    at rts/RtsMain.c:114
+#10 0x0000000000408ea7 in main ()</code></pre>
+<p>Thanks to Luite Stegeman for helping me with debugging. We could reproduce this error on 64bit Linux and 64bit OS X. I don’t know how to track down this bug but it just made making progress in my project impossible.</p>
+<hr />
+<p>EDIT: I just found a workaround: run GHCJS with <code>+RTS -G1</code>. I was reading code of functions in the backtrace and I realized some RTS parameters are used. By playing with them changing randomly, I found this. Some details about this parameter is explained in <a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/Storage/GC">GHC Trac GC section</a>(see “generational gc” parts). Unfortunately with this RTS parameter GHCJS runs at least 100x slower(at least in debug build) so even though I can boot GHCJS with my changes it’s not very usable since I sometimes boot it 10 times a day in this stage of the development.</p>
+<hr />
+<p>EDIT 2: My workaround did not work great – now compilation is failing in some other stage:</p>
+<pre><code>Failed to install base-4.7.0.0
+Last 10 lines of the build log ( /home/omer/.cabal/logs/base-4.7.0.0.log ):
+[  4 of 202] Compiling Unsafe.Coerce    ( Unsafe/Coerce.hs, dist/build/Unsafe/Coerce.js_p_o )
+[  5 of 202] Compiling GHC.Unicode[boot] ( GHC/Unicode.hs-boot, dist/build/GHC/Unicode.js_p_o-boot )
+[  6 of 202] Compiling GHC.IO[boot]     ( GHC/IO.hs-boot, dist/build/GHC/IO.js_p_o-boot )
+[  7 of 202] Compiling GHC.Exception[boot] ( GHC/Exception.lhs-boot, dist/build/GHC/Exception.js_p_o-boot )
+[  8 of 202] Compiling GHC.Err          ( GHC/Err.lhs, dist/build/GHC/Err.js_p_o )
+[  9 of 202] Compiling GHC.Base         ( GHC/Base.lhs, dist/build/GHC/Base.js_p_o )
+[ 10 of 202] Compiling Data.Maybe       ( Data/Maybe.hs, dist/build/Data/Maybe.js_p_o )
+[ 11 of 202] Compiling GHC.List         ( GHC/List.lhs, dist/build/GHC/List.js_p_o )
+[ 12 of 202] Compiling GHC.Num          ( GHC/Num.lhs, dist/build/GHC/Num.js_p_o )
+[ 13 of 202] Compiling GHC.Show         ( GHC/Show.lhs, dist/build/GHC/Show.js_p_o )
+cabal: Error: some packages failed to install:
+base-4.7.0.0 failed during the building phase. The exception was:
+ExitFailure (-11)</code></pre>
+<p>However, when I tried to run the command that led to this segfault in gdb to see if it gives a different backtrace, it worked fine and no segfaults happened.</p>]]></summary>
+</entry>
 
 </feed>
