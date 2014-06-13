@@ -8,8 +8,19 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-06-03T00:00:00Z</updated>
+    <updated>2014-06-13T00:00:00Z</updated>
     <entry>
+    <title>Dependency boundaries and orphan instances</title>
+    <link href="http://osa1.net/posts/2014-06-13-dependencies-and-orphan-instances.html" />
+    <id>http://osa1.net/posts/2014-06-13-dependencies-and-orphan-instances.html</id>
+    <published>2014-06-13T00:00:00Z</published>
+    <updated>2014-06-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>According to the <a href="http://www.haskell.org/haskellwiki/Package_versioning_policy">PVP</a>(Package Versioning Policy), adding a non-orphan instance is not a breaking change and a minor version number should be bumped(<code>C</code> in <code>A.B.C</code>) in case of a non-orphan instance implementation.</p>
+<p>This means that if you’re implementing an orphan instance, you should specify minor upper bound of the package that defines the typeclass. Otherwise if the package implements the typeclass for the type in the future, you’re package will be broken.</p>
+<p>I want to add <code>StackValue a =&gt; StackValue [a]</code> instance in hslua, but that breaks Pandoc because it implements that instance without using a newtype(an orphan instance) and hslua dependency upper bound is specified as <code>&lt; 0.4</code>.</p>
+<p>Good news is that bergmark at Freenode #haskell told me that now it’s possible to change dependency ranges on Hackage without pushing a new version, so there’s an easy fix that’ll keep package working.</p>]]></summary>
+</entry>
+<entry>
     <title>Tercüme</title>
     <link href="http://osa1.net/posts/2014-06-03-tercume.html" />
     <id>http://osa1.net/posts/2014-06-03-tercume.html</id>
@@ -457,93 +468,6 @@ ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&q
 </ul>
 <p>Şimdilik aklıma gelenler bunlar. Aslında düşündüm de, böyle madde madde özetler geçmek güzel oluyormuş, belki gelecekte devam ettirmeliyim.</p>
 <p>Bu arada not: Okulumda son sınıfta olup bitirme projemle ilgilenen varsa ekibime beklerim(gerçi şimdi düşündüm de, bu blogu okuyan birileri var mı ondan bile emin değilim :-). Şu anda tek kişiyim, konuyu biliyor olmanıza gerek yok, ilgilenmeniz yeterli.</p>]]></summary>
-</entry>
-<entry>
-    <title>Combining digestive-functors and heist with Snap (continued from last tutorial)</title>
-    <link href="http://osa1.net/posts/2014-01-04-combining-df-heist-snap-cont.html" />
-    <id>http://osa1.net/posts/2014-01-04-combining-df-heist-snap-cont.html</id>
-    <published>2014-01-04T00:00:00Z</published>
-    <updated>2014-01-04T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Here’s an high-level overview of last post:</p>
-<ul>
-<li>We used digestive-functors for handling form validation and digestive-functors-heist for rendering Heist templates with digestive-funtors forms.</li>
-<li>A digestive-functor form has type <code>Form v m a</code> where <code>v</code> is type of error messages, <code>m</code> is the monad type that are used in validation functions, <code>a</code> is return type of a valid form. In our example, <code>a</code> was <code>User</code> since our form was to create a <code>User</code> object. In order to render HTML from a <code>Form</code>, we had to generate a <code>View v</code> object, using <code>getForm</code> or <code>postForm</code> functions from digestive-functors package(<code>Text.Digestive.View</code> module). Once we had a our <code>View</code>, we can use <code>digestiveSplices</code> function from digestive-functors-heist package to get Heist splices of our form. (note: for some type mismatch problem, we had to use <code>bindDigestiveSplices</code> to bind our splices to a Heist state directly, instead of getting splices using <code>digestiveSplices</code> and then binding using some Heist functions) The rest is related with Hesit template rendering.</li>
-<li>In Heist site, we had to create a HeistState object which keeps track of compiled and interpreted splices, template paths and some other things.</li>
-<li>We then rendered our forms using <code>renderTemplate</code>, binding our form splices to HeistState using <code>bindDigestiveSplices</code>.</li>
-</ul>
-<p>In this post, I’m going to add some functionalities from Snap to serve HTML pages from a server and handle routing and POST request processing. Our forms will be served at root and when we submit our form, we will be informed whether user creating was successful or what was the problem.</p>
-<p>Recommended way fo starting a Snap applcation is by using <code>snap init</code> command. It creates a cabal project structure with <code>Application.hs</code>, <code>Site.hs</code> and <code>Main.hs</code>. According to Snap docs, we only rarely need to touch <code>Main.hs</code>. The other two files are used to create a new Snaplet, and only function we need to provide to <code>Main</code> module is <code>app :: SnapletInit App App</code> for some <code>App</code> type.</p>
-<p>In this post I’m assuming you created a Snap project using <code>snap init</code> command and have <code>Main.hs</code> file. You don’t need <code>Application.hs</code> file and in this post we’ll be writing <code>Site.hs</code> file.</p>
-<p>Required for some Snap features</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="ot">{-# LANGUAGE TemplateHaskell     #-}</span></code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">module</span> <span class="dt">Tut2</span> (app) <span class="kw">where</span></code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Control.Applicative        (Applicative (..), (&lt;$&gt;))
-<span class="ot">&gt;</span> <span class="kw">import</span>           Data.Maybe                 (isJust)
-<span class="ot">&gt;</span> <span class="kw">import</span> <span class="kw">qualified</span> Data.Text                  <span class="kw">as</span> T</code></pre>
-<p>from `digestive-functors’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive</code></pre>
-<p>from `digestive-functors-heist’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive.Heist       (bindDigestiveSplices)</code></pre>
-<p>from <code>lens</code> package, required for Snaplets</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Control.Lens</code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Snap.Snaplet
-<span class="ot">&gt;</span> <span class="kw">import</span>           Snap.Snaplet.Heist</code></pre>
-<p>from <code>bytestring</code> package, required for some Snap functions</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span> <span class="kw">qualified</span> Data.ByteString            <span class="kw">as</span> B</code></pre>
-<p>from <code>digestive-functors-snap</code> package, required for form rendering, we had handled that using <code>getForm</code> and <code>postForm</code> from <code>Text.Digestive.Heist</code> before.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive.Snap        (runForm)</code></pre>
-<p><code>snap init</code> creates a project with only this code in <code>Application.hs</code>:</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">data</span> <span class="dt">App</span> <span class="fu">=</span> <span class="dt">App</span>
-<span class="ot">&gt;</span>     { _<span class="ot">heist ::</span> <span class="dt">Snaplet</span> (<span class="dt">Heist</span> <span class="dt">App</span>)
-<span class="ot">&gt;</span>     }
-<span class="ot">&gt;</span> 
-<span class="ot">&gt;</span> makeLenses <span class="ch">&#39;&#39;</span><span class="dt">App</span>
-<span class="ot">&gt;</span> 
-<span class="ot">&gt;</span> <span class="kw">instance</span> <span class="dt">HasHeist</span> <span class="dt">App</span> <span class="kw">where</span>
-<span class="ot">&gt;</span>     heistLens <span class="fu">=</span> subSnaplet heist</code></pre>
-<p>In this post I’m copying this code to <code>Site.hs</code> and removing <code>Application.hs</code> file. Here, I only changed the definition of <code>App</code>. Since our application is minimal, we only need Heist Snaplet nested in our App. When we need other functionalities in the future(like database access), we will extend this definition for new Snaplets.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; app ::</span> <span class="dt">SnapletInit</span> <span class="dt">App</span> <span class="dt">App</span></code></pre>
-<p>First type parameter of SnapletInit is for type of parent Snaplet. In our case, we don’t have a parent Snaplet but I guess this is what you do in that case. Second type is currently initialized Snaplet’s type.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> app <span class="fu">=</span> makeSnaplet <span class="st">&quot;app&quot;</span> <span class="st">&quot;An snaplet example application&quot;</span> <span class="kw">Nothing</span> <span class="fu">$</span> <span class="kw">do</span></code></pre>
-<p>Type of <code>makeSnaplet</code> is really helpful to understand what’s going on at the level of types:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">makeSnaplet
-<span class="ot">  ::</span> <span class="dt">T.Text</span>                  <span class="co">-- ^ Default ID of the Snaplet, I have no idea where is this used.</span>
-     <span class="ot">-&gt;</span> <span class="dt">T.Text</span>               <span class="co">-- ^ Description of the Snaplet, again, no idea where is this used.</span>
-     <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IO</span> <span class="fu">FilePath</span>)  <span class="co">-- ^ Root folder for Snaplet&#39;s filesystem content. In case your Snaplet works on files.</span>
-     <span class="ot">-&gt;</span> <span class="dt">Initializer</span> b v v    <span class="co">-- ^ Initializer for the Snaplet.</span>
-     <span class="ot">-&gt;</span> <span class="dt">SnapletInit</span> b v      <span class="co">-- ^ SnapletInit is an opaque type for internal use. It&#39;s needed for embedding our snaplet to other snaplets.</span></code></pre>
-<p>We’re nesting Heist snaplet provided by <code>Snap.Snaplet.Heist</code> from <code>snap</code> package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span>    h <span class="ot">&lt;-</span> nestSnaplet <span class="st">&quot;&quot;</span> heist <span class="fu">$</span> heistInit <span class="st">&quot;templates&quot;</span></code></pre>
-<p>self explanatory, see definition below</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span>    addRoutes routes
-<span class="ot">&gt;</span>    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">App</span> h
-<span class="ot">&gt;</span>  <span class="kw">where</span>
-<span class="ot">&gt;    routes ::</span> [(<span class="dt">B.ByteString</span>, <span class="dt">Handler</span> <span class="dt">App</span> <span class="dt">App</span> ())]</code></pre>
-<p>routes are how we handle requests. <code>Handler</code> type takes 3 arguments, but I’m yet to figure out what do these arguments mean. I guess these are same as arguments in <code>SnapletInit</code> type, except the last one is for return values of Handler functions.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span>    routes <span class="fu">=</span> [ (<span class="st">&quot;/&quot;</span>, mainHandler) ]</code></pre>
-<p><code>mainHandler</code> is our handler function. Thanks to <code>runForm</code> function provided by <code>Text.Digestive.Snap</code>, we don’t need to anything because it handles POST/GET requests and renders form templates depending on request data. <code>heistLocal</code> function is provided by <code>Snap.Snaplet.Heist</code> and runs a handler action(in our case, this is <code>render &quot;user_form&quot;</code>) on a modified Heist state. We’re modifying Heist state by binding our user form splices using <code>bindDigestiveSplices</code> as we did in previous post.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; mainHandler ::</span> <span class="dt">Handler</span> <span class="dt">App</span> <span class="dt">App</span> ()
-<span class="ot">&gt;</span> mainHandler <span class="fu">=</span> <span class="kw">do</span>
-<span class="ot">&gt;</span>     (formView, maybeUser) <span class="ot">&lt;-</span> runForm <span class="st">&quot;userform&quot;</span> userForm
-<span class="ot">&gt;</span>     heistLocal (bindDigestiveSplices formView) <span class="fu">$</span> render <span class="st">&quot;user_form&quot;</span></code></pre>
-<p>This is some code from previous post.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">data</span> <span class="dt">User</span> <span class="fu">=</span> <span class="dt">User</span>
-<span class="ot">&gt;</span>     {<span class="ot"> uUsername ::</span> <span class="dt">T.Text</span>
-<span class="ot">&gt;</span>     ,<span class="ot"> uEmail    ::</span> <span class="dt">T.Text</span>
-<span class="ot">&gt;</span>     ,<span class="ot"> uKarma    ::</span> <span class="dt">Int</span>
-<span class="ot">&gt;</span>     } <span class="kw">deriving</span> (<span class="kw">Show</span>)
-<span class="ot">&gt;</span> 
-<span class="ot">&gt;</span> 
-<span class="ot">&gt; userForm ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span>
-<span class="ot">&gt;</span> userForm <span class="fu">=</span> <span class="dt">User</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="kw">Nothing</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="kw">Nothing</span>)
-<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> pure <span class="dv">0</span>
-<span class="ot">&gt;</span>   <span class="kw">where</span>
-<span class="ot">&gt;     validateEmail ::</span> <span class="dt">T.Text</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
-<span class="ot">&gt;</span>     validateEmail <span class="fu">=</span> isJust <span class="fu">.</span> T.find (<span class="fu">==</span> <span class="ch">&#39;@&#39;</span>)</code></pre>
-<p>As last thing, we need to copy our template file to <code>snaplets/heist/templates</code>. This is because of the way Snap handles Snaplets. I think what happens is for every Snaplet nested in a Snap application, Snap creates a folder in <code>snaplets/snaplet_name</code> and later when that Snaplet requires some filesystem operations, all paths are handled relative to this directory.</p>
-<p>After that, if you compile and run the application, you can see our form at http://0.0.0.0:8000 and you can test error messages.</p>]]></summary>
 </entry>
 
 </feed>

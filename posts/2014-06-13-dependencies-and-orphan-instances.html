@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Dependency boundaries and orphan instances</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Dependency boundaries and orphan instances</h1>
+
+<p><strong>June 13, 2014</strong> - Tagged as: <a href="../tags/haskell.html">haskell</a>, <a href="../tags/en.html">en</a>.</p>
+
+<p>According to the <a href="http://www.haskell.org/haskellwiki/Package_versioning_policy">PVP</a>(Package Versioning Policy), adding a non-orphan instance is not a breaking change and a minor version number should be bumped(<code>C</code> in <code>A.B.C</code>) in case of a non-orphan instance implementation.</p>
+<p>This means that if you’re implementing an orphan instance, you should specify minor upper bound of the package that defines the typeclass. Otherwise if the package implements the typeclass for the type in the future, you’re package will be broken.</p>
+<p>I want to add <code>StackValue a =&gt; StackValue [a]</code> instance in hslua, but that breaks Pandoc because it implements that instance without using a newtype(an orphan instance) and hslua dependency upper bound is specified as <code>&lt; 0.4</code>.</p>
+<p>Good news is that bergmark at Freenode #haskell told me that now it’s possible to change dependency ranges on Hackage without pushing a new version, so there’s an easy fix that’ll keep package working.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
