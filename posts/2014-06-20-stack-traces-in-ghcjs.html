@@ -1,33 +1,39 @@
-<?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
-    <title>osa1.net - Posts tagged ghcjs</title>
-    <link href="http://osa1.net/tags/ghcjs.xml" rel="self" />
-    <link href="http://osa1.net" />
-    <id>http://osa1.net/tags/ghcjs.xml</id>
-    <author>
-        <name>Ömer Sinan Ağacan</name>
-        <email>omeragaca@gmail.com</email>
-    </author>
-    <updated>2014-06-20T00:00:00Z</updated>
-    <entry>
-    <title>Stack traces in GHCJS</title>
-    <link href="http://osa1.net/posts/2014-06-20-stack-traces-in-ghcjs.html" />
-    <id>http://osa1.net/posts/2014-06-20-stack-traces-in-ghcjs.html</id>
-    <published>2014-06-20T00:00:00Z</published>
-    <updated>2014-06-20T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’m about to finish the first part of my GSoC project and as a part of my project I have implemented stack traces for GHCJS. Currently <code>GHC.Stack</code> functions should work in GHCJS, except for some cases I explain below.</p>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Stack traces in GHCJS</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Stack traces in GHCJS</h1>
+
+<p><strong>June 20, 2014</strong> - Tagged as: <a href="../tags/haskell.html">haskell</a>, <a href="../tags/ghcjs.html">ghcjs</a>, <a href="../tags/ghc.html">ghc</a>, <a href="../tags/gsoc.html">gsoc</a>, <a href="../tags/en.html">en</a>.</p>
+
+<p>I’m about to finish the first part of my GSoC project and as a part of my project I have implemented stack traces for GHCJS. Currently <code>GHC.Stack</code> functions should work in GHCJS, except for some cases I explain below.</p>
 <p>As a demo, I set up <a href="http://osa1.net/files/stacktrace.jsexe/index.html">this page</a>, it runs the Haskell program rendered on the page (some part of the code is copied from Simon Marlow’s <a href="http://www.youtube.com/watch?v=J0c4L-AURDQ">“Why can’t I get stack traces?” presentation</a>). Output is printed to the console. You should be seeing something like this:</p>
 <div class="figure">
 <img src="http://osa1.net/images/ghcjs-stacktrace.png" />
 </div>
 <p>My main goal is to implement profiling features of GHC (cost-centres, SCC annotations, reporting allocations/ticks etc.) for GHCJS. It turns out that cost-centre stacks and call stacks are same thing. <code>GHC.Stack.currentCallStack</code> returns the current cost-centre stack, and cost attribution is done to current call-stack(or current cost-centre stack, since they’re exactly the same thing). Similarly, <code>GHC.Stack.whoCreated</code> returns the cost centre stack that was active when the heap object was created.</p>
 <p><a href="https://github.com/osa1/ghcjs/compare/ghcjs:master...work3">20 changed files with 810 additions and 527 deletions</a> later, I had <code>GHC.Stack</code> working. You won’t need to do anything different once it’s merged into GHCJS, but for now it requires some effort to install. It also still has some bugs and differences from GHC version. Rest of the post explains how to test it, bugs, and differences from GHC.</p>
-<h1 id="how-to-use">How to use</h1>
+<h2 id="how-to-use">How to use</h2>
 <p>Because of a horrible bug(see bugs section), you need a 32bit system to use profiling features of GHCJS. You should clone my fork of <a href="https://github.com/osa1/ghcjs">GHCJS</a> and <a href="https://github.com/osa1/shims">shims</a>. For GHCJS, switch to <code>work3</code> branch(that 3 represents how many times I started from scratch :) and for shims switch to <code>work2</code> branch. You need to install <a href="https://github.com/ghcjs/Cabal">modified Cabal for GHCJS</a>. After installing Cabal, install GHCJS and run <code>ghcjs-boot --init -q --prof</code>. This takes about 20 minutes on my system and compiles <code>base</code> and some other libraries. <code>--prof</code> is used to generate profiled versions of libraries.</p>
 <p>After GHCJS has been booted, replace ~/.ghcjs/&lt;your platform&gt;/shims folder with my fork of shims(make sure you switched to work2 branch). Now you should be able to compile and run programs with profiling options of GHC. For example, to compile and run the example program given above, run <code>ghcjs stacktrace.hs -prof -fprof-auto</code> and then run generated <code>stacktrace.jsexe/all.js</code> using nodejs. Enabling profiling gives you a debug executable, with more metadata (object names) and longer (non-renamed) variable names.</p>
-<h1 id="differences">Differences</h1>
+<h2 id="differences">Differences</h2>
 <p>Because GHCJS represents some objects as unboxed numbers and currently we don’t associate any cost-centres with this type of objects, <code>whoCreated</code> returns an empty list. If there’s demand, we can disable unboxing with a command line switch and <code>whoCreated</code> on these values would work. In the example program, second and third lines are printing empty lists because of this.</p>
-<h1 id="bugs">Bugs</h1>
+<h2 id="bugs">Bugs</h2>
 <p>Currently we discovered two bugs:</p>
 <ol style="list-style-type: decimal">
 <li><p>There’s a horrible bug happening outside of GHCJS code, see my <a href="http://osa1.net/posts/2014-05-27-worst-bug.html">blog post</a> and <a href="http://www.haskell.org/pipermail/ghc-devs/2014-May/005059.html">ghc-devs mail</a>. Because of this bug, booting GHCJS with profiling enabled is resulting with a segfault on 64bit systems. I’m developing this project on a 32bit VM, running on a VPS :) I need to make some more progress before tracking this bug.</p></li>
@@ -44,19 +50,24 @@ Main.main (stacktrace.hs:(29,1)-(38,36))
 Main.CAF (&lt;entire-module&gt;)</code></pre>
 <p>.. but <code>runM</code> calls are missing in GHCJS output. I have no idea what could be the reason for this and I’m currently working to fix this. After fixing this, I think we’ll have exactly same stack traces as the ones produced by GHC compiled programs.</p></li>
 </ol>
-<h1 id="acknowledgement">Acknowledgement</h1>
-<p>I’d like to thank my mentor Luite Stegeman for answering my endless questions, helping me understanding GHC and GHCJS internals and reviewing this blog post.</p>]]></summary>
-</entry>
-<entry>
-    <title>I'm accepted into GSoC and I'll be hacking on GHCJS this summer</title>
-    <link href="http://osa1.net/posts/2014-04-24-accepted-to-gsoc.html" />
-    <id>http://osa1.net/posts/2014-04-24-accepted-to-gsoc.html</id>
-    <published>2014-04-24T00:00:00Z</published>
-    <updated>2014-04-24T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’m accepted into Google Summer of Code 2014 and I’ll be working on adding profiling support to GHCJS. This is very exciting for me, I’ll be hacking on JavaScript backend of my favorite compiler(GHC) all summer and get paid :)</p>
-<p>I can’t wait to start hacking, but unfortunately I still have one last and very important exam before my graduation from undergraduate school on 26th April and I have to study hard for that. After that, I’ll be hacking on GHCJS all summer long.</p>
-<p>Stay tuned for updates about my work and live demos that you can run from within your browser, thanks to GHCJS.</p>
-<p>You can see all accepted proposals of Haskell organization <a href="http://www.google-melange.com/gsoc/org2/google/gsoc2014/haskell">here</a>.</p>]]></summary>
-</entry>
+<h2 id="acknowledgement">Acknowledgement</h2>
+<p>I’d like to thank my mentor Luite Stegeman for answering my endless questions, helping me understanding GHC and GHCJS internals and reviewing this blog post.</p>
 
-</feed>
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
