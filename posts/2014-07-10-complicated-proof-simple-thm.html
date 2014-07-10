@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - A complicated proof of a simple theorem</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">A complicated proof of a simple theorem</h1>
+
+<p><strong>July 10, 2014</strong> - Tagged as: <a href="../tags/coq.html">coq</a>, <a href="../tags/en.html">en</a>.</p>
+
+<p>It’s that time of the year again in which I’m suddenly very interested about verification and interactive theorem proving. I’m currently working on proving properties of some well-known algorithms.</p>
+<p>At least in the beginning even the simplest properties may turn out to be very hard to prove. In this post I’m going to give an example of a very simple theorem which turns out to be hard to prove for beginners like me.</p>
+<p>Let’s say I want to divide peano nats by 10. I can define <code>div10</code> in two ways: 1) I can implement a function that directly divides by 10 2) I can implement <code>div2</code> and <code>div5</code> and use those two to implement <code>div10</code>:</p>
+<pre class="coq"><code>(* first definition *)
+Fixpoint div10 (n : nat) : nat :=
+  match n with
+  | S (S (S (S (S (S (S (S (S (S n'))))))))) =&gt; S (div10 n')
+  | _ =&gt; 0
+  end.
+
+(* second definition *)
+Fixpoint div5 (n : nat) : nat :=
+  match n with
+  | S (S (S (S (S n')))) =&gt; S (div5 n')
+  | _ =&gt; 0
+  end.
+
+Fixpoint div2 (n : nat) : nat :=
+  match n with
+  | S (S n') =&gt; S (div2 n')
+  | _ =&gt; 0
+  end.
+
+Definition div10' (n : nat) : nat := div5 (div2 n).</code></pre>
+<p>It may be obvious enough that those two definitions are equal(in the sense that they always terminate and given same arguments they return same values) but as an exercise let’s try to prove it:</p>
+<pre class="coq"><code>Theorem divs_eq : forall n, div10 n = div10' n.</code></pre>
+<p>It’s obvious that we need to do induction on n, but unfortunately that leads to very complicated induction hypothesis and I can’t make any use of them:</p>
+<pre class="coq"><code>Proof.
+  unfold div10'. intro.
+  do 10 (induction n; auto). simpl. f_equal. 
+Abort.</code></pre>
+<p>At this point goal is same as our original goal, but induction hypothesis are about a hundred lines long so I can’t make any use of it. (and I don’t understand why induction hypothesis getting that big)</p>
+<p>It turns out that by using a different induction scheme we can easily prove this. Instead of using standard induction scheme of nats “prove P 0, assume P n and prove P (S n)” we can use “prove P 0, P 1, … P 9, assume P n and prove P (10 + n)”:</p>
+<pre class="coq"><code>Definition nat10ind : forall (P : nat -&gt; Prop),
+  P 0 -&gt; P 1 -&gt; P 2 -&gt; P 3 -&gt; P 4 -&gt; P 5 -&gt; P 6 -&gt; P 7 -&gt; P 8 -&gt; P 9 -&gt;
+  (forall n, P n -&gt; P (10 + n)) -&gt; forall n, P n.
+
+  intros.
+  assert (P n /\ P (1 + n) /\ P (2 + n) /\ P (3 + n) /\ P (4 + n) /\ P (5 + n) /\
+          P (6 + n) /\ P (7 + n) /\ P (8 + n) /\ P (9 + n)).
+  + induction n.
+    - simpl. repeat split; assumption.
+    - repeat (match goal with H : _ /\ _ |- _ =&gt; destruct H end).
+      repeat split; try assumption.
+      apply H9. assumption.
+  + destruct H10. assumption.
+Defined.</code></pre>
+<p>Now our main theorem is very easy to prove:</p>
+<pre class="coq"><code>Theorem divs_eq : forall n, div10 n = div10' n.
+Proof.
+  unfold div10'. intro.
+  induction n using nat10ind; auto.
+  simpl. f_equal. assumption.
+Qed.</code></pre>
+<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>See <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual011.html#sec447">tacexpr_1 production</a> of Coq expression syntax in reference manual for details.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
