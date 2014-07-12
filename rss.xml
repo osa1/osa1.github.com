@@ -8,8 +8,303 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-07-10T00:00:00Z</updated>
+    <updated>2014-07-12T00:00:00Z</updated>
     <entry>
+    <title>Coq exercises for beginners</title>
+    <link href="http://osa1.net/posts/2014-07-12-fun-coq-exercises.html" />
+    <id>http://osa1.net/posts/2014-07-12-fun-coq-exercises.html</id>
+    <published>2014-07-12T00:00:00Z</published>
+    <updated>2014-07-12T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<style>
+.solution {
+  background-color: rgb(245, 245, 245);
+  padding-left: 1em;
+}
+</style>
+
+
+<p>Formalizing abstractions/data structures and proving theorems about them in Coq is so much fun. I made up some simple exercises that consist of encoding some abstractions and laws we know from algebra and functional programming and then proving that some particular set + some operations on that set obeys the laws.</p>
+<p>Using my amazing(!) JavaScript skills, I set up some “show/hide answer” buttons after each exercise. Exercises are easy, but the latter ones are relatively harder. Some abstractions/laws are inspired by Haskell.</p>
+<p>Please note that I’m a beginner so my solutions probably have some flaws if you want to use them in large-scale verified programs :) I’m currently learning about typeclasses and records of Coq and I’m open to suggestions for improvements.</p>
+<p>In exercises, when we talk that an abstraction should obey some laws, you need to enforce it in construction. e.g. You need to make constructors in a way that user would have to prove that the data structure + operations obey the laws.</p>
+<pre class="coq"><code>Require Import List.
+Import ListNotations.
+
+Open Scope list_scope.</code></pre>
+<h1 id="exercise-1">Exercise 1</h1>
+<p>A <a href="http://en.wikipedia.org/wiki/Semigroup">semigroup</a> is a set together with an associative binary function. For example, natural numbers and addition function form a semigroup, because we know/can prove that addition function is associative. More precisely: (in Coq syntax)</p>
+<pre class="coq"><code>forall (n1 n2 n3 : nat), n1 + (n2 + 3) = (n1 + n2) + n3.</code></pre>
+<p>Encode semigroups in Coq.</p>
+<div id="ex-div-1.1" class="solution">
+<pre class="coq"><code>Inductive semigroup (A : Type) (Op : A -&gt; A -&gt; A) : Prop :=
+| Semigroup_intro :
+    (forall (a1 a2 a3 : A), Op a1 (Op a2 a3) = Op (Op a1 a2) a3) -&gt; semigroup A Op.</code></pre>
+</div>
+<button id="ex-btn-1.1"></button>
+
+<p>Now prove that lists together with append operation form a semigroup. Use standard Coq lists and <code>app</code> function.</p>
+<div id="ex-div-1.2" class="solution">
+<pre class="coq"><code>Theorem list_semigroup : forall A, semigroup (list A) (@app A).
+Proof.
+  intro. apply Semigroup_intro. intros.
+  induction a1.
+  + reflexivity.
+  + simpl. f_equal. induction a2; auto.
+Qed.</code></pre>
+</div>
+<button id="ex-btn-1.2"></button>
+
+
+<h1 id="exercise-2">Exercise 2</h1>
+<p>A <a href="http://en.wikipedia.org/wiki/Monoid">monoid</a> is a semigroup with an identity element. In our addition example, identity element is 0, because when applied to the monoid function(addition) as first or second argument, results is the other argument:</p>
+<pre class="coq"><code>forall (n : nat), 0 + n = n /\ n + 0 = n.</code></pre>
+<p>Encode monoids in Coq.</p>
+<div id="ex-div-2.1" class="solution">
+<pre class="coq"><code>Inductive monoid A Op (sg : semigroup A Op) (U : A) : Prop :=
+| Monoid_intro :
+    semigroup A Op -&gt; (forall (a : A), Op U a = Op a U /\ Op U a = a) -&gt; monoid A Op sg U.</code></pre>
+</div>
+<button id="ex-btn-2.1"></button>
+
+<p>Now prove that lists with empty list as unit element together with the proof that lists are monoids as we proved in previous exercise, form a monoid.</p>
+<div id="ex-div-2.2" class="solution">
+<pre class="coq"><code>Theorem list_monoid : forall A, monoid (list A) (@app A) (@list_semigroup A) [].
+Proof.
+  intro. apply Monoid_intro. apply list_semigroup.
+  intro. split.
+  + rewrite app_nil_r. reflexivity.
+  + reflexivity.
+Qed.</code></pre>
+</div>
+<button id="ex-btn-2.2"></button>
+
+<h1 id="exercise-3">Exercise 3</h1>
+<p>In this exercise and exercise 4, we’ll be talking about Haskell definitions of abstractions, instead of algebra definitions. (although they may coincide)</p>
+<p>A functor is a type with one argument(in Haskell terms, a type with kind <code>* -&gt; *</code>) and a function, together with some laws. If you’re unfamiliar with functors of Haskell, you may want to skip this, or read <a href="http://www.haskell.org/haskellwiki/Typeclassopedia#Functor">Typeclassopedia</a>.</p>
+<p>A Coq definition would use these to encode functors:</p>
+<ul>
+<li>Functor type: <code>F : Type -&gt; Type</code></li>
+<li>Functor operation: <code>forall t1 t2, (t1 -&gt; t2) -&gt; f t1 -&gt; f t2</code> (let’s call it fmap)</li>
+</ul>
+<p>A functor should obey these laws:</p>
+<ul>
+<li><code>fmap id = id</code></li>
+<li><code>fmap (fun x =&gt; g (h x)) = fun x =&gt; (fmap g (fmap h x))</code></li>
+</ul>
+<p>Encode functors in Coq.</p>
+<div id="ex-div-3.1" class="solution">
+<pre class="coq"><code>Inductive functor (F : Type -&gt; Type) : (forall t1 t2, (t1 -&gt; t2) -&gt; f t1 -&gt; f t2) -&gt; Prop :=
+| Functor_intro
+    (fmap : forall t1 t2, (t1 -&gt; t2) -&gt; F t1 -&gt; F t2)
+    (l1   : forall t f, fmap t t id f = f)
+    (l2   : forall t1 t2 t3, forall (f : F t1) (p : t2 -&gt; t3) (q : t1 -&gt; t2),
+              fmap t1 t3 (fun a =&gt; p (q a)) f = fmap t2 t3 p (fmap t1 t2 q f)) :
+    functor F fmap.</code></pre>
+</div>
+<button id="ex-btn-3.1"></button>
+
+<p>Now prove that lists with standard map function form a functor.</p>
+<div id="ex-div-3.2" class="solution">
+<pre class="coq"><code>Theorem list_functor : functor list map.
+Proof.
+  apply Functor_intro.
+  + intros. induction f. reflexivity. simpl. rewrite IHf. reflexivity.
+  + intros. induction f. reflexivity. simpl. f_equal. apply IHf.
+Qed.</code></pre>
+</div>
+<button id="ex-btn-3.2"></button>
+
+<h1 id="exercise-4">Exercise 4</h1>
+<p>A monad is a functor with two more operations; let’s call <code>bind</code> and <code>lift</code> and some more laws. In Coq syntax: (<code>F</code> is our functor type)</p>
+<ul>
+<li>bind: <code>forall t1 t2, F t1 -&gt; (t1 -&gt; F t2) -&gt; F t2</code></li>
+<li>lift: <code>forall t, t -&gt; F t</code></li>
+</ul>
+<p>Laws:</p>
+<ul>
+<li>Left identity: <code>forall t1 t2 a f, bind t1 t2 (lift t1 a) f = f a</code></li>
+<li>Right identity: <code>right_id : forall t m, bind t t m (lift t) = m</code></li>
+<li>Associativity: <code>forall t1 t2 t3 m f g, bind t2 t3 (bind t1 t2 m f) g = bind t1 t3 m (fun x =&gt; bind t2 t3 (f x) g)</code></li>
+</ul>
+<p>Encode monads in Coq.</p>
+<div id="ex-div-4.1" class="solution">
+<pre class="coq"><code>Inductive monad : (Type -&gt; Type) -&gt; Prop :=
+| Monad_intro
+    (F        : Type -&gt; Type)
+    (fmap     : forall t1 t2, (t1 -&gt; t2) -&gt; F t1 -&gt; F t2)
+    (Fp       : functor F fmap)
+    (lift     : forall t, t -&gt; F t)
+    (bind     : forall t1 t2, F t1 -&gt; (t1 -&gt; F t2) -&gt; F t2)
+    (left_id  : forall t1 t2 a f, bind t1 t2 (lift t1 a) f = f a)
+    (right_id : forall t m, bind t t m (lift t) = m)
+    (assoc    : forall t1 t2 t3 m f g,
+                  bind t2 t3 (bind t1 t2 m f) g = bind t1 t3 m (fun x =&gt; bind t2 t3 (f x) g)) :
+    monad F.</code></pre>
+</div>
+<button id="ex-btn-4.1"></button>
+
+<p>Now prove that lists form a monad. You need to figure out what functions to use for <code>lift</code> and <code>bind</code>.</p>
+<div id="ex-div-4.2" class="solution">
+<p><code>lift</code> function:</p>
+<pre class="coq"><code>(* I couldn&#39;t find this in stdlib so let&#39;s define *)
+Definition singleton (A : Type) (x : A) := [x].</code></pre>
+<p>For <code>bind</code>, you can use standard <code>flat_map</code> function, but it’s argument order is reversed. So instead I rolled my own version:</p>
+<pre class="coq"><code>Fixpoint concat {A : Type} (l : list (list A)) : list A :=
+  match l with
+  | []     =&gt; []
+  | h :: t =&gt; app h (concat t)
+  end.
+
+(* I don&#39;t like argument order of flat_map in stdlib ... *)
+Definition concatMap (A : Type) (B : Type) (l : list A) (f : A -&gt; list B) : list B :=
+  concat (map f l).</code></pre>
+<p>Now most involved proof in this exercises: (still very easy)</p>
+<pre class="coq"><code>Theorem list_monad : monad list.
+Proof.
+  apply Monad_intro with (fmap := map) (lift := singleton) (bind := concatMap).
+  + apply list_functor.
+  + intros. unfold concatMap. simpl. rewrite app_nil_r. reflexivity.
+  + intros. unfold concatMap. induction m.
+    - reflexivity.
+    - simpl. f_equal. apply IHm.
+  + intros. induction m as [|h t].
+    - reflexivity.
+    - unfold concatMap in *. simpl. rewrite &lt;- IHt. 
+      assert (forall A (l1 : list (list A)) (l2 : list (list A)),
+                concat l1 ++ concat l2 = concat (l1 ++ l2)) as H.
+        intros. induction l1; auto.
+          simpl. rewrite &lt;- app_assoc. rewrite IHl1. auto.
+      rewrite H. f_equal. rewrite map_app. reflexivity.
+Qed.</code></pre>
+</div>
+<button id="ex-btn-4.2"></button>
+
+<h1 id="exercise-5">Exercise 5</h1>
+<p>Prove that standard <code>option</code> type with some operations form a semigroup, monoid, functor and monad. You need to find relevant operations.</p>
+<div id="ex-div-5.1" class="solution">
+<pre class="coq"><code>Definition map_option (A B : Type) (f : A -&gt; B) (opt : option A) :=
+  match opt with
+  | None =&gt; None
+  | Some t =&gt; Some (f t)
+  end.
+
+Definition append_option A OpA (sg : semigroup A OpA) (a b : option A) : option A :=
+  match a, b with
+  | None, None =&gt; None
+  | None, Some b&#39; =&gt; Some b&#39;
+  | Some a&#39;, None =&gt; Some a&#39;
+  | Some a&#39;, Some b&#39; =&gt; Some (OpA a&#39; b&#39;)
+  end.
+
+Theorem option_semigroup : forall A OpA (sg : semigroup A OpA),
+  semigroup (option A) (append_option A OpA sg).
+Proof.
+  intros. apply Semigroup_intro. intros. destruct a1.
+  + destruct a2.
+    - destruct a3.
+      * simpl. f_equal. inversion sg. apply H.
+      * simpl. reflexivity.
+    - destruct a3; simpl; reflexivity.
+  + destruct a2; destruct a3; auto.
+Qed.
+
+Theorem option_monoid : forall A OpA (sg : semigroup A OpA),
+  monoid (option A) (append_option A OpA sg) (option_semigroup A OpA sg) None.
+Proof.
+  intros. apply Monoid_intro. apply option_semigroup.
+  intros. split. auto. destruct a; auto.
+Qed.
+
+Definition option_map A B (f : A -&gt; B) (o : option A) : option B :=
+  match o with
+  | None =&gt; None
+  | Some a =&gt; Some (f a)
+  end.
+
+Theorem option_functor : functor option option_map.
+Proof.
+  apply Functor_intro; intros; destruct f; auto.
+Qed.
+
+Definition option_bind A B (o1 : option A) (f : A -&gt; option B) : option B :=
+  match o1 with
+  | None =&gt; None
+  | Some a =&gt; f a
+  end.
+
+Theorem option_monad : monad option.
+Proof.
+  apply Monad_intro with (fmap := option_map) (lift := Some) (bind := option_bind).
+  + apply option_functor.
+  + intros. auto.
+  + intros. destruct m; auto.
+  + intros. destruct m; auto.
+Qed.</code></pre>
+</div>
+<button id="ex-btn-5.1"></button>
+
+
+<h1 id="exercise-6">Exercise 6</h1>
+<p>I only have a partial solution to this one and it’s not strictly a Coq exercise, but it’s still fun :)</p>
+<p>A <a href="http://en.wikipedia.org/wiki/Group_(mathematics)">group</a> is a monoid with inverse element of every element. In Coq syntax:</p>
+<pre class="coq"><code>forall e, exists e_i -&gt; op e e_1 = U</code></pre>
+<p>where <code>op</code> is monoid operation and <code>U</code> is unit of monoid.</p>
+<p>Can you come up with a data structure that forms a group?</p>
+<div id="ex-div-6.1" class="solution">
+
+<p>Someone at Coq IRC channel suggested diffs. Do you think a diff could form a group? What would associative operation, unit element, and inverse elements be?</p>
+<div id="ex-div-6.2" class="solution">
+<p>Diffs don’t form a group. Composing two diffs is the merge operation, which is partial function. We can’t always merge two diffs. (merge conflicts)</p>
+So I don’t have an answer to this exercise, If you know examples to this one, please write at comments :)
+</div>
+<button id="ex-btn-6.2"></button>
+
+</div>
+<button id="ex-btn-6.1"></button>
+
+
+
+<script>
+function showMsg(exNum) {
+  return "Show solution (ex. " + exNum + ")";
+}
+
+function hideMsg(exNum) {
+  return "Hide solution (ex. " + exNum + ")";
+}
+
+function setUpShowHide(exNum) {
+  var div = document.getElementById("ex-div-" + exNum);
+  var btn = document.getElementById("ex-btn-" + exNum);
+  btn.innerHTML = showMsg(exNum);
+  btn.onclick = function() {
+    if (div.style.display !== 'none') {
+      div.style.display = 'none';
+      btn.innerHTML = showMsg(exNum);
+    } else {
+      div.style.display = 'block';
+      btn.innerHTML = hideMsg(exNum);
+    }
+  }
+  div.style.display = 'none';
+}
+
+setUpShowHide(1.1);
+setUpShowHide(1.2);
+setUpShowHide(2.1);
+setUpShowHide(2.2);
+setUpShowHide(3.1);
+setUpShowHide(3.2);
+setUpShowHide(4.1);
+setUpShowHide(4.2);
+setUpShowHide(5.1);
+setUpShowHide(6.2);
+setUpShowHide(6.1);
+</script>
+
+]]></summary>
+</entry>
+<entry>
     <title>A complicated proof of a simple theorem</title>
     <link href="http://osa1.net/posts/2014-07-10-complicated-proof-simple-thm.html" />
     <id>http://osa1.net/posts/2014-07-10-complicated-proof-simple-thm.html</id>
@@ -460,84 +755,6 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 <li>Canım sıkıldıkca minCaml dilini C’ye derlemek ile uğraşıyorum. Gitub alanımdan görebilirsiniz. minCaml eğitim amaçlı oluşturulmuş bir OCaml/SML alt kümesi.</li>
 </ul>
 <p>Ayrıca 11 Nisan’dan sonra TOBB ETÜ ile ilişkimi kesmiş olacağım(sonunda!!!!). Sonrasında Nisan sonunda girmem gereken Almanca sınavı var(TOBB ETÜ’deki 2. yabancı dil saçmalığı) ve başarılı olduğumda diplomamı alacağım.</p>]]></summary>
-</entry>
-<entry>
-    <title>An idea to handle left-recursion in Parsec</title>
-    <link href="http://osa1.net/posts/2014-03-07-parsec-left-recursion.html" />
-    <id>http://osa1.net/posts/2014-03-07-parsec-left-recursion.html</id>
-    <published>2014-03-07T00:00:00Z</published>
-    <updated>2014-03-07T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I recently realized that it may be possible to handle left-recursion in Parsec style parser combinator libraries. I quickly wrote a simple prototype implementation that demonstrates the idea.</p>
-<p>The idea is to keep track of parser functions that are called without consuming any tokens from input stream. You should be able to run failure procedures when same parser function is encountered more than one time without consuming any tokens. When a token is consumed, state that is used to keep track of parser functions should be reset.</p>
-<p>One assumption here is that I’m assuming parser functions do not alter any states. Otherwise when you come across a same parser, you can have different state and parser may behave differently.</p>
-<p>Implementing the idea is easy even without having any extra support from Parsec. Here’s a demonstration on my favorite ambiguous grammar:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Exp ::= Int</span>
-<span class="co">--      |  Exp `+` Exp</span>
-
-<span class="kw">data</span> <span class="dt">Exp</span> <span class="fu">=</span> <span class="dt">Int</span> <span class="dt">Int</span>
-         <span class="fu">|</span> <span class="dt">Add</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
-         <span class="kw">deriving</span> (<span class="kw">Show</span>)</code></pre>
-<p>Parsers for non-terminals are easy:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">plus <span class="fu">=</span> char <span class="ch">&#39;+&#39;</span> <span class="fu">&gt;&gt;</span> spaces
-int  <span class="fu">=</span> <span class="fu">fmap</span> (<span class="dt">Int</span> <span class="fu">.</span> <span class="fu">read</span>) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre>
-<p>I’m using a set to keep track of already visited parsers:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">MarksSeen</span> <span class="fu">=</span> <span class="dt">S.Set</span> <span class="dt">Int</span>
-
-<span class="kw">type</span> <span class="dt">RecParser</span> s m a <span class="fu">=</span> <span class="dt">ParsecT</span> s <span class="dt">MarksSeen</span> m a</code></pre>
-<p>Auxiliary functions to alter the state that keeps track of visited parsers:</p>
-<pre><code>putMark i = do
-    is &lt;- getState
-    if S.member i is
-      then fail &quot;recursion&quot;
-      else putState $ S.insert i is
-
-resetMarks = putState S.empty</code></pre>
-<p>Now the interesting part, <code>add</code> parser marks itself as first thing to do, and calls <code>exp</code> parser. Since <code>exp</code> parser is entry point, this means an indirect recursive call. When same <code>putMark</code> call is made, Parsec runs failure actions instead of going into infinte loop:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">add <span class="fu">=</span> <span class="kw">do</span>
-    putMark <span class="dv">1</span>
-    e1 <span class="ot">&lt;-</span> <span class="fu">exp</span>
-    resetMarks
-    plus
-    e2 <span class="ot">&lt;-</span> <span class="fu">exp</span>
-    spaces
-    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">Add</span> e1 e2
-
-<span class="fu">exp</span> <span class="fu">=</span> choice [try add, int]</code></pre>
-<p><code>resetMarks</code> call is also important, <code>exp</code> has to consume some tokens, so after parsing <code>e1</code>, I’m calling <code>resetMarks</code>.</p>
-<p>Here’s an example call of this parser:</p>
-<pre><code>ghci&gt; runParser exp S.empty &quot;&quot; &quot;1 + 2 + 3 + 4&quot;
-Right (Add (Int 1) (Add (Int 2) (Add (Int 3) (Int 4))))</code></pre>
-<p>You can observe that parser gets into an infinite loop when marks are removed. Here’s an example demonstrating the error message:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">rec <span class="fu">=</span> putMark <span class="dv">0</span> <span class="fu">&gt;&gt;</span> rec <span class="fu">&gt;&gt;</span> resetMarks
-
-ghci<span class="fu">&gt;</span> runParser rec S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;&quot;</span>
-<span class="kw">Left</span> (line <span class="dv">1</span>, column <span class="dv">1</span>)<span class="fu">:</span>
-recursion</code></pre>
-<p>One problem with this approach is that it requires more typing, and you should be careful too. Marks can be placed using TemplateHaskell to ensure unique numbers are given to each <code>putMark</code> call. As a second improvement, I think with some modifications on Parsec we can make Parsec to reset marks when a token is consumed(using <em>consumed-ok</em> continuation of <code>ParsecT</code>).</p>
-<p>You can see the complete program <a href="https://gist.github.com/osa1/9414577">here</a>.</p>
-<hr />
-<p>Removing left-recursions in your grammar may not be a huge problem – except when you’re working on functional languages with ML-like syntax. Then you’re out of luck because being functional means you’re <code>Exp</code> non-terminal contains several dozen of productions and function applications is a part of that too, and it’s left-recursive:</p>
-<pre><code>Exp ::= ...
-     |  Exp Exp_1 ... Exp_N [left-associative]
-     ... a hundred more productions ...</code></pre>
-<p>Whenever I need to write a parser for a grammar like this, I’m thinking for an easier way to parse it. I still couldn’t come up with a solution. Idea I just explained does not solve it, because it parses right-associatively. There is one workaround, but I’m not sure if that results with a parser for same grammar:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">app <span class="fu">=</span> <span class="kw">do</span>
-    putMark <span class="dv">2</span>
-    fn <span class="ot">&lt;-</span> <span class="fu">exp</span>
-    resetMarks
-
-    putMark <span class="dv">2</span>
-    as <span class="ot">&lt;-</span> many1 <span class="fu">exp</span>
-    resetMarks
-
-    <span class="fu">return</span> <span class="fu">$</span> <span class="fu">foldl</span> <span class="dt">App</span> fn as
-
-
-ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 2 3 4 + 5 + 6 7&quot;</span>
-<span class="kw">Right</span> (<span class="dt">Add</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Int</span> <span class="dv">2</span>)) (<span class="dt">Int</span> <span class="dv">3</span>)) (<span class="dt">Int</span> <span class="dv">4</span>)) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">5</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">6</span>) (<span class="dt">Int</span> <span class="dv">7</span>))))
-
-ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 + 2 + 3 4&quot;</span>
-<span class="kw">Right</span> (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">2</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">3</span>) (<span class="dt">Int</span> <span class="dv">4</span>))))</code></pre>]]></summary>
 </entry>
 
 </feed>
