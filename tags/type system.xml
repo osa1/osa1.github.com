@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
     <title>osa1.net - Posts tagged type system</title>
-    <link href="http://osa1.net/tags/type system.xml" rel="self" />
+    <link href="http://osa1.net/tags/type%20system.xml" rel="self" />
     <link href="http://osa1.net" />
-    <id>http://osa1.net/tags/type system.xml</id>
+    <id>http://osa1.net/tags/type%20system.xml</id>
     <author>
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
@@ -33,7 +33,7 @@ type(<span class="dt">A</span><span class="kw">,</span> bool) <span class="kw">:
 type(id<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">A</span>)) <span class="kw">:-</span> <span class="kw">!.</span>
 type(add<span class="kw">,</span> arrow(nat<span class="kw">,</span> arrow(nat<span class="kw">,</span> nat))) <span class="kw">:-</span> <span class="kw">!.</span>
 type(not<span class="kw">,</span> arrow(bool<span class="kw">,</span> bool)) <span class="kw">:-</span> <span class="kw">!.</span>
-type(const<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> arrow(<span class="er">_, </span><span class="dt">A</span>)))<span class="kw">.</span></code></pre>
+type(const<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> arrow(<span class="dt">_</span><span class="kw">,</span> <span class="dt">A</span>)))<span class="kw">.</span></code></pre>
 <p>Implementing type definitions as rules in a Prolog system is what makes this implementation simple. Here <code>id</code> is a function with type <code>forall a. a -&gt; a</code>, <code>add</code> is <code>nat -&gt; nat</code>, <code>not</code> is <code>bool -&gt; bool</code>, and <code>const</code> is <code>forall a b. a -&gt; b -&gt; a</code>.</p>
 <p>Type checking of function applications is also simple:</p>
 <pre class="sourceCode prolog"><code class="sourceCode prolog">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
@@ -72,11 +72,11 @@ T = bool.</code></pre>
 type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
     type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span>
     <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span>
-    get<span class="er">_</span><span class="dt">type</span>(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span>
+    get_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span>
     <span class="co">% type already exists in environment</span>
     <span class="kw">!,</span>
     type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span>
-    type<span class="er">_</span><span class="dt">in</span><span class="er">_</span><span class="dt">env</span>(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span>
+    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span>
     <span class="kw">!.</span>
 
 type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
@@ -84,31 +84,31 @@ type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</
     <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span>
     <span class="co">% type doesn&#39;t exist in environment</span>
     type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span>
-    add<span class="er">_</span><span class="dt">type</span>(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span>
-    type<span class="er">_</span><span class="dt">in</span><span class="er">_</span><span class="dt">env</span>(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span>
+    add_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span>
+    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span>
     <span class="kw">!.</span></code></pre>
 <p>First rule is for polymorphic parameters, only difference from the first code is <code>var(A)</code>, which ensures the parameter type is a variable.</p>
 <p>Second rule does a similar check, but this time to ensure the parameter is an atom and not a variable. After that, type of this parameter is looked from an environment and checked against it. The third rule is when a type is not found in the environment. In that case, a new type is added to the environment.</p>
 <p>Note that first cut is required in second rule. Because otherwise, when a type checking fails, third rule would be executed and a new type would be added to the environment.</p>
 <p>Here are environment operations:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">init<span class="er">_</span><span class="dt">state</span>(<span class="dt">Name</span>) <span class="kw">:-</span>
-    empty<span class="er">_</span><span class="dt">assoc</span>(<span class="dt">A</span>)<span class="kw">,</span>
-    nb<span class="er">_</span><span class="dt">setval</span>(<span class="dt">Name</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span>
+<pre class="sourceCode prolog"><code class="sourceCode prolog">init_state(<span class="dt">Name</span>) <span class="kw">:-</span>
+    empty_assoc(<span class="dt">A</span>)<span class="kw">,</span>
+    nb_setval(<span class="dt">Name</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span>
 
-add<span class="er">_</span><span class="dt">type</span>(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span>
-    nb<span class="er">_</span><span class="dt">getval</span>(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span>
-    put<span class="er">_</span><span class="dt">assoc</span>(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">,</span>
-    nb<span class="er">_</span><span class="dt">setval</span>(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">.</span>
+add_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span>
+    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span>
+    put_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">,</span>
+    nb_setval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">.</span>
 
-get<span class="er">_</span><span class="dt">type</span>(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span>
-    nb<span class="er">_</span><span class="dt">getval</span>(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span>
-    get<span class="er">_</span><span class="dt">assoc</span>(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span>)<span class="kw">.</span></code></pre>
+get_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span>
+    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span>
+    get_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span>)<span class="kw">.</span></code></pre>
 <p>Environment operations get a environment name to keep the state local. ie. you can be sure your state is local if name of the state is not used somewhere else :-)</p>
 <p>This helper is used to get type of a term when term is an atom, and it’s type is available in environment. Otherwise it returns the term itself.</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type<span class="er">_</span><span class="dt">in</span><span class="er">_</span><span class="dt">env</span>(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>) <span class="kw">:-</span> get<span class="er">_</span><span class="dt">type</span>(types<span class="kw">,</span> <span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>)<span class="kw">.</span>
-type<span class="er">_</span><span class="dt">in</span><span class="er">_</span><span class="dt">env</span>(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T</span>)<span class="kw">.</span></code></pre>
+<pre class="sourceCode prolog"><code class="sourceCode prolog">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>) <span class="kw">:-</span> get_type(types<span class="kw">,</span> <span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>)<span class="kw">.</span>
+type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T</span>)<span class="kw">.</span></code></pre>
 <p>An example monomorphic function rule:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type(mono<span class="er">_</span><span class="dt">id</span><span class="kw">,</span> arrow(mono<span class="er">_</span><span class="dt">id</span><span class="er">__</span><span class="dt">a</span><span class="kw">,</span> mono<span class="er">_</span><span class="dt">id</span><span class="er">__</span><span class="dt">a</span>)) <span class="kw">:-</span> <span class="kw">!.</span></code></pre>
+<pre class="sourceCode prolog"><code class="sourceCode prolog">type(mono_id<span class="kw">,</span> arrow(mono_id__a<span class="kw">,</span> mono_id__a)) <span class="kw">:-</span> <span class="kw">!.</span></code></pre>
 <p>It should be guaranteed by the programmer that <code>mono_id__a</code> atom is only used for <code>mono_id</code> function.</p>
 <p>Here are some examples for checking monomorphic functions(others work as before):</p>
 <pre><code>?- init_state(types).
@@ -142,7 +142,7 @@ false.</code></pre>
     <updated>2013-02-15T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Bu yazı birkaç gün önce attığım bir mail aslında. Acele ile yazılmış bir yazı olmasına rağmen epey uzun oldu ve maili yazmaya başlamadan önce kafamda karmaşık bir şekilde duran bazı fikirleri toparlamamda yardımcı oldu. Pek kimsenin işine yarayacağını tahmin etmesem de, yine de buraya koyuyorum. Küçük bazı düzenlemeler yaptım. Eklemeler ise yazının en altına yazıldı. Kodlar OCaml dilinde yazıldı.</p>
 <hr />
-<p>Üzerinde çalıştığım dilin tip sistemi hakkında<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>:</p>
+<p>Üzerinde çalıştığım dilin tip sistemi hakkında<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
 <pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> ty =
   | ...
   | <span class="dt">TRow</span> <span class="kw">of</span> tyrow
@@ -154,18 +154,18 @@ false.</code></pre>
 
 <span class="kw">type</span> tyrow =
   | <span class="dt">EmptyRow</span>
-  | <span class="dt">Row</span> (id * ty * ..1..)
-  | ..2..</code></pre>
+  | <span class="dt">Row</span> (id * ty * ..<span class="fl">1.</span>.)
+  | ..<span class="fl">2.</span>.</code></pre>
 <p>1 ve 2 boşluklarını doldurmamız gerekiyor. Sorunlar şunlar:</p>
 <p>1 kısmına yazdığımız tip, sadece yine kendi tipiyle(yani <code>TRow</code> ile) unify etmek zorunda(ilk bakışta <code>tyrow</code> yazmak mantıklı gibi geliyor ama bu yüzden değil).</p>
 <p>2 kısmına yazdığımız constructor polymorphic row’u temsil edecek. Burada ben ilk başta aslında row değişkenlerini tamamen yok sayıp, recordlar extensible mı değil mi diye bir boolean flag tutayım demiştim. Fakat sorun, recordlar rowları paylaşabiliyorlar, örneğin şöyle bir fonksiyonda <code>\r -&gt; r.x = 10</code> tip <code>{r/x} -&gt; {x:int|r/x}</code> oluyor, başka bir yerde bu <code>r</code> kullanılabilir(parametre olarak verilen record başka yerlerde kullanıldığında fonksiyonun dönüş değeri olan recordın row değişkeni ile aynı row değişkenine sahip birden fazla record oluyor). Dolayısıyla bir değişken olmak zorunda.</p>
 <p>Fakat bu <code>typevar</code> tipinde olamaz, çünkü <code>typevar</code> bir <code>ty</code> ile unify edilebiliyor. Rowlarda ise <code>tyrow</code> ile unify etmek istiyoruz. Ayrı bir tip gerekiyor yani.</p>
-<p>Temel olarak row variable ile normal variable tamamen aynı olmalı, tek farkla, row değişkenler sadece row değişkenlerle/değerler ile unify edecek, variablelar da aynı şekilde.<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<p>Temel olarak row variable ile normal variable tamamen aynı olmalı, tek farkla, row değişkenler sadece row değişkenlerle/değerler ile unify edecek, variablelar da aynı şekilde.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
 <h2 id="neden-tip-seviyesinde-kindlara-ihtiyaç-var">Neden tip seviyesinde kindlara ihtiyaç var ?</h2>
-<p>Type schemeler row değişkenler de tutabilir. <code>let</code> ile bir fonksiyon tanımladım, fonksiyon tipindeki free type variableları generalize ederek(terimler teminoloji ile uyumlu olsun diye ingilizce kullanıldı) bu fonksiyon polymorphic hale getiriliyor ve tipi <code>TypeScheme</code> olarak tutuluyor, quantified değişkenler belirtiliyor.<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup></p>
+<p>Type schemeler row değişkenler de tutabilir. <code>let</code> ile bir fonksiyon tanımladım, fonksiyon tipindeki free type variableları generalize ederek(terimler teminoloji ile uyumlu olsun diye ingilizce kullanıldı) bu fonksiyon polymorphic hale getiriliyor ve tipi <code>TypeScheme</code> olarak tutuluyor, quantified değişkenler belirtiliyor.<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a></p>
 <p>Daha sonra bu fonksiyon kullanıldığında instantiate ediliyor. Burada instantiate edilen quantified değişkenler yerine ancak kendi kindlarında tiplerin konulması bir şekilde sağlanmalı.</p>
 <p>Yani şunu demeye çalışıyorum, elimde bir row variable varsa, bu ancak bir row tipi ile yer değiştirebilir(yerine ancak row tipi yazılabilir). Bunu implementasyon sırasında tip sistemi ile garanti etmek gerçekten zor. İnsanlar bu yüzden kind sistemi kullanıyorlar sanırım.</p>
-<p>Kind kullanırsam şöyle oluyor, her tipe bir kind veriyorum. Özet geçmek gerekirse, mesela TVar bir type değişkeni tutuyordu, şimdi bir de kind tutacak. Kindlar ise dilimde kaç tip -birbirlerinden farklı- type varsa, o kadar olacak. Örneğin <code>Star</code> int, bool gibi tipler için kullanılırken, <code>Row</code> row tipleri için kullanılır. Bu sayede bir değişkenim Row kindında ise, quantified edilse de instantiate edilse de bu bilgi taşınır ve en son yerine yazılacağında kind kontrol edilir. Tüm yerine yazmalar <code>kind-preserving</code> olmalıdır.<sup><a href="#fn4" class="footnoteRef" id="fnref4">4</a></sup></p>
+<p>Kind kullanırsam şöyle oluyor, her tipe bir kind veriyorum. Özet geçmek gerekirse, mesela TVar bir type değişkeni tutuyordu, şimdi bir de kind tutacak. Kindlar ise dilimde kaç tip -birbirlerinden farklı- type varsa, o kadar olacak. Örneğin <code>Star</code> int, bool gibi tipler için kullanılırken, <code>Row</code> row tipleri için kullanılır. Bu sayede bir değişkenim Row kindında ise, quantified edilse de instantiate edilse de bu bilgi taşınır ve en son yerine yazılacağında kind kontrol edilir. Tüm yerine yazmalar <code>kind-preserving</code> olmalıdır.<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
 <p>Bu sayede farklı kindlarda type variablelar için aynı fonksiyonları kullanabilirim, sürekli kind bilgisini de taşırım. En son substitution veya unification yaparken, kindların korunup korunmadığını kontrol ederim ve normal type değişkeni yerine row type yazılmamasını sağlarım veya unification sırasında hata alırım.</p>
 <p>–</p>
 <p>Kindlarla beraber tipleri şu şekilde tanımlayabiliyoruz(yaklaşık olarak, henüz programı yazmadım)</p>
@@ -203,16 +203,16 @@ false.</code></pre>
 <span class="co">(* type of {r1} -&gt; {_:int|r1} *)</span>
 <span class="kw">let</span> f   = <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_arr, rp1), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_row_ext, t_int), rp1))</code></pre>
 <p>En sonraki iki tanım örnek olsun diyeydi.</p>
-<p>Karmaşık olduğunun farkındayım ama 1) bu tip sistemi implementasyonları için standard yol gibi geldi bana(çok fazla makalede kind sistemlerinden bahsediliyor) 2) diğer türlü de daha az karmaşık değil gibi.<sup><a href="#fn5" class="footnoteRef" id="fnref5">5</a></sup></p>
+<p>Karmaşık olduğunun farkındayım ama 1) bu tip sistemi implementasyonları için standard yol gibi geldi bana(çok fazla makalede kind sistemlerinden bahsediliyor) 2) diğer türlü de daha az karmaşık değil gibi.<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a></p>
 <p>Burda mesela <code>TApp</code> oluşturan bir yardımcı fonksiyon oluştururuz ve kindları kontrol eder, uyumlu mu diye, bir miktar daha kolaylaşır. Yardımcı fonksiyonlarla işi kolaylaştırabiliriz diye düşünüyorum yani.</p>
 <p>Bu örnekde <code>rp1</code> yerine mesela <code>{a:bool}</code> (yani <code>TApp (TApp (t_rec_ext, bool_ty), t_empty_row)</code>) yazarsak:</p>
 <pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="dt">TApp</span> (<span class="dt">TApp</span> (t_arr, rp1), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_row_ext, t_int), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_rec_ext, bool_ty), t_empty_row)))</code></pre>
 <p>Bana gayet temiz bir şekilde <code>{x:int, a:bool}</code> elde ettik gibi geliyor ve tek yaptığımız yerine yazmak oldu. ( bu sunumda labelların atlandığının farkındayım, tam olarak labelları nasıl bu sisteme entegre ederim düşünmedim )</p>
-<p>Diğer türlü yapılamaz mı, tabii ki yapılabilir ve ben zaten çok yaklaşmıştım. Fakat çirkin olmayan bir yolu yok. Kod içerisinde şöyle kısımlar olmak <em>zorunda</em> gibi: “implementasyonum doğru olduğuna göre bu type variable record ile unify edilmiş olacak, exhaustive olmayan pattern matching yap”. Mesela tüm row değişkenler bir record’a unify edilimş olacak, ben pattern matching ile fieldları alacağım kendi recordıma ekleyeceğim vs.<sup><a href="#fn6" class="footnoteRef" id="fnref6">6</a></sup></p>
+<p>Diğer türlü yapılamaz mı, tabii ki yapılabilir ve ben zaten çok yaklaşmıştım. Fakat çirkin olmayan bir yolu yok. Kod içerisinde şöyle kısımlar olmak <em>zorunda</em> gibi: “implementasyonum doğru olduğuna göre bu type variable record ile unify edilmiş olacak, exhaustive olmayan pattern matching yap”. Mesela tüm row değişkenler bir record’a unify edilimş olacak, ben pattern matching ile fieldları alacağım kendi recordıma ekleyeceğim vs.<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a></p>
 <p>Ama kindler ile yaptığımda bu gibi durumlar olmayacak, ben <code>TApp</code>’lar ile typelar oluşturacağım, kind preserving substitutionlar, generalizationlar, instantiationlar yapılacağından, her zaman row tiplerim well-formed olmuş olacak ben hiçbir kontrol yapmadan <code>TApp</code>’ler oluşturmaya başlayacağım.</p>
 <p>Ben bugün akşam birkaç makale daha inceleyeceğim: Type Inference for Records in a Natural Extension of ML (Didier Rémy) ve A Polymorphic Type System for Extensible Records and Variants (Mark P. Jones, Benedict R. Gaster). Bir de Typing Haskell in Haskell (Mark P. Jones)’a baktım, Haskell’da burada konuştuğumuz anlamda recordlar yok, ama kind sisteminden bahsederken “row kindlar da kolayca eklenebilir” diyerek sanırım yukarıda yaptığım şeyi kastetmekte.</p>
 <p>Bu nasıl olabiliyor anlayabilmiş değilim ama gerçekten internette hiç örnek implementasyon yok. Bu yüzden ben bir tane yazacağım blog yazısı olarak. Polymorphic recordlara sahip bir dil inceleyeyim dedim, bir tanesi <a href="http://elm-lang.org/">Elm</a> adlı bir dil, kaynağı Haskell ile yazılmış temel olarak “Scoped Labels” makalesini kullanmış, ama kod berbat bir durumda. Çok çok karmaşık, kod stili berbat(type annotationlarını atlamış, Haskell’da bunu hiçbir zaman yapmayız, derleyici uyarı verir, annotationlar OCaml’daki gibi kodun içine yazılmaz, ayrı bir satıra yazılır ve anlaşılabilmeye çok katkı sağlarlar) vs. Yine de okunacak olursa en mantıklısı bu.</p>
-<p>İkincisi <a href="http://www.pllab.riec.tohoku.ac.jp/smlsharp/">SML#</a>. Bu da ne yazık ki SML üzerine implement edilmiş ve kaynak kodu devasa. Tüm SML kodunu incelemek gerekecek yani(aradım bulamadım alakalı kısımları).<sup><a href="#fn7" class="footnoteRef" id="fnref7">7</a></sup></p>
+<p>İkincisi <a href="http://www.pllab.riec.tohoku.ac.jp/smlsharp/">SML#</a>. Bu da ne yazık ki SML üzerine implement edilmiş ve kaynak kodu devasa. Tüm SML kodunu incelemek gerekecek yani(aradım bulamadım alakalı kısımları).<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a></p>
 <hr />
 <div class="footnotes">
 <hr />

@@ -24,10 +24,10 @@
 
 <span class="kw">data</span> <span class="dt">Exp</span> <span class="fu">=</span> <span class="dt">Int</span> <span class="dt">Int</span>
          <span class="fu">|</span> <span class="dt">Add</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
-         <span class="kw">deriving</span> (<span class="kw">Show</span>)</code></pre>
+         <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre>
 <p>Parsers for non-terminals are easy:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">plus <span class="fu">=</span> char <span class="ch">&#39;+&#39;</span> <span class="fu">&gt;&gt;</span> spaces
-int  <span class="fu">=</span> <span class="fu">fmap</span> (<span class="dt">Int</span> <span class="fu">.</span> <span class="fu">read</span>) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre>
+int  <span class="fu">=</span> fmap (<span class="dt">Int</span> <span class="fu">.</span> read) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre>
 <p>I’m using a set to keep track of already visited parsers:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">MarksSeen</span> <span class="fu">=</span> <span class="dt">S.Set</span> <span class="dt">Int</span>
 
@@ -43,14 +43,14 @@ resetMarks = putState S.empty</code></pre>
 <p>Now the interesting part, <code>add</code> parser marks itself as first thing to do, and calls <code>exp</code> parser. Since <code>exp</code> parser is entry point, this means an indirect recursive call. When same <code>putMark</code> call is made, Parsec runs failure actions instead of going into infinte loop:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">add <span class="fu">=</span> <span class="kw">do</span>
     putMark <span class="dv">1</span>
-    e1 <span class="ot">&lt;-</span> <span class="fu">exp</span>
+    e1 <span class="ot">&lt;-</span> exp
     resetMarks
     plus
-    e2 <span class="ot">&lt;-</span> <span class="fu">exp</span>
+    e2 <span class="ot">&lt;-</span> exp
     spaces
-    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">Add</span> e1 e2
+    return <span class="fu">$</span> <span class="dt">Add</span> e1 e2
 
-<span class="fu">exp</span> <span class="fu">=</span> choice [try add, int]</code></pre>
+exp <span class="fu">=</span> choice [try add, int]</code></pre>
 <p><code>resetMarks</code> call is also important, <code>exp</code> has to consume some tokens, so after parsing <code>e1</code>, I’m calling <code>resetMarks</code>.</p>
 <p>Here’s an example call of this parser:</p>
 <pre><code>ghci&gt; runParser exp S.empty &quot;&quot; &quot;1 + 2 + 3 + 4&quot;
@@ -59,7 +59,7 @@ Right (Add (Int 1) (Add (Int 2) (Add (Int 3) (Int 4))))</code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">rec <span class="fu">=</span> putMark <span class="dv">0</span> <span class="fu">&gt;&gt;</span> rec <span class="fu">&gt;&gt;</span> resetMarks
 
 ghci<span class="fu">&gt;</span> runParser rec S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;&quot;</span>
-<span class="kw">Left</span> (line <span class="dv">1</span>, column <span class="dv">1</span>)<span class="fu">:</span>
+<span class="dt">Left</span> (line <span class="dv">1</span>, column <span class="dv">1</span>)<span class="fu">:</span>
 recursion</code></pre>
 <p>One problem with this approach is that it requires more typing, and you should be careful too. Marks can be placed using TemplateHaskell to ensure unique numbers are given to each <code>putMark</code> call. As a second improvement, I think with some modifications on Parsec we can make Parsec to reset marks when a token is consumed(using <em>consumed-ok</em> continuation of <code>ParsecT</code>).</p>
 <p>You can see the complete program <a href="https://gist.github.com/osa1/9414577">here</a>.</p>
@@ -71,21 +71,21 @@ recursion</code></pre>
 <p>Whenever I need to write a parser for a grammar like this, I’m thinking for an easier way to parse it. I still couldn’t come up with a solution. Idea I just explained does not solve it, because it parses right-associatively. There is one workaround, but I’m not sure if that results with a parser for same grammar:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">app <span class="fu">=</span> <span class="kw">do</span>
     putMark <span class="dv">2</span>
-    fn <span class="ot">&lt;-</span> <span class="fu">exp</span>
+    fn <span class="ot">&lt;-</span> exp
     resetMarks
 
     putMark <span class="dv">2</span>
-    as <span class="ot">&lt;-</span> many1 <span class="fu">exp</span>
+    as <span class="ot">&lt;-</span> many1 exp
     resetMarks
 
-    <span class="fu">return</span> <span class="fu">$</span> <span class="fu">foldl</span> <span class="dt">App</span> fn as
+    return <span class="fu">$</span> foldl <span class="dt">App</span> fn as
 
 
 ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 2 3 4 + 5 + 6 7&quot;</span>
-<span class="kw">Right</span> (<span class="dt">Add</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Int</span> <span class="dv">2</span>)) (<span class="dt">Int</span> <span class="dv">3</span>)) (<span class="dt">Int</span> <span class="dv">4</span>)) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">5</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">6</span>) (<span class="dt">Int</span> <span class="dv">7</span>))))
+<span class="dt">Right</span> (<span class="dt">Add</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Int</span> <span class="dv">2</span>)) (<span class="dt">Int</span> <span class="dv">3</span>)) (<span class="dt">Int</span> <span class="dv">4</span>)) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">5</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">6</span>) (<span class="dt">Int</span> <span class="dv">7</span>))))
 
 ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 + 2 + 3 4&quot;</span>
-<span class="kw">Right</span> (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">2</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">3</span>) (<span class="dt">Int</span> <span class="dv">4</span>))))</code></pre>]]></summary>
+<span class="dt">Right</span> (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">2</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">3</span>) (<span class="dt">Int</span> <span class="dv">4</span>))))</code></pre>]]></summary>
 </entry>
 <entry>
     <title>Memoized parsing in continuation-passing style</title>
@@ -96,39 +96,39 @@ ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&q
     <summary type="html"><![CDATA[<p>Continuations are truly magical things. They’re the “ultimate abstractions of control flow”. Even without using any fancy language features like <code>call/cc</code>, you can have seriously cool and mind-boggling programs.</p>
 <p>In <a href="http://arxiv.org/pdf/cmp-lg/9504016">“Memoization in Top-Down Parsing”</a> paper, Mark Johnson builds up from memoizing top-down parsers and describes a way to handle left recursion in top-down parsers by combining memoization techniques with continuations.</p>
 <p>I ported the code to Lua to experiment, you can see it <a href="https://gist.github.com/osa1/7089333">here</a>. Most interesting part is the memoized CPS parser generator from a normal CPS parser function:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> memo<span class="ot">(</span><span class="kw">parser</span><span class="ot">)</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> memo<span class="ot">(</span>parser<span class="ot">)</span>
     <span class="co">-- WARNING: this function is badly implemented in the sense that</span>
     <span class="co">-- if you parser generated by this function on two different streams</span>
     <span class="co">-- it will generate wrong results</span>
-    <span class="kw">local</span> <span class="kw">tbl</span> <span class="ot">=</span> <span class="ot">{}</span>
-    <span class="kw">return</span> <span class="kw">function</span> <span class="ot">(</span><span class="kw">stream</span><span class="ot">,</span> <span class="kw">idx</span><span class="ot">,</span> <span class="kw">cont</span><span class="ot">)</span>
-        <span class="kw">if</span> <span class="kw">tbl</span><span class="ot">[</span><span class="kw">idx</span><span class="ot">]</span> <span class="ot">==</span> <span class="kw">nil</span> <span class="kw">then</span>
-            <span class="kw">tbl</span><span class="ot">[</span><span class="kw">idx</span><span class="ot">]</span> <span class="ot">=</span> <span class="ot">{</span> <span class="kw">results</span> <span class="ot">=</span> <span class="ot">{},</span> <span class="kw">conts</span> <span class="ot">=</span> <span class="ot">{}</span> <span class="ot">}</span>
-            <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">tbl</span><span class="ot">[</span><span class="kw">idx</span><span class="ot">].</span><span class="kw">conts</span><span class="ot">,</span> <span class="kw">cont</span><span class="ot">)</span>
-            parser<span class="ot">(</span><span class="kw">stream</span><span class="ot">,</span> <span class="kw">idx</span><span class="ot">,</span> <span class="kw">function</span> <span class="ot">(</span><span class="kw">parse_result</span><span class="ot">)</span>
+    <span class="kw">local</span> tbl <span class="ot">=</span> <span class="ot">{}</span>
+    <span class="kw">return</span> <span class="kw">function</span> <span class="ot">(</span>stream<span class="ot">,</span> idx<span class="ot">,</span> cont<span class="ot">)</span>
+        <span class="kw">if</span> tbl<span class="ot">[</span>idx<span class="ot">]</span> <span class="ot">==</span> <span class="kw">nil</span> <span class="kw">then</span>
+            tbl<span class="ot">[</span>idx<span class="ot">]</span> <span class="ot">=</span> <span class="ot">{</span> results <span class="ot">=</span> <span class="ot">{},</span> conts <span class="ot">=</span> <span class="ot">{}</span> <span class="ot">}</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>tbl<span class="ot">[</span>idx<span class="ot">].</span>conts<span class="ot">,</span> cont<span class="ot">)</span>
+            parser<span class="ot">(</span>stream<span class="ot">,</span> idx<span class="ot">,</span> <span class="kw">function</span> <span class="ot">(</span>parse_result<span class="ot">)</span>
                 <span class="co">-- check if same parse_result is already in the table</span>
-                <span class="kw">local</span> <span class="kw">exists</span> <span class="ot">=</span> <span class="kw">false</span>
-                <span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">result</span> <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span><span class="kw">tbl</span><span class="ot">[</span><span class="kw">idx</span><span class="ot">].</span><span class="kw">results</span><span class="ot">)</span> <span class="kw">do</span>
-                    <span class="kw">if</span> <span class="kw">result</span> <span class="ot">==</span> <span class="kw">parse_result</span> <span class="kw">then</span> <span class="co">-- TODO: this equality is probably wrong</span>
-                        <span class="kw">exists</span> <span class="ot">=</span> <span class="kw">true</span>
+                <span class="kw">local</span> exists <span class="ot">=</span> <span class="kw">false</span>
+                <span class="kw">for</span> _<span class="ot">,</span> result <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span>tbl<span class="ot">[</span>idx<span class="ot">].</span>results<span class="ot">)</span> <span class="kw">do</span>
+                    <span class="kw">if</span> result <span class="ot">==</span> parse_result <span class="kw">then</span> <span class="co">-- TODO: this equality is probably wrong</span>
+                        exists <span class="ot">=</span> <span class="kw">true</span>
                         <span class="kw">break</span>
                     <span class="kw">end</span>
                 <span class="kw">end</span>
  
-                <span class="kw">if</span> <span class="kw">not</span> <span class="kw">exists</span> <span class="kw">then</span>
-                    <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">tbl</span><span class="ot">[</span><span class="kw">idx</span><span class="ot">].</span><span class="kw">results</span><span class="ot">,</span> <span class="kw">parse_result</span><span class="ot">)</span>
-                    <span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">cont</span> <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span><span class="kw">tbl</span><span class="ot">[</span><span class="kw">idx</span><span class="ot">].</span><span class="kw">conts</span><span class="ot">)</span> <span class="kw">do</span>
-                        cont<span class="ot">(</span><span class="kw">parse_result</span><span class="ot">)</span>
+                <span class="kw">if</span> <span class="kw">not</span> exists <span class="kw">then</span>
+                    <span class="fu">table.insert</span><span class="ot">(</span>tbl<span class="ot">[</span>idx<span class="ot">].</span>results<span class="ot">,</span> parse_result<span class="ot">)</span>
+                    <span class="kw">for</span> _<span class="ot">,</span> cont <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span>tbl<span class="ot">[</span>idx<span class="ot">].</span>conts<span class="ot">)</span> <span class="kw">do</span>
+                        cont<span class="ot">(</span>parse_result<span class="ot">)</span>
                     <span class="kw">end</span>
                 <span class="kw">end</span>
             <span class="kw">end</span><span class="ot">)</span>
         <span class="kw">else</span>
-            <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">tbl</span><span class="ot">[</span><span class="kw">idx</span><span class="ot">].</span><span class="kw">conts</span><span class="ot">,</span> <span class="kw">cont</span><span class="ot">)</span>
-            <span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">result</span> <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span><span class="kw">tbl</span><span class="ot">[</span><span class="kw">idx</span><span class="ot">].</span><span class="kw">results</span><span class="ot">)</span> <span class="kw">do</span>
-                cont<span class="ot">(</span><span class="kw">result</span><span class="ot">)</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>tbl<span class="ot">[</span>idx<span class="ot">].</span>conts<span class="ot">,</span> cont<span class="ot">)</span>
+            <span class="kw">for</span> _<span class="ot">,</span> result <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span>tbl<span class="ot">[</span>idx<span class="ot">].</span>results<span class="ot">)</span> <span class="kw">do</span>
+                cont<span class="ot">(</span>result<span class="ot">)</span>
             <span class="kw">end</span>
         <span class="kw">end</span>
-        <span class="kw">return</span> <span class="kw">tbl</span><span class="ot">[</span><span class="kw">idx</span><span class="ot">]</span>
+        <span class="kw">return</span> tbl<span class="ot">[</span>idx<span class="ot">]</span>
     <span class="kw">end</span>
 <span class="kw">end</span></code></pre>
 <p>(btw, I found porting this code to a purely functional setting very hard thing to do. If you find a way to do this, please send me your code. Thanks.)</p>

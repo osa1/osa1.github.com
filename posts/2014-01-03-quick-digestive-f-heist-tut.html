@@ -35,28 +35,28 @@
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></code></pre>
 <p>Even though our program doesn’t do anything interesting, we still need to use about 10 libraries. I’m showing the package name when a non-standard(e.g. the ones distributed with Haskell Platform) module is imported.</p>
 <p>from `blaze-builder’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Blaze.ByteString.Builder   (toByteString)</code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Control.Applicative        (Applicative (..), (&lt;$&gt;), (&lt;*&gt;))
-<span class="ot">&gt;</span> <span class="kw">import</span>           Control.Monad.IO.Class     (MonadIO)</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Blaze.ByteString.Builder</span>   (toByteString)</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Applicative</span>        (<span class="dt">Applicative</span> (..), (&lt;$&gt;), (&lt;*&gt;))
+<span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Monad.IO.Class</span>     (<span class="dt">MonadIO</span>)</code></pre>
 <p>from `either’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Control.Monad.Trans.Either (EitherT, runEitherT)</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Monad.Trans.Either</span> (<span class="dt">EitherT</span>, runEitherT)</code></pre>
 <p>from `bytestring’ package, needed for putStrLn function on bytestrings</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span> <span class="kw">qualified</span> Data.ByteString.Char8      <span class="kw">as</span> BS (putStrLn)</code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Data.Maybe                 (isJust)
-<span class="ot">&gt;</span> <span class="kw">import</span> <span class="kw">qualified</span> Data.Text                  <span class="kw">as</span> T</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Data.ByteString.Char8</span>      <span class="kw">as</span> <span class="dt">BS</span> (putStrLn)</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Data.Maybe</span>                 (isJust)
+<span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Data.Text</span>                  <span class="kw">as</span> <span class="dt">T</span></code></pre>
 <p>from `heist’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Heist
-<span class="ot">&gt;</span> <span class="kw">import</span> <span class="kw">qualified</span> Heist.Interpreted          <span class="kw">as</span> HI</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Heist</span>
+<span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Heist.Interpreted</span>          <span class="kw">as</span> <span class="dt">HI</span></code></pre>
 <p>from `digestive-functors’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive</span></code></pre>
 <p>from `digestive-functors-heist’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive.Heist       (bindDigestiveSplices)</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive.Heist</span>       (bindDigestiveSplices)</code></pre>
 <p>In this program, we’ll have one data type that represents a User in our app. I’m planning to extend this post later on to add CRUD database operations on same data type.</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">data</span> <span class="dt">User</span> <span class="fu">=</span> <span class="dt">User</span>
 <span class="ot">&gt;</span>     {<span class="ot"> uUsername ::</span> <span class="dt">T.Text</span>
 <span class="ot">&gt;</span>     ,<span class="ot"> uEmail    ::</span> <span class="dt">T.Text</span>
 <span class="ot">&gt;</span>     ,<span class="ot"> uKarma    ::</span> <span class="dt">Int</span>
-<span class="ot">&gt;</span>     } <span class="kw">deriving</span> (<span class="kw">Show</span>)</code></pre>
+<span class="ot">&gt;</span>     } <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre>
 <p><code>userForm</code> is a digestive-functors form for User type, which is used for creating new User and modifying existing User.</p>
 <p>In the return type:</p>
 <ul>
@@ -65,10 +65,10 @@
 <li>Third argument is return type of this form. Form return types are used when combining forms using applicative instance. For example, a form that asks user for a text can be used to get a text value.</li>
 </ul>
 <p><code>.:</code> operator is used to assign a name to form fields. This names are later used in templates, POST request environments and probably in some other places.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; userForm ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; userForm ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span>
 <span class="ot">&gt;</span> userForm <span class="fu">=</span> <span class="dt">User</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="kw">Nothing</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="kw">Nothing</span>)
+<span class="ot">&gt;</span>     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="dt">Nothing</span>
+<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="dt">Nothing</span>)
 <span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> pure <span class="dv">0</span>
 <span class="ot">&gt;</span>   <span class="kw">where</span>
 <span class="ot">&gt;</span>     <span class="co">-- in our example, we don't need to use `m` monad for validation. if we</span>
@@ -83,8 +83,8 @@
 <span class="ot">&gt;</span> initHeistState <span class="fu">=</span> <span class="kw">do</span>
 <span class="ot">&gt;</span>     st <span class="ot">&lt;-</span> runEitherT <span class="fu">$</span> initHeist heistConfig
 <span class="ot">&gt;</span>     <span class="kw">case</span> st <span class="kw">of</span>
-<span class="ot">&gt;</span>       <span class="kw">Left</span> errors <span class="ot">-&gt;</span> <span class="fu">error</span> <span class="fu">$</span> <span class="fu">unlines</span> errors
-<span class="ot">&gt;</span>       <span class="kw">Right</span> state <span class="ot">-&gt;</span> <span class="fu">return</span> state
+<span class="ot">&gt;</span>       <span class="dt">Left</span> errors <span class="ot">-&gt;</span> error <span class="fu">$</span> unlines errors
+<span class="ot">&gt;</span>       <span class="dt">Right</span> state <span class="ot">-&gt;</span> return state
 <span class="ot">&gt;</span>   <span class="kw">where</span>
 <span class="ot">&gt;     heistConfig ::</span> <span class="dt">HeistConfig</span> m
 <span class="ot">&gt;</span>     <span class="co">-- In HeistConfig, we need to specify what load-time, compile-time and</span>
@@ -116,15 +116,15 @@
 <p>Because of a problem, we can’t use <code>digestiveSplices form</code> to get splices and then bind them manually using <code>bindSplices</code>. I think this is because of a type mismatch caused by current versions of digestive-functors-heist and heist libraries. So we need to use <code>bindDigestiveSplices</code> from <code>Text.Digestive.Heist</code> (<code>digestive-functors-heist</code> package).</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span>     maybeBuilder <span class="ot">&lt;-</span> HI.renderTemplate (bindDigestiveSplices formView hs) <span class="st">&quot;user_form&quot;</span>
 <span class="ot">&gt;</span>     <span class="kw">case</span> maybeBuilder <span class="kw">of</span>
-<span class="ot">&gt;</span>       <span class="kw">Nothing</span> <span class="ot">-&gt;</span>
+<span class="ot">&gt;</span>       <span class="dt">Nothing</span> <span class="ot">-&gt;</span>
 <span class="ot">&gt;</span>         <span class="co">-- This happens when wrong template name is given to `renderTemplate`.</span>
-<span class="ot">&gt;</span>         <span class="fu">error</span> <span class="st">&quot;template is not rendered&quot;</span>
-<span class="ot">&gt;</span>       <span class="kw">Just</span> (builder, mimeType) <span class="ot">-&gt;</span> <span class="kw">do</span>
+<span class="ot">&gt;</span>         error <span class="st">&quot;template is not rendered&quot;</span>
+<span class="ot">&gt;</span>       <span class="dt">Just</span> (builder, mimeType) <span class="ot">-&gt;</span> <span class="kw">do</span>
 <span class="ot">&gt;</span>         <span class="co">-- here `builder` has type `Blaze.ByteString.Builder.Builder` from</span>
 <span class="ot">&gt;</span>         <span class="co">-- `blaze-builder` package. It's used to efficiently build</span>
 <span class="ot">&gt;</span>         <span class="co">-- ByteStrings.</span>
 <span class="ot">&gt;</span>         BS.putStrLn (toByteString builder)
-<span class="ot">&gt;</span>         <span class="fu">print</span> mimeType</code></pre>
+<span class="ot">&gt;</span>         print mimeType</code></pre>
 <p>I’m just printing stuff, since this app is mostly for learning purposes.</p>
 <p>In main function, I do three things:</p>
 <ol style="list-style-type: decimal">
@@ -149,28 +149,28 @@
 <span class="ot">&gt;</span> 
 <span class="ot">&gt;</span>     <span class="co">-- Here the type T.Text comes from first argument of userForm's return</span>
 <span class="ot">&gt;</span>     <span class="co">-- type</span>
-<span class="ot">&gt;</span>     (formView, maybeUser) <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm (<span class="fu">const</span> <span class="fu">$</span> <span class="fu">return</span> [])
+<span class="ot">&gt;</span>     (formView, maybeUser) <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm (const <span class="fu">$</span> return [])
 <span class="ot">&gt;                                ::</span> <span class="dt">IO</span> (<span class="dt">View</span> <span class="dt">T.Text</span>, <span class="dt">Maybe</span> <span class="dt">User</span>)
-<span class="ot">&gt;</span>     <span class="fu">print</span> maybeUser
+<span class="ot">&gt;</span>     print maybeUser
 <span class="ot">&gt;</span>     renderForm hs formView
 <span class="ot">&gt;</span> 
 <span class="ot">&gt;</span> 
 <span class="ot">&gt;</span>     <span class="co">-- Case 2, POST request with invalid email address</span>
-<span class="ot">&gt;</span>     <span class="kw">let</span> env path <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
+<span class="ot">&gt;</span>     <span class="kw">let</span> env path <span class="fu">=</span> return <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
 <span class="ot">&gt;</span>                               [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;username&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;testuser&quot;</span>]
 <span class="ot">&gt;</span>                               [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;email&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;invalidemail&quot;</span>]
 <span class="ot">&gt;</span>                               _ <span class="ot">-&gt;</span> []
 <span class="ot">&gt;</span>     (formView', maybeUser') <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm env
-<span class="ot">&gt;</span>     <span class="fu">print</span> maybeUser'
+<span class="ot">&gt;</span>     print maybeUser'
 <span class="ot">&gt;</span>     renderForm hs formView'
 <span class="ot">&gt;</span> 
 <span class="ot">&gt;</span>     <span class="co">-- Case 3, POST request with valid email address and username</span>
-<span class="ot">&gt;</span>     <span class="kw">let</span> env' path <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
+<span class="ot">&gt;</span>     <span class="kw">let</span> env' path <span class="fu">=</span> return <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
 <span class="ot">&gt;</span>                                [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;username&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;testuser&quot;</span>]
 <span class="ot">&gt;</span>                                [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;email&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;valid@email.com&quot;</span>]
 <span class="ot">&gt;</span>                                _ <span class="ot">-&gt;</span> []
 <span class="ot">&gt;</span>     (formView'', maybeUser'') <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm env'
-<span class="ot">&gt;</span>     <span class="fu">print</span> maybeUser''
+<span class="ot">&gt;</span>     print maybeUser''
 <span class="ot">&gt;</span>     renderForm hs formView''</code></pre>
 <p>Now our program is almost complete, only detail left is the Heist template file. We specified the template path in <code>initHeistState</code> as <code>templates</code> folder, and we’re rendering Heist template named <code>user_form</code> in <code>renderForm</code>. So the template file we need should be <code>templates/user_form.tpl</code>.</p>
 <p>Here’s the template file:</p>
@@ -188,7 +188,7 @@
 <p>One problem here is that there’s no way to know which tags to put in template file. I wrote this file mostly by looking to source code of <code>bindDigestiveSplices</code>, trial-and-error, and some open source examples.</p>
 <p>Output should be something like: (after creating the template file, see below)</p>
 <p>Case 1:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">Nothing</span></code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Nothing</span></code></pre>
 <p>because POST request environment is not valid, so it’s not possible to create a User object.</p>
 <pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;form</span><span class="ot"> method=</span><span class="st">'POST'</span><span class="ot"> enctype=</span><span class="st">'application/x-www-form-urlencoded'</span><span class="kw">&gt;</span>
     <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">'userform.username'</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/label&gt;</span>
@@ -203,7 +203,7 @@
 <span class="kw">&lt;/form&gt;</span></code></pre>
 <p>User form is generated without filling any values and no error messages.</p>
 <p>Case 2:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">Nothing</span></code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Nothing</span></code></pre>
 <p>because email information in POST request environment is invalid.</p>
 <pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;form</span><span class="ot"> method=</span><span class="st">'POST'</span><span class="ot"> enctype=</span><span class="st">'application/x-www-form-urlencoded'</span><span class="kw">&gt;</span>
     <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">'userform.username'</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/label&gt;</span>
@@ -218,7 +218,7 @@
 <span class="kw">&lt;/form&gt;</span></code></pre>
 <p>User form is generated with fields filled and an error message is rendered.</p>
 <p>Case 3:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">Just</span> (<span class="dt">User</span> {uUsername <span class="fu">=</span> <span class="st">&quot;testuser&quot;</span>, uEmail <span class="fu">=</span> <span class="st">&quot;valid@email.com&quot;</span>, uKarma <span class="fu">=</span> <span class="dv">0</span>})</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Just</span> (<span class="dt">User</span> {uUsername <span class="fu">=</span> <span class="st">&quot;testuser&quot;</span>, uEmail <span class="fu">=</span> <span class="st">&quot;valid@email.com&quot;</span>, uKarma <span class="fu">=</span> <span class="dv">0</span>})</code></pre>
 <p>Since form data is valid, a User object is created.</p>
 <pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;form</span><span class="ot"> method=</span><span class="st">'POST'</span><span class="ot"> enctype=</span><span class="st">'application/x-www-form-urlencoded'</span><span class="kw">&gt;</span>
     <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">'userform.username'</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/label&gt;</span>

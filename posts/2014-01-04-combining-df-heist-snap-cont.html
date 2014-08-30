@@ -34,21 +34,21 @@
 <p>Required for some Snap features</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="ot">{-# LANGUAGE TemplateHaskell     #-}</span></code></pre>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">module</span> <span class="dt">Tut2</span> (app) <span class="kw">where</span></code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Control.Applicative        (Applicative (..), (&lt;$&gt;))
-<span class="ot">&gt;</span> <span class="kw">import</span>           Data.Maybe                 (isJust)
-<span class="ot">&gt;</span> <span class="kw">import</span> <span class="kw">qualified</span> Data.Text                  <span class="kw">as</span> T</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Applicative</span>        (<span class="dt">Applicative</span> (..), (&lt;$&gt;))
+<span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Data.Maybe</span>                 (isJust)
+<span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Data.Text</span>                  <span class="kw">as</span> <span class="dt">T</span></code></pre>
 <p>from `digestive-functors’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive</span></code></pre>
 <p>from `digestive-functors-heist’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive.Heist       (bindDigestiveSplices)</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive.Heist</span>       (bindDigestiveSplices)</code></pre>
 <p>from <code>lens</code> package, required for Snaplets</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Control.Lens</code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Snap.Snaplet
-<span class="ot">&gt;</span> <span class="kw">import</span>           Snap.Snaplet.Heist</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Lens</span></code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Snap.Snaplet</span>
+<span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Snap.Snaplet.Heist</span></code></pre>
 <p>from <code>bytestring</code> package, required for some Snap functions</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span> <span class="kw">qualified</span> Data.ByteString            <span class="kw">as</span> B</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Data.ByteString</span>            <span class="kw">as</span> <span class="dt">B</span></code></pre>
 <p>from <code>digestive-functors-snap</code> package, required for form rendering, we had handled that using <code>getForm</code> and <code>postForm</code> from <code>Text.Digestive.Heist</code> before.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive.Snap        (runForm)</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive.Snap</span>        (runForm)</code></pre>
 <p><code>snap init</code> creates a project with only this code in <code>Application.hs</code>:</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">data</span> <span class="dt">App</span> <span class="fu">=</span> <span class="dt">App</span>
 <span class="ot">&gt;</span>     { _<span class="ot">heist ::</span> <span class="dt">Snaplet</span> (<span class="dt">Heist</span> <span class="dt">App</span>)
@@ -61,19 +61,19 @@
 <p>In this post I’m copying this code to <code>Site.hs</code> and removing <code>Application.hs</code> file. Here, I only changed the definition of <code>App</code>. Since our application is minimal, we only need Heist Snaplet nested in our App. When we need other functionalities in the future(like database access), we will extend this definition for new Snaplets.</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; app ::</span> <span class="dt">SnapletInit</span> <span class="dt">App</span> <span class="dt">App</span></code></pre>
 <p>First type parameter of SnapletInit is for type of parent Snaplet. In our case, we don’t have a parent Snaplet but I guess this is what you do in that case. Second type is currently initialized Snaplet’s type.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> app <span class="fu">=</span> makeSnaplet <span class="st">&quot;app&quot;</span> <span class="st">&quot;An snaplet example application&quot;</span> <span class="kw">Nothing</span> <span class="fu">$</span> <span class="kw">do</span></code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> app <span class="fu">=</span> makeSnaplet <span class="st">&quot;app&quot;</span> <span class="st">&quot;An snaplet example application&quot;</span> <span class="dt">Nothing</span> <span class="fu">$</span> <span class="kw">do</span></code></pre>
 <p>Type of <code>makeSnaplet</code> is really helpful to understand what’s going on at the level of types:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">makeSnaplet
 <span class="ot">  ::</span> <span class="dt">T.Text</span>                  <span class="co">-- ^ Default ID of the Snaplet, I have no idea where is this used.</span>
      <span class="ot">-&gt;</span> <span class="dt">T.Text</span>               <span class="co">-- ^ Description of the Snaplet, again, no idea where is this used.</span>
-     <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IO</span> <span class="fu">FilePath</span>)  <span class="co">-- ^ Root folder for Snaplet's filesystem content. In case your Snaplet works on files.</span>
+     <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IO</span> <span class="dt">FilePath</span>)  <span class="co">-- ^ Root folder for Snaplet's filesystem content. In case your Snaplet works on files.</span>
      <span class="ot">-&gt;</span> <span class="dt">Initializer</span> b v v    <span class="co">-- ^ Initializer for the Snaplet.</span>
      <span class="ot">-&gt;</span> <span class="dt">SnapletInit</span> b v      <span class="co">-- ^ SnapletInit is an opaque type for internal use. It's needed for embedding our snaplet to other snaplets.</span></code></pre>
 <p>We’re nesting Heist snaplet provided by <code>Snap.Snaplet.Heist</code> from <code>snap</code> package</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span>    h <span class="ot">&lt;-</span> nestSnaplet <span class="st">&quot;&quot;</span> heist <span class="fu">$</span> heistInit <span class="st">&quot;templates&quot;</span></code></pre>
 <p>self explanatory, see definition below</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span>    addRoutes routes
-<span class="ot">&gt;</span>    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">App</span> h
+<span class="ot">&gt;</span>    return <span class="fu">$</span> <span class="dt">App</span> h
 <span class="ot">&gt;</span>  <span class="kw">where</span>
 <span class="ot">&gt;    routes ::</span> [(<span class="dt">B.ByteString</span>, <span class="dt">Handler</span> <span class="dt">App</span> <span class="dt">App</span> ())]</code></pre>
 <p>routes are how we handle requests. <code>Handler</code> type takes 3 arguments, but I’m yet to figure out what do these arguments mean. I guess these are same as arguments in <code>SnapletInit</code> type, except the last one is for return values of Handler functions.</p>
@@ -88,13 +88,13 @@
 <span class="ot">&gt;</span>     {<span class="ot"> uUsername ::</span> <span class="dt">T.Text</span>
 <span class="ot">&gt;</span>     ,<span class="ot"> uEmail    ::</span> <span class="dt">T.Text</span>
 <span class="ot">&gt;</span>     ,<span class="ot"> uKarma    ::</span> <span class="dt">Int</span>
-<span class="ot">&gt;</span>     } <span class="kw">deriving</span> (<span class="kw">Show</span>)
+<span class="ot">&gt;</span>     } <span class="kw">deriving</span> (<span class="dt">Show</span>)
 <span class="ot">&gt;</span> 
 <span class="ot">&gt;</span> 
-<span class="ot">&gt; userForm ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span>
+<span class="ot">&gt; userForm ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span>
 <span class="ot">&gt;</span> userForm <span class="fu">=</span> <span class="dt">User</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="kw">Nothing</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="kw">Nothing</span>)
+<span class="ot">&gt;</span>     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="dt">Nothing</span>
+<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="dt">Nothing</span>)
 <span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> pure <span class="dv">0</span>
 <span class="ot">&gt;</span>   <span class="kw">where</span>
 <span class="ot">&gt;     validateEmail ::</span> <span class="dt">T.Text</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>

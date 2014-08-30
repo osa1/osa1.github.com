@@ -75,7 +75,7 @@ Proof.
   induction n using nat10ind; auto.
   simpl. f_equal. assumption.
 Qed.</code></pre>
-<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
+<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
 <hr />
 <div class="footnotes">
 <hr />

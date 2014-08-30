@@ -27,8 +27,8 @@
 <p>Every monad in Haskell is potentially a DSL. You can define commands(ie. functions) in a syntax that looks almost like syntax in imperative languages even if you’re doing a purely functional computation(for imperative computations, see IO monad). When you write a monad and some functions working with this monad, you basically write operations of a kind of computations, and a way to combine this computations(with <code>&gt;&gt;=</code> function, read as bind).</p>
 <p>This gives you two great advantages. First, monads give you an elegant way to separate combination and calculation logic, and second, it gives you an opportunity to create syntactic abstractions.</p>
 <p>For example, you don’t have to pass some states around functions thank to monads. You can just create a monad with functions getting a state and returning some values and the new state. Then you can define your combination logic(bind functions) and with the help of <code>do</code> notation, you can write almost imperative looking code, passing states automatically. See example:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Monad.State
-<span class="kw">import</span> Control.Monad
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Control.Monad.State</span>
+<span class="kw">import </span><span class="dt">Control.Monad</span>
 <span class="kw">type</span> <span class="dt">AvgState</span> <span class="fu">=</span> <span class="dt">State</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="dt">Int</span>
 state0 <span class="fu">=</span> (<span class="dv">0</span>, <span class="dv">0</span>)
  
@@ -36,7 +36,7 @@ state0 <span class="fu">=</span> (<span class="dv">0</span>, <span class="dv">0<
 addAvg x <span class="fu">=</span> <span class="kw">do</span>
     (count, total) <span class="ot">&lt;-</span> get
     put (count<span class="fu">+</span><span class="dv">1</span>, total<span class="fu">+</span>x)
-    <span class="fu">return</span> <span class="fu">$</span> (total<span class="fu">+</span>x) <span class="ot">`div`</span> (count<span class="fu">+</span><span class="dv">1</span>)
+    return <span class="fu">$</span> (total<span class="fu">+</span>x) <span class="ot">`div`</span> (count<span class="fu">+</span><span class="dv">1</span>)
  
 <span class="ot">test ::</span> <span class="dt">AvgState</span>
 test <span class="fu">=</span> <span class="kw">do</span>
@@ -46,7 +46,7 @@ test <span class="fu">=</span> <span class="kw">do</span>
  
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
-    <span class="fu">print</span> <span class="fu">$</span> evalState test state0</code></pre>
+    print <span class="fu">$</span> evalState test state0</code></pre>
 <p>Here I’m calculating arithmetic average of some integers. <code>type AvgState</code> is my data type representing the sum of the numbers I give and the total count of numbers. Here I don’t write a new monad, instead I use Haskell’s State monad, contained in <code>Control.Monad.State</code> package.</p>
 <p><code>addAvg</code> functions is the main logic. If you look at it, it almost looks like an imperative program, I’m reading some values and changing them by adding them one, and returning a new value(note that I’m not returning any new states, it’s being handled my the monad itself), but still it’s purely functional.</p>
 <p>Now how’s that a DSL? Look at <code>test</code> function and hopefully you’ll see :) .</p>
@@ -63,7 +63,7 @@ msgCmd <span class="fu">=</span> <span class="kw">do</span>
     spaces
     msg <span class="ot">&lt;-</span> many1 anyChar
     eof
-    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">MsgCmd</span> chan msg</code></pre>
+    return <span class="fu">$</span> <span class="dt">MsgCmd</span> chan msg</code></pre>
 <p>I’m using Parsec’s <code>Parser</code> monads with <code>do</code> notation and it looks almost like Backus–Naur Form. chanName mathes list of letters, ‘-’ character, or digits with at least one element. This is a parser. And then I’m using this parser in my <code>msgCmd</code> parser. It matches a string “msg”, then arbitrary number of spaces, then <code>chanName</code>, then spaces again, and at last any characters.</p>
 
 <hr />

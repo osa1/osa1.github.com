@@ -19,18 +19,18 @@
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span>
 <span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import</span>           Language.Lua.Parser
-<span class="kw">import</span>           Language.Lua.Types
+<span class="kw">import           </span><span class="dt">Language.Lua.Parser</span>
+<span class="kw">import           </span><span class="dt">Language.Lua.Types</span>
 
-<span class="kw">import</span> <span class="kw">qualified</span> Language.ECMAScript3.Syntax       <span class="kw">as</span> JS
-<span class="kw">import</span>           Language.ECMAScript3.PrettyPrint  (renderExpression)
+<span class="kw">import qualified</span> <span class="dt">Language.ECMAScript3.Syntax</span>       <span class="kw">as</span> <span class="dt">JS</span>
+<span class="kw">import           </span><span class="dt">Language.ECMAScript3.PrettyPrint</span>  (renderExpression)
 
-<span class="kw">import</span>           System.Environment                (getArgs)
-<span class="kw">import</span>           Control.Monad
-<span class="kw">import</span>           Prelude                           <span class="kw">hiding</span> (exp)
+<span class="kw">import           </span><span class="dt">System.Environment</span>                (getArgs)
+<span class="kw">import           </span><span class="dt">Control.Monad</span>
+<span class="kw">import           </span><span class="dt">Prelude</span>                           <span class="kw">hiding</span> (exp)
 
-<span class="ot">unsupported ::</span> <span class="kw">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b
-unsupported <span class="fu">=</span> <span class="fu">error</span> <span class="fu">.</span> (<span class="st">&quot;unsupported exp: &quot;</span> <span class="fu">++</span>) <span class="fu">.</span> <span class="fu">show</span>
+<span class="ot">unsupported ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b
+unsupported <span class="fu">=</span> error <span class="fu">.</span> (<span class="st">&quot;unsupported exp: &quot;</span> <span class="fu">++</span>) <span class="fu">.</span> show
 
 <span class="kw">class</span> <span class="dt">ToJsExp</span> a <span class="kw">where</span>
 <span class="ot">    toJsExp ::</span> a <span class="ot">-&gt;</span> <span class="dt">JS.Expression</span> ()
@@ -38,33 +38,33 @@ unsupported <span class="fu">=</span> <span class="fu">error</span> <span class=
 <span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Exp</span> a) <span class="kw">where</span>
     toJsExp (<span class="dt">Nil</span> _) <span class="fu">=</span> <span class="dt">JS.NullLit</span> ()
     toJsExp (<span class="dt">Bool</span> _ bool) <span class="fu">=</span> <span class="dt">JS.BoolLit</span> () bool
-    toJsExp (<span class="dt">Number</span> _ num) <span class="fu">=</span> <span class="dt">JS.NumLit</span> () (<span class="fu">read</span> num)
+    toJsExp (<span class="dt">Number</span> _ num) <span class="fu">=</span> <span class="dt">JS.NumLit</span> () (read num)
     toJsExp (<span class="dt">String</span> _ str) <span class="fu">=</span> <span class="dt">JS.StringLit</span> () str
     toJsExp (<span class="dt">TableConst</span> _ table) <span class="fu">=</span> toJsExp table
-    toJsExp unsupportedexp <span class="fu">=</span> unsupported (<span class="fu">fmap</span> (<span class="fu">const</span> ()) unsupportedexp)
+    toJsExp unsupportedexp <span class="fu">=</span> unsupported (fmap (const ()) unsupportedexp)
 
 <span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Table</span> a) <span class="kw">where</span>
     toJsExp (<span class="dt">Table</span> _ fields)
-      <span class="fu">|</span> <span class="fu">all</span> arrField fields <span class="fu">=</span>
-          <span class="dt">JS.ArrayLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">Field</span> _ <span class="fu">exp</span>) <span class="ot">-&gt;</span> toJsExp <span class="fu">exp</span>) fields
-      <span class="fu">|</span> <span class="fu">all</span> objField fields <span class="fu">=</span>
-          <span class="dt">JS.ObjectLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">NamedField</span> _ (<span class="dt">Name</span> _ name) <span class="fu">exp</span>) <span class="ot">-&gt;</span> (<span class="dt">JS.PropId</span> () (<span class="dt">JS.Id</span> () name), toJsExp <span class="fu">exp</span>)) fields
-      <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> unsupported (<span class="fu">map</span> (<span class="fu">fmap</span> (<span class="fu">const</span> ())) fields)
+      <span class="fu">|</span> all arrField fields <span class="fu">=</span>
+          <span class="dt">JS.ArrayLit</span> () <span class="fu">$</span> map (\(<span class="dt">Field</span> _ exp) <span class="ot">-&gt;</span> toJsExp exp) fields
+      <span class="fu">|</span> all objField fields <span class="fu">=</span>
+          <span class="dt">JS.ObjectLit</span> () <span class="fu">$</span> map (\(<span class="dt">NamedField</span> _ (<span class="dt">Name</span> _ name) exp) <span class="ot">-&gt;</span> (<span class="dt">JS.PropId</span> () (<span class="dt">JS.Id</span> () name), toJsExp exp)) fields
+      <span class="fu">|</span> otherwise <span class="fu">=</span> unsupported (map (fmap (const ())) fields)
 
       <span class="kw">where</span>
-        arrField <span class="dt">Field</span>{} <span class="fu">=</span> <span class="kw">True</span>
-        arrField _       <span class="fu">=</span> <span class="kw">False</span>
+        arrField <span class="dt">Field</span>{} <span class="fu">=</span> <span class="dt">True</span>
+        arrField _       <span class="fu">=</span> <span class="dt">False</span>
 
-        objField <span class="dt">NamedField</span>{} <span class="fu">=</span> <span class="kw">True</span>
-        objField _            <span class="fu">=</span> <span class="kw">False</span>
+        objField <span class="dt">NamedField</span>{} <span class="fu">=</span> <span class="dt">True</span>
+        objField _            <span class="fu">=</span> <span class="dt">False</span>
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
     args <span class="ot">&lt;-</span> getArgs
-    contents <span class="ot">&lt;-</span> <span class="fu">readFile</span> (<span class="fu">head</span> args)
-    <span class="kw">case</span> parseText <span class="fu">exp</span> contents <span class="kw">of</span>
-      <span class="kw">Left</span> err <span class="ot">-&gt;</span> <span class="fu">print</span> err
-      <span class="kw">Right</span> result <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre>
+    contents <span class="ot">&lt;-</span> readFile (head args)
+    <span class="kw">case</span> parseText exp contents <span class="kw">of</span>
+      <span class="dt">Left</span> err <span class="ot">-&gt;</span> print err
+      <span class="dt">Right</span> result <span class="ot">-&gt;</span> putStrLn <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre>
 <p>It uses <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>, a Lua parser and pretty-printer which I wrote to use in some other project of mine(a static analysis tool for Lua, I have big plans about it) and <a href="http://hackage.haskell.org/package/language-ecmascript">language-ecmascript</a>, JavaScript parser and pretty-printer.</p>]]></summary>
 </entry>
 <entry>
@@ -90,33 +90,33 @@ main <span class="fu">=</span> <span class="kw">do</span>
 }</code></pre>
 <p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
 <p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
-<p>Python also has this problem<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>:</p>
+<p>Python also has this problem<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
 <pre class="sourceCode python"><code class="sourceCode python">callbacks = []
 
 <span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
     say = <span class="st">&quot;say &quot;</span> + i
     <span class="kw">def</span> callback():
-        <span class="kw">print</span> say
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
 <span class="kw">for</span> c in callbacks:
     c()</code></pre>
 <p>This prints same wrong output as with JavaScript.</p>
 <p>Lua, my favorite dynamic language, does great:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">callbacks</span> <span class="ot">=</span> <span class="ot">{}</span>
+<pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
 
-<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
-  <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;say &quot;</span> <span class="ot">..</span> <span class="kw">v</span><span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
+<span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
+  <span class="fu">table.insert</span><span class="ot">(</span>callbacks<span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;say &quot;</span> <span class="ot">..</span> v<span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
 <span class="kw">end</span>
 
-<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">)</span> <span class="kw">do</span>
+<span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>callbacks<span class="ot">)</span> <span class="kw">do</span>
   v<span class="ot">()</span>
 <span class="kw">end</span></code></pre>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
-  <span class="kw">where</span> callbacks <span class="fu">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
+main <span class="fu">=</span> sequence_ callbacks
+  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
 <p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
 <p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
 <p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
@@ -151,7 +151,7 @@ main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
 <span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
     say = <span class="st">&quot;say &quot;</span> + i
     <span class="kw">def</span> callback(say=say):
-        <span class="kw">print</span> say
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
 <span class="kw">for</span> c in callbacks:
@@ -161,23 +161,23 @@ main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
 <p>Let’s have JavaScript’s behavior in Haskell:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import</span> Data.IORef
+<span class="kw">import </span><span class="dt">Data.IORef</span>
 
-printFromRef r <span class="fu">=</span> <span class="fu">putStrLn</span> <span class="fu">=&lt;&lt;</span> readIORef r
+printFromRef r <span class="fu">=</span> putStrLn <span class="fu">=&lt;&lt;</span> readIORef r
 
 mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
     ref <span class="ot">&lt;-</span> newIORef w
     r   <span class="ot">&lt;-</span> iter ref ws
-    <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
-  <span class="kw">where</span> iter ref []     <span class="fu">=</span> <span class="fu">return</span> []
+    return <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
+  <span class="kw">where</span> iter ref []     <span class="fu">=</span> return []
         iter ref (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
           writeIORef ref w
           cs <span class="ot">&lt;-</span> iter ref ws
-          <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
+          return <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
 
 main <span class="fu">=</span> <span class="kw">do</span>
   callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
-  <span class="fu">sequence_</span> callbacks</code></pre>
+  sequence_ callbacks</code></pre>
 <p>The reason this code is that long is because we need to create and pass references explicitly.</p>
 <hr />
 <div class="footnotes">
@@ -201,23 +201,25 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <span class="kw">&lt;script&gt;</span>
     <span class="kw">var</span> opts = {<span class="st">&#39;height&#39;</span>: <span class="dv">9</span>,
                 <span class="st">&#39;width&#39;</span>: <span class="dv">22</span>};
-<span class="er">    var life = new Life(opts);</span>
-<span class="er">    life.revive(life.grid, 3, 4);</span>
-<span class="er">    life.revive(life.grid, 4, 4);</span>
-<span class="er">    life.revive(life.grid, 5, 4);</span>
-<span class="er">    life.revive(life.grid, 6, 4);</span>
-<span class="er">    life.revive(life.grid, 7, 4);</span>
-<span class="er">    life.revive(life.grid, 8, 4);</span>
-<span class="er">    life.revive(life.grid, 9, 4);</span>
-<span class="er">    life.revive(life.grid, 10, 4);</span>
-<span class="er">    life.revive(life.grid, 11, 4);</span>
-<span class="er">    life.revive(life.grid, 12, 4);</span>
-<span class="er">    life.drawTable(document.getElementById(&quot;lifegrid&quot;));</span>
-<span class="er">    life.run();</span>
-<span class="kw">&lt;/script&gt;</span></code></pre>
+    <span class="kw">var</span> life = <span class="kw">new</span> <span class="fu">Life</span>(opts);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">3</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">4</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">5</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">6</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">7</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">8</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">9</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">10</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">11</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">12</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">drawTable</span>(<span class="ot">document</span>.<span class="fu">getElementById</span>(<span class="st">&quot;lifegrid&quot;</span>));
+    <span class="ot">life</span>.<span class="fu">run</span>();
+&lt;<span class="ot">/script&gt;</span></code></pre>
 <p>Ya da rastgele oluşturulmuş bir oyun(yeniden oluşturmak için üstüne tıklayın):</p>
 <script src="http://osa1.net/media/javascript/life.js"></script>
-<div id="lifegrid2" style="height: 300px;"></div>
+<div id="lifegrid2" style="height: 300px;">
+
+</div>
 <script>
     var opts = {'height': 30,
                 'width': 30};
@@ -234,11 +236,11 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <span class="kw">&lt;script&gt;</span>
     <span class="kw">var</span> opts = {<span class="st">&#39;height&#39;</span>: <span class="dv">30</span>,
                 <span class="st">&#39;width&#39;</span>: <span class="dv">30</span>};
-<span class="er">    var life = new Life(opts);</span>
-<span class="er">    life.fillRandom();</span>
-<span class="er">    life.drawTable(document.getElementById(&quot;lifegrid&quot;));</span>
-<span class="er">    life.run();</span>
-<span class="kw">&lt;/script&gt;</span></code></pre>
+    <span class="kw">var</span> life = <span class="kw">new</span> <span class="fu">Life</span>(opts);
+    <span class="ot">life</span>.<span class="fu">fillRandom</span>();
+    <span class="ot">life</span>.<span class="fu">drawTable</span>(<span class="ot">document</span>.<span class="fu">getElementById</span>(<span class="st">&quot;lifegrid&quot;</span>));
+    <span class="ot">life</span>.<span class="fu">run</span>();
+&lt;<span class="ot">/script&gt;</span></code></pre>
 <p>Henüz Javascript konusunda bir karara varamadım. Bir süre daha kurcalamaya devam edeceğim sanırım. Web programlama/tasarım olaylarından hiç hoşlanmayan biri olarak, Javascript’e başlama sebebim, neden sürekli farkı dillerden Javascript’e derleyicilerin yazıldığını(CoffeeScript, ClojureScript, Pyjamas, HaXe) ve <a href="http://bellard.org/jslinux/">Javascript içerisinde Linux</a> veya <a href="http://hell.student.utwente.nl/paratrooper/">Javascript PC emulator</a> gibi uygulamaların nasıl ve neden yapıldığını, V8, Node.js tarayıcı eklentileri ve DOM gibi şeyleri az da olsa anlayabilmekti. DOM kısmı hariç henüz amacıma yaklaşamadım diyebilirim.</p>
 <p>DOM kısmı işin en kolayı diyebilirim(ya da en azından başlangıç seviyesinde öyle gözüküyor). Daha önceden XML parse etmekle vs. uğraştıysanız muhtemelen yabancılık çekmeyeceksiniz. DOM öğrenmenin en eğlenceli yolu, bence, rastgele sayfaları açıp, resimler veya içeriği başka şeylerle değiştirmek, butonlar vb. şeyler eklemek. HTML konusunda iyi olmadığımdan çok fazla birşey yapamadım ama en azından Google logosu yerine lolcat veya osa1 logosu koymak güzel oluyor(<code>$('hplogo').style.cssText += &quot;background-image: url(http://osa1.net/media/logo.png)&quot;</code> :)</p>
 <p><a href="http://osa1.net/media/javascript/life.js">Şurdan</a> indirebilirsiniz. Javascript ile yazdığım ilk uygulamam olmasından ve öğrenmem + uygulamayı yazmamın toplam 4-5 akşam sürmesinden dolayı, kod iyi bir Javascript kodu sayılmaz muhtemelen. Tüm tarayıcılarda da çalışmayabilir(hatta içimden bir ses IE’de çalışmayacağını söylüyor nedense, test etme şansım yok), Firefox ve Chromium ile çalışıyor en azından. Onun dışında Javascript’de OOP konusunu hala tam olarak çözebilmiş değilim(prototype’lar hakkında kafama yatmayan birkaç şey, private methodların nasıl uygulanabileceği vs.). Onun dışında JSLint’de bir sürü uyarı veriyor ama henüz neden JSLint’i dinlemem gerektiğini bilmediğimden pek bir çaba sarfetmedim açıkçası.</p>

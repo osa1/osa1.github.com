@@ -27,15 +27,15 @@
 <img src="../images/distroyazi/uniformdistro.png" />
 </div>
 <p>It’s written in Lua’s manual(link is given above) that it’s statistical properties cannot be guaranteed. It still works fine for my purposes as a uniformly distributed number generator.</p>
-<p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
+<p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
 <p>I also read some discussions on why one shouldn’t use that, and instead move to other methods like <a href="http://en.wikipedia.org/wiki/Ziggurat_algorithm">Ziggurat algorithm</a>(and some other I can’t remember now), but I think Box-Muller method is easy to implement and works fine for my purposes, so I’m using it now:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> box_muller<span class="ot">()</span>
-    <span class="kw">return</span> <span class="kw">math</span><span class="ot">.</span>sqrt<span class="ot">(-</span><span class="dv">2</span> <span class="ot">*</span> <span class="fu">math.log</span><span class="ot">(</span><span class="fu">math.random</span><span class="ot">()))</span> <span class="ot">*</span> <span class="fu">math.cos</span><span class="ot">(</span><span class="dv">2</span> <span class="ot">*</span> <span class="kw">math</span><span class="ot">.</span><span class="kw">pi</span> <span class="ot">*</span> <span class="fu">math.random</span><span class="ot">())</span> <span class="ot">/</span> <span class="dv">2</span>
+    <span class="kw">return</span> math<span class="ot">.</span>sqrt<span class="ot">(-</span><span class="dv">2</span> <span class="ot">*</span> <span class="fu">math.log</span><span class="ot">(</span><span class="fu">math.random</span><span class="ot">()))</span> <span class="ot">*</span> <span class="fu">math.cos</span><span class="ot">(</span><span class="dv">2</span> <span class="ot">*</span> math<span class="ot">.</span>pi <span class="ot">*</span> <span class="fu">math.random</span><span class="ot">())</span> <span class="ot">/</span> <span class="dv">2</span>
 <span class="kw">end</span></code></pre>
 <p>This function returns numbers in range [-1,1]. I’m using it with some code like that:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> <span class="kw">dev</span> <span class="ot">=</span> <span class="dv">100</span>
-<span class="kw">local</span> <span class="kw">rand</span> <span class="ot">=</span> box_muller<span class="ot">()</span>
-<span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">rand</span> <span class="ot">*</span> <span class="kw">dev</span> <span class="ot">+</span> <span class="kw">myLimit</span><span class="ot">/</span><span class="dv">2</span><span class="ot">)</span></code></pre>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> dev <span class="ot">=</span> <span class="dv">100</span>
+<span class="kw">local</span> rand <span class="ot">=</span> box_muller<span class="ot">()</span>
+<span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span>rand <span class="ot">*</span> dev <span class="ot">+</span> myLimit<span class="ot">/</span><span class="dv">2</span><span class="ot">)</span></code></pre>
 <p>Here the variable <code>dev</code> stands for <a href="http://en.wikipedia.org/wiki/Standard_deviation">standard deviation</a>, though note that it’s value is not <em>standard deviation</em>, but just a value to play with to set standard deviation. I don’t know how can I set standard deviation with Box-Muller method. By playing this value you can get distributions with different standard deviations.</p>
 <div class="figure">
 <img src="../images/distroyazi/normaldistro.png" />
@@ -47,10 +47,10 @@
 <p>I think this is a very useful one, this means that if I give some <em>actions</em> in my game different numbers depending on their <em>priority</em> and use this random number generator, I get numbers of actions with more priority more than the ones with less priority. Here’s the code:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
     <span class="kw">while</span> <span class="kw">true</span> <span class="kw">do</span>
-        <span class="kw">local</span> <span class="kw">r1</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
-        <span class="kw">local</span> <span class="kw">r2</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
-        <span class="kw">if</span> <span class="ot">(</span><span class="kw">r2</span> <span class="ot">&lt;</span> <span class="kw">r1</span><span class="ot">)</span> <span class="kw">then</span>
-            <span class="kw">return</span> <span class="kw">r1</span>
+        <span class="kw">local</span> r1 <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span>range<span class="ot">)</span>
+        <span class="kw">local</span> r2 <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span>range<span class="ot">)</span>
+        <span class="kw">if</span> <span class="ot">(</span>r2 <span class="ot">&lt;</span> r1<span class="ot">)</span> <span class="kw">then</span>
+            <span class="kw">return</span> r1
         <span class="kw">end</span>
     <span class="kw">end</span>
 <span class="kw">end</span></code></pre>
@@ -59,12 +59,12 @@
 <img src="../images/distroyazi/customdistro2.png" />
 </div>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
-    <span class="kw">local</span> <span class="kw">rate</span> <span class="ot">=</span> <span class="dv">3</span>
-    <span class="kw">local</span> <span class="kw">r</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">500</span><span class="ot">^</span><span class="kw">rate</span><span class="ot">)</span>
-    <span class="fu">print</span><span class="ot">(</span><span class="kw">r</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">r</span><span class="ot">^(</span><span class="dv">1</span><span class="ot">/</span><span class="kw">rate</span><span class="ot">))</span>
+    <span class="kw">local</span> rate <span class="ot">=</span> <span class="dv">3</span>
+    <span class="kw">local</span> r <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">500</span><span class="ot">^</span>rate<span class="ot">)</span>
+    <span class="fu">print</span><span class="ot">(</span>r<span class="ot">)</span>
+    <span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span>r<span class="ot">^(</span><span class="dv">1</span><span class="ot">/</span>rate<span class="ot">))</span>
 <span class="kw">end</span></code></pre>
-<p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup>.</p>
+<p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
 <hr />
 <div class="footnotes">
 <hr />

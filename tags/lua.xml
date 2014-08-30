@@ -39,12 +39,12 @@
 <p>We have basic Haskell types <code>Int</code>, <code>Double</code>, <code>String</code>, and <code>Bool</code> as instances. Other types are for more advanced use, for example, <code>Ptr a</code> is used for <code>userdata</code>(basically any binary data that you want to pass to Lua stack and later get back, see <a href="http://www.lua.org/manual/5.1/manual.html#2.2">reference manual</a> for more details).</p>
 <p>This two functions are instances of <code>LuaImport</code>:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">concat&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
-concat&#39; s1 s2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> s1 <span class="fu">++</span> s2
+concat&#39; s1 s2 <span class="fu">=</span> return <span class="fu">$</span> s1 <span class="fu">++</span> s2
 
 <span class="ot">pow ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Double</span>
-pow d1 d2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre>
+pow d1 d2 <span class="fu">=</span> return <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre>
 <p>And we can push this functions to Lua stack using <code>pushhsfunction</code> or directly assign them to a global variable using <code>registerhsfunction</code>. In this post I’ll use register functions:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Scripting.Lua <span class="kw">as</span> Lua
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="kw">as</span> <span class="dt">Lua</span>
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
@@ -70,20 +70,20 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">addLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <span class="fu">...</span>
     <span class="kw">case</span> as <span class="kw">of</span>
-      <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
         <span class="co">-- arguments are functions, add them to callback queue and return</span>
         <span class="co">-- nothing</span>
         addCallbacks <span class="dv">1</span> args
-        <span class="fu">return</span> <span class="dv">0</span>
-      <span class="kw">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span>
+        return <span class="dv">0</span>
+      <span class="dt">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span>
         <span class="co">-- error: argument at `errArg` is not a function, return error</span>
         <span class="co">-- string</span>
-        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> <span class="fu">show</span> errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
-        <span class="fu">return</span> <span class="dv">1</span></code></pre>
+        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> show errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
+        return <span class="dv">1</span></code></pre>
 <p>This example program keeps track of passed Lua callbacks in an <code>IORef</code>. Here’s the part that handles getting Lua callbacks from Lua stack:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n <span class="fu">max</span>
-  <span class="fu">|</span> n <span class="fu">&gt;</span> <span class="fu">max</span> <span class="fu">=</span> <span class="fu">return</span> ()
-  <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="kw">do</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n max
+  <span class="fu">|</span> n <span class="fu">&gt;</span> max <span class="fu">=</span> return ()
+  <span class="fu">|</span> otherwise <span class="fu">=</span> <span class="kw">do</span>
       <span class="co">-- move nth argument to top of the stack</span>
       pushvalue l n
       <span class="co">-- add function reference to registry</span>
@@ -91,17 +91,17 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
       <span class="co">-- add registry index to IORef</span>
       modifyIORef cs (<span class="fu">++</span> [refId])
       <span class="co">-- continue adding other arguments</span>
-      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) <span class="fu">max</span></code></pre>
+      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) max</code></pre>
 <p>Note how we’re adding the function to the <em>registry</em> and getting it’s index at the <em>registry</em> in Haskell. We can now refer to this functions(e.g. push this function to Lua stack) using this index. Here’s the relevant code:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Call Lua callbacks collected with `addLuaCallbacks`.</span>
 <span class="ot">callLuaCallbacks ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">CInt</span>
 callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <span class="fu">...</span>
   <span class="kw">where</span>
-    iter [] <span class="fu">=</span> <span class="fu">return</span> ()
+    iter [] <span class="fu">=</span> return ()
     iter (c <span class="fu">:</span> rest) <span class="fu">=</span> <span class="kw">do</span>
       <span class="fu">...</span>
-      pushinteger l (<span class="fu">fromIntegral</span> c)
+      pushinteger l (fromIntegral c)
       gettable l registryindex
       <span class="co">-- call the callback</span>
       call l <span class="dv">0</span> <span class="dv">1</span>
@@ -114,13 +114,13 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 <p>This helps making sure that your API usage is correct.</p>
 <h1 id="using-hslua-for-reading-configuration-files-written-in-lua">Using hslua for reading configuration files written in Lua</h1>
 <p>hslua also provides a module for reading configuration files. As an example, using <code>Scripting.Lua.ConfigFile.getNestedAssocLists</code>, you can execute the Lua file given below and get resulting nested table as Haskell <code>[(String, [(String, String)])]</code>:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"> <span class="kw">someVal</span> <span class="ot">=</span> <span class="ot">{</span>
-    <span class="kw">something</span> <span class="ot">=</span> <span class="ot">{</span>
-       <span class="kw">foo</span> <span class="ot">=</span> <span class="st">&quot;aaa&quot;</span><span class="ot">,</span>
-       <span class="kw">bar</span> <span class="ot">=</span> <span class="st">&quot;bbb&quot;</span><span class="ot">,</span>
-       <span class="kw">baz</span> <span class="ot">=</span> <span class="st">&quot;ccc&quot;</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"> someVal <span class="ot">=</span> <span class="ot">{</span>
+    something <span class="ot">=</span> <span class="ot">{</span>
+       foo <span class="ot">=</span> <span class="st">&quot;aaa&quot;</span><span class="ot">,</span>
+       bar <span class="ot">=</span> <span class="st">&quot;bbb&quot;</span><span class="ot">,</span>
+       baz <span class="ot">=</span> <span class="st">&quot;ccc&quot;</span>
     <span class="ot">},</span>
-    <span class="kw">somethingElse</span> <span class="ot">=</span> <span class="ot">{</span>
+    somethingElse <span class="ot">=</span> <span class="ot">{</span>
        <span class="ot">...</span>
     <span class="ot">}</span>
  <span class="ot">}</span></code></pre>
@@ -183,18 +183,18 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span>
 <span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import</span>           Language.Lua.Parser
-<span class="kw">import</span>           Language.Lua.Types
+<span class="kw">import           </span><span class="dt">Language.Lua.Parser</span>
+<span class="kw">import           </span><span class="dt">Language.Lua.Types</span>
 
-<span class="kw">import</span> <span class="kw">qualified</span> Language.ECMAScript3.Syntax       <span class="kw">as</span> JS
-<span class="kw">import</span>           Language.ECMAScript3.PrettyPrint  (renderExpression)
+<span class="kw">import qualified</span> <span class="dt">Language.ECMAScript3.Syntax</span>       <span class="kw">as</span> <span class="dt">JS</span>
+<span class="kw">import           </span><span class="dt">Language.ECMAScript3.PrettyPrint</span>  (renderExpression)
 
-<span class="kw">import</span>           System.Environment                (getArgs)
-<span class="kw">import</span>           Control.Monad
-<span class="kw">import</span>           Prelude                           <span class="kw">hiding</span> (exp)
+<span class="kw">import           </span><span class="dt">System.Environment</span>                (getArgs)
+<span class="kw">import           </span><span class="dt">Control.Monad</span>
+<span class="kw">import           </span><span class="dt">Prelude</span>                           <span class="kw">hiding</span> (exp)
 
-<span class="ot">unsupported ::</span> <span class="kw">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b
-unsupported <span class="fu">=</span> <span class="fu">error</span> <span class="fu">.</span> (<span class="st">&quot;unsupported exp: &quot;</span> <span class="fu">++</span>) <span class="fu">.</span> <span class="fu">show</span>
+<span class="ot">unsupported ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b
+unsupported <span class="fu">=</span> error <span class="fu">.</span> (<span class="st">&quot;unsupported exp: &quot;</span> <span class="fu">++</span>) <span class="fu">.</span> show
 
 <span class="kw">class</span> <span class="dt">ToJsExp</span> a <span class="kw">where</span>
 <span class="ot">    toJsExp ::</span> a <span class="ot">-&gt;</span> <span class="dt">JS.Expression</span> ()
@@ -202,33 +202,33 @@ unsupported <span class="fu">=</span> <span class="fu">error</span> <span class=
 <span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Exp</span> a) <span class="kw">where</span>
     toJsExp (<span class="dt">Nil</span> _) <span class="fu">=</span> <span class="dt">JS.NullLit</span> ()
     toJsExp (<span class="dt">Bool</span> _ bool) <span class="fu">=</span> <span class="dt">JS.BoolLit</span> () bool
-    toJsExp (<span class="dt">Number</span> _ num) <span class="fu">=</span> <span class="dt">JS.NumLit</span> () (<span class="fu">read</span> num)
+    toJsExp (<span class="dt">Number</span> _ num) <span class="fu">=</span> <span class="dt">JS.NumLit</span> () (read num)
     toJsExp (<span class="dt">String</span> _ str) <span class="fu">=</span> <span class="dt">JS.StringLit</span> () str
     toJsExp (<span class="dt">TableConst</span> _ table) <span class="fu">=</span> toJsExp table
-    toJsExp unsupportedexp <span class="fu">=</span> unsupported (<span class="fu">fmap</span> (<span class="fu">const</span> ()) unsupportedexp)
+    toJsExp unsupportedexp <span class="fu">=</span> unsupported (fmap (const ()) unsupportedexp)
 
 <span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Table</span> a) <span class="kw">where</span>
     toJsExp (<span class="dt">Table</span> _ fields)
-      <span class="fu">|</span> <span class="fu">all</span> arrField fields <span class="fu">=</span>
-          <span class="dt">JS.ArrayLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">Field</span> _ <span class="fu">exp</span>) <span class="ot">-&gt;</span> toJsExp <span class="fu">exp</span>) fields
-      <span class="fu">|</span> <span class="fu">all</span> objField fields <span class="fu">=</span>
-          <span class="dt">JS.ObjectLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">NamedField</span> _ (<span class="dt">Name</span> _ name) <span class="fu">exp</span>) <span class="ot">-&gt;</span> (<span class="dt">JS.PropId</span> () (<span class="dt">JS.Id</span> () name), toJsExp <span class="fu">exp</span>)) fields
-      <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> unsupported (<span class="fu">map</span> (<span class="fu">fmap</span> (<span class="fu">const</span> ())) fields)
+      <span class="fu">|</span> all arrField fields <span class="fu">=</span>
+          <span class="dt">JS.ArrayLit</span> () <span class="fu">$</span> map (\(<span class="dt">Field</span> _ exp) <span class="ot">-&gt;</span> toJsExp exp) fields
+      <span class="fu">|</span> all objField fields <span class="fu">=</span>
+          <span class="dt">JS.ObjectLit</span> () <span class="fu">$</span> map (\(<span class="dt">NamedField</span> _ (<span class="dt">Name</span> _ name) exp) <span class="ot">-&gt;</span> (<span class="dt">JS.PropId</span> () (<span class="dt">JS.Id</span> () name), toJsExp exp)) fields
+      <span class="fu">|</span> otherwise <span class="fu">=</span> unsupported (map (fmap (const ())) fields)
 
       <span class="kw">where</span>
-        arrField <span class="dt">Field</span>{} <span class="fu">=</span> <span class="kw">True</span>
-        arrField _       <span class="fu">=</span> <span class="kw">False</span>
+        arrField <span class="dt">Field</span>{} <span class="fu">=</span> <span class="dt">True</span>
+        arrField _       <span class="fu">=</span> <span class="dt">False</span>
 
-        objField <span class="dt">NamedField</span>{} <span class="fu">=</span> <span class="kw">True</span>
-        objField _            <span class="fu">=</span> <span class="kw">False</span>
+        objField <span class="dt">NamedField</span>{} <span class="fu">=</span> <span class="dt">True</span>
+        objField _            <span class="fu">=</span> <span class="dt">False</span>
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
     args <span class="ot">&lt;-</span> getArgs
-    contents <span class="ot">&lt;-</span> <span class="fu">readFile</span> (<span class="fu">head</span> args)
-    <span class="kw">case</span> parseText <span class="fu">exp</span> contents <span class="kw">of</span>
-      <span class="kw">Left</span> err <span class="ot">-&gt;</span> <span class="fu">print</span> err
-      <span class="kw">Right</span> result <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre>
+    contents <span class="ot">&lt;-</span> readFile (head args)
+    <span class="kw">case</span> parseText exp contents <span class="kw">of</span>
+      <span class="dt">Left</span> err <span class="ot">-&gt;</span> print err
+      <span class="dt">Right</span> result <span class="ot">-&gt;</span> putStrLn <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre>
 <p>It uses <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>, a Lua parser and pretty-printer which I wrote to use in some other project of mine(a static analysis tool for Lua, I have big plans about it) and <a href="http://hackage.haskell.org/package/language-ecmascript">language-ecmascript</a>, JavaScript parser and pretty-printer.</p>]]></summary>
 </entry>
 <entry>
@@ -254,33 +254,33 @@ main <span class="fu">=</span> <span class="kw">do</span>
 }</code></pre>
 <p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
 <p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
-<p>Python also has this problem<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>:</p>
+<p>Python also has this problem<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
 <pre class="sourceCode python"><code class="sourceCode python">callbacks = []
 
 <span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
     say = <span class="st">&quot;say &quot;</span> + i
     <span class="kw">def</span> callback():
-        <span class="kw">print</span> say
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
 <span class="kw">for</span> c in callbacks:
     c()</code></pre>
 <p>This prints same wrong output as with JavaScript.</p>
 <p>Lua, my favorite dynamic language, does great:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">callbacks</span> <span class="ot">=</span> <span class="ot">{}</span>
+<pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
 
-<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
-  <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;say &quot;</span> <span class="ot">..</span> <span class="kw">v</span><span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
+<span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
+  <span class="fu">table.insert</span><span class="ot">(</span>callbacks<span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;say &quot;</span> <span class="ot">..</span> v<span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
 <span class="kw">end</span>
 
-<span class="kw">for</span> <span class="kw">_</span><span class="ot">,</span> <span class="kw">v</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span><span class="kw">callbacks</span><span class="ot">)</span> <span class="kw">do</span>
+<span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>callbacks<span class="ot">)</span> <span class="kw">do</span>
   v<span class="ot">()</span>
 <span class="kw">end</span></code></pre>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
-  <span class="kw">where</span> callbacks <span class="fu">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
+main <span class="fu">=</span> sequence_ callbacks
+  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
 <p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
 <p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
 <p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
@@ -315,7 +315,7 @@ main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
 <span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
     say = <span class="st">&quot;say &quot;</span> + i
     <span class="kw">def</span> callback(say=say):
-        <span class="kw">print</span> say
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
 <span class="kw">for</span> c in callbacks:
@@ -325,23 +325,23 @@ main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
 <p>Let’s have JavaScript’s behavior in Haskell:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import</span> Data.IORef
+<span class="kw">import </span><span class="dt">Data.IORef</span>
 
-printFromRef r <span class="fu">=</span> <span class="fu">putStrLn</span> <span class="fu">=&lt;&lt;</span> readIORef r
+printFromRef r <span class="fu">=</span> putStrLn <span class="fu">=&lt;&lt;</span> readIORef r
 
 mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
     ref <span class="ot">&lt;-</span> newIORef w
     r   <span class="ot">&lt;-</span> iter ref ws
-    <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
-  <span class="kw">where</span> iter ref []     <span class="fu">=</span> <span class="fu">return</span> []
+    return <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
+  <span class="kw">where</span> iter ref []     <span class="fu">=</span> return []
         iter ref (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
           writeIORef ref w
           cs <span class="ot">&lt;-</span> iter ref ws
-          <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
+          return <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
 
 main <span class="fu">=</span> <span class="kw">do</span>
   callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
-  <span class="fu">sequence_</span> callbacks</code></pre>
+  sequence_ callbacks</code></pre>
 <p>The reason this code is that long is because we need to create and pass references explicitly.</p>
 <hr />
 <div class="footnotes">
@@ -382,15 +382,15 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <img src="/images/distroyazi/uniformdistro.png" />
 </div>
 <p>It’s written in Lua’s manual(link is given above) that it’s statistical properties cannot be guaranteed. It still works fine for my purposes as a uniformly distributed number generator.</p>
-<p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
+<p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
 <p>I also read some discussions on why one shouldn’t use that, and instead move to other methods like <a href="http://en.wikipedia.org/wiki/Ziggurat_algorithm">Ziggurat algorithm</a>(and some other I can’t remember now), but I think Box-Muller method is easy to implement and works fine for my purposes, so I’m using it now:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> box_muller<span class="ot">()</span>
-    <span class="kw">return</span> <span class="kw">math</span><span class="ot">.</span>sqrt<span class="ot">(-</span><span class="dv">2</span> <span class="ot">*</span> <span class="fu">math.log</span><span class="ot">(</span><span class="fu">math.random</span><span class="ot">()))</span> <span class="ot">*</span> <span class="fu">math.cos</span><span class="ot">(</span><span class="dv">2</span> <span class="ot">*</span> <span class="kw">math</span><span class="ot">.</span><span class="kw">pi</span> <span class="ot">*</span> <span class="fu">math.random</span><span class="ot">())</span> <span class="ot">/</span> <span class="dv">2</span>
+    <span class="kw">return</span> math<span class="ot">.</span>sqrt<span class="ot">(-</span><span class="dv">2</span> <span class="ot">*</span> <span class="fu">math.log</span><span class="ot">(</span><span class="fu">math.random</span><span class="ot">()))</span> <span class="ot">*</span> <span class="fu">math.cos</span><span class="ot">(</span><span class="dv">2</span> <span class="ot">*</span> math<span class="ot">.</span>pi <span class="ot">*</span> <span class="fu">math.random</span><span class="ot">())</span> <span class="ot">/</span> <span class="dv">2</span>
 <span class="kw">end</span></code></pre>
 <p>This function returns numbers in range [-1,1]. I’m using it with some code like that:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> <span class="kw">dev</span> <span class="ot">=</span> <span class="dv">100</span>
-<span class="kw">local</span> <span class="kw">rand</span> <span class="ot">=</span> box_muller<span class="ot">()</span>
-<span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">rand</span> <span class="ot">*</span> <span class="kw">dev</span> <span class="ot">+</span> <span class="kw">myLimit</span><span class="ot">/</span><span class="dv">2</span><span class="ot">)</span></code></pre>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> dev <span class="ot">=</span> <span class="dv">100</span>
+<span class="kw">local</span> rand <span class="ot">=</span> box_muller<span class="ot">()</span>
+<span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span>rand <span class="ot">*</span> dev <span class="ot">+</span> myLimit<span class="ot">/</span><span class="dv">2</span><span class="ot">)</span></code></pre>
 <p>Here the variable <code>dev</code> stands for <a href="http://en.wikipedia.org/wiki/Standard_deviation">standard deviation</a>, though note that it’s value is not <em>standard deviation</em>, but just a value to play with to set standard deviation. I don’t know how can I set standard deviation with Box-Muller method. By playing this value you can get distributions with different standard deviations.</p>
 <div class="figure">
 <img src="/images/distroyazi/normaldistro.png" />
@@ -402,10 +402,10 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <p>I think this is a very useful one, this means that if I give some <em>actions</em> in my game different numbers depending on their <em>priority</em> and use this random number generator, I get numbers of actions with more priority more than the ones with less priority. Here’s the code:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
     <span class="kw">while</span> <span class="kw">true</span> <span class="kw">do</span>
-        <span class="kw">local</span> <span class="kw">r1</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
-        <span class="kw">local</span> <span class="kw">r2</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="kw">range</span><span class="ot">)</span>
-        <span class="kw">if</span> <span class="ot">(</span><span class="kw">r2</span> <span class="ot">&lt;</span> <span class="kw">r1</span><span class="ot">)</span> <span class="kw">then</span>
-            <span class="kw">return</span> <span class="kw">r1</span>
+        <span class="kw">local</span> r1 <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span>range<span class="ot">)</span>
+        <span class="kw">local</span> r2 <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span>range<span class="ot">)</span>
+        <span class="kw">if</span> <span class="ot">(</span>r2 <span class="ot">&lt;</span> r1<span class="ot">)</span> <span class="kw">then</span>
+            <span class="kw">return</span> r1
         <span class="kw">end</span>
     <span class="kw">end</span>
 <span class="kw">end</span></code></pre>
@@ -414,12 +414,12 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <img src="/images/distroyazi/customdistro2.png" />
 </div>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
-    <span class="kw">local</span> <span class="kw">rate</span> <span class="ot">=</span> <span class="dv">3</span>
-    <span class="kw">local</span> <span class="kw">r</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">500</span><span class="ot">^</span><span class="kw">rate</span><span class="ot">)</span>
-    <span class="fu">print</span><span class="ot">(</span><span class="kw">r</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span><span class="kw">r</span><span class="ot">^(</span><span class="dv">1</span><span class="ot">/</span><span class="kw">rate</span><span class="ot">))</span>
+    <span class="kw">local</span> rate <span class="ot">=</span> <span class="dv">3</span>
+    <span class="kw">local</span> r <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">500</span><span class="ot">^</span>rate<span class="ot">)</span>
+    <span class="fu">print</span><span class="ot">(</span>r<span class="ot">)</span>
+    <span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span>r<span class="ot">^(</span><span class="dv">1</span><span class="ot">/</span>rate<span class="ot">))</span>
 <span class="kw">end</span></code></pre>
-<p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup>.</p>
+<p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
 <hr />
 <div class="footnotes">
 <hr />
@@ -438,8 +438,8 @@ main <span class="fu">=</span> <span class="kw">do</span>
     <summary type="html"><![CDATA[<p>Son zamanlarda uğraştığım konulardan biri hakkında birşeyler karalayacağım. Genelde zor bir konspetle karşılaştığımda anladığımı anlamak için 2 şey yapıyorum, 1) programlıyorum, 2) anlatıyorum. Uğraştığım işlerle ilgilenen kimse olmadığından, anlatabiliyor olmamı bu blog sağlıyor. Bu sefer Scheme’in call/cc fonksiyonundan bahsedeceğim, epey ilginç bir iş yaptığını düşünüyorum.</p>
 <p><code>call/cc</code>de benim ilgimi çeken şey, Scheme’i bir yorumlayıcı ortamı olarak düşündüğümüzde, yorumlayacağımız dile exceptionlar, coroutineler gibi kontrol akışınıda değişiklikler yapması gereken yapıları kolayca ekleyebilmemizi sağlaması.</p>
 <p>Continuation-passing style’a aşina olduğunuzu varsayıyorum. Aşina olmayanlar Google’dan kolaylıkla süper kaynaklar edinebilir. JavaScript gibi yaygın bir dilin CPS kullanabilmek için gereken fonksiyonelliği sağlıyor olması çok büyük şans, yoksa CPSı anlamak için Scheme kodu okumak zorunda kalabilirdiniz :P . Ben implementasyonu Common Lisp ile vereceğim.</p>
-<p><code>call-with-current-continuation</code> veya kısaca <code>call/cc</code>nin genel olarak iki farklı implementasyon yöntemi var<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> biri stack kopyalama işlemi, diğeri <em>CPS conversion</em> dediğimiz, benim birazdan anlatım Common Lisp ile yazacağım yöntem.</p>
-<p>Tüm programlarımızın üstü kapalı bir şekilde(<em>implicit</em>) CPS yazıldığını düşünelim. Yani tüm fonksiyon çağrıları aslında bir değer dönmek yerine, bu döneceği değer ile continuation’ı çağırmalı<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup> Bunu sağlamak için tüm fonksiyonlar ilk parametre olarak continuation alabilir ve diğer parametreleri fonksiyon tanımı sırasında verilen parametreler olur. Daha sonra fonksiyon döneceği değer ile ilk parametresini, yani continuation’ı çağırır. Bu fonksiyonları bir macro ile kolayca oluşturabiliriz<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup>:</p>
+<p><code>call-with-current-continuation</code> veya kısaca <code>call/cc</code>nin genel olarak iki farklı implementasyon yöntemi var<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> biri stack kopyalama işlemi, diğeri <em>CPS conversion</em> dediğimiz, benim birazdan anlatım Common Lisp ile yazacağım yöntem.</p>
+<p>Tüm programlarımızın üstü kapalı bir şekilde(<em>implicit</em>) CPS yazıldığını düşünelim. Yani tüm fonksiyon çağrıları aslında bir değer dönmek yerine, bu döneceği değer ile continuation’ı çağırmalı<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> Bunu sağlamak için tüm fonksiyonlar ilk parametre olarak continuation alabilir ve diğer parametreleri fonksiyon tanımı sırasında verilen parametreler olur. Daha sonra fonksiyon döneceği değer ile ilk parametresini, yani continuation’ı çağırır. Bu fonksiyonları bir macro ile kolayca oluşturabiliriz<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>:</p>
 <pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defcont </span>(name (&amp;<span class="kw">rest</span> params) &amp;body body)
   (<span class="kw">let</span> ((result (<span class="kw">gensym</span>)))
     `(<span class="kw">defun</span><span class="fu"> </span>,name (continuation ,@params)
@@ -463,7 +463,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <p>Hemen basit birkaç örnek yapalım. Şu iki fonksiyon arasındaki fark ne?</p>
 <pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) (<span class="kw">funcall</span> cont <span class="dv">11</span>)))
 (call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) <span class="dv">11</span>))</code></pre>
-<p>İlk çağrıda continuation’a 11 değerini gönderiyoruz ve sonuç beklenen gibi 21 oluyor, ikinci durumda ise continuation’ı yok sayıp 11 değerini dönüyoruz ve cevap 11 oluyor. Stack modelinde düşünürsek, ikinci örnekte yapılan şey, stackdeki bazı fonksiyon kayıtlarının atlanması aslında. Buna sanırım <code>stack unwinding</code> deniyor(emin değilim). Bu şekilde dil seviyesinde exception mekanizmaları yazılabilir, continuationlar kaydedilerek ve sırayla çağırılarak coroutineler<sup><a href="#fn4" class="footnoteRef" id="fnref4">4</a></sup>veya <em>lightweight thread</em>ler elde edilebilir(<em>green thread</em> de diyorlar sanırım).</p>
+<p>İlk çağrıda continuation’a 11 değerini gönderiyoruz ve sonuç beklenen gibi 21 oluyor, ikinci durumda ise continuation’ı yok sayıp 11 değerini dönüyoruz ve cevap 11 oluyor. Stack modelinde düşünürsek, ikinci örnekte yapılan şey, stackdeki bazı fonksiyon kayıtlarının atlanması aslında. Buna sanırım <code>stack unwinding</code> deniyor(emin değilim). Bu şekilde dil seviyesinde exception mekanizmaları yazılabilir, continuationlar kaydedilerek ve sırayla çağırılarak coroutineler<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>veya <em>lightweight thread</em>ler elde edilebilir(<em>green thread</em> de diyorlar sanırım).</p>
 <p>Scheme bilenler için bu kodun Scheme karşılıkları şu:</p>
 <pre class="sourceCode scheme"><code class="sourceCode scheme">(<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> <span class="dv">11</span>)))
 (<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> (cont <span class="dv">11</span>))))</code></pre>
@@ -504,37 +504,37 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
 <p>For those who want to see the code, here’s the <a href="https://gist.github.com/2757232">gist</a>.</p>
 <p>Nowadays most of modern languages(functional ones or not), have some primitives for lazy evaluation(like Python’s generators), and I’m not an expert on Lua but AFAIK, Lua’s coroutines can be used for lazy evaluation. But even if you use a language that doesn’t have any non-strict primitives, you can have some lazy structures(ie. in JavaScript).</p>
 <p>The main idea of this is that you can always pass functions in a form that holds the function itself and a list of arguments that will be passed to function. And when you want to evaluate the result of the function call, you just call the function in that form with the arguments. Note that by “function itself”, I mean the function callback. Most modern languages nowadays have functions as first-class values or at least some kind of function pointers/referances, so this is not a problem.</p>
-<p>I’ll give the code in Lua. We’ll call the structure that holds a function callback(or whatever your language call it) and a list of parameters, <code>thunk</code><sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> In Lua, this will be a table with two keys: <code>f</code> and <code>args</code>. Here’s an example thunk.</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t</span> <span class="ot">=</span> <span class="ot">{</span> <span class="kw">f</span> <span class="ot">=</span> <span class="fu">print</span><span class="ot">,</span> <span class="kw">args</span> <span class="ot">=</span> <span class="ot">{</span><span class="st">&quot;first arg&quot;</span><span class="ot">,</span> <span class="st">&quot; second arg&quot;</span><span class="ot">}</span> <span class="ot">}</span></code></pre>
+<p>I’ll give the code in Lua. We’ll call the structure that holds a function callback(or whatever your language call it) and a list of parameters, <code>thunk</code><a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> In Lua, this will be a table with two keys: <code>f</code> and <code>args</code>. Here’s an example thunk.</p>
+<pre class="sourceCode lua"><code class="sourceCode lua">t <span class="ot">=</span> <span class="ot">{</span> f <span class="ot">=</span> <span class="fu">print</span><span class="ot">,</span> args <span class="ot">=</span> <span class="ot">{</span><span class="st">&quot;first arg&quot;</span><span class="ot">,</span> <span class="st">&quot; second arg&quot;</span><span class="ot">}</span> <span class="ot">}</span></code></pre>
 <p>So when we want to run the function in the thunk, we just call <code>evalThunk</code>, which is pretty straightforward to implement:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> evalThunk<span class="ot">(</span><span class="kw">t</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="kw">t</span><span class="ot">.</span>f<span class="ot">(</span><span class="fu">unpack</span><span class="ot">(</span><span class="kw">t</span><span class="ot">.</span><span class="kw">args</span><span class="ot">))</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> evalThunk<span class="ot">(</span>t<span class="ot">)</span>
+    <span class="kw">return</span> t<span class="ot">.</span>f<span class="ot">(</span><span class="fu">unpack</span><span class="ot">(</span>t<span class="ot">.</span>args<span class="ot">))</span>
 <span class="kw">end</span>
-<span class="ot">&gt;</span> evalThunk<span class="ot">(</span><span class="kw">t</span><span class="ot">)</span>
-<span class="kw">first</span> <span class="kw">arg</span>        <span class="kw">second</span> <span class="kw">arg</span></code></pre>
+<span class="ot">&gt;</span> evalThunk<span class="ot">(</span>t<span class="ot">)</span>
+first arg        second arg</code></pre>
 <p>Basically, when we want to make a function non-strict, we just create a thunk of it, with <code>f</code> = function itself, and the <code>args</code> = the args we want to pass to the function when we run it. Here’s a helper for it:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> makeThunk<span class="ot">(</span><span class="kw">f</span><span class="ot">,</span> <span class="kw">args</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="ot">{</span> <span class="fu">tag</span> <span class="ot">=</span> <span class="st">&quot;thunk&quot;</span><span class="ot">,</span> <span class="kw">f</span> <span class="ot">=</span> <span class="kw">f</span><span class="ot">,</span> <span class="kw">args</span> <span class="ot">=</span> <span class="kw">args</span> <span class="ot">}</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> makeThunk<span class="ot">(</span>f<span class="ot">,</span> args<span class="ot">)</span>
+    <span class="kw">return</span> <span class="ot">{</span> <span class="fu">tag</span> <span class="ot">=</span> <span class="st">&quot;thunk&quot;</span><span class="ot">,</span> f <span class="ot">=</span> f<span class="ot">,</span> args <span class="ot">=</span> args <span class="ot">}</span>
 <span class="kw">end</span></code></pre>
 <p>Now, with the help of this two functions, we can create a infinite-length lazy linked-lists. Each node in our linked-lists will have two keys: <code>first</code> and <code>rest</code>. <code>first</code> will have the value of that node, and <code>rest</code> will have the next node connected to that node. Here’s a helper to create linked-list nodes.</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> cons<span class="ot">(</span><span class="kw">first</span><span class="ot">,</span> <span class="kw">rest</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="ot">{</span> <span class="kw">first</span> <span class="ot">=</span> <span class="kw">first</span><span class="ot">,</span>
-             <span class="kw">rest</span>  <span class="ot">=</span> <span class="kw">rest</span> <span class="ot">}</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> cons<span class="ot">(</span>first<span class="ot">,</span> rest<span class="ot">)</span>
+    <span class="kw">return</span> <span class="ot">{</span> first <span class="ot">=</span> first<span class="ot">,</span>
+             rest  <span class="ot">=</span> rest <span class="ot">}</span>
 <span class="kw">end</span></code></pre>
 <p>In lazy-lists, we always have the <code>rest</code> part of the list as unevaluated thunks. To traverse the list to some point, we need to evaluate the nodes we passed, and when we evaluate this nodes, we just replace the thunks with evaluated values. Because we don’t want to evaluate the same node again and again for eact iteration.</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> evalPart<span class="ot">(</span><span class="kw">t</span><span class="ot">,</span> <span class="kw">p</span><span class="ot">)</span>
-    <span class="kw">if</span> <span class="kw">t</span> <span class="ot">==</span> <span class="kw">nil</span> <span class="kw">then</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> evalPart<span class="ot">(</span>t<span class="ot">,</span> p<span class="ot">)</span>
+    <span class="kw">if</span> t <span class="ot">==</span> <span class="kw">nil</span> <span class="kw">then</span>
         <span class="kw">return</span> <span class="kw">nil</span>
-    <span class="kw">elseif</span> <span class="fu">type</span><span class="ot">(</span><span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">])</span> <span class="ot">==</span> <span class="st">&quot;table&quot;</span> <span class="kw">and</span> <span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">].</span><span class="kw">tag</span> <span class="ot">==</span> <span class="st">&quot;thunk&quot;</span> <span class="kw">then</span>
-        <span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">]</span> <span class="ot">=</span> evalThunk<span class="ot">(</span><span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">])</span>
+    <span class="kw">elseif</span> <span class="fu">type</span><span class="ot">(</span>t<span class="ot">[</span>p<span class="ot">])</span> <span class="ot">==</span> <span class="st">&quot;table&quot;</span> <span class="kw">and</span> t<span class="ot">[</span>p<span class="ot">].</span>tag <span class="ot">==</span> <span class="st">&quot;thunk&quot;</span> <span class="kw">then</span>
+        t<span class="ot">[</span>p<span class="ot">]</span> <span class="ot">=</span> evalThunk<span class="ot">(</span>t<span class="ot">[</span>p<span class="ot">])</span>
     <span class="kw">end</span>
-    <span class="kw">return</span> <span class="kw">t</span><span class="ot">[</span><span class="kw">p</span><span class="ot">]</span>
+    <span class="kw">return</span> t<span class="ot">[</span>p<span class="ot">]</span>
 <span class="kw">end</span>
-<span class="kw">function</span> first<span class="ot">(</span><span class="kw">t</span><span class="ot">)</span>
-    <span class="kw">return</span> evalPart<span class="ot">(</span><span class="kw">t</span><span class="ot">,</span> <span class="st">&quot;first&quot;</span><span class="ot">)</span>
+<span class="kw">function</span> first<span class="ot">(</span>t<span class="ot">)</span>
+    <span class="kw">return</span> evalPart<span class="ot">(</span>t<span class="ot">,</span> <span class="st">&quot;first&quot;</span><span class="ot">)</span>
 <span class="kw">end</span>
-<span class="kw">function</span> rest<span class="ot">(</span><span class="kw">t</span><span class="ot">)</span>
-    <span class="kw">return</span> evalPart<span class="ot">(</span><span class="kw">t</span><span class="ot">,</span> <span class="st">&quot;rest&quot;</span><span class="ot">)</span>
+<span class="kw">function</span> rest<span class="ot">(</span>t<span class="ot">)</span>
+    <span class="kw">return</span> evalPart<span class="ot">(</span>t<span class="ot">,</span> <span class="st">&quot;rest&quot;</span><span class="ot">)</span>
 <span class="kw">end</span></code></pre>
 <p><code>first</code> and <code>rest</code> functions are returning the <code>first</code> and <code>rest</code> parts of our linked-list nodes. We’re expecting this parts to be unevaluated thunks. So if they’re thunks, we just evaluate them and replace the return value with thunks so that we don’t need to re-evaluate everytime we get a node.</p>
 <p>And with the last helper, we can start creating infinite lazy-lists in Lua:</p>
@@ -552,70 +552,70 @@ end</code></pre>
     return cons(n, makeThunk(fact, {n*f, f+1}))
 end</code></pre>
 <p>This function returns a linked-list that contains factorial of 1, and then a thunk of the same factorial function, but with different parameters. The function call in the <code>rest</code> part of the thunk will return the next factorial, and then the same function as a thunk in <code>rest</code> part of the thunk, in a recursive fashion. Note that our <code>nth</code> function is tail-recursive so we’ll never have stack overflows while traversing the list(it’s also trivial to implement an iterative loop version of it).</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="ot">&gt;</span> <span class="kw">a</span> <span class="ot">=</span> fact<span class="ot">()</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">))</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="ot">&gt;</span> a <span class="ot">=</span> fact<span class="ot">()</span>
+<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">1</span><span class="ot">))</span>
 <span class="dv">1</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">))</span>
+<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">2</span><span class="ot">))</span>
 <span class="dv">2</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">10</span><span class="ot">))</span>
+<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">10</span><span class="ot">))</span>
 <span class="dv">3628800</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">20</span><span class="ot">))</span>
+<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">20</span><span class="ot">))</span>
 <span class="dv">2.4329020081766e+18</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">30</span><span class="ot">))</span>
+<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">30</span><span class="ot">))</span>
 <span class="dv">2.6525285981219e+32</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">40</span><span class="ot">))</span>
+<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">40</span><span class="ot">))</span>
 <span class="dv">8.159152832479e+47</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">50</span><span class="ot">))</span>
+<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">50</span><span class="ot">))</span>
 <span class="dv">3.0414093201713e+64</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="dv">250</span><span class="ot">))</span>
-<span class="kw">inf</span></code></pre>
+<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">250</span><span class="ot">))</span>
+inf</code></pre>
 <p>So it’s obviously generating all the factorials while we traverse the list. You can also try to see that every thunk is evaluated only once by adding some <code>print</code> functions to thunks.</p>
 <p>Here’s a lazy-list that contains all fibonacci numbers:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> fib<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> <span class="kw">b</span><span class="ot">)</span>
-    <span class="kw">a</span> <span class="ot">=</span> <span class="kw">a</span> <span class="kw">or</span> <span class="dv">0</span>
-    <span class="kw">b</span> <span class="ot">=</span> <span class="kw">b</span> <span class="kw">or</span> <span class="dv">1</span>
-    <span class="kw">return</span> cons<span class="ot">(</span><span class="kw">a</span><span class="ot">,</span> makeThunk<span class="ot">(</span><span class="kw">fib</span><span class="ot">,</span> <span class="ot">{</span><span class="kw">b</span><span class="ot">,</span> <span class="kw">a</span><span class="ot">+</span><span class="kw">b</span><span class="ot">}))</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> fib<span class="ot">(</span>a<span class="ot">,</span> b<span class="ot">)</span>
+    a <span class="ot">=</span> a <span class="kw">or</span> <span class="dv">0</span>
+    b <span class="ot">=</span> b <span class="kw">or</span> <span class="dv">1</span>
+    <span class="kw">return</span> cons<span class="ot">(</span>a<span class="ot">,</span> makeThunk<span class="ot">(</span>fib<span class="ot">,</span> <span class="ot">{</span>b<span class="ot">,</span> a<span class="ot">+</span>b<span class="ot">}))</span>
 <span class="kw">end</span></code></pre>
 <p>You can also easily define functions that take linked-lists and map/filter and return the result as lazy-lists. I added them the to the gist.</p>
 <p>Now, how’s that related with continuations that eliminate tail-calls? Let’s work on an exmple:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> sum<span class="ot">(</span><span class="kw">n</span><span class="ot">,</span> <span class="kw">cont</span><span class="ot">)</span>
-    <span class="kw">if</span> <span class="kw">n</span> <span class="ot">&lt;=</span> <span class="dv">1</span> <span class="kw">then</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> sum<span class="ot">(</span>n<span class="ot">,</span> cont<span class="ot">)</span>
+    <span class="kw">if</span> n <span class="ot">&lt;=</span> <span class="dv">1</span> <span class="kw">then</span>
         <span class="kw">return</span> cont<span class="ot">(</span><span class="dv">1</span><span class="ot">)</span>
     <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> newCont<span class="ot">(</span><span class="kw">v</span><span class="ot">)</span>
-        <span class="kw">return</span> cont<span class="ot">(</span><span class="kw">v</span><span class="ot">+</span><span class="kw">n</span><span class="ot">)</span>
+    <span class="kw">local</span> <span class="kw">function</span> newCont<span class="ot">(</span>v<span class="ot">)</span>
+        <span class="kw">return</span> cont<span class="ot">(</span>v<span class="ot">+</span>n<span class="ot">)</span>
     <span class="kw">end</span>
-    <span class="kw">return</span> sum<span class="ot">(</span><span class="kw">n</span><span class="ot">-</span><span class="dv">1</span><span class="ot">,</span> <span class="kw">newCont</span><span class="ot">)</span>
+    <span class="kw">return</span> sum<span class="ot">(</span>n<span class="ot">-</span><span class="dv">1</span><span class="ot">,</span> newCont<span class="ot">)</span>
 <span class="kw">end</span></code></pre>
 <p>I found JavaScript version of this example in <a href="http://nathansuniversity.com/cont3.html">Nathan’s University</a> and I think it’s a typical usage of continuations. Instead of returning the result, we’re passing the result to the continuation function. And when we hit the buttom(ie. when n &lt;= 1) we pass the last result to continuation function and return it.</p>
 <p>I don’t explain why one would do that, you can read it from Nathan’s University.</p>
 <p>If you run a function like this in JavaScript, you get a stack overflow after a while since this function is recursive. But with the help of thunks, you can eliminate the recursive call entirely, even in JavaScript. Let’s change it to:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> sum<span class="ot">(</span><span class="kw">n</span><span class="ot">,</span> <span class="kw">cont</span><span class="ot">)</span>
-    <span class="kw">if</span> <span class="kw">n</span> <span class="ot">&lt;=</span> <span class="dv">1</span> <span class="kw">then</span>
-        <span class="kw">return</span> makeThunk<span class="ot">(</span><span class="kw">cont</span><span class="ot">,</span> <span class="ot">{</span><span class="dv">1</span><span class="ot">})</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> sum<span class="ot">(</span>n<span class="ot">,</span> cont<span class="ot">)</span>
+    <span class="kw">if</span> n <span class="ot">&lt;=</span> <span class="dv">1</span> <span class="kw">then</span>
+        <span class="kw">return</span> makeThunk<span class="ot">(</span>cont<span class="ot">,</span> <span class="ot">{</span><span class="dv">1</span><span class="ot">})</span>
     <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> newCont<span class="ot">(</span><span class="kw">v</span><span class="ot">)</span>
-        <span class="kw">return</span> makeThunk<span class="ot">(</span><span class="kw">cont</span><span class="ot">,</span> <span class="ot">{</span><span class="kw">v</span><span class="ot">+</span><span class="kw">n</span><span class="ot">})</span>
+    <span class="kw">local</span> <span class="kw">function</span> newCont<span class="ot">(</span>v<span class="ot">)</span>
+        <span class="kw">return</span> makeThunk<span class="ot">(</span>cont<span class="ot">,</span> <span class="ot">{</span>v<span class="ot">+</span>n<span class="ot">})</span>
     <span class="kw">end</span>
-    <span class="kw">return</span> makeThunk<span class="ot">(</span><span class="kw">sum</span><span class="ot">,</span> <span class="ot">{</span><span class="kw">n</span><span class="ot">-</span><span class="dv">1</span><span class="ot">,</span> <span class="kw">newCont</span><span class="ot">})</span>
+    <span class="kw">return</span> makeThunk<span class="ot">(</span>sum<span class="ot">,</span> <span class="ot">{</span>n<span class="ot">-</span><span class="dv">1</span><span class="ot">,</span> newCont<span class="ot">})</span>
 <span class="kw">end</span></code></pre>
 <p>We replaced every function call with thunks. Now you can realize that <code>makeThunk</code> calls are just linking function calls together. For example, after calling <code>sum(10, function(n) print(&quot;result: &quot;, n) end)</code>, we get this thunk:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="ot">{</span> <span class="fu">tag</span> <span class="ot">=</span> <span class="st">&quot;thunk&quot;</span><span class="ot">,</span> <span class="kw">f</span> <span class="ot">=</span> <span class="kw">sum</span><span class="ot">,</span> <span class="kw">args</span> <span class="ot">=</span> <span class="ot">{</span><span class="dv">9</span><span class="ot">,</span> <span class="kw">function</span><span class="ot">(</span><span class="kw">v</span><span class="ot">)</span> <span class="kw">return</span> makeThunk<span class="ot">(</span><span class="kw">cont</span><span class="ot">,</span> <span class="ot">{</span><span class="kw">v</span><span class="ot">+</span><span class="dv">10</span><span class="ot">})</span> <span class="kw">end</span><span class="ot">}}</span></code></pre>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="ot">{</span> <span class="fu">tag</span> <span class="ot">=</span> <span class="st">&quot;thunk&quot;</span><span class="ot">,</span> f <span class="ot">=</span> sum<span class="ot">,</span> args <span class="ot">=</span> <span class="ot">{</span><span class="dv">9</span><span class="ot">,</span> <span class="kw">function</span><span class="ot">(</span>v<span class="ot">)</span> <span class="kw">return</span> makeThunk<span class="ot">(</span>cont<span class="ot">,</span> <span class="ot">{</span>v<span class="ot">+</span><span class="dv">10</span><span class="ot">})</span> <span class="kw">end</span><span class="ot">}}</span></code></pre>
 <p>When we evaluate this thunk, we just get another thunk unless the first arg is not &lt;= 1. Now we need a helper to evaluate the thunk, and then evaluate the thunk returned by the first thunk, until we evaluate all the thunks. This is what’s called “trampoline”:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> trampoline<span class="ot">(</span><span class="kw">thunk</span><span class="ot">)</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> trampoline<span class="ot">(</span>thunk<span class="ot">)</span>
     <span class="kw">while</span> <span class="kw">true</span> <span class="kw">do</span>
-        <span class="kw">if</span> <span class="fu">type</span><span class="ot">(</span><span class="kw">thunk</span><span class="ot">)</span> <span class="ot">~=</span> <span class="st">&quot;table&quot;</span> <span class="kw">then</span>
-            <span class="kw">return</span> <span class="kw">thunk</span>
-        <span class="kw">elseif</span> <span class="kw">thunk</span><span class="ot">.</span><span class="kw">tag</span> <span class="ot">==</span> <span class="st">&quot;thunk&quot;</span> <span class="kw">then</span>
-            <span class="kw">thunk</span> <span class="ot">=</span> evalThunk<span class="ot">(</span><span class="kw">thunk</span><span class="ot">)</span>
+        <span class="kw">if</span> <span class="fu">type</span><span class="ot">(</span>thunk<span class="ot">)</span> <span class="ot">~=</span> <span class="st">&quot;table&quot;</span> <span class="kw">then</span>
+            <span class="kw">return</span> thunk
+        <span class="kw">elseif</span> thunk<span class="ot">.</span>tag <span class="ot">==</span> <span class="st">&quot;thunk&quot;</span> <span class="kw">then</span>
+            thunk <span class="ot">=</span> evalThunk<span class="ot">(</span>thunk<span class="ot">)</span>
         <span class="kw">end</span>
     <span class="kw">end</span>
 <span class="kw">end</span>
-<span class="ot">&gt;</span> <span class="kw">a</span> <span class="ot">=</span> sum<span class="ot">(</span><span class="dv">10</span><span class="ot">,</span> <span class="kw">function</span><span class="ot">(</span><span class="kw">n</span><span class="ot">)</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;result: &quot;</span><span class="ot">,</span> <span class="kw">n</span><span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">tag</span><span class="ot">)</span>
-<span class="kw">thunk</span>
-<span class="ot">&gt;</span> trampoline<span class="ot">(</span><span class="kw">a</span><span class="ot">)</span>
-<span class="kw">result</span>:         <span class="dv">55</span></code></pre>
+<span class="ot">&gt;</span> a <span class="ot">=</span> sum<span class="ot">(</span><span class="dv">10</span><span class="ot">,</span> <span class="kw">function</span><span class="ot">(</span>n<span class="ot">)</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;result: &quot;</span><span class="ot">,</span> n<span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
+<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>tag<span class="ot">)</span>
+thunk
+<span class="ot">&gt;</span> trampoline<span class="ot">(</span>a<span class="ot">)</span>
+result:         <span class="dv">55</span></code></pre>
 <p>We’re evaluating the thunks in a <code>while</code> loop. This is how you can eliminate tail calls. Now, this exactly looks like the lazy-list method I mentioned in this post. And we already used the same thunk structure for both of them.</p>
 <p>The only difference is, in continuations we don’t save old thunks anywhere and just replace them with new continuations, and we only return a value other than new thunks when we finished the calculation(ie. when we reach the base case).</p>
 <p>So essentially, both continuations and lazy-lists have the same idea. And these are very easy to implement even in langauges that doesn’t support any non-strict primitives.</p>
@@ -633,68 +633,68 @@ end</code></pre>
     <id>http://osa1.net/posts/2012-05-07-lua-basitlik-ve-esneklik-hakknda-birkac-sey.html</id>
     <published>2012-05-07T00:00:00Z</published>
     <updated>2012-05-07T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Programlama dillerini incelediğimi buraları okuyanlar farketmiştir herhalde :) . Bir süredir Lua ile alakalı birşeyler okuyordum. Beni epey etkiledi. İlk yorumlayıcısı ve performansı etkilemişti<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> Daha sonradan kaynağını kurcalamış ve ne kadar küçük ve düzenli olduğunu görüp şaşırmıştım. Dilin desteklediği Tail-call optimization ve <a href="https://plus.google.com/112211667397241192219/posts/QE1noJjQYwz">lexical scope</a>’un(ve dolayısıyla closureların) zaten hastasyım. Sonralardan SO gibi ortamlarda “mühendislik harikası” şeklinde nitelendirildiğini gördüm. Henüz bu kısımları değerlendirebilecek seviyede değilim. Ben dilin sadeliği ve bu sadeliğe rağmen nasıl kolayca esneklik sağlayabildiği hakkında birşeyler yazacağım.</p>
-<p>Dildeki tek veri yapısı tablolar. Arrayler, mapler, modüller ve dil ile gelen tüm yapılar direkt olarak tablo. Bir veri yapısı yazmak istediğiniz de de tabloları kullanmak zorundasınız. Nasıl Python’da herşey nesneyse, Lua’da da <em>neredeyse</em> herşey tablo<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup> Sınıflarla sağlanan bir nesne tabanlı programlama desteği yok. Ama çok basit ve güzel bir özellik sayesinde, multiple inheritance bile sağlayabiliyorsunuz.</p>
+    <summary type="html"><![CDATA[<p>Programlama dillerini incelediğimi buraları okuyanlar farketmiştir herhalde :) . Bir süredir Lua ile alakalı birşeyler okuyordum. Beni epey etkiledi. İlk yorumlayıcısı ve performansı etkilemişti<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> Daha sonradan kaynağını kurcalamış ve ne kadar küçük ve düzenli olduğunu görüp şaşırmıştım. Dilin desteklediği Tail-call optimization ve <a href="https://plus.google.com/112211667397241192219/posts/QE1noJjQYwz">lexical scope</a>’un(ve dolayısıyla closureların) zaten hastasyım. Sonralardan SO gibi ortamlarda “mühendislik harikası” şeklinde nitelendirildiğini gördüm. Henüz bu kısımları değerlendirebilecek seviyede değilim. Ben dilin sadeliği ve bu sadeliğe rağmen nasıl kolayca esneklik sağlayabildiği hakkında birşeyler yazacağım.</p>
+<p>Dildeki tek veri yapısı tablolar. Arrayler, mapler, modüller ve dil ile gelen tüm yapılar direkt olarak tablo. Bir veri yapısı yazmak istediğiniz de de tabloları kullanmak zorundasınız. Nasıl Python’da herşey nesneyse, Lua’da da <em>neredeyse</em> herşey tablo<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> Sınıflarla sağlanan bir nesne tabanlı programlama desteği yok. Ama çok basit ve güzel bir özellik sayesinde, multiple inheritance bile sağlayabiliyorsunuz.</p>
 <p>Tüm tablolara <code>metatable</code> denilen bir tablo atayabiliyorsunuz. Bu metatablolar(ne diyeyim bilemedim bunlara) tablolar operatörlerle işleme sokulduğunda çağırılacak fonksiyonları tutuyorlar. Örneğin bir tablonun metatablosu <code>__add</code> gibi bir fonksiyona sahipse, bu tabloyu toplama işlemine sokabiliyoruz. Aynı <a href="http://docs.python.org/reference/datamodel.html#object.__add__">Python’daki <code>__add__</code> methodu</a> gibi. Eğer tabloda olmayan bir değer erişmek istersek de, benzer bir şekilde metatablodaki <code>__index</code> fonksiyonuna, eğer tabloda olmayan bir değer eklemeye çalışırsak(mevcut bir değeri değiştirme değil de farklı anahtara sahip bir değer ekleme yani) da <code>__newindex</code> fonksiyonu çağırılıyor. Bunlar aynı Python’daki <a href="http://docs.python.org/reference/datamodel.html#object.__getattr__"><code>__getattr__</code></a> ve <a href="http://docs.python.org/reference/datamodel.html#object.__setattr__"><code>__setattr__</code></a> gibiler.</p>
-<p>Bugün yazdığım uygulamada şöyle bir sorun yaşadım. <em>Rect</em> adlı bir tablo tutuyorum ve bu tabloyu metatablo olarak kullanan başka tablolar oluşturuyorum. Sanki <em>Rect</em> diye bir sınıfım varmış da nesneler oluşturuyormuşum gibi. Bir yerden sonra bu tablonun implementasyonunda ciddi bir değişiklik yapıyorum ve <code>x</code> ve <code>y</code> özellikleri yerine artık bir <code>center</code> ve <code>angle</code> diye iki özellik ekliyorum. Ama bu tablonun bazı <code>x</code> ve <code>y</code> özelliklerini kullanan fonksiyonlarımı teker teker değiştirmemem gerek. Python konuşanlara bunu şöyle özetleyebiliriz, sınıfımdan iki özellik siliyorum, bunların artık sınıftaki diğer özelliklerden hesaplanması gerek. Ama kodumu refactor etmek istemiyorum. Bu durumda Python’da yapılacak işlem bariz: <code>x</code> ve <code>y</code>yi <a href="http://docs.python.org/library/functions.html#property"><code>property</code></a> decoratorü içerisinde methodlar olarak tanımlamak<sup><a href="#fn3" class="footnoteRef" id="fnref3">3</a></sup> Lua’da bunu şöyle yaptım:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">Rect</span> <span class="ot">=</span> <span class="ot">{</span> <span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
-         <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
-         <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
-         <span class="kw">width</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
-         <span class="kw">height</span> <span class="ot">=</span> <span class="dv">0</span> <span class="ot">}</span>
-<span class="kw">function</span> Rect_indexfn <span class="ot">(</span><span class="kw">table</span><span class="ot">,</span> <span class="kw">key</span><span class="ot">)</span>
-    <span class="kw">local</span> <span class="kw">f</span><span class="ot">,</span> <span class="kw">o</span>
-    <span class="kw">if</span> <span class="kw">key</span> <span class="ot">==</span> <span class="st">&#39;x&#39;</span> <span class="kw">then</span>
-        <span class="kw">f</span> <span class="ot">=</span> <span class="fu">math.cos</span>
-        <span class="kw">o</span> <span class="ot">=</span> <span class="kw">table</span><span class="ot">.</span><span class="kw">centerx</span>
-    <span class="kw">elseif</span> <span class="kw">key</span> <span class="ot">==</span> <span class="st">&#39;y&#39;</span> <span class="kw">then</span>
-        <span class="kw">f</span> <span class="ot">=</span> <span class="fu">math.sin</span>
-        <span class="kw">o</span> <span class="ot">=</span> <span class="kw">table</span><span class="ot">.</span><span class="kw">centery</span>
+<p>Bugün yazdığım uygulamada şöyle bir sorun yaşadım. <em>Rect</em> adlı bir tablo tutuyorum ve bu tabloyu metatablo olarak kullanan başka tablolar oluşturuyorum. Sanki <em>Rect</em> diye bir sınıfım varmış da nesneler oluşturuyormuşum gibi. Bir yerden sonra bu tablonun implementasyonunda ciddi bir değişiklik yapıyorum ve <code>x</code> ve <code>y</code> özellikleri yerine artık bir <code>center</code> ve <code>angle</code> diye iki özellik ekliyorum. Ama bu tablonun bazı <code>x</code> ve <code>y</code> özelliklerini kullanan fonksiyonlarımı teker teker değiştirmemem gerek. Python konuşanlara bunu şöyle özetleyebiliriz, sınıfımdan iki özellik siliyorum, bunların artık sınıftaki diğer özelliklerden hesaplanması gerek. Ama kodumu refactor etmek istemiyorum. Bu durumda Python’da yapılacak işlem bariz: <code>x</code> ve <code>y</code>yi <a href="http://docs.python.org/library/functions.html#property"><code>property</code></a> decoratorü içerisinde methodlar olarak tanımlamak<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> Lua’da bunu şöyle yaptım:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua">Rect <span class="ot">=</span> <span class="ot">{</span> centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
+         centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
+         angle <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
+         width <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
+         height <span class="ot">=</span> <span class="dv">0</span> <span class="ot">}</span>
+<span class="kw">function</span> Rect_indexfn <span class="ot">(</span>table<span class="ot">,</span> key<span class="ot">)</span>
+    <span class="kw">local</span> f<span class="ot">,</span> o
+    <span class="kw">if</span> key <span class="ot">==</span> <span class="st">&#39;x&#39;</span> <span class="kw">then</span>
+        f <span class="ot">=</span> <span class="fu">math.cos</span>
+        o <span class="ot">=</span> table<span class="ot">.</span>centerx
+    <span class="kw">elseif</span> key <span class="ot">==</span> <span class="st">&#39;y&#39;</span> <span class="kw">then</span>
+        f <span class="ot">=</span> <span class="fu">math.sin</span>
+        o <span class="ot">=</span> table<span class="ot">.</span>centery
     <span class="kw">end</span>
-    <span class="kw">if</span> <span class="kw">f</span> <span class="kw">then</span>
-        <span class="kw">return</span> <span class="kw">o</span><span class="ot">-</span><span class="fu">math.abs</span><span class="ot">(</span>f<span class="ot">(</span><span class="fu">math.rad</span><span class="ot">(</span><span class="kw">table</span><span class="ot">.</span><span class="kw">angle</span><span class="ot">)))*</span><span class="kw">math</span><span class="ot">.</span>pow<span class="ot">(</span><span class="kw">math</span><span class="ot">.</span>pow<span class="ot">(</span><span class="kw">table</span><span class="ot">.</span><span class="kw">height</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">)+</span><span class="kw">math</span><span class="ot">.</span>pow<span class="ot">(</span><span class="kw">table</span><span class="ot">.</span><span class="kw">width</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">),</span> <span class="dv">0.5</span><span class="ot">)/</span><span class="dv">2</span>
+    <span class="kw">if</span> f <span class="kw">then</span>
+        <span class="kw">return</span> o<span class="ot">-</span><span class="fu">math.abs</span><span class="ot">(</span>f<span class="ot">(</span><span class="fu">math.rad</span><span class="ot">(</span>table<span class="ot">.</span>angle<span class="ot">)))*</span>math<span class="ot">.</span>pow<span class="ot">(</span>math<span class="ot">.</span>pow<span class="ot">(</span>table<span class="ot">.</span>height<span class="ot">,</span> <span class="dv">2</span><span class="ot">)+</span>math<span class="ot">.</span>pow<span class="ot">(</span>table<span class="ot">.</span>width<span class="ot">,</span> <span class="dv">2</span><span class="ot">),</span> <span class="dv">0.5</span><span class="ot">)/</span><span class="dv">2</span>
     <span class="kw">end</span>
 <span class="kw">end</span>
-<span class="kw">function</span> <span class="kw">Rect</span>:new<span class="ot">()</span>
-    <span class="fu">setmetatable</span><span class="ot">(</span><span class="kw">self</span><span class="ot">,</span> <span class="ot">{</span> <span class="kw">__index</span> <span class="ot">=</span> <span class="kw">Rect_indexfn</span> <span class="ot">})</span>
-    <span class="kw">return</span> <span class="kw">self</span>
+<span class="kw">function</span> Rect:new<span class="ot">()</span>
+    <span class="fu">setmetatable</span><span class="ot">(</span>self<span class="ot">,</span> <span class="ot">{</span> __index <span class="ot">=</span> Rect_indexfn <span class="ot">})</span>
+    <span class="kw">return</span> self
 <span class="kw">end</span>
-<span class="kw">a</span> <span class="ot">=</span> <span class="kw">Rect</span><span class="ot">.</span>new<span class="ot">({</span><span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> <span class="kw">width</span> <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> <span class="kw">height</span> <span class="ot">=</span> <span class="dv">8</span><span class="ot">})</span>
-<span class="kw">b</span> <span class="ot">=</span> <span class="kw">Rect</span><span class="ot">.</span>new<span class="ot">({</span><span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> <span class="kw">width</span> <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> <span class="kw">height</span> <span class="ot">=</span> <span class="dv">8</span><span class="ot">})</span>
-<span class="kw">b</span><span class="ot">.</span><span class="kw">angle</span> <span class="ot">=</span> <span class="dv">60</span>
-<span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">x</span><span class="ot">)</span> <span class="co">-- -4.3301270189222</span>
-<span class="fu">print</span><span class="ot">(</span><span class="kw">b</span><span class="ot">.</span><span class="kw">y</span><span class="ot">)</span> <span class="co">-- -4.3301270189222</span></code></pre>
+a <span class="ot">=</span> Rect<span class="ot">.</span>new<span class="ot">({</span>centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> angle <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> width <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> height <span class="ot">=</span> <span class="dv">8</span><span class="ot">})</span>
+b <span class="ot">=</span> Rect<span class="ot">.</span>new<span class="ot">({</span>centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> angle <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> width <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> height <span class="ot">=</span> <span class="dv">8</span><span class="ot">})</span>
+b<span class="ot">.</span>angle <span class="ot">=</span> <span class="dv">60</span>
+<span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>x<span class="ot">)</span> <span class="co">-- -4.3301270189222</span>
+<span class="fu">print</span><span class="ot">(</span>b<span class="ot">.</span>y<span class="ot">)</span> <span class="co">-- -4.3301270189222</span></code></pre>
 <p>Tek yaptığım, yeni bir Rect oluşturuğum tablonun metatablosunu daha önceden belirlediğim <code>Rect_indexfn</code> fonksiyonunun <code>__index</code> fonksiyonu olarak tutan bir tablo olarak belirlemek. Bundan ne zaman kendisinin sahip olmadığı bir değere erişilmeye çalışsa, bu fonksiyon çalışarak erişilmek istenen değere göre işlemler yapıyor. Bu arada <code>:</code> ile tanımladığım fonksiyonların aldığı ilk parametre <code>self</code> değerine atanıyor. <code>Rect:new()</code> fonksiyonum hiçbir parametre almıyormuş gibi gözüksede, <code>self</code> adlı bir parametre alıyor yani aslında.</p>
 <p>Şimdi normalde bunu gösterip bitirecektim ama multiple inheritance implementasyonu da o kadar kolay ki atlayamadım:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="kw">Rect</span>:new<span class="ot">(</span><span class="kw">ps</span><span class="ot">)</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> Rect:new<span class="ot">(</span>ps<span class="ot">)</span>
     <span class="co">-- lua&#39;da vararglar biraz sorunlu oldugundan superclasslari</span>
     <span class="co">-- bir array olarak alacagim. detaylar icin: http://lua-users.org/wiki/VarargTheSecondClassCitizen</span>
-    <span class="kw">local</span> <span class="kw">function</span> indexfn <span class="ot">(</span><span class="kw">table</span><span class="ot">,</span> <span class="kw">key</span><span class="ot">)</span>
-        <span class="kw">local</span> <span class="kw">v</span> <span class="ot">=</span> Rect_indexfn<span class="ot">(</span><span class="kw">table</span><span class="ot">,</span> <span class="kw">key</span><span class="ot">)</span>
-        <span class="kw">if</span> <span class="kw">v</span> <span class="kw">then</span>
-            <span class="kw">return</span> <span class="kw">v</span>
+    <span class="kw">local</span> <span class="kw">function</span> indexfn <span class="ot">(</span>table<span class="ot">,</span> key<span class="ot">)</span>
+        <span class="kw">local</span> v <span class="ot">=</span> Rect_indexfn<span class="ot">(</span>table<span class="ot">,</span> key<span class="ot">)</span>
+        <span class="kw">if</span> v <span class="kw">then</span>
+            <span class="kw">return</span> v
         <span class="kw">end</span>
-        <span class="kw">for</span> <span class="kw">i</span><span class="ot">,</span><span class="kw">v</span> <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span><span class="kw">ps</span><span class="ot">)</span> <span class="kw">do</span>
-            <span class="kw">v</span> <span class="ot">=</span> <span class="kw">v</span><span class="ot">[</span><span class="kw">key</span><span class="ot">]</span>
-            <span class="kw">if</span> <span class="kw">v</span> <span class="kw">then</span>
-                <span class="kw">return</span> <span class="kw">v</span>
+        <span class="kw">for</span> i<span class="ot">,</span>v <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span>ps<span class="ot">)</span> <span class="kw">do</span>
+            v <span class="ot">=</span> v<span class="ot">[</span>key<span class="ot">]</span>
+            <span class="kw">if</span> v <span class="kw">then</span>
+                <span class="kw">return</span> v
             <span class="kw">end</span>
         <span class="kw">end</span>
     <span class="kw">end</span>
-    <span class="fu">setmetatable</span><span class="ot">(</span><span class="kw">self</span><span class="ot">,</span> <span class="ot">{</span> <span class="kw">__index</span> <span class="ot">=</span> <span class="kw">indexfn</span> <span class="ot">})</span>
-    <span class="kw">return</span> <span class="kw">self</span>
+    <span class="fu">setmetatable</span><span class="ot">(</span>self<span class="ot">,</span> <span class="ot">{</span> __index <span class="ot">=</span> indexfn <span class="ot">})</span>
+    <span class="kw">return</span> self
 <span class="kw">end</span>
 <span class="co">-- bu ikisi superclass gorevinde</span>
-<span class="kw">st1</span> <span class="ot">=</span> <span class="ot">{</span> <span class="kw">attr1</span> <span class="ot">=</span> <span class="st">&quot;st1 attr1&quot;</span> <span class="ot">}</span>
-<span class="kw">st2</span> <span class="ot">=</span> <span class="ot">{</span> <span class="kw">attr1</span> <span class="ot">=</span> <span class="st">&quot;st2 attr1&quot;</span><span class="ot">,</span> <span class="kw">attr2</span> <span class="ot">=</span> <span class="st">&quot;st2 attr2&quot;</span> <span class="ot">}</span>
-<span class="kw">a</span> <span class="ot">=</span> <span class="kw">Rect</span><span class="ot">.</span>new<span class="ot">({</span><span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> <span class="kw">width</span> <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> <span class="kw">height</span> <span class="ot">=</span> <span class="dv">8</span><span class="ot">},</span> <span class="ot">{</span> <span class="kw">st1</span><span class="ot">,</span> <span class="kw">st2</span> <span class="ot">})</span>
-<span class="kw">b</span> <span class="ot">=</span> <span class="kw">Rect</span><span class="ot">.</span>new<span class="ot">({</span><span class="kw">centerx</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">centery</span> <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> <span class="kw">angle</span> <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> <span class="kw">width</span> <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> <span class="kw">height</span> <span class="ot">=</span> <span class="dv">8</span><span class="ot">},</span> <span class="ot">{</span> <span class="kw">st2</span> <span class="ot">})</span>
-<span class="kw">b</span><span class="ot">.</span><span class="kw">angle</span> <span class="ot">=</span> <span class="dv">60</span>
-<span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">x</span><span class="ot">)</span>     <span class="co">-- -4.3301270189222</span>
-<span class="fu">print</span><span class="ot">(</span><span class="kw">b</span><span class="ot">.</span><span class="kw">y</span><span class="ot">)</span>     <span class="co">-- -4.3301270189222</span>
-<span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">attr1</span><span class="ot">)</span> <span class="co">-- st1 attr1</span>
-<span class="fu">print</span><span class="ot">(</span><span class="kw">a</span><span class="ot">.</span><span class="kw">attr2</span><span class="ot">)</span> <span class="co">-- st2 attr2</span>
-<span class="fu">print</span><span class="ot">(</span><span class="kw">b</span><span class="ot">.</span><span class="kw">attr1</span><span class="ot">)</span> <span class="co">-- st2 attr1</span></code></pre>
+st1 <span class="ot">=</span> <span class="ot">{</span> attr1 <span class="ot">=</span> <span class="st">&quot;st1 attr1&quot;</span> <span class="ot">}</span>
+st2 <span class="ot">=</span> <span class="ot">{</span> attr1 <span class="ot">=</span> <span class="st">&quot;st2 attr1&quot;</span><span class="ot">,</span> attr2 <span class="ot">=</span> <span class="st">&quot;st2 attr2&quot;</span> <span class="ot">}</span>
+a <span class="ot">=</span> Rect<span class="ot">.</span>new<span class="ot">({</span>centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> angle <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> width <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> height <span class="ot">=</span> <span class="dv">8</span><span class="ot">},</span> <span class="ot">{</span> st1<span class="ot">,</span> st2 <span class="ot">})</span>
+b <span class="ot">=</span> Rect<span class="ot">.</span>new<span class="ot">({</span>centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> angle <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> width <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> height <span class="ot">=</span> <span class="dv">8</span><span class="ot">},</span> <span class="ot">{</span> st2 <span class="ot">})</span>
+b<span class="ot">.</span>angle <span class="ot">=</span> <span class="dv">60</span>
+<span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>x<span class="ot">)</span>     <span class="co">-- -4.3301270189222</span>
+<span class="fu">print</span><span class="ot">(</span>b<span class="ot">.</span>y<span class="ot">)</span>     <span class="co">-- -4.3301270189222</span>
+<span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>attr1<span class="ot">)</span> <span class="co">-- st1 attr1</span>
+<span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>attr2<span class="ot">)</span> <span class="co">-- st2 attr2</span>
+<span class="fu">print</span><span class="ot">(</span>b<span class="ot">.</span>attr1<span class="ot">)</span> <span class="co">-- st2 attr1</span></code></pre>
 <p>Constructoru bu şekilde değiştirdim. <code>__index</code> fonksiyonunun yeni haline bakarsanız, ilk başta <code>Rect_indexfn</code>yi çağırıyor, eğer hala gerekli değerler bulunamıyorsa, soldan itibaren superclassları aramaya başlıyor. Burda ben en basit implementasyonu yapmaya çalıştım, eğer superclasslar da bu şekilde tanımlanmış metatabloya sahiplerse, arama işlemi ilk superclassın superclasslarıyla devam edecek. Kolayca farklı davranışlar tanımlanabilir, tüm algoritma <code>indexfn</code> fonksiyonundan ibaret. Hayal gücünüzce geliştirip, <a href="http://en.wikipedia.org/wiki/Diamond_problem">diamond problem</a> ile karşılaşıp, kendi çözümünüzü uydurabilirsiniz :) .</p>
 <hr />
 <div class="footnotes">

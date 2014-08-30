@@ -252,7 +252,6 @@ Qed.</code></pre>
 <p>where <code>op</code> is monoid operation and <code>U</code> is unit of monoid.</p>
 <p>Can you come up with a data structure that forms a group?</p>
 <div id="ex-div-6.1" class="solution">
-
 <p>Someone at Coq IRC channel suggested diffs. Do you think a diff could form a group? What would associative operation, unit element, and inverse elements be?</p>
 <div id="ex-div-6.2" class="solution">
 <p>Diffs don’t form a group. Composing two diffs is the merge operation, which is partial function. We can’t always merge two diffs. (merge conflicts)</p>
@@ -365,7 +364,7 @@ Proof.
   induction n using nat10ind; auto.
   simpl. f_equal. assumption.
 Qed.</code></pre>
-<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
+<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
 <hr />
 <div class="footnotes">
 <hr />
@@ -380,7 +379,7 @@ Qed.</code></pre>
     <id>http://osa1.net/posts/2014-03-06-proving-simply-typed-multi-staged-lc.html</id>
     <published>2014-03-06T00:00:00Z</published>
     <updated>2014-03-06T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>First part of my first non-trivial(e.g. something other than a Software Foundations exercise) Coq program is finally done. I learned Coq from Software Foundations, but I didn’t finish to book. I still know only very basic tactics, which I think one of the reasons why my proofs are so long. You can see the source <a href="https://github.com/osa1/StagedLambda/blob/master/Lc.v">here</a>.</p>
+    <summary type="html"><![CDATA[<p>First part of my first non-trivial(e.g. something other than a Software Foundations exercise) Coq program is finally done. I learned Coq from Software Foundations, but I didn’t finish to book. I still know only very basic tactics, which I think is one of the reasons why my proofs are so long. You can see the source <a href="https://github.com/osa1/StagedLambda/blob/master/Lc.v">here</a>.</p>
 <p>Some random notes about implementation:</p>
 <ul>
 <li>I’m looking to improve proofs. I have a lot more to implement for the rest of the program until deadline, so I may not be able to refactor current proofs very much, but at one point I want to simplify the proofs and use more advanced tactics.</li>

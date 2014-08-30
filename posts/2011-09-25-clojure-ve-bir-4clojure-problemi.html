@@ -52,9 +52,9 @@ groups = []</code></pre>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">for</span> y in <span class="dt">xrange</span>(<span class="dt">len</span>(test_grid)):
     <span class="kw">for</span> x in <span class="dt">xrange</span>(<span class="dt">len</span>(test_grid[^<span class="dv">0</span>]):
         char = test_grid[y][x]
-        <span class="kw">print</span> x, y, char,
+        <span class="dt">print</span> x, y, char,
         <span class="kw">if</span> char == <span class="st">'#'</span>:
-            <span class="kw">print</span> <span class="st">&quot;block&quot;</span>
+            <span class="dt">print</span> <span class="st">&quot;block&quot;</span>
         <span class="kw">else</span>:
             <span class="kw">if</span> char == <span class="st">'M'</span>:
                 pos_m = (x, y)
@@ -64,17 +64,17 @@ groups = []</code></pre>
             <span class="kw">if</span> <span class="dt">len</span>(grps) &gt; <span class="dv">1</span>:
                 merge_groups(grps)
                 grps[^<span class="dv">0</span>]append((x, y))
-                <span class="kw">print</span> <span class="st">&quot;merge&quot;</span>
+                <span class="dt">print</span> <span class="st">&quot;merge&quot;</span>
             <span class="kw">elif</span> <span class="dt">len</span>(grps) == <span class="dv">0</span>:
                 groups.append([(x, y)])
-                <span class="kw">print</span> <span class="st">&quot;new group&quot;</span>
+                <span class="dt">print</span> <span class="st">&quot;new group&quot;</span>
             <span class="kw">else</span>:
                 grps[^<span class="dv">0</span>]append((x, y))
-                <span class="kw">print</span> <span class="st">&quot;append&quot;</span>
-<span class="kw">print</span> pos_m, pos_c
+                <span class="dt">print</span> <span class="st">&quot;append&quot;</span>
+<span class="dt">print</span> pos_m, pos_c
 <span class="kw">for</span> group in groups:
     <span class="kw">if</span> pos_m in group and pos_c in group:
-        <span class="kw">print</span> <span class="st">&quot;M can reach C&quot;</span></code></pre>
+        <span class="dt">print</span> <span class="st">&quot;M can reach C&quot;</span></code></pre>
 <p>Çok da güzel bir kod olmayabilir(örneğin liste içinde listelerde lineer arama yerine, <code>set</code> kullanılabilir, Clojure kodumda yaptığım gibi) ama problemi hızlıca çözmek için işimi gördü.</p>
 <p>Fonksiyonel programlama yolunu henüz çözebilmiş değilim. Hala daha çoğu zaman yaptığım, bir algoritmadaki değişen durumları(<code>state</code>) bir <code>loop</code> içine alıp, tail-call yapmak(Clojure’da <code>recur</code> yani, bu arada <code>recur</code>’un tail-call optimization olmadığının farkındayım).</p>
 <p>Yukarıdaki Python fonksiyonlarının Clojure karşılıklarını şu şekilde yazdım:</p>

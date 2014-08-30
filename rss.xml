@@ -287,7 +287,6 @@ Qed.</code></pre>
 <p>where <code>op</code> is monoid operation and <code>U</code> is unit of monoid.</p>
 <p>Can you come up with a data structure that forms a group?</p>
 <div id="ex-div-6.1" class="solution">
-
 <p>Someone at Coq IRC channel suggested diffs. Do you think a diff could form a group? What would associative operation, unit element, and inverse elements be?</p>
 <div id="ex-div-6.2" class="solution">
 <p>Diffs don’t form a group. Composing two diffs is the merge operation, which is partial function. We can’t always merge two diffs. (merge conflicts)</p>
@@ -400,7 +399,7 @@ Proof.
   induction n using nat10ind; auto.
   simpl. f_equal. assumption.
 Qed.</code></pre>
-<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
+<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
 <hr />
 <div class="footnotes">
 <hr />
@@ -465,7 +464,7 @@ Main.CAF (&lt;entire-module&gt;)</code></pre>
     <published>2014-06-03T00:00:00Z</published>
     <updated>2014-06-03T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>A. Einstein ve L. Infeld’in “Fiziğin Evrimi” kitabının Öner Ünalan tarafından tercüme edilmiş halinin çok eski bir baskısını(baskı yılı yazmıyor, fakat kitabın arkasında “30 lira” yazmakta) okuyorum ve yabancı kelimelerin tercümesi hakkında çok güzel bir “çevirmen notuna” denk geldim.</p>
-<p>Çevirmen “inertia” kelimesinin Türkçe karşılığı olarak neden “eylemsizlik” değil de “süredurum” kullandığını şu şekilde açıklıyor:<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup></p>
+<p>Çevirmen “inertia” kelimesinin Türkçe karşılığı olarak neden “eylemsizlik” değil de “süredurum” kullandığını şu şekilde açıklıyor:<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
 <ul>
 <li>Inert: Eylemsiz - süreduran</li>
 <li>Inertia: Eylemsizlik - süredurum</li>
@@ -483,7 +482,7 @@ Main.CAF (&lt;entire-module&gt;)</code></pre>
 <li>Computability: Bilgisayılabilirlik (kullanılan: hesaplanabilirlik)</li>
 <li>Non-computable: Bilgisayılamaz (kullanılan: hesaplanılamaz)</li>
 </ul>
-<p>“Bilgisayar” kelimesini beğenmeyenlerin aklında böyle birşey var mıydı emin değilim, fakat görünüşe göre “bilgisayar” gerçekten korkunç bir tercüme, olması gereken kelime “hesaplayıcı”ymış gibi görünüyor. Gerçi durum burada biraz daha farklı. “Bilgisay-” kökünden türemiş alternatifler her kelime için var, fakat 1) hiçbiri anlam olarak eşleşmiyor<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup> 2) hiçbiri günümüzde kullanılmıyor(çok şükür).</p>
+<p>“Bilgisayar” kelimesini beğenmeyenlerin aklında böyle birşey var mıydı emin değilim, fakat görünüşe göre “bilgisayar” gerçekten korkunç bir tercüme, olması gereken kelime “hesaplayıcı”ymış gibi görünüyor. Gerçi durum burada biraz daha farklı. “Bilgisay-” kökünden türemiş alternatifler her kelime için var, fakat 1) hiçbiri anlam olarak eşleşmiyor<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> 2) hiçbiri günümüzde kullanılmıyor(çok şükür).</p>
 <hr />
 <div class="footnotes">
 <hr />
@@ -675,12 +674,12 @@ Program received signal SIGABRT, Aborted.
 <p>We have basic Haskell types <code>Int</code>, <code>Double</code>, <code>String</code>, and <code>Bool</code> as instances. Other types are for more advanced use, for example, <code>Ptr a</code> is used for <code>userdata</code>(basically any binary data that you want to pass to Lua stack and later get back, see <a href="http://www.lua.org/manual/5.1/manual.html#2.2">reference manual</a> for more details).</p>
 <p>This two functions are instances of <code>LuaImport</code>:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">concat&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
-concat&#39; s1 s2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> s1 <span class="fu">++</span> s2
+concat&#39; s1 s2 <span class="fu">=</span> return <span class="fu">$</span> s1 <span class="fu">++</span> s2
 
 <span class="ot">pow ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Double</span>
-pow d1 d2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre>
+pow d1 d2 <span class="fu">=</span> return <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre>
 <p>And we can push this functions to Lua stack using <code>pushhsfunction</code> or directly assign them to a global variable using <code>registerhsfunction</code>. In this post I’ll use register functions:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Scripting.Lua <span class="kw">as</span> Lua
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="kw">as</span> <span class="dt">Lua</span>
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
@@ -706,20 +705,20 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">addLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <span class="fu">...</span>
     <span class="kw">case</span> as <span class="kw">of</span>
-      <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
         <span class="co">-- arguments are functions, add them to callback queue and return</span>
         <span class="co">-- nothing</span>
         addCallbacks <span class="dv">1</span> args
-        <span class="fu">return</span> <span class="dv">0</span>
-      <span class="kw">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span>
+        return <span class="dv">0</span>
+      <span class="dt">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span>
         <span class="co">-- error: argument at `errArg` is not a function, return error</span>
         <span class="co">-- string</span>
-        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> <span class="fu">show</span> errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
-        <span class="fu">return</span> <span class="dv">1</span></code></pre>
+        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> show errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
+        return <span class="dv">1</span></code></pre>
 <p>This example program keeps track of passed Lua callbacks in an <code>IORef</code>. Here’s the part that handles getting Lua callbacks from Lua stack:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n <span class="fu">max</span>
-  <span class="fu">|</span> n <span class="fu">&gt;</span> <span class="fu">max</span> <span class="fu">=</span> <span class="fu">return</span> ()
-  <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="kw">do</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n max
+  <span class="fu">|</span> n <span class="fu">&gt;</span> max <span class="fu">=</span> return ()
+  <span class="fu">|</span> otherwise <span class="fu">=</span> <span class="kw">do</span>
       <span class="co">-- move nth argument to top of the stack</span>
       pushvalue l n
       <span class="co">-- add function reference to registry</span>
@@ -727,17 +726,17 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
       <span class="co">-- add registry index to IORef</span>
       modifyIORef cs (<span class="fu">++</span> [refId])
       <span class="co">-- continue adding other arguments</span>
-      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) <span class="fu">max</span></code></pre>
+      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) max</code></pre>
 <p>Note how we’re adding the function to the <em>registry</em> and getting it’s index at the <em>registry</em> in Haskell. We can now refer to this functions(e.g. push this function to Lua stack) using this index. Here’s the relevant code:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Call Lua callbacks collected with `addLuaCallbacks`.</span>
 <span class="ot">callLuaCallbacks ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">CInt</span>
 callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <span class="fu">...</span>
   <span class="kw">where</span>
-    iter [] <span class="fu">=</span> <span class="fu">return</span> ()
+    iter [] <span class="fu">=</span> return ()
     iter (c <span class="fu">:</span> rest) <span class="fu">=</span> <span class="kw">do</span>
       <span class="fu">...</span>
-      pushinteger l (<span class="fu">fromIntegral</span> c)
+      pushinteger l (fromIntegral c)
       gettable l registryindex
       <span class="co">-- call the callback</span>
       call l <span class="dv">0</span> <span class="dv">1</span>
@@ -750,13 +749,13 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 <p>This helps making sure that your API usage is correct.</p>
 <h1 id="using-hslua-for-reading-configuration-files-written-in-lua">Using hslua for reading configuration files written in Lua</h1>
 <p>hslua also provides a module for reading configuration files. As an example, using <code>Scripting.Lua.ConfigFile.getNestedAssocLists</code>, you can execute the Lua file given below and get resulting nested table as Haskell <code>[(String, [(String, String)])]</code>:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"> <span class="kw">someVal</span> <span class="ot">=</span> <span class="ot">{</span>
-    <span class="kw">something</span> <span class="ot">=</span> <span class="ot">{</span>
-       <span class="kw">foo</span> <span class="ot">=</span> <span class="st">&quot;aaa&quot;</span><span class="ot">,</span>
-       <span class="kw">bar</span> <span class="ot">=</span> <span class="st">&quot;bbb&quot;</span><span class="ot">,</span>
-       <span class="kw">baz</span> <span class="ot">=</span> <span class="st">&quot;ccc&quot;</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"> someVal <span class="ot">=</span> <span class="ot">{</span>
+    something <span class="ot">=</span> <span class="ot">{</span>
+       foo <span class="ot">=</span> <span class="st">&quot;aaa&quot;</span><span class="ot">,</span>
+       bar <span class="ot">=</span> <span class="st">&quot;bbb&quot;</span><span class="ot">,</span>
+       baz <span class="ot">=</span> <span class="st">&quot;ccc&quot;</span>
     <span class="ot">},</span>
-    <span class="kw">somethingElse</span> <span class="ot">=</span> <span class="ot">{</span>
+    somethingElse <span class="ot">=</span> <span class="ot">{</span>
        <span class="ot">...</span>
     <span class="ot">}</span>
  <span class="ot">}</span></code></pre>

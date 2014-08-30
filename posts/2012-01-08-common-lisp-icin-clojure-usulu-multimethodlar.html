@@ -25,7 +25,7 @@
 <pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defmulti</span><span class="fu"> compiler </span><span class="kw">:os</span>)
 (<span class="kw">defmethod</span><span class="fu"> compiler </span><span class="kw">::unix</span> [m] (<span class="kw">get</span> m <span class="kw">:c-compiler</span>))
 (<span class="kw">defmethod</span><span class="fu"> compiler </span><span class="kw">::osx</span>  [m] (<span class="kw">get</span> m <span class="kw">:c-compiler</span>))</code></pre>
-<p>Burda yapılan şey şu, <code>compiler</code> adlı bir multimethod oluşturuluyor ve dispatch fonksiyonunu seçmek için kullanılacak fonksiyon olarak <code>:os</code> keywordu olarak belirleniyor<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> Daha sonra iki tane method tanımlanıyor, ilkinde test fonksiyonumuz(yani <code>:os</code> fonksiyonu) <code>:unix</code> keywordünü dönerse çalıştırılacak fonksiyon, ikincisinde de <code>:osx</code> keywordünü dönerse çalıştırılacak fonksiyonu belirleniyor. Test fonksiyonuna da <code>m</code> parametresinin aktarıldığına dikkat. Yani <code>m</code> önce test fonksiyonu tarafından kullanılıyor, sonra da dönüş değerine göre dispatch fonksiyonlarından biri tarafından.</p>
+<p>Burda yapılan şey şu, <code>compiler</code> adlı bir multimethod oluşturuluyor ve dispatch fonksiyonunu seçmek için kullanılacak fonksiyon olarak <code>:os</code> keywordu olarak belirleniyor<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> Daha sonra iki tane method tanımlanıyor, ilkinde test fonksiyonumuz(yani <code>:os</code> fonksiyonu) <code>:unix</code> keywordünü dönerse çalıştırılacak fonksiyon, ikincisinde de <code>:osx</code> keywordünü dönerse çalıştırılacak fonksiyonu belirleniyor. Test fonksiyonuna da <code>m</code> parametresinin aktarıldığına dikkat. Yani <code>m</code> önce test fonksiyonu tarafından kullanılıyor, sonra da dönüş değerine göre dispatch fonksiyonlarından biri tarafından.</p>
 <p>Kullanımı şöyle:</p>
 <pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">def</span><span class="fu"> unix </span>{<span class="kw">:os</span> <span class="kw">::unix</span>, <span class="kw">:c-compiler</span> <span class="st">&quot;cc&quot;</span>})
 (<span class="kw">def</span><span class="fu"> osx  </span>{<span class="kw">:os</span> <span class="kw">::osx</span>,  <span class="kw">:c-compiler</span> <span class="st">&quot;gcc&quot;</span>})
@@ -66,7 +66,7 @@
 
 CL-USER&gt; (compiler osx)
 :GCC</code></pre>
-<p>Common Lisp halinin çok daha uzun olmasının birkaç sebebi var: Birincisi, Common Lisp hash-tablelarının başlangıç değerlerini belirlemenin bir yolu yok. hash-table’ların özel bir syntax’ı da yok. <code>make-hash-table</code> ile oluşturup teker teker elemanları koymamız gerekiyor. İkincisi, <sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup> notta yazdığım şey.</p>
+<p>Common Lisp halinin çok daha uzun olmasının birkaç sebebi var: Birincisi, Common Lisp hash-tablelarının başlangıç değerlerini belirlemenin bir yolu yok. hash-table’ların özel bir syntax’ı da yok. <code>make-hash-table</code> ile oluşturup teker teker elemanları koymamız gerekiyor. İkincisi, <a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> notta yazdığım şey.</p>
 <hr />
 <div class="footnotes">
 <hr />

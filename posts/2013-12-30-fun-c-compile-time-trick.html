@@ -34,7 +34,7 @@
 <pre><code>test.c:13:17: error: 'foo' declared as an array with a negative size
 typedef int foo[-1];
                 ^~</code></pre>
-<p>Furthermore, there are some expression-like C syntax that are actually evaluated at compile time<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>. For example:</p>
+<p>Furthermore, there are some expression-like C syntax that are actually evaluated at compile time<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. For example:</p>
 <pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">3-4</span>];</code></pre>
 <p>Here <code>3-4</code> looks like an expression, but it’s actually evaluated at compile-time and thus this code fails with same error as above.</p>
 <p>Using this two tricks, we can have some kind of compile-time assertions, like libSDL people use:</p>
@@ -44,7 +44,7 @@ typedef int foo[-1];
 <span class="kw">typedef</span> <span class="dt">uint16_t</span> Uint16;
 
 COMPILE_TIME_ASSERT(uint16, <span class="kw">sizeof</span>(Uint16) == <span class="dv">2</span>);</code></pre>
-<p>This code checks in compile time if <code>Uint16</code> really represents 2 bytes in memory and it fails to compile if it doesn’t. Interesting part here is that <code>(x) * 2 - 1</code> expression evaluated at compile-time.<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup></p>
+<p>This code checks in compile time if <code>Uint16</code> really represents 2 bytes in memory and it fails to compile if it doesn’t. Interesting part here is that <code>(x) * 2 - 1</code> expression evaluated at compile-time.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
 <hr />
 <div class="footnotes">
 <hr />

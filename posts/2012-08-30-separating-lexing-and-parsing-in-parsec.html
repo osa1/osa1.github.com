@@ -31,7 +31,7 @@
            <span class="fu">|</span> <span class="dt">LBrace</span>
            <span class="fu">|</span> <span class="dt">RBrace</span>
            <span class="fu">|</span> <span class="dt">Keyword</span> <span class="dt">String</span>
-    <span class="kw">deriving</span> (<span class="kw">Show</span>, <span class="kw">Eq</span>)</code></pre>
+    <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</code></pre>
 <p>Token types should be instances of <code>Eq</code> to be able to test for equality while parsing, and <code>Show</code> to be able to print in error situations(actually you can use any function for testing for equality and printing, but I find this way easier).</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">TokenPos</span> <span class="fu">=</span> (<span class="dt">Token</span>, <span class="dt">SourcePos</span>)</code></pre>
 <p>So we will be using <code>(Token, SourcePos)</code> pairs for tokens with positions of them in source. Now parsers are simple:</p>
@@ -41,9 +41,9 @@ ide <span class="fu">=</span> <span class="kw">do</span>
     fc  <span class="ot">&lt;-</span> oneOf firstChar
     r   <span class="ot">&lt;-</span> optionMaybe (many <span class="fu">$</span> oneOf rest)
     spaces
-    <span class="fu">return</span> <span class="fu">$</span> <span class="fu">flip</span> (,) pos <span class="fu">$</span> <span class="kw">case</span> r <span class="kw">of</span>
-                 <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">Ide</span> [fc]
-                 <span class="kw">Just</span> s  <span class="ot">-&gt;</span> <span class="dt">Ide</span> <span class="fu">$</span> [fc] <span class="fu">++</span> s
+    return <span class="fu">$</span> flip (,) pos <span class="fu">$</span> <span class="kw">case</span> r <span class="kw">of</span>
+                 <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">Ide</span> [fc]
+                 <span class="dt">Just</span> s  <span class="ot">-&gt;</span> <span class="dt">Ide</span> <span class="fu">$</span> [fc] <span class="fu">++</span> s
   <span class="kw">where</span> firstChar <span class="fu">=</span> [<span class="ch">'A'</span><span class="fu">..</span><span class="ch">'Z'</span>] <span class="fu">++</span> [<span class="ch">'a'</span><span class="fu">..</span><span class="ch">'z'</span>] <span class="fu">++</span> <span class="st">&quot;_&quot;</span>
         rest      <span class="fu">=</span> firstChar <span class="fu">++</span> [<span class="ch">'0'</span><span class="fu">..</span><span class="ch">'9'</span>]</code></pre>
 <p>This is a simple identifier parser(or lexer). Note the <code>pos &lt;- getPosition</code> part.</p>
@@ -51,24 +51,24 @@ ide <span class="fu">=</span> <span class="kw">do</span>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">tokenize ::</span> <span class="dt">SourceName</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">ParseError</span> [<span class="dt">TokenPos</span>]
 tokenize <span class="fu">=</span> runParser tokens ()</code></pre>
 <p>In parsing stage, we have several problems. One is that now we can’t use Parsec’s <code>parseTest</code> function, which I almost always use for testing purposes. Because now we need to pass the string to lexer, and then pass it’s output to parser. So I wrote this:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Text.Parsec <span class="kw">as</span> P
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Text.Parsec</span> <span class="kw">as</span> <span class="dt">P</span>
 <span class="fu">...</span>
-<span class="ot">parseTest  ::</span> <span class="kw">Show</span> a <span class="ot">=&gt;</span> <span class="dt">Parsec</span> [<span class="dt">TokenPos</span>] () a <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+<span class="ot">parseTest  ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> <span class="dt">Parsec</span> [<span class="dt">TokenPos</span>] () a <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 parseTest p s <span class="fu">=</span>
     <span class="kw">case</span> tokenize <span class="st">&quot;test&quot;</span> s <span class="kw">of</span>
-        <span class="kw">Left</span> e    <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="fu">$</span> <span class="fu">show</span> e
-        <span class="kw">Right</span> ts' <span class="ot">-&gt;</span> P.parseTest p ts'</code></pre>
+        <span class="dt">Left</span> e    <span class="ot">-&gt;</span> putStrLn <span class="fu">$</span> show e
+        <span class="dt">Right</span> ts' <span class="ot">-&gt;</span> P.parseTest p ts'</code></pre>
 <p><code>satisfy</code> gets a predicate on token, and return a token parser using Parsec’s <code>tokenPrim</code> function, which takes 3 functions as parameters, one for printing the token(to be used in error reporting), one for updating the current position, and one for returning the result after calling predicate. I adapted this function from Parsec’s string parsers:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">advance ::</span> <span class="dt">SourcePos</span> <span class="ot">-&gt;</span> t <span class="ot">-&gt;</span> [<span class="dt">TokenPos</span>] <span class="ot">-&gt;</span> <span class="dt">SourcePos</span>
 advance _ _ ((_, pos) <span class="fu">:</span> _) <span class="fu">=</span> pos
 advance pos _ [] <span class="fu">=</span> pos
 <span class="ot">satisfy ::</span> (<span class="dt">TokenPos</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Token</span>
-satisfy f <span class="fu">=</span> tokenPrim <span class="fu">show</span>
+satisfy f <span class="fu">=</span> tokenPrim show
                       advance
-                      (\c <span class="ot">-&gt;</span> <span class="kw">if</span> f c <span class="kw">then</span> <span class="kw">Just</span> (<span class="fu">fst</span> c) <span class="kw">else</span> <span class="kw">Nothing</span>)</code></pre>
+                      (\c <span class="ot">-&gt;</span> <span class="kw">if</span> f c <span class="kw">then</span> <span class="dt">Just</span> (fst c) <span class="kw">else</span> <span class="dt">Nothing</span>)</code></pre>
 <p>Last function, <code>tok</code>, takes a token and returns a token parser:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">tok ::</span> <span class="dt">Token</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Token</span>
-tok t <span class="fu">=</span> (satisfy <span class="fu">$</span> (<span class="fu">==</span> t) <span class="fu">.</span> <span class="fu">fst</span>) <span class="fu">&lt;?&gt;</span> <span class="fu">show</span> t</code></pre>
+tok t <span class="fu">=</span> (satisfy <span class="fu">$</span> (<span class="fu">==</span> t) <span class="fu">.</span> fst) <span class="fu">&lt;?&gt;</span> show t</code></pre>
 <p><code>.. &lt;?&gt; show t</code> part is required for error reporting. See my <a href="http://stackoverflow.com/questions/12167329/haskell-parsec-error-messages-are-less-helpful-while-using-custom-tokens">SO question</a> for details.</p>
 <p>Now, when using Parsec, generally there’s no need to separate lexing stage. Because as you can see above, it just makes code more complex, and adds no more flexibility. Instead of writing <code>tok $ Ide &quot;some-identifier&quot;</code>, you can always write <code>ide &quot;some-identifier&quot;</code> with a <code>ide</code> parser.</p>
 <p>Still, I think understanding how to make this helps for at least two reasons. First, now you can work on any streams, not just character streams using Parsec’s <code>Char</code> token. And second, writing lexers can still help in some situations, like parsing indentation-based grammars. In that case, you can generate indent-dedent tokens in lexing stage, and make parser code more clean because it will be less <em>context-dependent</em> (I never tried that with Parsec, though) .</p>

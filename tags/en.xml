@@ -270,7 +270,6 @@ Qed.</code></pre>
 <p>where <code>op</code> is monoid operation and <code>U</code> is unit of monoid.</p>
 <p>Can you come up with a data structure that forms a group?</p>
 <div id="ex-div-6.1" class="solution">
-
 <p>Someone at Coq IRC channel suggested diffs. Do you think a diff could form a group? What would associative operation, unit element, and inverse elements be?</p>
 <div id="ex-div-6.2" class="solution">
 <p>Diffs don’t form a group. Composing two diffs is the merge operation, which is partial function. We can’t always merge two diffs. (merge conflicts)</p>
@@ -383,7 +382,7 @@ Proof.
   induction n using nat10ind; auto.
   simpl. f_equal. assumption.
 Qed.</code></pre>
-<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
+<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
 <hr />
 <div class="footnotes">
 <hr />
@@ -471,12 +470,12 @@ Main.CAF (&lt;entire-module&gt;)</code></pre>
 <p>We have basic Haskell types <code>Int</code>, <code>Double</code>, <code>String</code>, and <code>Bool</code> as instances. Other types are for more advanced use, for example, <code>Ptr a</code> is used for <code>userdata</code>(basically any binary data that you want to pass to Lua stack and later get back, see <a href="http://www.lua.org/manual/5.1/manual.html#2.2">reference manual</a> for more details).</p>
 <p>This two functions are instances of <code>LuaImport</code>:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">concat&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
-concat&#39; s1 s2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> s1 <span class="fu">++</span> s2
+concat&#39; s1 s2 <span class="fu">=</span> return <span class="fu">$</span> s1 <span class="fu">++</span> s2
 
 <span class="ot">pow ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Double</span>
-pow d1 d2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre>
+pow d1 d2 <span class="fu">=</span> return <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre>
 <p>And we can push this functions to Lua stack using <code>pushhsfunction</code> or directly assign them to a global variable using <code>registerhsfunction</code>. In this post I’ll use register functions:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Scripting.Lua <span class="kw">as</span> Lua
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="kw">as</span> <span class="dt">Lua</span>
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
@@ -502,20 +501,20 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">addLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <span class="fu">...</span>
     <span class="kw">case</span> as <span class="kw">of</span>
-      <span class="kw">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
         <span class="co">-- arguments are functions, add them to callback queue and return</span>
         <span class="co">-- nothing</span>
         addCallbacks <span class="dv">1</span> args
-        <span class="fu">return</span> <span class="dv">0</span>
-      <span class="kw">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span>
+        return <span class="dv">0</span>
+      <span class="dt">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span>
         <span class="co">-- error: argument at `errArg` is not a function, return error</span>
         <span class="co">-- string</span>
-        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> <span class="fu">show</span> errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
-        <span class="fu">return</span> <span class="dv">1</span></code></pre>
+        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> show errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
+        return <span class="dv">1</span></code></pre>
 <p>This example program keeps track of passed Lua callbacks in an <code>IORef</code>. Here’s the part that handles getting Lua callbacks from Lua stack:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n <span class="fu">max</span>
-  <span class="fu">|</span> n <span class="fu">&gt;</span> <span class="fu">max</span> <span class="fu">=</span> <span class="fu">return</span> ()
-  <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="kw">do</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n max
+  <span class="fu">|</span> n <span class="fu">&gt;</span> max <span class="fu">=</span> return ()
+  <span class="fu">|</span> otherwise <span class="fu">=</span> <span class="kw">do</span>
       <span class="co">-- move nth argument to top of the stack</span>
       pushvalue l n
       <span class="co">-- add function reference to registry</span>
@@ -523,17 +522,17 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
       <span class="co">-- add registry index to IORef</span>
       modifyIORef cs (<span class="fu">++</span> [refId])
       <span class="co">-- continue adding other arguments</span>
-      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) <span class="fu">max</span></code></pre>
+      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) max</code></pre>
 <p>Note how we’re adding the function to the <em>registry</em> and getting it’s index at the <em>registry</em> in Haskell. We can now refer to this functions(e.g. push this function to Lua stack) using this index. Here’s the relevant code:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Call Lua callbacks collected with `addLuaCallbacks`.</span>
 <span class="ot">callLuaCallbacks ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">CInt</span>
 callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <span class="fu">...</span>
   <span class="kw">where</span>
-    iter [] <span class="fu">=</span> <span class="fu">return</span> ()
+    iter [] <span class="fu">=</span> return ()
     iter (c <span class="fu">:</span> rest) <span class="fu">=</span> <span class="kw">do</span>
       <span class="fu">...</span>
-      pushinteger l (<span class="fu">fromIntegral</span> c)
+      pushinteger l (fromIntegral c)
       gettable l registryindex
       <span class="co">-- call the callback</span>
       call l <span class="dv">0</span> <span class="dv">1</span>
@@ -546,13 +545,13 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 <p>This helps making sure that your API usage is correct.</p>
 <h1 id="using-hslua-for-reading-configuration-files-written-in-lua">Using hslua for reading configuration files written in Lua</h1>
 <p>hslua also provides a module for reading configuration files. As an example, using <code>Scripting.Lua.ConfigFile.getNestedAssocLists</code>, you can execute the Lua file given below and get resulting nested table as Haskell <code>[(String, [(String, String)])]</code>:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"> <span class="kw">someVal</span> <span class="ot">=</span> <span class="ot">{</span>
-    <span class="kw">something</span> <span class="ot">=</span> <span class="ot">{</span>
-       <span class="kw">foo</span> <span class="ot">=</span> <span class="st">&quot;aaa&quot;</span><span class="ot">,</span>
-       <span class="kw">bar</span> <span class="ot">=</span> <span class="st">&quot;bbb&quot;</span><span class="ot">,</span>
-       <span class="kw">baz</span> <span class="ot">=</span> <span class="st">&quot;ccc&quot;</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"> someVal <span class="ot">=</span> <span class="ot">{</span>
+    something <span class="ot">=</span> <span class="ot">{</span>
+       foo <span class="ot">=</span> <span class="st">&quot;aaa&quot;</span><span class="ot">,</span>
+       bar <span class="ot">=</span> <span class="st">&quot;bbb&quot;</span><span class="ot">,</span>
+       baz <span class="ot">=</span> <span class="st">&quot;ccc&quot;</span>
     <span class="ot">},</span>
-    <span class="kw">somethingElse</span> <span class="ot">=</span> <span class="ot">{</span>
+    somethingElse <span class="ot">=</span> <span class="ot">{</span>
        <span class="ot">...</span>
     <span class="ot">}</span>
  <span class="ot">}</span></code></pre>
@@ -587,10 +586,10 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 
 <span class="kw">data</span> <span class="dt">Exp</span> <span class="fu">=</span> <span class="dt">Int</span> <span class="dt">Int</span>
          <span class="fu">|</span> <span class="dt">Add</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
-         <span class="kw">deriving</span> (<span class="kw">Show</span>)</code></pre>
+         <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre>
 <p>Parsers for non-terminals are easy:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">plus <span class="fu">=</span> char <span class="ch">&#39;+&#39;</span> <span class="fu">&gt;&gt;</span> spaces
-int  <span class="fu">=</span> <span class="fu">fmap</span> (<span class="dt">Int</span> <span class="fu">.</span> <span class="fu">read</span>) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre>
+int  <span class="fu">=</span> fmap (<span class="dt">Int</span> <span class="fu">.</span> read) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre>
 <p>I’m using a set to keep track of already visited parsers:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">MarksSeen</span> <span class="fu">=</span> <span class="dt">S.Set</span> <span class="dt">Int</span>
 
@@ -606,14 +605,14 @@ resetMarks = putState S.empty</code></pre>
 <p>Now the interesting part, <code>add</code> parser marks itself as first thing to do, and calls <code>exp</code> parser. Since <code>exp</code> parser is entry point, this means an indirect recursive call. When same <code>putMark</code> call is made, Parsec runs failure actions instead of going into infinte loop:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">add <span class="fu">=</span> <span class="kw">do</span>
     putMark <span class="dv">1</span>
-    e1 <span class="ot">&lt;-</span> <span class="fu">exp</span>
+    e1 <span class="ot">&lt;-</span> exp
     resetMarks
     plus
-    e2 <span class="ot">&lt;-</span> <span class="fu">exp</span>
+    e2 <span class="ot">&lt;-</span> exp
     spaces
-    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">Add</span> e1 e2
+    return <span class="fu">$</span> <span class="dt">Add</span> e1 e2
 
-<span class="fu">exp</span> <span class="fu">=</span> choice [try add, int]</code></pre>
+exp <span class="fu">=</span> choice [try add, int]</code></pre>
 <p><code>resetMarks</code> call is also important, <code>exp</code> has to consume some tokens, so after parsing <code>e1</code>, I’m calling <code>resetMarks</code>.</p>
 <p>Here’s an example call of this parser:</p>
 <pre><code>ghci&gt; runParser exp S.empty &quot;&quot; &quot;1 + 2 + 3 + 4&quot;
@@ -622,7 +621,7 @@ Right (Add (Int 1) (Add (Int 2) (Add (Int 3) (Int 4))))</code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">rec <span class="fu">=</span> putMark <span class="dv">0</span> <span class="fu">&gt;&gt;</span> rec <span class="fu">&gt;&gt;</span> resetMarks
 
 ghci<span class="fu">&gt;</span> runParser rec S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;&quot;</span>
-<span class="kw">Left</span> (line <span class="dv">1</span>, column <span class="dv">1</span>)<span class="fu">:</span>
+<span class="dt">Left</span> (line <span class="dv">1</span>, column <span class="dv">1</span>)<span class="fu">:</span>
 recursion</code></pre>
 <p>One problem with this approach is that it requires more typing, and you should be careful too. Marks can be placed using TemplateHaskell to ensure unique numbers are given to each <code>putMark</code> call. As a second improvement, I think with some modifications on Parsec we can make Parsec to reset marks when a token is consumed(using <em>consumed-ok</em> continuation of <code>ParsecT</code>).</p>
 <p>You can see the complete program <a href="https://gist.github.com/osa1/9414577">here</a>.</p>
@@ -634,21 +633,21 @@ recursion</code></pre>
 <p>Whenever I need to write a parser for a grammar like this, I’m thinking for an easier way to parse it. I still couldn’t come up with a solution. Idea I just explained does not solve it, because it parses right-associatively. There is one workaround, but I’m not sure if that results with a parser for same grammar:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">app <span class="fu">=</span> <span class="kw">do</span>
     putMark <span class="dv">2</span>
-    fn <span class="ot">&lt;-</span> <span class="fu">exp</span>
+    fn <span class="ot">&lt;-</span> exp
     resetMarks
 
     putMark <span class="dv">2</span>
-    as <span class="ot">&lt;-</span> many1 <span class="fu">exp</span>
+    as <span class="ot">&lt;-</span> many1 exp
     resetMarks
 
-    <span class="fu">return</span> <span class="fu">$</span> <span class="fu">foldl</span> <span class="dt">App</span> fn as
+    return <span class="fu">$</span> foldl <span class="dt">App</span> fn as
 
 
 ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 2 3 4 + 5 + 6 7&quot;</span>
-<span class="kw">Right</span> (<span class="dt">Add</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Int</span> <span class="dv">2</span>)) (<span class="dt">Int</span> <span class="dv">3</span>)) (<span class="dt">Int</span> <span class="dv">4</span>)) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">5</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">6</span>) (<span class="dt">Int</span> <span class="dv">7</span>))))
+<span class="dt">Right</span> (<span class="dt">Add</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Int</span> <span class="dv">2</span>)) (<span class="dt">Int</span> <span class="dv">3</span>)) (<span class="dt">Int</span> <span class="dv">4</span>)) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">5</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">6</span>) (<span class="dt">Int</span> <span class="dv">7</span>))))
 
 ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 + 2 + 3 4&quot;</span>
-<span class="kw">Right</span> (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">2</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">3</span>) (<span class="dt">Int</span> <span class="dv">4</span>))))</code></pre>]]></summary>
+<span class="dt">Right</span> (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">2</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">3</span>) (<span class="dt">Int</span> <span class="dv">4</span>))))</code></pre>]]></summary>
 </entry>
 <entry>
     <title>Proving soundness of simply typed multi-staged lambda-calculus</title>
@@ -656,7 +655,7 @@ ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&q
     <id>http://osa1.net/posts/2014-03-06-proving-simply-typed-multi-staged-lc.html</id>
     <published>2014-03-06T00:00:00Z</published>
     <updated>2014-03-06T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>First part of my first non-trivial(e.g. something other than a Software Foundations exercise) Coq program is finally done. I learned Coq from Software Foundations, but I didn’t finish to book. I still know only very basic tactics, which I think one of the reasons why my proofs are so long. You can see the source <a href="https://github.com/osa1/StagedLambda/blob/master/Lc.v">here</a>.</p>
+    <summary type="html"><![CDATA[<p>First part of my first non-trivial(e.g. something other than a Software Foundations exercise) Coq program is finally done. I learned Coq from Software Foundations, but I didn’t finish to book. I still know only very basic tactics, which I think is one of the reasons why my proofs are so long. You can see the source <a href="https://github.com/osa1/StagedLambda/blob/master/Lc.v">here</a>.</p>
 <p>Some random notes about implementation:</p>
 <ul>
 <li>I’m looking to improve proofs. I have a lot more to implement for the rest of the program until deadline, so I may not be able to refactor current proofs very much, but at one point I want to simplify the proofs and use more advanced tactics.</li>
@@ -685,21 +684,21 @@ ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&q
 <p>Required for some Snap features</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="ot">{-# LANGUAGE TemplateHaskell     #-}</span></code></pre>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">module</span> <span class="dt">Tut2</span> (app) <span class="kw">where</span></code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Control.Applicative        (Applicative (..), (&lt;$&gt;))
-<span class="ot">&gt;</span> <span class="kw">import</span>           Data.Maybe                 (isJust)
-<span class="ot">&gt;</span> <span class="kw">import</span> <span class="kw">qualified</span> Data.Text                  <span class="kw">as</span> T</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Applicative</span>        (<span class="dt">Applicative</span> (..), (&lt;$&gt;))
+<span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Data.Maybe</span>                 (isJust)
+<span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Data.Text</span>                  <span class="kw">as</span> <span class="dt">T</span></code></pre>
 <p>from `digestive-functors’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive</span></code></pre>
 <p>from `digestive-functors-heist’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive.Heist       (bindDigestiveSplices)</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive.Heist</span>       (bindDigestiveSplices)</code></pre>
 <p>from <code>lens</code> package, required for Snaplets</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Control.Lens</code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Snap.Snaplet
-<span class="ot">&gt;</span> <span class="kw">import</span>           Snap.Snaplet.Heist</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Lens</span></code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Snap.Snaplet</span>
+<span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Snap.Snaplet.Heist</span></code></pre>
 <p>from <code>bytestring</code> package, required for some Snap functions</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span> <span class="kw">qualified</span> Data.ByteString            <span class="kw">as</span> B</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Data.ByteString</span>            <span class="kw">as</span> <span class="dt">B</span></code></pre>
 <p>from <code>digestive-functors-snap</code> package, required for form rendering, we had handled that using <code>getForm</code> and <code>postForm</code> from <code>Text.Digestive.Heist</code> before.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import</span>           Text.Digestive.Snap        (runForm)</code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive.Snap</span>        (runForm)</code></pre>
 <p><code>snap init</code> creates a project with only this code in <code>Application.hs</code>:</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">data</span> <span class="dt">App</span> <span class="fu">=</span> <span class="dt">App</span>
 <span class="ot">&gt;</span>     { _<span class="ot">heist ::</span> <span class="dt">Snaplet</span> (<span class="dt">Heist</span> <span class="dt">App</span>)
@@ -712,19 +711,19 @@ ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&q
 <p>In this post I’m copying this code to <code>Site.hs</code> and removing <code>Application.hs</code> file. Here, I only changed the definition of <code>App</code>. Since our application is minimal, we only need Heist Snaplet nested in our App. When we need other functionalities in the future(like database access), we will extend this definition for new Snaplets.</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; app ::</span> <span class="dt">SnapletInit</span> <span class="dt">App</span> <span class="dt">App</span></code></pre>
 <p>First type parameter of SnapletInit is for type of parent Snaplet. In our case, we don’t have a parent Snaplet but I guess this is what you do in that case. Second type is currently initialized Snaplet’s type.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> app <span class="fu">=</span> makeSnaplet <span class="st">&quot;app&quot;</span> <span class="st">&quot;An snaplet example application&quot;</span> <span class="kw">Nothing</span> <span class="fu">$</span> <span class="kw">do</span></code></pre>
+<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> app <span class="fu">=</span> makeSnaplet <span class="st">&quot;app&quot;</span> <span class="st">&quot;An snaplet example application&quot;</span> <span class="dt">Nothing</span> <span class="fu">$</span> <span class="kw">do</span></code></pre>
 <p>Type of <code>makeSnaplet</code> is really helpful to understand what’s going on at the level of types:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">makeSnaplet
 <span class="ot">  ::</span> <span class="dt">T.Text</span>                  <span class="co">-- ^ Default ID of the Snaplet, I have no idea where is this used.</span>
      <span class="ot">-&gt;</span> <span class="dt">T.Text</span>               <span class="co">-- ^ Description of the Snaplet, again, no idea where is this used.</span>
-     <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IO</span> <span class="fu">FilePath</span>)  <span class="co">-- ^ Root folder for Snaplet&#39;s filesystem content. In case your Snaplet works on files.</span>
+     <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IO</span> <span class="dt">FilePath</span>)  <span class="co">-- ^ Root folder for Snaplet&#39;s filesystem content. In case your Snaplet works on files.</span>
      <span class="ot">-&gt;</span> <span class="dt">Initializer</span> b v v    <span class="co">-- ^ Initializer for the Snaplet.</span>
      <span class="ot">-&gt;</span> <span class="dt">SnapletInit</span> b v      <span class="co">-- ^ SnapletInit is an opaque type for internal use. It&#39;s needed for embedding our snaplet to other snaplets.</span></code></pre>
 <p>We’re nesting Heist snaplet provided by <code>Snap.Snaplet.Heist</code> from <code>snap</code> package</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span>    h <span class="ot">&lt;-</span> nestSnaplet <span class="st">&quot;&quot;</span> heist <span class="fu">$</span> heistInit <span class="st">&quot;templates&quot;</span></code></pre>
 <p>self explanatory, see definition below</p>
 <pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span>    addRoutes routes
-<span class="ot">&gt;</span>    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">App</span> h
+<span class="ot">&gt;</span>    return <span class="fu">$</span> <span class="dt">App</span> h
 <span class="ot">&gt;</span>  <span class="kw">where</span>
 <span class="ot">&gt;    routes ::</span> [(<span class="dt">B.ByteString</span>, <span class="dt">Handler</span> <span class="dt">App</span> <span class="dt">App</span> ())]</code></pre>
 <p>routes are how we handle requests. <code>Handler</code> type takes 3 arguments, but I’m yet to figure out what do these arguments mean. I guess these are same as arguments in <code>SnapletInit</code> type, except the last one is for return values of Handler functions.</p>
@@ -739,13 +738,13 @@ ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&q
 <span class="ot">&gt;</span>     {<span class="ot"> uUsername ::</span> <span class="dt">T.Text</span>
 <span class="ot">&gt;</span>     ,<span class="ot"> uEmail    ::</span> <span class="dt">T.Text</span>
 <span class="ot">&gt;</span>     ,<span class="ot"> uKarma    ::</span> <span class="dt">Int</span>
-<span class="ot">&gt;</span>     } <span class="kw">deriving</span> (<span class="kw">Show</span>)
+<span class="ot">&gt;</span>     } <span class="kw">deriving</span> (<span class="dt">Show</span>)
 <span class="ot">&gt;</span> 
 <span class="ot">&gt;</span> 
-<span class="ot">&gt; userForm ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span>
+<span class="ot">&gt; userForm ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span>
 <span class="ot">&gt;</span> userForm <span class="fu">=</span> <span class="dt">User</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="kw">Nothing</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="kw">Nothing</span>)
+<span class="ot">&gt;</span>     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="dt">Nothing</span>
+<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="dt">Nothing</span>)
 <span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> pure <span class="dv">0</span>
 <span class="ot">&gt;</span>   <span class="kw">where</span>
 <span class="ot">&gt;     validateEmail ::</span> <span class="dt">T.Text</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>

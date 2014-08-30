@@ -60,7 +60,7 @@
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> PostBlogCommand(sublime_plugin.TextCommand):
     <span class="kw">def</span> run(<span class="ot">self</span>, edit):
         file_path = <span class="ot">self</span>.view.file_name()
-        <span class="kw">print</span> <span class="st">&quot;file_path:&quot;</span>, file_path
+        <span class="dt">print</span> <span class="st">&quot;file_path:&quot;</span>, file_path
         popen = subprocess.Popen([<span class="st">&quot;blogpost&quot;</span>, file_path],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         result, error = popen.communicate()
