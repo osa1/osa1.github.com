@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - GHC + Cabal installation guide for starters</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">GHC + Cabal installation guide for starters</h1>
+
+<p><strong>December  9, 2014</strong> - Tagged as: <a href="../tags/haskell.html">haskell</a>, <a href="../tags/en.html">en</a>.</p>
+
+<p>I see a lot of starters having problems with installing latest GHC and Cabal, and then keeping their package repository in a sane state(e.g. no thousands of broken packages because of one re-install, no installation problems because of conflicts). I came up with a simple method several years ago, and today when combined with sandboxes, that works really well. I suggest every new Haskeller to do the same. Here’s how I do my GHC/Cabal installation up-to-date and sane:</p>
+<p>NEVER USE HASKELL PALTFORM. When I first started, it caused just too much pain. I don’t know how it is today, but I presume same problems should still apply. (globally installing packages)</p>
+<p>Most important thing is to keep Cabal and cabal-install up-to-date. You can easily remove a GHC, or install other versions and keep them togerher once you have a working and relatively new(so that it supports sandboxes) Cabal. In fact, I currently have 3 versions of GHC installed, for different projects, and I have no problems at all. Starting from a system with no GHC/Cabal is installed, here’s the way to install latest Cabal and cabal-install:</p>
+<ol style="list-style-type: decimal">
+<li>Install whatever GHC and Cabal you have in your package manager.</li>
+<li>If the GHC you installed from package manager is not latest one, install latest pre-compiled binary from <a href="http://www.haskell.org/ghc/">GHC webpage</a>. Set your <code>$PATH</code>(or move executables to <code>$PATH</code>) and remove the GHC you installed using the package manager.</li>
+<li>Run <code>cabal update &amp;&amp; cabal install Cabal cabal-install</code>, then remove Cabal and cabal-install installed using the package manager, and add <code>~/.cabal/bin</code> to $PATH. After doing that, you’ll have latest GHC and Cabal installed. Also, Cabal will be installed locally, so you can update it very easily using <code>cabal udpate &amp;&amp; cabal install Cabal cabal-install</code> whenever you want. Updating for newer GHC is similarly easy, just installed pre-compiled binary from the link above and move it wherever you want. You can use multiple GHC installations at the same time without any problems, Cabal just keeps separate repositories for different GHC versions.</li>
+</ol>
+<p>The worst thing that can happen is that your package manager may not have Cabal at all. In that case you may need Haskell Platform temporarily, for booting GHC and Cabal. Once you have Haskell Platform(which includes Cabal) and run <code>cabal update &amp;&amp; cabal install Cabal cabal-install</code>, just remove Haskell Platform and download latest GHC as mentioned above and go from there.</p>
+<p>Occasionally you may want to remove some directories in <code>~/.cabal/lib</code>. Here’s what I have right now:</p>
+<pre><code>➜  lib  pwd
+/home/omer/.cabal/lib
+➜  lib  ls | xargs du -hs
+107M    x86_64-linux-ghc-7.6.3
+341M    x86_64-linux-ghc-7.8.3
+170M    x86_64-linux-ghcjs-0.1.0_ghc-7.8.2
+34M     x86_64-linux-ghcjs-0.1.0_ghc-7.8.3</code></pre>
+<p>I have 170M of libraries installed in GHCJS compiled with GHC 7.8.2, but I updated my GHCJS installation and I won’t be using that version anymore, so it’s safe to remove that directory. Similarly you may want to remove versions you won’t be using anymore.</p>
+<p>Once you have GHC and Cabal installed, you should be very careful with global installations. Basically all you need to do is to use sandboxes as much as possible. You may want or need to have some programs installed globally, like <code>alex</code> and <code>happy</code> and those are fine since they have almost no dependencies at all.</p>
+<p>In all other cases, just create a <code>~/bin</code> directory and add it to your <code>$PATH</code>. Now whenever you need a Haskell program in your path, install it in a sandbox, and symlink it to <code>~/bin</code>.</p>
+<p>Another very useful tip: You may still have some installation problems because of dependency conflicts. In that cases always try to install with <code>cabal install --allow-newer</code>. Most of the time this sandbox approach + <code>--allow-newer</code> should solve all your problems.</p>
+<p>As a last thing, if you still have problems because you installed some libs globally for some reason, you may want to reset your whole Cabal state. In that case, just copy <code>~/.cabal/bin/cabal</code> to somewhere else and remove <code>~/.cabal</code>. Then using copied <code>cabal</code> executable, run <code>cabal update &amp;&amp; cabal install Cabal cabal-install</code> again. Now you have a fresh Cabal state and you can remove copied <code>cabal</code> executable and go with the one just installed at <code>~/.cabal/bin</code>.</p>
+<p>I hope this helps.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

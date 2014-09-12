@@ -8,8 +8,38 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-06-20T00:00:00Z</updated>
+    <updated>2014-12-09T00:00:00Z</updated>
     <entry>
+    <title>GHC + Cabal installation guide for starters</title>
+    <link href="http://osa1.net/posts/2014-12-09-ghc-cabal-installation-guide.html" />
+    <id>http://osa1.net/posts/2014-12-09-ghc-cabal-installation-guide.html</id>
+    <published>2014-12-09T00:00:00Z</published>
+    <updated>2014-12-09T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I see a lot of starters having problems with installing latest GHC and Cabal, and then keeping their package repository in a sane state(e.g. no thousands of broken packages because of one re-install, no installation problems because of conflicts). I came up with a simple method several years ago, and today when combined with sandboxes, that works really well. I suggest every new Haskeller to do the same. Here’s how I do my GHC/Cabal installation up-to-date and sane:</p>
+<p>NEVER USE HASKELL PALTFORM. When I first started, it caused just too much pain. I don’t know how it is today, but I presume same problems should still apply. (globally installing packages)</p>
+<p>Most important thing is to keep Cabal and cabal-install up-to-date. You can easily remove a GHC, or install other versions and keep them togerher once you have a working and relatively new(so that it supports sandboxes) Cabal. In fact, I currently have 3 versions of GHC installed, for different projects, and I have no problems at all. Starting from a system with no GHC/Cabal is installed, here’s the way to install latest Cabal and cabal-install:</p>
+<ol style="list-style-type: decimal">
+<li>Install whatever GHC and Cabal you have in your package manager.</li>
+<li>If the GHC you installed from package manager is not latest one, install latest pre-compiled binary from <a href="http://www.haskell.org/ghc/">GHC webpage</a>. Set your <code>$PATH</code>(or move executables to <code>$PATH</code>) and remove the GHC you installed using the package manager.</li>
+<li>Run <code>cabal update &amp;&amp; cabal install Cabal cabal-install</code>, then remove Cabal and cabal-install installed using the package manager, and add <code>~/.cabal/bin</code> to $PATH. After doing that, you’ll have latest GHC and Cabal installed. Also, Cabal will be installed locally, so you can update it very easily using <code>cabal udpate &amp;&amp; cabal install Cabal cabal-install</code> whenever you want. Updating for newer GHC is similarly easy, just installed pre-compiled binary from the link above and move it wherever you want. You can use multiple GHC installations at the same time without any problems, Cabal just keeps separate repositories for different GHC versions.</li>
+</ol>
+<p>The worst thing that can happen is that your package manager may not have Cabal at all. In that case you may need Haskell Platform temporarily, for booting GHC and Cabal. Once you have Haskell Platform(which includes Cabal) and run <code>cabal update &amp;&amp; cabal install Cabal cabal-install</code>, just remove Haskell Platform and download latest GHC as mentioned above and go from there.</p>
+<p>Occasionally you may want to remove some directories in <code>~/.cabal/lib</code>. Here’s what I have right now:</p>
+<pre><code>➜  lib  pwd
+/home/omer/.cabal/lib
+➜  lib  ls | xargs du -hs
+107M    x86_64-linux-ghc-7.6.3
+341M    x86_64-linux-ghc-7.8.3
+170M    x86_64-linux-ghcjs-0.1.0_ghc-7.8.2
+34M     x86_64-linux-ghcjs-0.1.0_ghc-7.8.3</code></pre>
+<p>I have 170M of libraries installed in GHCJS compiled with GHC 7.8.2, but I updated my GHCJS installation and I won’t be using that version anymore, so it’s safe to remove that directory. Similarly you may want to remove versions you won’t be using anymore.</p>
+<p>Once you have GHC and Cabal installed, you should be very careful with global installations. Basically all you need to do is to use sandboxes as much as possible. You may want or need to have some programs installed globally, like <code>alex</code> and <code>happy</code> and those are fine since they have almost no dependencies at all.</p>
+<p>In all other cases, just create a <code>~/bin</code> directory and add it to your <code>$PATH</code>. Now whenever you need a Haskell program in your path, install it in a sandbox, and symlink it to <code>~/bin</code>.</p>
+<p>Another very useful tip: You may still have some installation problems because of dependency conflicts. In that cases always try to install with <code>cabal install --allow-newer</code>. Most of the time this sandbox approach + <code>--allow-newer</code> should solve all your problems.</p>
+<p>As a last thing, if you still have problems because you installed some libs globally for some reason, you may want to reset your whole Cabal state. In that case, just copy <code>~/.cabal/bin/cabal</code> to somewhere else and remove <code>~/.cabal</code>. Then using copied <code>cabal</code> executable, run <code>cabal update &amp;&amp; cabal install Cabal cabal-install</code> again. Now you have a fresh Cabal state and you can remove copied <code>cabal</code> executable and go with the one just installed at <code>~/.cabal/bin</code>.</p>
+<p>I hope this helps.</p>]]></summary>
+</entry>
+<entry>
     <title>Stack traces in GHCJS</title>
     <link href="http://osa1.net/posts/2014-06-20-stack-traces-in-ghcjs.html" />
     <id>http://osa1.net/posts/2014-06-20-stack-traces-in-ghcjs.html</id>
@@ -725,78 +755,6 @@ ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&q
 <p>.. and for is created with values filled, no error messages is rendered.</p>
 <p>Note the form and input ids and names. The name passed to <code>postForm</code> is used as prefix of generated HTML elements, and thus also used in POST request environments.</p>
 <p>I hope this post helps starters with digestive-functors and heist.</p>]]></summary>
-</entry>
-<entry>
-    <title>Testing assembly programs using Haskell, QuickCheck (and FFI)</title>
-    <link href="http://osa1.net/posts/2013-11-14-testing-asm-using-haskell.html" />
-    <id>http://osa1.net/posts/2013-11-14-testing-asm-using-haskell.html</id>
-    <published>2013-11-14T00:00:00Z</published>
-    <updated>2013-11-14T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’ve been studying 64bit calling conventions for x64 family recently. To do this, I was writing some function in assembly and then calling my functions from a C program to be sure that parameter passing and returning values are working correctly.</p>
-<p>It generally works fine, and linking C program with assembly programs are easy enough. Today I got the idea of using Haskell + QuickCheck to test my assembly programs, this way I could also be more confident that not only parameter passing/return values work correctly, but my implementation of algorithm in assembly is also correct.</p>
-<p>Linking assembly programs with a Haskell program is surprisingly easy. In the rest of this post, I’ll explain how to compile and link power function written in assembly to test program written in Haskell.</p>
-<p>Here’s a power function that works on 64bit unsigned numbers, implemented using x64 ABI conventions:</p>
-<pre class="assembly"><code>section .text
-global power
-power:
-	mov rbx, rdi        ; move first parameter to rbx
-	mov rcx, rsi        ; move second parameter to rcx
-
-	cmp rcx, 0          ; return 1 if power is 0
-	je end_power_one
-
-	mov rax, rbx        ; move result to rax for multiplication
-
-power_loop_start:
-	cmp rcx, 1
-	je end_power
-
-	mul rbx
-	dec rcx
-	jmp power_loop_start
-
-end_power_one:
-	mov rax, 1
-
-end_power:
-	ret</code></pre>
-<p>This is written using <a href="http://www.nasm.us/">Netwide Assembler</a>(best assembly syntax, IMO). Since we’re working on 64bit system, we need to compile it to <code>elf64</code> format:</p>
-<pre><code>nasm -f elf64 power_lib.s -o power_lib.o</code></pre>
-<p>Once we have our compiled file for power function, we need to declare it in Haskell as a foreign function, using correct types. A short tour in <code>Foreign.C.Types</code> library showed that <code>CULong</code> type is actually a newtype wrapper around <code>Word64</code>, which is 64bit unsigned number type:</p>
-<pre><code>ghci&gt; :m + Foreign.C.Types 
-ghci&gt; :info CULong
-newtype CULong = CULong GHC.Word.Word64
-        -- Defined in `Foreign.C.Types&#39;</code></pre>
-<p>(not that this part should be different on 32bit systems – eg. on 32bit system you should see <code>CULong GHC.Word.Word32</code> instead of <code>Word64</code>)</p>
-<p>We also need a <code>Arbitrary</code> instance for <code>CULong</code> type to be able to use QuickCheck on this type. Since <code>CULong</code> is just a newtype wrapper over <code>Word64</code>, and <code>Word64</code> already has instance defined in QuickCheck library, we can have that for free. In the end, our test code is:</p>
-<pre class="sourceCode Haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-<span class="kw">import </span><span class="dt">Foreign.C.Types</span>
-<span class="kw">import </span><span class="dt">Test.QuickCheck</span>
-
-foreign <span class="kw">import </span>ccall &quot;power&quot;
-<span class="ot">    power ::</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span>
-
-<span class="kw">instance</span> <span class="dt">Arbitrary</span> <span class="dt">CULong</span> <span class="kw">where</span>
-    arbitrary <span class="fu">=</span> fmap <span class="dt">CULong</span> arbitrary
-    shrink (<span class="dt">CULong</span> i) <span class="fu">=</span> map <span class="dt">CULong</span> <span class="fu">$</span> shrink i
-
-test_prop b p <span class="fu">=</span> power b p <span class="fu">==</span> b <span class="fu">^</span> p
-
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> quickCheck test_prop</code></pre>
-<p>and that’s it. Very simple, 16 lines of code. To compile this, I also wrote a Makefile:</p>
-<pre class="sourceCode makefile"><code class="sourceCode makefile"><span class="dv">power:</span><span class="dt"> power_test.hs power_lib.o</span>
-	ghc --make <span class="ch">$^</span>
-
-<span class="dv">power_lib.o:</span><span class="dt"> power_lib.s</span>
-	nasm -f elf64 <span class="ch">$&lt;</span> -o <span class="ch">$@</span>
-
-<span class="dv">clean:</span>
-	<span class="ch">-</span><span class="fu">rm power_lib.o</span>
-	<span class="ch">-</span><span class="fu">rm power_test power_test.hi power_test.o</span></code></pre>
-<p>(this may be helpful to see how compilation work)</p>
-<p>I think this is also a good demonstration of how easy it is to interact with foreign functions in Haskell.</p>]]></summary>
 </entry>
 
 </feed>
