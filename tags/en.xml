@@ -8,13 +8,34 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-12-09T00:00:00Z</updated>
+    <updated>2014-09-13T00:00:00Z</updated>
     <entry>
+    <title>Problems with tactic generated programs</title>
+    <link href="http://osa1.net/posts/2014-09-13-problems-with-tactics.html" />
+    <id>http://osa1.net/posts/2014-09-13-problems-with-tactics.html</id>
+    <published>2014-09-13T00:00:00Z</published>
+    <updated>2014-09-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I never managed to write anything with dependent types in Coq, without using tactics. Pattern matching is never giving enough information in cases to allow me to generate the term I want. <a href="http://adam.chlipala.net/cpdt/">Certified Programming with Dependent Types</a> book describes “Convoy pattern”, which is a way to write dependently typed terms in Coq without using tactics. I later learned that standard <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual010.html#hevea_tactic87">inversion</a> tactic also uses something like a convoy pattern, except it’s not as fine grained as what a user would write by hand.</p>
+<p>Unfortunately, even after learning about convoy pattern, I’m still not satisfied with what I get when I write dependently typed definitions without using tactics. The reason is that convoy pattern is incredibly ugly and hard to read and understand. Even if I embrace the ugliness, most of the time I have no idea how to use the pattern so that 1) it’s not horribly verbose 2) does what I want.</p>
+<p>I had a small verification idea: I was going to implement <a href="http://en.wikipedia.org/wiki/Pascals_triangle">Pascal’s triangle</a> as a co-inductive type and implement operations on it. Later I was hoping to prove that <code>p(n, k) = p(n-1, k-1) + p(n-1, k)</code> where <code>k</code> is column and <code>p</code> is row.</p>
+<p>I struggled for this for a long time. The problem was that I was not comfortable with tactics and I couldn’t define dependently typed terms using fixpoints or definitions. Now that I’m comfortable enough with tactics, I finally managed to <a href="https://gist.github.com/osa1/47ed1dd4267fa379259d">implement what I want</a>.</p>
+<p>Here are a few things that I also mentioned in <a href="https://sympa.inria.fr/sympa/arc/coq-club/2014-09/msg00088.html">my mail to Coq-club</a>:</p>
+<ul>
+<li>The whole thing looks a bit complex but actually implementing it was very easy. Definitely a lot easier than how it’d be if I wanted to implement it without tactics.</li>
+<li>Even though generated Coq terms are huge, generated OCaml is actually very good. It still has some problems though. <code>snoc</code> has a redundant argument which could be eliminated by using OCaml lists for vectors. First argument of <code>sum-pairs</code> is redundant because it’s just vector’s length so we could use <code>Vector.t</code>’s field instead. Similarly, I think <code>pascal_aux</code>’s first argument may also be removed etc. (see generated OCaml from the Github link above)</li>
+</ul>
+<p>If you look at the Coq code, you’ll realize that I couldn’t prove even the simplest fact about my definition. This is the problem with tactic-generated terms. The reason I can’t prove anything is that <code>simpl</code> just doesn’t work anymore, and there are no workarounds. The terms are so huge and complex, nothing is provable anymore.</p>
+<p>I got very good responses about alternatives and problems in Coq-club mailing list. One of them was the suggestion of giving functions types that 1) show the properties I’m trying to show in separate theorems 2) still subject to erasure.</p>
+<p>This approach has an obvious problem. There won’t be a program/proof distinction anymore. As a programmer I don’t like this at all. Also, making sure that proof terms will be erased is hard.(see rest of the discussion from the mailing list link above) I don’t think I’ll follow this idea.</p>
+<p>Another alternative is just using Agda. I have my problems with Agda which I’m deferring to another post for now. Some of my excuses may actually not be Agda’s problem but rather they may be Coq’s advantage. In any case, I probably won’t be using Agda.</p>
+<p>So now I’m stuck with Coq – I can’t define anything without using tactics, but when I use tactics for definitions(instead of proofs) then I can’t prove anything.</p>]]></summary>
+</entry>
+<entry>
     <title>GHC + Cabal installation guide for starters</title>
     <link href="http://osa1.net/posts/2014-12-09-ghc-cabal-installation-guide.html" />
     <id>http://osa1.net/posts/2014-12-09-ghc-cabal-installation-guide.html</id>
-    <published>2014-12-09T00:00:00Z</published>
-    <updated>2014-12-09T00:00:00Z</updated>
+    <published>2014-09-12T00:00:00Z</published>
+    <updated>2014-09-12T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I see a lot of starters having problems with installing latest GHC and Cabal, and then keeping their package repository in a sane state(e.g. no thousands of broken packages because of one re-install, no installation problems because of conflicts). I came up with a simple method several years ago, and today when combined with sandboxes, that works really well. I suggest every new Haskeller to do the same. Here’s how I do my GHC/Cabal installation up-to-date and sane:</p>
 <p>NEVER USE HASKELL PALTFORM. When I first started, it caused just too much pain. I don’t know how it is today, but I presume same problems should still apply. (globally installing packages)</p>
 <p>Most important thing is to keep Cabal and cabal-install up-to-date. You can easily remove a GHC, or install other versions and keep them togerher once you have a working and relatively new(so that it supports sandboxes) Cabal. In fact, I currently have 3 versions of GHC installed, for different projects, and I have no problems at all. Starting from a system with no GHC/Cabal is installed, here’s the way to install latest Cabal and cabal-install:</p>
@@ -1411,84 +1432,6 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 <p>I can’t wait to start hacking, but unfortunately I still have one last and very important exam before my graduation from undergraduate school on 26th April and I have to study hard for that. After that, I’ll be hacking on GHCJS all summer long.</p>
 <p>Stay tuned for updates about my work and live demos that you can run from within your browser, thanks to GHCJS.</p>
 <p>You can see all accepted proposals of Haskell organization <a href="http://www.google-melange.com/gsoc/org2/google/gsoc2014/haskell">here</a>.</p>]]></summary>
-</entry>
-<entry>
-    <title>An idea to handle left-recursion in Parsec</title>
-    <link href="http://osa1.net/posts/2014-03-07-parsec-left-recursion.html" />
-    <id>http://osa1.net/posts/2014-03-07-parsec-left-recursion.html</id>
-    <published>2014-03-07T00:00:00Z</published>
-    <updated>2014-03-07T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I recently realized that it may be possible to handle left-recursion in Parsec style parser combinator libraries. I quickly wrote a simple prototype implementation that demonstrates the idea.</p>
-<p>The idea is to keep track of parser functions that are called without consuming any tokens from input stream. You should be able to run failure procedures when same parser function is encountered more than one time without consuming any tokens. When a token is consumed, state that is used to keep track of parser functions should be reset.</p>
-<p>One assumption here is that I’m assuming parser functions do not alter any states. Otherwise when you come across a same parser, you can have different state and parser may behave differently.</p>
-<p>Implementing the idea is easy even without having any extra support from Parsec. Here’s a demonstration on my favorite ambiguous grammar:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Exp ::= Int</span>
-<span class="co">--      |  Exp `+` Exp</span>
-
-<span class="kw">data</span> <span class="dt">Exp</span> <span class="fu">=</span> <span class="dt">Int</span> <span class="dt">Int</span>
-         <span class="fu">|</span> <span class="dt">Add</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
-         <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre>
-<p>Parsers for non-terminals are easy:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">plus <span class="fu">=</span> char <span class="ch">&#39;+&#39;</span> <span class="fu">&gt;&gt;</span> spaces
-int  <span class="fu">=</span> fmap (<span class="dt">Int</span> <span class="fu">.</span> read) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre>
-<p>I’m using a set to keep track of already visited parsers:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">MarksSeen</span> <span class="fu">=</span> <span class="dt">S.Set</span> <span class="dt">Int</span>
-
-<span class="kw">type</span> <span class="dt">RecParser</span> s m a <span class="fu">=</span> <span class="dt">ParsecT</span> s <span class="dt">MarksSeen</span> m a</code></pre>
-<p>Auxiliary functions to alter the state that keeps track of visited parsers:</p>
-<pre><code>putMark i = do
-    is &lt;- getState
-    if S.member i is
-      then fail &quot;recursion&quot;
-      else putState $ S.insert i is
-
-resetMarks = putState S.empty</code></pre>
-<p>Now the interesting part, <code>add</code> parser marks itself as first thing to do, and calls <code>exp</code> parser. Since <code>exp</code> parser is entry point, this means an indirect recursive call. When same <code>putMark</code> call is made, Parsec runs failure actions instead of going into infinte loop:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">add <span class="fu">=</span> <span class="kw">do</span>
-    putMark <span class="dv">1</span>
-    e1 <span class="ot">&lt;-</span> exp
-    resetMarks
-    plus
-    e2 <span class="ot">&lt;-</span> exp
-    spaces
-    return <span class="fu">$</span> <span class="dt">Add</span> e1 e2
-
-exp <span class="fu">=</span> choice [try add, int]</code></pre>
-<p><code>resetMarks</code> call is also important, <code>exp</code> has to consume some tokens, so after parsing <code>e1</code>, I’m calling <code>resetMarks</code>.</p>
-<p>Here’s an example call of this parser:</p>
-<pre><code>ghci&gt; runParser exp S.empty &quot;&quot; &quot;1 + 2 + 3 + 4&quot;
-Right (Add (Int 1) (Add (Int 2) (Add (Int 3) (Int 4))))</code></pre>
-<p>You can observe that parser gets into an infinite loop when marks are removed. Here’s an example demonstrating the error message:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">rec <span class="fu">=</span> putMark <span class="dv">0</span> <span class="fu">&gt;&gt;</span> rec <span class="fu">&gt;&gt;</span> resetMarks
-
-ghci<span class="fu">&gt;</span> runParser rec S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;&quot;</span>
-<span class="dt">Left</span> (line <span class="dv">1</span>, column <span class="dv">1</span>)<span class="fu">:</span>
-recursion</code></pre>
-<p>One problem with this approach is that it requires more typing, and you should be careful too. Marks can be placed using TemplateHaskell to ensure unique numbers are given to each <code>putMark</code> call. As a second improvement, I think with some modifications on Parsec we can make Parsec to reset marks when a token is consumed(using <em>consumed-ok</em> continuation of <code>ParsecT</code>).</p>
-<p>You can see the complete program <a href="https://gist.github.com/osa1/9414577">here</a>.</p>
-<hr />
-<p>Removing left-recursions in your grammar may not be a huge problem – except when you’re working on functional languages with ML-like syntax. Then you’re out of luck because being functional means you’re <code>Exp</code> non-terminal contains several dozen of productions and function applications is a part of that too, and it’s left-recursive:</p>
-<pre><code>Exp ::= ...
-     |  Exp Exp_1 ... Exp_N [left-associative]
-     ... a hundred more productions ...</code></pre>
-<p>Whenever I need to write a parser for a grammar like this, I’m thinking for an easier way to parse it. I still couldn’t come up with a solution. Idea I just explained does not solve it, because it parses right-associatively. There is one workaround, but I’m not sure if that results with a parser for same grammar:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">app <span class="fu">=</span> <span class="kw">do</span>
-    putMark <span class="dv">2</span>
-    fn <span class="ot">&lt;-</span> exp
-    resetMarks
-
-    putMark <span class="dv">2</span>
-    as <span class="ot">&lt;-</span> many1 exp
-    resetMarks
-
-    return <span class="fu">$</span> foldl <span class="dt">App</span> fn as
-
-
-ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 2 3 4 + 5 + 6 7&quot;</span>
-<span class="dt">Right</span> (<span class="dt">Add</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Int</span> <span class="dv">2</span>)) (<span class="dt">Int</span> <span class="dv">3</span>)) (<span class="dt">Int</span> <span class="dv">4</span>)) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">5</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">6</span>) (<span class="dt">Int</span> <span class="dv">7</span>))))
-
-ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 + 2 + 3 4&quot;</span>
-<span class="dt">Right</span> (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">2</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">3</span>) (<span class="dt">Int</span> <span class="dv">4</span>))))</code></pre>]]></summary>
 </entry>
 
 </feed>

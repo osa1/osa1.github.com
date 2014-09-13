@@ -8,13 +8,34 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-12-09T00:00:00Z</updated>
+    <updated>2014-09-13T00:00:00Z</updated>
     <entry>
+    <title>Problems with tactic generated programs</title>
+    <link href="http://osa1.net/posts/2014-09-13-problems-with-tactics.html" />
+    <id>http://osa1.net/posts/2014-09-13-problems-with-tactics.html</id>
+    <published>2014-09-13T00:00:00Z</published>
+    <updated>2014-09-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I never managed to write anything with dependent types in Coq, without using tactics. Pattern matching is never giving enough information in cases to allow me to generate the term I want. <a href="http://adam.chlipala.net/cpdt/">Certified Programming with Dependent Types</a> book describes “Convoy pattern”, which is a way to write dependently typed terms in Coq without using tactics. I later learned that standard <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual010.html#hevea_tactic87">inversion</a> tactic also uses something like a convoy pattern, except it’s not as fine grained as what a user would write by hand.</p>
+<p>Unfortunately, even after learning about convoy pattern, I’m still not satisfied with what I get when I write dependently typed definitions without using tactics. The reason is that convoy pattern is incredibly ugly and hard to read and understand. Even if I embrace the ugliness, most of the time I have no idea how to use the pattern so that 1) it’s not horribly verbose 2) does what I want.</p>
+<p>I had a small verification idea: I was going to implement <a href="http://en.wikipedia.org/wiki/Pascals_triangle">Pascal’s triangle</a> as a co-inductive type and implement operations on it. Later I was hoping to prove that <code>p(n, k) = p(n-1, k-1) + p(n-1, k)</code> where <code>k</code> is column and <code>p</code> is row.</p>
+<p>I struggled for this for a long time. The problem was that I was not comfortable with tactics and I couldn’t define dependently typed terms using fixpoints or definitions. Now that I’m comfortable enough with tactics, I finally managed to <a href="https://gist.github.com/osa1/47ed1dd4267fa379259d">implement what I want</a>.</p>
+<p>Here are a few things that I also mentioned in <a href="https://sympa.inria.fr/sympa/arc/coq-club/2014-09/msg00088.html">my mail to Coq-club</a>:</p>
+<ul>
+<li>The whole thing looks a bit complex but actually implementing it was very easy. Definitely a lot easier than how it’d be if I wanted to implement it without tactics.</li>
+<li>Even though generated Coq terms are huge, generated OCaml is actually very good. It still has some problems though. <code>snoc</code> has a redundant argument which could be eliminated by using OCaml lists for vectors. First argument of <code>sum-pairs</code> is redundant because it’s just vector’s length so we could use <code>Vector.t</code>’s field instead. Similarly, I think <code>pascal_aux</code>’s first argument may also be removed etc. (see generated OCaml from the Github link above)</li>
+</ul>
+<p>If you look at the Coq code, you’ll realize that I couldn’t prove even the simplest fact about my definition. This is the problem with tactic-generated terms. The reason I can’t prove anything is that <code>simpl</code> just doesn’t work anymore, and there are no workarounds. The terms are so huge and complex, nothing is provable anymore.</p>
+<p>I got very good responses about alternatives and problems in Coq-club mailing list. One of them was the suggestion of giving functions types that 1) show the properties I’m trying to show in separate theorems 2) still subject to erasure.</p>
+<p>This approach has an obvious problem. There won’t be a program/proof distinction anymore. As a programmer I don’t like this at all. Also, making sure that proof terms will be erased is hard.(see rest of the discussion from the mailing list link above) I don’t think I’ll follow this idea.</p>
+<p>Another alternative is just using Agda. I have my problems with Agda which I’m deferring to another post for now. Some of my excuses may actually not be Agda’s problem but rather they may be Coq’s advantage. In any case, I probably won’t be using Agda.</p>
+<p>So now I’m stuck with Coq – I can’t define anything without using tactics, but when I use tactics for definitions(instead of proofs) then I can’t prove anything.</p>]]></summary>
+</entry>
+<entry>
     <title>GHC + Cabal installation guide for starters</title>
     <link href="http://osa1.net/posts/2014-12-09-ghc-cabal-installation-guide.html" />
     <id>http://osa1.net/posts/2014-12-09-ghc-cabal-installation-guide.html</id>
-    <published>2014-12-09T00:00:00Z</published>
-    <updated>2014-12-09T00:00:00Z</updated>
+    <published>2014-09-12T00:00:00Z</published>
+    <updated>2014-09-12T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I see a lot of starters having problems with installing latest GHC and Cabal, and then keeping their package repository in a sane state(e.g. no thousands of broken packages because of one re-install, no installation problems because of conflicts). I came up with a simple method several years ago, and today when combined with sandboxes, that works really well. I suggest every new Haskeller to do the same. Here’s how I do my GHC/Cabal installation up-to-date and sane:</p>
 <p>NEVER USE HASKELL PALTFORM. When I first started, it caused just too much pain. I don’t know how it is today, but I presume same problems should still apply. (globally installing packages)</p>
 <p>Most important thing is to keep Cabal and cabal-install up-to-date. You can easily remove a GHC, or install other versions and keep them togerher once you have a working and relatively new(so that it supports sandboxes) Cabal. In fact, I currently have 3 versions of GHC installed, for different projects, and I have no problems at all. Starting from a system with no GHC/Cabal is installed, here’s the way to install latest Cabal and cabal-install:</p>
@@ -1332,32 +1353,6 @@ Main.CAF (&lt;entire-module&gt;)</code></pre>
 <li id="fn2"><p>“Bilgi saymak” ile bir alakamız yok ve hatta bilgi saymanın ne kadar anlamlı bir fiil olduğu da tartışmaya açık. Benim aklımda hiçbir şey canlanmıyor mesela “bilgi saymak” deyince.<a href="#fnref2">↩</a></p></li>
 </ol>
 </div>]]></summary>
-</entry>
-<entry>
-    <title>GHC RTS notes</title>
-    <link href="http://osa1.net/posts/2014-05-30-ghc-internals-reading-material.html" />
-    <id>http://osa1.net/posts/2014-05-30-ghc-internals-reading-material.html</id>
-    <published>2014-05-30T00:00:00Z</published>
-    <updated>2014-05-30T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p><a href="https://news.ycombinator.com/item?id=7818768">Someone on HN</a> shared <a href="http://stanford.edu/~adebray/240h_notes.pdf">this class notes</a> of Stanford’s “Functional Systems in Haskell” class. Most of the stuff is very basic but sections 16 and 17 are very useful for me since they’re related with GHC internals which I’m currently studying.</p>
-<p>You can see slides of Section 17 <a href="http://ezyang.tumblr.com/post/87048816817/cs240h-lecture-on-the-ghc-runtime-system">here</a>.</p>
-<p>These are probably only up-to-date reading materials about GHC RTS you can find. (unless you count source code as a reading material ;_; )</p>
-<p>Some other useful GHC Wiki pages that I find useful: (validness of these for current GHC is not guaranteed, but theoretic stuff should be still valid)</p>
-<ul>
-<li><a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/PrimOps">PrimOps</a></li>
-<li><a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution/FunctionCalls#Genericapply">Function calls</a></li>
-<li><a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/Storage/HeapObjects?redirectedfrom=Commentary/Rts/HeapObjects#ThreadStateObjects">The layout of heap objects</a></li>
-<li><a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/Storage/Stack">Layout of the stack</a></li>
-<li><a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution">The Haskell Execution Model</a></li>
-<li><a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/GeneratedCode">STG by example</a></li>
-<li><a href="https://ghc.haskell.org/trac/ghc/wiki/Debugging/CompiledCode">Debugging GHC-compiled code with gdb</a> (I hope you don’t really need this!)</li>
-<li><a href="https://ghc.haskell.org/trac/ghc/wiki/Debugging/RuntimeSystem">Debugging the runtime system</a> (same as above)</li>
-<li><a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/Storage/GC">The Garbage Collector</a></li>
-<li><a href="http://www.mono-project.com/Generational_GC">Generational GC page of Mono project</a> – not really Haskell, but I think it’s a good source to understand GC concepts that is related with GHC’s GC implementation.</li>
-</ul>
-<p>Now I can close my browser tabs in peace…</p>
-<p>Bonus content: Here’s a <a href="http://osa1.net/posts/2014-05-27-worst-bug.html">horror story</a> that is probably related with a GHC RTS bug and making progress in my work impossible.</p>
-<p>EDIT: Someone on GHC IRC channel shared <a href="http://arashrouhani.com/papers/master-thesis.pdf">his masters thesis about GHC stack traces</a>, even if you’re not interested in stack traces I think it contains lots of useful information about GHC compilation pipeline.</p>]]></summary>
 </entry>
 
 </feed>

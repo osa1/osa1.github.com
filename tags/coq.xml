@@ -8,8 +8,29 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-09-08T00:00:00Z</updated>
+    <updated>2014-09-13T00:00:00Z</updated>
     <entry>
+    <title>Problems with tactic generated programs</title>
+    <link href="http://osa1.net/posts/2014-09-13-problems-with-tactics.html" />
+    <id>http://osa1.net/posts/2014-09-13-problems-with-tactics.html</id>
+    <published>2014-09-13T00:00:00Z</published>
+    <updated>2014-09-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I never managed to write anything with dependent types in Coq, without using tactics. Pattern matching is never giving enough information in cases to allow me to generate the term I want. <a href="http://adam.chlipala.net/cpdt/">Certified Programming with Dependent Types</a> book describes “Convoy pattern”, which is a way to write dependently typed terms in Coq without using tactics. I later learned that standard <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual010.html#hevea_tactic87">inversion</a> tactic also uses something like a convoy pattern, except it’s not as fine grained as what a user would write by hand.</p>
+<p>Unfortunately, even after learning about convoy pattern, I’m still not satisfied with what I get when I write dependently typed definitions without using tactics. The reason is that convoy pattern is incredibly ugly and hard to read and understand. Even if I embrace the ugliness, most of the time I have no idea how to use the pattern so that 1) it’s not horribly verbose 2) does what I want.</p>
+<p>I had a small verification idea: I was going to implement <a href="http://en.wikipedia.org/wiki/Pascals_triangle">Pascal’s triangle</a> as a co-inductive type and implement operations on it. Later I was hoping to prove that <code>p(n, k) = p(n-1, k-1) + p(n-1, k)</code> where <code>k</code> is column and <code>p</code> is row.</p>
+<p>I struggled for this for a long time. The problem was that I was not comfortable with tactics and I couldn’t define dependently typed terms using fixpoints or definitions. Now that I’m comfortable enough with tactics, I finally managed to <a href="https://gist.github.com/osa1/47ed1dd4267fa379259d">implement what I want</a>.</p>
+<p>Here are a few things that I also mentioned in <a href="https://sympa.inria.fr/sympa/arc/coq-club/2014-09/msg00088.html">my mail to Coq-club</a>:</p>
+<ul>
+<li>The whole thing looks a bit complex but actually implementing it was very easy. Definitely a lot easier than how it’d be if I wanted to implement it without tactics.</li>
+<li>Even though generated Coq terms are huge, generated OCaml is actually very good. It still has some problems though. <code>snoc</code> has a redundant argument which could be eliminated by using OCaml lists for vectors. First argument of <code>sum-pairs</code> is redundant because it’s just vector’s length so we could use <code>Vector.t</code>’s field instead. Similarly, I think <code>pascal_aux</code>’s first argument may also be removed etc. (see generated OCaml from the Github link above)</li>
+</ul>
+<p>If you look at the Coq code, you’ll realize that I couldn’t prove even the simplest fact about my definition. This is the problem with tactic-generated terms. The reason I can’t prove anything is that <code>simpl</code> just doesn’t work anymore, and there are no workarounds. The terms are so huge and complex, nothing is provable anymore.</p>
+<p>I got very good responses about alternatives and problems in Coq-club mailing list. One of them was the suggestion of giving functions types that 1) show the properties I’m trying to show in separate theorems 2) still subject to erasure.</p>
+<p>This approach has an obvious problem. There won’t be a program/proof distinction anymore. As a programmer I don’t like this at all. Also, making sure that proof terms will be erased is hard.(see rest of the discussion from the mailing list link above) I don’t think I’ll follow this idea.</p>
+<p>Another alternative is just using Agda. I have my problems with Agda which I’m deferring to another post for now. Some of my excuses may actually not be Agda’s problem but rather they may be Coq’s advantage. In any case, I probably won’t be using Agda.</p>
+<p>So now I’m stuck with Coq – I can’t define anything without using tactics, but when I use tactics for definitions(instead of proofs) then I can’t prove anything.</p>]]></summary>
+</entry>
+<entry>
     <title>Proving sorting algorithms correct</title>
     <link href="http://osa1.net/posts/2014-09-08-proving-sorting-correct.html" />
     <id>http://osa1.net/posts/2014-09-08-proving-sorting-correct.html</id>
