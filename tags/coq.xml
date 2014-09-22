@@ -8,8 +8,237 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-09-13T00:00:00Z</updated>
+    <updated>2014-09-23T00:00:00Z</updated>
     <entry>
+    <title>Two challenges for dependently typed languages</title>
+    <link href="http://osa1.net/posts/2014-09-23-two-challenges-for-dep-typed-langs.html" />
+    <id>http://osa1.net/posts/2014-09-23-two-challenges-for-dep-typed-langs.html</id>
+    <published>2014-09-23T00:00:00Z</published>
+    <updated>2014-09-23T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<div class="code">
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+I propose two challenges that I think are very useful to see how easy to use a dependently typed language is. Different dependently typed languages use different type theories as their trusted cores and admit different axioms. In my experience, this significantly effects user experience. For example, lack of dependent pattern matching in Coq is leading to horribly verbose, hard to write, read and understand pattern matching code(see convoy and transport patterns).
+
+<div class="paragraph"> </div>
+
+Adding some extra axioms to Coq's trusted but sometimes too simple core can make the experience significantly better(see <a href="http://coq.inria.fr/distrib/current/stdlib/Coq.Logic.JMeq.html">JMec</a>, <a href="http://coq.inria.fr/distrib/current/stdlib/Coq.Program.Equality.html">Program</a> and <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual010.html">dependent destruction</a>). On the other hand, languages like Idris handles some of the cases that Coq can't handle by default.
+
+<div class="paragraph"> </div>
+
+The challenge is to solve two problems defined below in different dependently typed languages. We can then compare programs for 1) simplicity of code 2) use of extra axioms 3) giving away totality or some other useful properties.
+
+<div class="paragraph"> </div>
+
+Solutions of one of the challenges may also be compared for erasure of types. Problems are defined in Coq.
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<a name="lab1"></a><h1 class="section">Challenge 1: Cardinality</h1>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+This is a theorem proving exercise. <span class="inlinecode"><span class="id" type="var">Cardinality</span></span> of a type is defined as bijection of the type with <span class="inlinecode"><span class="id" type="var">Fin.t</span></span> <span class="inlinecode"><span class="id" type="var">n</span></span> for some <span class="inlinecode"><span class="id" type="var">n</span></span>:
+
+<div class="paragraph"> </div>
+
+
+</div>
+<div class="code">
+
+<br />
+<span class="id" type="keyword">Inductive</span> <a name="cardinality"><span class="id" type="inductive">cardinality</span></a> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" type="inductive">nat</span></a>) : <span class="id" type="keyword">Prop</span> :=<br />
+| <a name="cardinality_intro"><span class="id" type="constructor">cardinality_intro</span></a><br />
+    (<span class="id" type="var">to_fin</span>    : <span class="id" type="var">A</span> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Vectors.Fin.html#t"><span class="id" type="inductive">Fin.t</span></a> <span class="id" type="var">n</span>)<br />
+    (<span class="id" type="var">from_fin</span>  : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Vectors.Fin.html#t"><span class="id" type="inductive">Fin.t</span></a> <span class="id" type="var">n</span> → <span class="id" type="var">A</span>)<br />
+    (<span class="id" type="var">bijection</span> :<br />
+      <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'/\'_x"><span class="id" type="notation">(</span></a><span class="id" type="keyword">∀</span> <span class="id" type="var">x</span>, <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#from_fin"><span class="id" type="variable">from_fin</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#to_fin"><span class="id" type="variable">to_fin</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#x"><span class="id" type="variable">x</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'='_x"><span class="id" type="notation">=</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#x"><span class="id" type="variable">x</span></a><a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'/\'_x"><span class="id" type="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'/\'_x"><span class="id" type="notation">∧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'/\'_x"><span class="id" type="notation">(</span></a><span class="id" type="keyword">∀</span> <span class="id" type="var">y</span>, <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#to_fin"><span class="id" type="variable">to_fin</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#from_fin"><span class="id" type="variable">from_fin</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#y"><span class="id" type="variable">y</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'='_x"><span class="id" type="notation">=</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#y"><span class="id" type="variable">y</span></a><a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'/\'_x"><span class="id" type="notation">)</span></a>).<br />
+
+<br />
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+You may want to solve this simple exercise just to warm-up:
+
+<div class="paragraph"> </div>
+
+
+</div>
+<div class="code">
+
+<br />
+<span class="id" type="keyword">Theorem</span> <a name="cardinality_bool"><span class="id" type="lemma">cardinality_bool</span></a> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#cardinality"><span class="id" type="inductive">cardinality</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Datatypes.html#bool"><span class="id" type="inductive">bool</span></a> 2.<br />
+<span class="id" type="var">Admitted</span>.<br />
+
+<br />
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+Now the challenge is to prove that cardinality of
+
+<div class="paragraph"> </div>
+
+
+</div>
+<div class="code">
+
+<br />
+<span class="id" type="keyword">Inductive</span> <a name="T"><span class="id" type="inductive">T</span></a> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) : <span class="id" type="keyword">Type</span> :=<br />
+| <a name="T1"><span class="id" type="constructor">T1</span></a> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#T"><span class="id" type="inductive">T</span></a> <span class="id" type="var">A</span><br />
+| <a name="T2"><span class="id" type="constructor">T2</span></a> : <span class="id" type="var">A</span> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#T"><span class="id" type="inductive">T</span></a> <span class="id" type="var">A</span><br />
+| <a name="T3"><span class="id" type="constructor">T3</span></a> : <span class="id" type="var">A</span> → <span class="id" type="var">A</span> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#T"><span class="id" type="inductive">T</span></a> <span class="id" type="var">A</span>.<br />
+
+<br />
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+.. is <span class="inlinecode">1</span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" type="var">N</span></span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" type="var">N</span></span> <span class="inlinecode">×</span> <span class="inlinecode"><span class="id" type="var">N</span></span> where <span class="inlinecode"><span class="id" type="var">N</span></span> is cardinality of <span class="inlinecode"><span class="id" type="var">A</span></span>:
+
+<div class="paragraph"> </div>
+
+
+</div>
+<div class="code">
+
+<br />
+<span class="id" type="keyword">Theorem</span> <a name="cardinality_T"><span class="id" type="lemma">cardinality_T</span></a> : <span class="id" type="keyword">∀</span> <span class="id" type="var">A</span> <span class="id" type="var">N</span>,<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#cardinality"><span class="id" type="inductive">cardinality</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#A"><span class="id" type="variable">A</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#N"><span class="id" type="variable">N</span></a> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#cardinality"><span class="id" type="inductive">cardinality</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#T"><span class="id" type="inductive">T</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#A"><span class="id" type="variable">A</span></a>) (1 <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'+'_x"><span class="id" type="notation">+</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#N"><span class="id" type="variable">N</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'+'_x"><span class="id" type="notation">+</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#N"><span class="id" type="variable">N</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'*'_x"><span class="id" type="notation">×</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#N"><span class="id" type="variable">N</span></a>).<br />
+<span class="id" type="var">Admitted</span>.<br />
+
+<br />
+</div>
+
+<div class="doc">
+<a name="lab2"></a><h1 class="section">Challenge 2: Verified, CoInductive definition of Pascal's Triangle</h1>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+This should be easier. What's good about this one is that we can compare languages for performance and/or erasure properties. Basically we expect type arguments to be absent in extracted/executed code.
+
+<div class="paragraph"> </div>
+
+Here's one way to define the problem:
+
+<div class="paragraph"> </div>
+
+
+</div>
+<div class="code">
+
+<br />
+<span class="id" type="keyword">CoInductive</span> <a name="triangle_t"><span class="id" type="inductive">triangle_t</span></a> (<span class="id" type="var">T</span> : <span class="id" type="keyword">Type</span>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" type="inductive">nat</span></a> → <span class="id" type="keyword">Type</span> :=<br />
+| <a name="triangle"><span class="id" type="constructor">triangle</span></a> : <span class="id" type="keyword">∀</span> (<span class="id" type="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" type="inductive">nat</span></a>), <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Vectors.Vector.html#t"><span class="id" type="inductive">Vector.t</span></a> <span class="id" type="var">T</span> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" type="variable">n</span></a> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#triangle_t"><span class="id" type="inductive">triangle_t</span></a> <span class="id" type="var">T</span> (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Datatypes.html#S"><span class="id" type="constructor">S</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" type="variable">n</span></a>) → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#triangle_t"><span class="id" type="inductive">triangle_t</span></a> <span class="id" type="var">T</span> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" type="variable">n</span></a>.<br />
+
+<br />
+<span class="id" type="keyword">Definition</span> <a name="pascal"><span class="id" type="definition">pascal</span></a> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#triangle_t"><span class="id" type="inductive">triangle_t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" type="inductive">nat</span></a> 0. <span class="id" type="var">Admitted</span>.<br />
+
+<br />
+<span class="id" type="keyword">Definition</span> <a name="pascal_nth"><span class="id" type="definition">pascal_nth</span></a> (<span class="id" type="var">row</span> <span class="id" type="var">col</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" type="inductive">nat</span></a>) : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&lt;='_x"><span class="id" type="notation">≤</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" type="inductive">nat</span></a>. <span class="id" type="var">Admitted</span>.<br />
+
+<br />
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+Extracted/executed version of <span class="inlinecode"><span class="id" type="var">pascal_nth</span></span> and any auxiliary function should be clean from type arguments.
+
+<div class="paragraph"> </div>
+
+Now the verification part:
+
+<div class="paragraph"> </div>
+
+
+</div>
+<div class="code">
+
+<br />
+<span class="id" type="keyword">Theorem</span> <a name="pascal_first_col_is_1"><span class="id" type="lemma">pascal_first_col_is_1</span></a> : <span class="id" type="keyword">∀</span> <span class="id" type="var">row</span>,<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" type="axiom">pascal_nth</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> 0 (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Arith.Le.html#le_0_n"><span class="id" type="lemma">le_0_n</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'='_x"><span class="id" type="notation">=</span></a> 1.<br />
+<span class="id" type="var">Admitted</span>.<br />
+
+<br />
+<span class="id" type="keyword">Theorem</span> <a name="pascal_last_col_is_1"><span class="id" type="lemma">pascal_last_col_is_1</span></a> : <span class="id" type="keyword">∀</span> <span class="id" type="var">n</span>,<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" type="axiom">pascal_nth</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" type="variable">n</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" type="variable">n</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#le_n"><span class="id" type="constructor">le_n</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" type="variable">n</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'='_x"><span class="id" type="notation">=</span></a> 1.<br />
+<span class="id" type="var">Admitted</span>.<br />
+
+<br />
+<span class="id" type="keyword">Lemma</span> <a name="pascal_correct_aux"><span class="id" type="lemma">pascal_correct_aux</span></a> : <span class="id" type="keyword">∀</span> <span class="id" type="var">row</span> <span class="id" type="var">col</span>,<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&lt;'_x"><span class="id" type="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> →<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&gt;='_x"><span class="id" type="notation">≥</span></a> 1 →<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&gt;='_x"><span class="id" type="notation">≥</span></a> 1 →<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'-'_x"><span class="id" type="notation">-</span></a> 1 <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&lt;='_x"><span class="id" type="notation">≤</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'-'_x"><span class="id" type="notation">-</span></a> 1.<br />
+<span class="id" type="keyword">Proof</span>. <span class="id" type="tactic">intros</span>. <span class="id" type="tactic">omega</span>. <span class="id" type="keyword">Qed</span>.<br />
+
+<br />
+<span class="id" type="keyword">Lemma</span> <a name="lt_le"><span class="id" type="lemma">lt_le</span></a> : <span class="id" type="keyword">∀</span> <span class="id" type="var">a</span> <span class="id" type="var">b</span>,<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#a"><span class="id" type="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&lt;'_x"><span class="id" type="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#b"><span class="id" type="variable">b</span></a> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#a"><span class="id" type="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&lt;='_x"><span class="id" type="notation">≤</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#b"><span class="id" type="variable">b</span></a>.<br />
+<span class="id" type="keyword">Proof</span>. <span class="id" type="tactic">intros</span>. <span class="id" type="tactic">omega</span>. <span class="id" type="keyword">Qed</span>.<br />
+
+<br />
+<span class="id" type="keyword">Lemma</span> <a name="pascal_correct_aux'"><span class="id" type="lemma">pascal_correct_aux'</span></a> : <span class="id" type="keyword">∀</span> <span class="id" type="var">row</span> <span class="id" type="var">col</span>,<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&lt;'_x"><span class="id" type="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> →<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&gt;='_x"><span class="id" type="notation">≥</span></a> 1 →<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&gt;='_x"><span class="id" type="notation">≥</span></a> 1 →<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&lt;='_x"><span class="id" type="notation">≤</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'-'_x"><span class="id" type="notation">-</span></a> 1.<br />
+<span class="id" type="keyword">Proof</span>. <span class="id" type="tactic">intros</span>. <span class="id" type="tactic">omega</span>. <span class="id" type="keyword">Qed</span>.<br />
+
+<br />
+<span class="id" type="keyword">Theorem</span> <a name="pascal_correct"><span class="id" type="lemma">pascal_correct</span></a> : <span class="id" type="keyword">∀</span> <span class="id" type="var">row</span> <span class="id" type="var">col</span><br />
+  (<span class="id" type="var">pf</span> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&lt;'_x"><span class="id" type="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a>)<br />
+  (<span class="id" type="var">pf_row</span> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&gt;='_x"><span class="id" type="notation">≥</span></a> 1)<br />
+  (<span class="id" type="var">pf_col</span> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'&gt;='_x"><span class="id" type="notation">≥</span></a> 1),<br />
+  <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" type="axiom">pascal_nth</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#lt_le"><span class="id" type="lemma">lt_le</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf"><span class="id" type="variable">pf</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Logic.html#:type_scope:x_'='_x"><span class="id" type="notation">=</span></a><br />
+      <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" type="axiom">pascal_nth</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'-'_x"><span class="id" type="notation">-</span></a> 1) (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'-'_x"><span class="id" type="notation">-</span></a> 1) (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_correct_aux"><span class="id" type="lemma">pascal_correct_aux</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf"><span class="id" type="variable">pf</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf_row"><span class="id" type="variable">pf_row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf_col"><span class="id" type="variable">pf_col</span></a>)<br />
+    <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'+'_x"><span class="id" type="notation">+</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" type="axiom">pascal_nth</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl2/stdlib/Coq.Init.Peano.html#:nat_scope:x_'-'_x"><span class="id" type="notation">-</span></a> 1) <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_correct_aux'"><span class="id" type="lemma">pascal_correct_aux'</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" type="variable">row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" type="variable">col</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf"><span class="id" type="variable">pf</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf_row"><span class="id" type="variable">pf_row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf_col"><span class="id" type="variable">pf_col</span></a>).<br />
+<span class="id" type="var">Admitted</span>.<br />
+
+<br />
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+Feel free to change the definitions. The point is to 1) have strict <span class="inlinecode"><span class="id" type="var">nth</span></span> function that fail 2) prove that the data structure has property of <a href="http://en.wikipedia.org/wiki/Pascal%27s_triangle">Pascal's triangle</a>.
+
+<div class="paragraph"> </div>
+
+I'm hoping to come up with some solutions given in Coq over the next couple of weeks.
+
+<div class="paragraph"> </div>
+
+
+</div>
+<div class="code">
+</div>
+]]></summary>
+</entry>
+<entry>
     <title>Problems with tactic generated programs</title>
     <link href="http://osa1.net/posts/2014-09-13-problems-with-tactics.html" />
     <id>http://osa1.net/posts/2014-09-13-problems-with-tactics.html</id>
