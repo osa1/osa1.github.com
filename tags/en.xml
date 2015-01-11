@@ -8,8 +8,43 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-09-23T00:00:00Z</updated>
+    <updated>2015-01-11T00:00:00Z</updated>
     <entry>
+    <title>Understanding Futamura Projections</title>
+    <link href="http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html" />
+    <id>http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html</id>
+    <published>2015-01-11T00:00:00Z</published>
+    <updated>2015-01-11T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Here’s a way to understand Futamura projections<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
+<p>(Quick note: “Partial evaluator” == “specializer”. As far as I can see these words are also used interchangeably in the literature)</p>
+<p>We call our specializer <code>specialize</code>. We specify languages using capital letters, <code>S</code>, <code>T</code>, <code>L</code> etc. We use Haskell syntax for applications. (e.g. <code>f a1 a2 a3</code> is a function application of <code>f</code> to three arguments, applications are left-associative in the case of currying)</p>
+<p><code>specialize</code> takes two arguments, first argument is the program(function) to specialize, second argument is the input to specialize the program(function) on.</p>
+<p>Note that our specializers are “correct”: For all specializer <code>s</code>, program <code>f</code> and program arguments <code>a</code> and <code>b</code>, <code>(s f a) b</code> is semantically same as <code>f a b</code>.</p>
+<p>We show a specializer written in L which operates on programs written in T as <code>specialize_L_T</code>.</p>
+<p>Now there are three interesting “Futamura projections”. Let’s say we have an interpreter for a language <code>L</code>, called <code>int</code>, which is written in <code>T</code>. We use <code>*</code> as a wildcard for languages. (e.g. it can be substituted with any language)</p>
+<ol style="list-style-type: decimal">
+<li><p><code>specialize_*_T int int_pgm</code>: We specialized the interpreter on a program <code>int_pgm</code>, resulting program is in <code>T</code>. We now have a program in <code>T</code> which just gets arguments of the interpreted program and produces output. This gives us a compiled version of <code>int_pgm</code> to <code>T</code>.</p></li>
+<li><p><code>specialize_T_T specialize_T_T int</code>: We specialized the specializer on an interpreter. Generated program will be in <code>T</code>, and it’ll be expecting interpreter programs as input. The output will be specialized version of <code>int</code> for the given interpreter program. So we got a compiler for the interpreter <code>int</code>!</p>
+<p>Note that specializers now need to be written in the language that they operate on. Alternatively, we could use two different specializers: One for specialize the interpreter, and one for specializing the interpreter specializer. (e.g. in most general form, we can have <code>specialize_A_B specialize_B_C int</code> where <code>int</code> is written in <code>C</code>)</p></li>
+<li><p><code>specialize_T_T specialize_T_T specialize T_T</code>: This one is tricky. Let’s try to think what will be the generated program. We know from (2) is that <code>specialize_T_T specialize_T_T int</code> is a compiler for the language that <code>int</code> interprets. Now, we know from the note above that specializing doesn’t change meaning of the program, so our term from (2) <code>specialize_T_T specialize_T_T int</code> should be same with <code>(specialize_T_T specialize_T_T specialize_T_T) int</code>. What happens if we don’t apply the last <code>int</code>? Then we got a program that takes an interpreter and specializes it, resulting with a program in <code>T</code> that doesn’t expect interpreter argument. This is a compiler-compiler. Given an interpreter in <code>T</code>, it gives us a compiled version.</p></li>
+</ol>
+<p>Futamura projections are originally introduced in Futamura’s <a href="https://cs.au.dk/~hosc/local/HOSC-12-4-pp381-391.pdf">“Partial Evaluation of Computation Process – An Approach to a Compiler-Compiler”</a> and also described in <a href="http://www.itu.dk/people/sestoft/pebook/jonesgomardsestoft-letter.pdf">“Partial Evaluation and Automatic Program Generation”</a>.</p>
+<p>Thinking about languages and interpreters are good way to have an intuition about how partial evaluation, specializing specializers etc. work, and “writing interpreters on problem domain” may be a good and general approach to solving problems<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>, but I’m wondering what interesting programs and results we would get if we apply the these to different domains. Any ideas and pointers would be appreciated.</p>
+<h1 id="problem-with-implementing-the-idea">Problem with implementing the idea</h1>
+<p>Implementing ideas are generally a good way to learn, but in this case it’s a bit tricky. If we want to specialize specializers(like in projection (2) and (3)) we need to write one specializer in the language that it specializes, so we need a <code>specialize_T_T</code> for a <code>T</code>.</p>
+<p>To be more concrete, if we want to write the specializer in Haskell, then it has to be operating on Haskell so that we could specialize it on itself. Now this is no trivial work, Haskell is a big and complicated language.</p>
+<p>On the other hand, if we want to roll our own language just to try this idea, then we’ll have to write the specializer in our language. This is also not trivial, because we need implement a language that is expressive enough to write a specializer for itself.</p>
+<p>Designing a minimal language that is expressive enough to implement the idea may be a good challenge.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Futamura projections are what you get when you apply partial evaluators to interpreters and to themselves. Have a look at <a href="http://en.wikipedia.org/wiki/Partial_evaluation#Futamura_projections">related Wikipedia page</a> and see bottom of the post for more resources.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>I recently stumbled upon this <a href="http://stackoverflow.com/questions/27852709/enterprise-patterns-with-functional-programming/27860072#27860072">SO answer</a> to a question about functional design patterns. It’s interesting how forcing yourself to a particular paradigm leads to different approaches and ways to solving problems. This is one of the reasons why I’m trying to learn a new paradigm using a language that is specifically crafted for that paradigm(e.g. Haskell for functional programming instead of Lisps, Scala etc.).<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>Two challenges for dependently typed languages</title>
     <link href="http://osa1.net/posts/2014-09-23-two-challenges-for-dep-typed-langs.html" />
     <id>http://osa1.net/posts/2014-09-23-two-challenges-for-dep-typed-langs.html</id>
@@ -1541,126 +1576,6 @@ Main.CAF (&lt;entire-module&gt;)</code></pre>
 <p>This means that if you’re implementing an orphan instance, you should specify minor upper bound of the package that defines the typeclass. Otherwise if the package implements the typeclass for the type in the future, you’re package will be broken.</p>
 <p>I want to add <code>StackValue a =&gt; StackValue [a]</code> instance in hslua, but that breaks Pandoc because it implements that instance without using a newtype(an orphan instance) and hslua dependency upper bound is specified as <code>&lt; 0.4</code>.</p>
 <p>Good news is that bergmark at Freenode #haskell told me that now it’s possible to change dependency ranges on Hackage without pushing a new version, so there’s an easy fix that’ll keep package working.</p>]]></summary>
-</entry>
-<entry>
-    <title>Calling Haskell from Lua and Lua from Haskell</title>
-    <link href="http://osa1.net/posts/2014-04-27-calling-haskell-lua.html" />
-    <id>http://osa1.net/posts/2014-04-27-calling-haskell-lua.html</id>
-    <published>2014-04-27T00:00:00Z</published>
-    <updated>2014-04-27T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>TL;DR: It’s possible to call Haskell functions from Lua and Lua function from Haskell using <a href="https://github.com/osa1/hslua">hslua</a>. <a href="https://github.com/osa1/hslua/tree/master/examples/callbacks">“Callbacks” example</a> in hslua repository shows how to do this.</p>
-<hr />
-<p><a href="https://github.com/osa1/hslua"><code>hslua</code></a> provides Lua 5.1 C API to the programmer, and using it we can call Lua functions from Haskell and Haskell functions from Lua. In this post, I’m going to give two example Lua function implementations in Haskell. This functions will be mapped to a global name in Lua and one of them will be getting Lua functions as it’s arguments.</p>
-<h1 id="two-ways-of-writing-lua-functions-in-haskell">Two ways of writing Lua functions in Haskell</h1>
-<p>There are two ways of writing Lua functions in Haskell using hslua. First is the high-level method, where the Haskell function is just any function, provided that it’s type is an instance of <code>LuaImport</code>(we’ll come to this later). Second method is what I’d like to call the <em>raw</em> Haskell function method. <em>Raw</em> Haskell functions should have the type <code>LuaState -&gt; IO CInt</code>, where <code>LuaState</code> is Lua interpreter state provided by <code>hslua</code> and return type <code>CInt</code> represents the amount of return values(e.g. values that are left on the stack by this function). In <em>raw</em> functions, you need to do Lua stack manipulation using standard <a href="http://www.lua.org/manual/5.1/manual.html#3">Lua 5.1 API</a>.</p>
-<p>While first method gives you a nice, abstracted way of writing Lua functions in Haskell, <em>raw</em> function method gives you the maximum amount of flexibility that Lua can provide. First method has lots of limitations when compared with <em>raw</em> method.</p>
-<h1 id="higher-level-haskell-functions-in-lua">Higher-level Haskell functions in Lua</h1>
-<p>In first method all you have to do is to write a Haskell function with it’s type is an instance of <code>LuaImport</code>. So let’s see what types are instances:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> (<span class="dt">StackValue</span> a) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (<span class="dt">IO</span> a) <span class="kw">where</span>
-<span class="kw">instance</span> (<span class="dt">StackValue</span> a, <span class="dt">LuaImport</span> b) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (a <span class="ot">-&gt;</span> b)</code></pre>
-<p>So basically every function type where it’s argument types are instances of <code>StackValue</code> and return type is <code>IO a</code> where <code>a</code> is also an instance of <code>StackValue</code> is an instance of <code>LuaImport</code> and thus can be used in this higher-level method of writing Lua functions in Haskell. Let’s see which types are <code>StackValue</code>s:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaInteger</span>
-<span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaNumber</span>
-<span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Int</span>
-<span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Double</span>
-<span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">String</span>
-<span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Bool</span>
-<span class="kw">instance</span> <span class="dt">StackValue</span> (<span class="dt">FunPtr</span> <span class="dt">LuaCFunction</span>)
-<span class="kw">instance</span> <span class="dt">StackValue</span> (<span class="dt">Ptr</span> a)
-<span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaState</span>
-<span class="kw">instance</span> <span class="dt">StackValue</span> ()</code></pre>
-<p>We have basic Haskell types <code>Int</code>, <code>Double</code>, <code>String</code>, and <code>Bool</code> as instances. Other types are for more advanced use, for example, <code>Ptr a</code> is used for <code>userdata</code>(basically any binary data that you want to pass to Lua stack and later get back, see <a href="http://www.lua.org/manual/5.1/manual.html#2.2">reference manual</a> for more details).</p>
-<p>This two functions are instances of <code>LuaImport</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">concat&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
-concat&#39; s1 s2 <span class="fu">=</span> return <span class="fu">$</span> s1 <span class="fu">++</span> s2
-
-<span class="ot">pow ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Double</span>
-pow d1 d2 <span class="fu">=</span> return <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre>
-<p>And we can push this functions to Lua stack using <code>pushhsfunction</code> or directly assign them to a global variable using <code>registerhsfunction</code>. In this post I’ll use register functions:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="kw">as</span> <span class="dt">Lua</span>
-
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-    l <span class="ot">&lt;-</span> newstate
-    openlibs l
-    registerhsfunction l <span class="st">&quot;concat&quot;</span> concat&#39;
-    registerhsfunction l <span class="st">&quot;pow&quot;</span> pow
-    loadfile l <span class="st">&quot;haskellfun.lua&quot;</span>
-    call l <span class="dv">0</span> <span class="dv">0</span>
-    close l</code></pre>
-<p>With 11 lines of code, we can create a Lua state and map this Haskell functions to some names and call them from Lua. This program runs Lua file <code>haskellfun.lua</code>, which you can see in examples folder of <a href="https://github.com/osa1/hslua/tree/master/examples/haskellfun"><code>hslua</code> repository</a>.</p>
-<p>Apart from the simplicity, another good thing about this method is that it handles type checking of Lua values automatically. Internally, this functions are wrapped with another function which gets <code>LuaState</code> as parameter and collects Lua values from stack, checks their types(and throws error in case of a type mismatch), and push return value of the function to the Lua stack again. Here’s an example call with wrong type of values:</p>
-<pre><code>print(pow(&quot;wrong&quot;))
-...
-bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
-<p>Major limitation of this method is that you can only get basic Lua types from the Lua stack. For example, you can’t get a Lua table automatically like you get a Lua string. This because Lua needs to keep track of tables and some other values for garbage collection.</p>
-<h1 id="working-on-more-complex-lua-types-and-the-registry">Working on more complex Lua types and the registry</h1>
-<p>The Lua way of using Lua tables, Lua functions etc. in Lua API is to register that values to the Lua table called <em>registry</em>, and refer to that values using their index at <em>registry</em>. Using <em>registry</em>, Lua keeps tracks of references to Lua values that are available for garbage collection. See <a href="http://www.lua.org/manual/5.1/manual.html#3.5">reference manual section 3.5</a> for more details.</p>
-<h1 id="raw-haskell-function-method">Raw Haskell function method</h1>
-<p>We can do this writing <em>raw</em> Haskell functions. Raw functions have type <code>LuaState -&gt; IO CInt</code> and <code>LuaState</code> allows us to run any C API function. <em>raw</em> functions are pushed to Lua stack using <code>pushrawhsfunction</code> and registered as global variable using <code>registerrawhsfunction</code>.</p>
-<p><a href="https://github.com/osa1/hslua/tree/master/examples/callbacks"><code>callbacks</code> example</a> in the <code>hslua</code> repository takes Lua callbacks in Haskell functions and later call them in FIFO order and return their return values as a Lua array(table with int keys). You can see the complete program in the repository and here I’ll give only the tricky parts.</p>
-<p><em>Raw</em> Haskell functions should return number of values left on the Lua stack as return values. As an example, <code>addLuaCallbacks</code> function uses this for simple error reporting, it puts the error string to the Lua stack and return <code>1</code> in case of an error, and return <code>0</code> otherwise:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
-    <span class="fu">...</span>
-    <span class="kw">case</span> as <span class="kw">of</span>
-      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
-        <span class="co">-- arguments are functions, add them to callback queue and return</span>
-        <span class="co">-- nothing</span>
-        addCallbacks <span class="dv">1</span> args
-        return <span class="dv">0</span>
-      <span class="dt">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span>
-        <span class="co">-- error: argument at `errArg` is not a function, return error</span>
-        <span class="co">-- string</span>
-        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> show errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
-        return <span class="dv">1</span></code></pre>
-<p>This example program keeps track of passed Lua callbacks in an <code>IORef</code>. Here’s the part that handles getting Lua callbacks from Lua stack:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n max
-  <span class="fu">|</span> n <span class="fu">&gt;</span> max <span class="fu">=</span> return ()
-  <span class="fu">|</span> otherwise <span class="fu">=</span> <span class="kw">do</span>
-      <span class="co">-- move nth argument to top of the stack</span>
-      pushvalue l n
-      <span class="co">-- add function reference to registry</span>
-      refId <span class="ot">&lt;-</span> ref l registryindex
-      <span class="co">-- add registry index to IORef</span>
-      modifyIORef cs (<span class="fu">++</span> [refId])
-      <span class="co">-- continue adding other arguments</span>
-      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) max</code></pre>
-<p>Note how we’re adding the function to the <em>registry</em> and getting it’s index at the <em>registry</em> in Haskell. We can now refer to this functions(e.g. push this function to Lua stack) using this index. Here’s the relevant code:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Call Lua callbacks collected with `addLuaCallbacks`.</span>
-<span class="ot">callLuaCallbacks ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">CInt</span>
-callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
-    <span class="fu">...</span>
-  <span class="kw">where</span>
-    iter [] <span class="fu">=</span> return ()
-    iter (c <span class="fu">:</span> rest) <span class="fu">=</span> <span class="kw">do</span>
-      <span class="fu">...</span>
-      pushinteger l (fromIntegral c)
-      gettable l registryindex
-      <span class="co">-- call the callback</span>
-      call l <span class="dv">0</span> <span class="dv">1</span>
-      <span class="fu">...</span>
-      iter rest</code></pre>
-<p>We’re pushing the index to the Lua stack, and calling <code>gettable</code> to push actual function to the stack using the index. Complete program is longish, so I’m omitting it here, you can see it in <a href="https://github.com/osa1/hslua/tree/master/examples/callbacks"><code>hslua</code>s Github repository</a> with an example Lua program that uses defined Haskell functions to pass Lua callbacks to Haskell.</p>
-<h1 id="a-note-about-safety">A note about safety</h1>
-<p>Lua tolerates some incorrect stack operations and if you do that while writing <em>raw</em> Haskell functions, you can have hard times debugging your programs. Fortunately, Lua also provides a compile time flag to enable checking API usage for safety. If you install <code>hslua</code> using <code>-fapicheck</code> Cabal flag, it compiled Lua with API checking enabled and Lua gives you errors instead of silently doing something not intended. For example, if you refer to a Lua value at stack index <code>-4</code> while your stack has only <code>3</code> elements, you get something like:</p>
-<pre><code>callbacks: src/lapi.c:57: index2adr: Assertion `idx != 0 &amp;&amp; -idx &lt;= L-&gt;top - L-&gt;base&#39; failed.</code></pre>
-<p>This helps making sure that your API usage is correct.</p>
-<h1 id="using-hslua-for-reading-configuration-files-written-in-lua">Using hslua for reading configuration files written in Lua</h1>
-<p>hslua also provides a module for reading configuration files. As an example, using <code>Scripting.Lua.ConfigFile.getNestedAssocLists</code>, you can execute the Lua file given below and get resulting nested table as Haskell <code>[(String, [(String, String)])]</code>:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"> someVal <span class="ot">=</span> <span class="ot">{</span>
-    something <span class="ot">=</span> <span class="ot">{</span>
-       foo <span class="ot">=</span> <span class="st">&quot;aaa&quot;</span><span class="ot">,</span>
-       bar <span class="ot">=</span> <span class="st">&quot;bbb&quot;</span><span class="ot">,</span>
-       baz <span class="ot">=</span> <span class="st">&quot;ccc&quot;</span>
-    <span class="ot">},</span>
-    somethingElse <span class="ot">=</span> <span class="ot">{</span>
-       <span class="ot">...</span>
-    <span class="ot">}</span>
- <span class="ot">}</span></code></pre>
-<h1 id="running-lua-programs-using-lua-interpreters">Running Lua programs using Lua interpreters</h1>
-<p>In all hslua examples, we needed to create Lua state in Haskell, register Haskell functions inside Haskell and then run Lua files using Lua C API again in Haskell. I think in theory it is also possible to run Lua programs using standard Lua interpreter executables(instead of running the interpreter using Lua C API inside Haskell) and load Haskell functions compiled to <code>*.so</code> shared library files.</p>
-<p>About one year ago, I did something similar using C instead of Haskell. You can see the code <a href="https://github.com/osa1/lcl">here</a>. The library compiled to a <code>.so</code> file and by using Lua’s <code>package.loadlib</code>, you can load functions defined in the <code>.so</code>.</p>
-<p>Compiling raw Haskell <code>hslua</code> functions to a <code>.so</code> should not be tricky. <code>LuaState</code> type is just a wrapper around <code>Ptr ()</code>, and <code>CInt</code> is just a C integer, so it’s signature is already compatible. We probably need to use <code>foreign export ...</code> of GHC FFI and find GHC parameters to compile to <code>.so</code>. I’ll investigate this further and post updates.</p>]]></summary>
 </entry>
 
 </feed>
