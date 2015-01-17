@@ -8,8 +8,118 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2015-01-11T00:00:00Z</updated>
+    <updated>2015-01-16T00:00:00Z</updated>
     <entry>
+    <title>Loading dynamic Haskell libs in Lua</title>
+    <link href="http://osa1.net/posts/2015-01-16-haskell-so-lua.html" />
+    <id>http://osa1.net/posts/2015-01-16-haskell-so-lua.html</id>
+    <published>2015-01-16T00:00:00Z</published>
+    <updated>2015-01-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Last year I wrote <a href="http://osa1.net/posts/2014-04-27-calling-haskell-lua.html">a blog post</a> in which I explained how to call Lua from Haskell and Haskell from Lua using <a href="http://hackage.haskell.org/package/hslua">hslua</a> library. At the end of that blog post I mentioned that it should be possible to compile Haskell code to shared library and load that in Lua.</p>
+<p>Today a friend in our research group <a href="https://github.com/iu-parfunc">parfunc</a> asked a question about compiling Haskell to shared libraries and I thought while I’m at it I can just update my blog post as well. So in this post I’m going to explain how to compile Haskell functions to shared libraries and load them in Lua.</p>
+<p>Before diving into the code, a few remarks:</p>
+<ul>
+<li>All the code in this blog post is tried on Linux, with Lua 5.1 and latest LuaJIT.</li>
+<li>To be able to load our function in Lua and register it, our functions should have C linkage and <a href="http://www.lua.org/manual/5.1/manual.html#lua_CFunction"><code>lua_CFunction</code></a> type. We can either write Haskell functions directly using this type, or write C wrapper functions around our Haskell functions to be able to use them in Lua. In this post I’m going to do first one.</li>
+<li>We’ll need some intermediate C code to expose some Haskell RTS functions to Lua, like <code>hs_init</code> to start Haskell runtime and <code>hs_exit</code> to stop it.</li>
+<li>To be able to <code>require</code> our shared library in Lua, we need to implement a <code>int luaopen_&lt;ourlibrary&gt;(lua_State *L)</code> function. While in theory it should be possible to implement that function in Haskell, I’ll implement it in C in this post, because I’m not sure how to write Lua wrappers for <code>hs_init</code> and <code>hs_exit</code> in Haskell.</li>
+<li>To keep the code as simple as possible, our Haskell function will be a very dumb addition function.</li>
+</ul>
+<p>Let’s start.</p>
+<h1 id="defining-lua-function-in-haskell">Defining Lua function in Haskell</h1>
+<p>This is exactly the same as before: We just define a function with type: <code>LuaState -&gt; IO Int</code>. To keep the code simple, we don’t do error handling at all.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span>
+
+<span class="kw">import </span><span class="dt">Data.Maybe</span>
+<span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="co">-- this one from hslua</span>
+
+foreign export ccall
+<span class="ot">  add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+
+<span class="ot">add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+add l <span class="fu">=</span> <span class="kw">do</span>
+  i1 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">1</span>
+  i2 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">2</span>
+  pop l <span class="dv">2</span>
+  push l (i1 <span class="fu">+</span><span class="ot"> i2 ::</span> <span class="dt">Int</span>)
+  return <span class="dv">1</span></code></pre>
+<h1 id="implementing-intermediate-c">Implementing intermediate C</h1>
+<p>In our C glue code, we do two things:</p>
+<ol style="list-style-type: decimal">
+<li>Wrap <code>hs_init</code> and <code>hs_exit</code> Haskell runtime functions.</li>
+<li>Implement Lua C module interface in which we register our functions to Lua. (see <a href="http://www.lua.org/manual/5.1/manual.html#pdf-package.loaders">related docs</a> for details)</li>
+</ol>
+<p>Here’s the code:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#include &quot;LibArith_stub.h&quot;</span>
+<span class="ot">#include &quot;lua.h&quot;</span>
+
+<span class="dt">int</span> hs_init_lua(lua_State *L)
+{
+  hs_init(NULL, NULL);
+  <span class="kw">return</span> <span class="dv">0</span>;
+}
+
+<span class="dt">int</span> hs_exit_lua(lua_State *L)
+{
+  hs_exit();
+  <span class="kw">return</span> <span class="dv">0</span>;
+}
+
+<span class="dt">int</span> luaopen_lualibhelper(lua_State *L)
+{
+  lua_pushcfunction(L, add);
+  lua_setglobal(L, <span class="st">&quot;add_in_haskell&quot;</span>);
+  lua_pushcfunction(L, hs_init_lua);
+  lua_setglobal(L, <span class="st">&quot;hs_init&quot;</span>);
+  lua_pushcfunction(L, hs_exit_lua);
+  lua_setglobal(L, <span class="st">&quot;hs_exit&quot;</span>);
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<p>Some things to note:</p>
+<ul>
+<li><code>LibArith_stub.h</code> is generated by GHC. I’ll explain how to compile and link next.</li>
+<li>Our Haskell function actually has type <code>HsInt (*)(void *)</code>. While this is not what Lua API expected(it expects <code>int (*)(lua_State *L)</code>), in my x86_64 Linux machine this is working fine. In the worst case, you may need to wrap the Haskell function in C and convert the types using Haskell RTS C API and Lua C API.</li>
+</ul>
+<h1 id="compiling-and-linking">Compiling and linking</h1>
+<p>This is the tricky part, I wasted a good 2 hours trying to figure how to compile to <code>.so</code> and link it with correct set of libraries.</p>
+<p>First step is to compile <code>hslua</code> in a sandbox, or at least make it reachable by GHC(by installing globally, using nix environments etc.). I’ll be giving commands assuming that you’re in a sandbox that has <code>hslua</code> installed, if you’re not, then just replace <code>cabal exec ghc --</code> part with <code>ghc</code> and it should just work.</p>
+<p>Step 1, compile and link the Haskell code to generate a shared library:</p>
+<pre><code>$ cabal exec ghc -- LibArith.hs -shared -dynamic -fPIC -o libarith.so -lHSrts-ghc7.8.3</code></pre>
+<p>Note that if you’re using a different version of GHC, you’ll need to modify the last argument to make it link it with corrent GHC RTS library.(alternatively, you can link with debug or profiling versions etc.)</p>
+<p>Step 2, compile the Lua module written in C(the C code above) and link it with our shared Haskell library:</p>
+<pre><code>$ cabal exec ghc -- libarithhelper.c -no-hs-main -optl -larith -o lualibhelper.so -shared -fPIC -dynamic</code></pre>
+<p>Note that you may need to pass extra linker parameters if you have Lua library/headers in non-standard locations. If that’s the case, <code>-optl</code> argument of GHC is used to add linker arguments, just use standard linker arguments with that(<code>-L</code>, <code>-I</code> etc.).</p>
+<p>This command should print a warning like this:</p>
+<pre><code>/home/omer/opt/luajit_bin/include/luajit-2.0/lua.h:168:16:
+     note: expected ‘lua_CFunction’ but argument is of type ‘HsInt (*)(void *)’
+     LUA_API void  (lua_pushcclosure) (lua_State *L, lua_CFunction fn, int n);</code></pre>
+<p>Like mentioned above, this doesn’t make any difference on my x86_64 Linux machine. If that’s being a problem on your system, just wrap your Haskell function in intermediate C code above using Haskell RTS API.</p>
+<p>Now you should have two shared libraries, one for our Haskell code and one for the intermediate C code. One problem is that the shared library generated from C is now depending on the one generated from Haskell. So Haskell library should be in your <code>LD_LIBRARY_PATH</code>.</p>
+<p>A good improvement here would be to compile Haskell code to static library, and generate one dynamic library only. (which has Haskell library statically linked to it)</p>
+<h1 id="loading-the-code-in-lua">Loading the code in Lua</h1>
+<p>Before loading it, make sure that the dynamic linker can really find the shared library generated from Haskell. Run this:</p>
+<pre><code>$ ldd lualibhelper.so | grep &quot;not found&quot;</code></pre>
+<p>Make sure it’s not printing anything.</p>
+<p>Now just run Lua and enjoy the library:</p>
+<pre><code>$ luajit-2.0.3
+LuaJIT 2.0.3 -- Copyright (C) 2005-2014 Mike Pall. http://luajit.org/
+JIT: ON CMOV SSE2 SSE3 SSE4.1 fold cse dce fwd dse narrow loop abc sink fuse
+&gt; require &quot;lualibhelper&quot;
+&gt; hs_init()
+&gt; print(add_in_haskell(1, 2))
+3
+&gt; print(add_in_haskell(-10, 20))
+10</code></pre>
+<p>Just for the amusement, let’s crash it by running Haskell function <em>after</em> stopping the Haskell runtime:</p>
+<pre><code>&gt; hs_exit()
+&gt; add_in_haskell(1, 2)
+newBoundTask: RTS is not initialised; call hs_init() first</code></pre>
+<p>Fun :)</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>It turns out that extending Lua using Haskell is almost as easy as the doing it using the technique I explained in my <a href="http://osa1.net/posts/2014-04-27-calling-haskell-lua.html">previous blog post on this topic</a>.</p>
+<p>This post also demonstrates one other thing, namely, compiling Haskell libraries to shared libraries and dynamically loading them in different programs. I’m hoping that this post helps fellow Haskellers to extend their programs written in different languages with Haskell.</p>]]></summary>
+</entry>
+<entry>
     <title>Understanding Futamura Projections</title>
     <link href="http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html" />
     <id>http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html</id>
@@ -1565,17 +1675,6 @@ Main.CAF (&lt;entire-module&gt;)</code></pre>
 </ol>
 <h1 id="acknowledgement">Acknowledgement</h1>
 <p>I’d like to thank my mentor Luite Stegeman for answering my endless questions, helping me understanding GHC and GHCJS internals and reviewing this blog post.</p>]]></summary>
-</entry>
-<entry>
-    <title>Dependency boundaries and orphan instances</title>
-    <link href="http://osa1.net/posts/2014-06-13-dependencies-and-orphan-instances.html" />
-    <id>http://osa1.net/posts/2014-06-13-dependencies-and-orphan-instances.html</id>
-    <published>2014-06-13T00:00:00Z</published>
-    <updated>2014-06-13T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>According to the <a href="http://www.haskell.org/haskellwiki/Package_versioning_policy">PVP</a>(Package Versioning Policy), adding a non-orphan instance is not a breaking change and a minor version number should be bumped(<code>C</code> in <code>A.B.C</code>) in case of a non-orphan instance implementation.</p>
-<p>This means that if you’re implementing an orphan instance, you should specify minor upper bound of the package that defines the typeclass. Otherwise if the package implements the typeclass for the type in the future, you’re package will be broken.</p>
-<p>I want to add <code>StackValue a =&gt; StackValue [a]</code> instance in hslua, but that breaks Pandoc because it implements that instance without using a newtype(an orphan instance) and hslua dependency upper bound is specified as <code>&lt; 0.4</code>.</p>
-<p>Good news is that bergmark at Freenode #haskell told me that now it’s possible to change dependency ranges on Hackage without pushing a new version, so there’s an easy fix that’ll keep package working.</p>]]></summary>
 </entry>
 
 </feed>

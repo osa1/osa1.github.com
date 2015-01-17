@@ -8,8 +8,118 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-09-12T00:00:00Z</updated>
+    <updated>2015-01-16T00:00:00Z</updated>
     <entry>
+    <title>Loading dynamic Haskell libs in Lua</title>
+    <link href="http://osa1.net/posts/2015-01-16-haskell-so-lua.html" />
+    <id>http://osa1.net/posts/2015-01-16-haskell-so-lua.html</id>
+    <published>2015-01-16T00:00:00Z</published>
+    <updated>2015-01-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Last year I wrote <a href="http://osa1.net/posts/2014-04-27-calling-haskell-lua.html">a blog post</a> in which I explained how to call Lua from Haskell and Haskell from Lua using <a href="http://hackage.haskell.org/package/hslua">hslua</a> library. At the end of that blog post I mentioned that it should be possible to compile Haskell code to shared library and load that in Lua.</p>
+<p>Today a friend in our research group <a href="https://github.com/iu-parfunc">parfunc</a> asked a question about compiling Haskell to shared libraries and I thought while I’m at it I can just update my blog post as well. So in this post I’m going to explain how to compile Haskell functions to shared libraries and load them in Lua.</p>
+<p>Before diving into the code, a few remarks:</p>
+<ul>
+<li>All the code in this blog post is tried on Linux, with Lua 5.1 and latest LuaJIT.</li>
+<li>To be able to load our function in Lua and register it, our functions should have C linkage and <a href="http://www.lua.org/manual/5.1/manual.html#lua_CFunction"><code>lua_CFunction</code></a> type. We can either write Haskell functions directly using this type, or write C wrapper functions around our Haskell functions to be able to use them in Lua. In this post I’m going to do first one.</li>
+<li>We’ll need some intermediate C code to expose some Haskell RTS functions to Lua, like <code>hs_init</code> to start Haskell runtime and <code>hs_exit</code> to stop it.</li>
+<li>To be able to <code>require</code> our shared library in Lua, we need to implement a <code>int luaopen_&lt;ourlibrary&gt;(lua_State *L)</code> function. While in theory it should be possible to implement that function in Haskell, I’ll implement it in C in this post, because I’m not sure how to write Lua wrappers for <code>hs_init</code> and <code>hs_exit</code> in Haskell.</li>
+<li>To keep the code as simple as possible, our Haskell function will be a very dumb addition function.</li>
+</ul>
+<p>Let’s start.</p>
+<h1 id="defining-lua-function-in-haskell">Defining Lua function in Haskell</h1>
+<p>This is exactly the same as before: We just define a function with type: <code>LuaState -&gt; IO Int</code>. To keep the code simple, we don’t do error handling at all.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span>
+
+<span class="kw">import </span><span class="dt">Data.Maybe</span>
+<span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="co">-- this one from hslua</span>
+
+foreign export ccall
+<span class="ot">  add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+
+<span class="ot">add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+add l <span class="fu">=</span> <span class="kw">do</span>
+  i1 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">1</span>
+  i2 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">2</span>
+  pop l <span class="dv">2</span>
+  push l (i1 <span class="fu">+</span><span class="ot"> i2 ::</span> <span class="dt">Int</span>)
+  return <span class="dv">1</span></code></pre>
+<h1 id="implementing-intermediate-c">Implementing intermediate C</h1>
+<p>In our C glue code, we do two things:</p>
+<ol style="list-style-type: decimal">
+<li>Wrap <code>hs_init</code> and <code>hs_exit</code> Haskell runtime functions.</li>
+<li>Implement Lua C module interface in which we register our functions to Lua. (see <a href="http://www.lua.org/manual/5.1/manual.html#pdf-package.loaders">related docs</a> for details)</li>
+</ol>
+<p>Here’s the code:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#include &quot;LibArith_stub.h&quot;</span>
+<span class="ot">#include &quot;lua.h&quot;</span>
+
+<span class="dt">int</span> hs_init_lua(lua_State *L)
+{
+  hs_init(NULL, NULL);
+  <span class="kw">return</span> <span class="dv">0</span>;
+}
+
+<span class="dt">int</span> hs_exit_lua(lua_State *L)
+{
+  hs_exit();
+  <span class="kw">return</span> <span class="dv">0</span>;
+}
+
+<span class="dt">int</span> luaopen_lualibhelper(lua_State *L)
+{
+  lua_pushcfunction(L, add);
+  lua_setglobal(L, <span class="st">&quot;add_in_haskell&quot;</span>);
+  lua_pushcfunction(L, hs_init_lua);
+  lua_setglobal(L, <span class="st">&quot;hs_init&quot;</span>);
+  lua_pushcfunction(L, hs_exit_lua);
+  lua_setglobal(L, <span class="st">&quot;hs_exit&quot;</span>);
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<p>Some things to note:</p>
+<ul>
+<li><code>LibArith_stub.h</code> is generated by GHC. I’ll explain how to compile and link next.</li>
+<li>Our Haskell function actually has type <code>HsInt (*)(void *)</code>. While this is not what Lua API expected(it expects <code>int (*)(lua_State *L)</code>), in my x86_64 Linux machine this is working fine. In the worst case, you may need to wrap the Haskell function in C and convert the types using Haskell RTS C API and Lua C API.</li>
+</ul>
+<h1 id="compiling-and-linking">Compiling and linking</h1>
+<p>This is the tricky part, I wasted a good 2 hours trying to figure how to compile to <code>.so</code> and link it with correct set of libraries.</p>
+<p>First step is to compile <code>hslua</code> in a sandbox, or at least make it reachable by GHC(by installing globally, using nix environments etc.). I’ll be giving commands assuming that you’re in a sandbox that has <code>hslua</code> installed, if you’re not, then just replace <code>cabal exec ghc --</code> part with <code>ghc</code> and it should just work.</p>
+<p>Step 1, compile and link the Haskell code to generate a shared library:</p>
+<pre><code>$ cabal exec ghc -- LibArith.hs -shared -dynamic -fPIC -o libarith.so -lHSrts-ghc7.8.3</code></pre>
+<p>Note that if you’re using a different version of GHC, you’ll need to modify the last argument to make it link it with corrent GHC RTS library.(alternatively, you can link with debug or profiling versions etc.)</p>
+<p>Step 2, compile the Lua module written in C(the C code above) and link it with our shared Haskell library:</p>
+<pre><code>$ cabal exec ghc -- libarithhelper.c -no-hs-main -optl -larith -o lualibhelper.so -shared -fPIC -dynamic</code></pre>
+<p>Note that you may need to pass extra linker parameters if you have Lua library/headers in non-standard locations. If that’s the case, <code>-optl</code> argument of GHC is used to add linker arguments, just use standard linker arguments with that(<code>-L</code>, <code>-I</code> etc.).</p>
+<p>This command should print a warning like this:</p>
+<pre><code>/home/omer/opt/luajit_bin/include/luajit-2.0/lua.h:168:16:
+     note: expected ‘lua_CFunction’ but argument is of type ‘HsInt (*)(void *)’
+     LUA_API void  (lua_pushcclosure) (lua_State *L, lua_CFunction fn, int n);</code></pre>
+<p>Like mentioned above, this doesn’t make any difference on my x86_64 Linux machine. If that’s being a problem on your system, just wrap your Haskell function in intermediate C code above using Haskell RTS API.</p>
+<p>Now you should have two shared libraries, one for our Haskell code and one for the intermediate C code. One problem is that the shared library generated from C is now depending on the one generated from Haskell. So Haskell library should be in your <code>LD_LIBRARY_PATH</code>.</p>
+<p>A good improvement here would be to compile Haskell code to static library, and generate one dynamic library only. (which has Haskell library statically linked to it)</p>
+<h1 id="loading-the-code-in-lua">Loading the code in Lua</h1>
+<p>Before loading it, make sure that the dynamic linker can really find the shared library generated from Haskell. Run this:</p>
+<pre><code>$ ldd lualibhelper.so | grep &quot;not found&quot;</code></pre>
+<p>Make sure it’s not printing anything.</p>
+<p>Now just run Lua and enjoy the library:</p>
+<pre><code>$ luajit-2.0.3
+LuaJIT 2.0.3 -- Copyright (C) 2005-2014 Mike Pall. http://luajit.org/
+JIT: ON CMOV SSE2 SSE3 SSE4.1 fold cse dce fwd dse narrow loop abc sink fuse
+&gt; require &quot;lualibhelper&quot;
+&gt; hs_init()
+&gt; print(add_in_haskell(1, 2))
+3
+&gt; print(add_in_haskell(-10, 20))
+10</code></pre>
+<p>Just for the amusement, let’s crash it by running Haskell function <em>after</em> stopping the Haskell runtime:</p>
+<pre><code>&gt; hs_exit()
+&gt; add_in_haskell(1, 2)
+newBoundTask: RTS is not initialised; call hs_init() first</code></pre>
+<p>Fun :)</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>It turns out that extending Lua using Haskell is almost as easy as the doing it using the technique I explained in my <a href="http://osa1.net/posts/2014-04-27-calling-haskell-lua.html">previous blog post on this topic</a>.</p>
+<p>This post also demonstrates one other thing, namely, compiling Haskell libraries to shared libraries and dynamically loading them in different programs. I’m hoping that this post helps fellow Haskellers to extend their programs written in different languages with Haskell.</p>]]></summary>
+</entry>
+<entry>
     <title>GHC + Cabal installation guide for starters</title>
     <link href="http://osa1.net/posts/2014-12-09-ghc-cabal-installation-guide.html" />
     <id>http://osa1.net/posts/2014-12-09-ghc-cabal-installation-guide.html</id>
@@ -535,226 +645,6 @@ ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&q
 <span class="ot">&gt;</span>     validateEmail <span class="fu">=</span> isJust <span class="fu">.</span> T.find (<span class="fu">==</span> <span class="ch">&#39;@&#39;</span>)</code></pre>
 <p>As last thing, we need to copy our template file to <code>snaplets/heist/templates</code>. This is because of the way Snap handles Snaplets. I think what happens is for every Snaplet nested in a Snap application, Snap creates a folder in <code>snaplets/snaplet_name</code> and later when that Snaplet requires some filesystem operations, all paths are handled relative to this directory.</p>
 <p>After that, if you compile and run the application, you can see our form at http://0.0.0.0:8000 and you can test error messages.</p>]]></summary>
-</entry>
-<entry>
-    <title>Quick digestive-functors and heist tutorial</title>
-    <link href="http://osa1.net/posts/2014-01-03-quick-digestive-f-heist-tut.html" />
-    <id>http://osa1.net/posts/2014-01-03-quick-digestive-f-heist-tut.html</id>
-    <published>2014-01-03T00:00:00Z</published>
-    <updated>2014-01-03T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>EDIT: I just found this awesome <a href="http://softwaresimply.blogspot.com/2011/04/heist-in-60-seconds.html">“Heist in 60 seconds”</a> post in Hesit’s author’s blog, strongly recommended.</p>
-<p>I’m currently learning some web programming related libraries for Haskell and I’m very, very confused because of the need for using more than 20 libraries for even the simplest CRUD webapp. In the end I’ll be using Snap, Heist, Digestive-functors, Persistent, Esqueleto and glue libraries to combine all of this together. After wasting several hours trying to learn all of them at once, I decided to move gradually from simplest parts. In this short tutorial, I’ll explain how to create forms using digestive-functors, render them in HTML and run some validation procedures.</p>
-<p>This post is written in Literate Haskell, except for the last part, which contains a Heist template for rendering our forms in HTML.</p>
-<p>In my opinition, there are two problems for starters of Haskell web programming in Snap. First, Snap lacks some important web development functionalities and for that you need to use separate libraries. This includes form generation and rendering, database operations and probably many others. (on the other hand, we have very high quality libraries so this part may not be a problem, depending on your point of view)</p>
-<p>Second, while using other libraries you realize that most of the time documentation is not very good and some important details for starters are missing, when that happens you end up diving into the source code and open source examples.</p>
-<p>Anyway, I hope this post serves as an example for using Digestive-functors and Heist together for handling user inputs.</p>
-<p>A note before starting: I don’t understand how compiled splices of Heist works, I tried using them but for some reason I couldn’t make it working. So in this post I’ll be using interpreted splices only.</p>
-<p>Let’s start with some langauge extensions. You’ll see why this extension is needed below</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span></code></pre>
-<p>This one is required for pattern matching against Text values</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="ot">{-# LANGUAGE OverloadedStrings   #-}</span></code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></code></pre>
-<p>Even though our program doesn’t do anything interesting, we still need to use about 10 libraries. I’m showing the package name when a non-standard(e.g. the ones distributed with Haskell Platform) module is imported.</p>
-<p>from `blaze-builder’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Blaze.ByteString.Builder</span>   (toByteString)</code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Applicative</span>        (<span class="dt">Applicative</span> (..), (&lt;$&gt;), (&lt;*&gt;))
-<span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Monad.IO.Class</span>     (<span class="dt">MonadIO</span>)</code></pre>
-<p>from `either’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Control.Monad.Trans.Either</span> (<span class="dt">EitherT</span>, runEitherT)</code></pre>
-<p>from `bytestring’ package, needed for putStrLn function on bytestrings</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Data.ByteString.Char8</span>      <span class="kw">as</span> <span class="dt">BS</span> (putStrLn)</code></pre>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Data.Maybe</span>                 (isJust)
-<span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Data.Text</span>                  <span class="kw">as</span> <span class="dt">T</span></code></pre>
-<p>from `heist’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Heist</span>
-<span class="ot">&gt;</span> <span class="kw">import qualified</span> <span class="dt">Heist.Interpreted</span>          <span class="kw">as</span> <span class="dt">HI</span></code></pre>
-<p>from `digestive-functors’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive</span></code></pre>
-<p>from `digestive-functors-heist’ package</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">import           </span><span class="dt">Text.Digestive.Heist</span>       (bindDigestiveSplices)</code></pre>
-<p>In this program, we’ll have one data type that represents a User in our app. I’m planning to extend this post later on to add CRUD database operations on same data type.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span> <span class="kw">data</span> <span class="dt">User</span> <span class="fu">=</span> <span class="dt">User</span>
-<span class="ot">&gt;</span>     {<span class="ot"> uUsername ::</span> <span class="dt">T.Text</span>
-<span class="ot">&gt;</span>     ,<span class="ot"> uEmail    ::</span> <span class="dt">T.Text</span>
-<span class="ot">&gt;</span>     ,<span class="ot"> uKarma    ::</span> <span class="dt">Int</span>
-<span class="ot">&gt;</span>     } <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre>
-<p><code>userForm</code> is a digestive-functors form for User type, which is used for creating new User and modifying existing User.</p>
-<p>In the return type:</p>
-<ul>
-<li>First argument of Form(Text) is type of textual information printed to user. This is used for error messages and probably some other stuff</li>
-<li>Second argument is the Monad type that validator of this form operates on.</li>
-<li>Third argument is return type of this form. Form return types are used when combining forms using applicative instance. For example, a form that asks user for a text can be used to get a text value.</li>
-</ul>
-<p><code>.:</code> operator is used to assign a name to form fields. This names are later used in templates, POST request environments and probably in some other places.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; userForm ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span>
-<span class="ot">&gt;</span> userForm <span class="fu">=</span> <span class="dt">User</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="dt">Nothing</span>
-<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="dt">Nothing</span>)
-<span class="ot">&gt;</span>     <span class="fu">&lt;*&gt;</span> pure <span class="dv">0</span>
-<span class="ot">&gt;</span>   <span class="kw">where</span>
-<span class="ot">&gt;</span>     <span class="co">-- in our example, we don&#39;t need to use `m` monad for validation. if we</span>
-<span class="ot">&gt;</span>     <span class="co">-- were to need that, we could use `checkM` instead of `check`, and</span>
-<span class="ot">&gt;</span>     <span class="co">-- then use a validation function with type `T.Text -&gt; m Bool` for same m.</span>
-<span class="ot">&gt;     validateEmail ::</span> <span class="dt">T.Text</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
-<span class="ot">&gt;</span>     validateEmail <span class="fu">=</span> isJust <span class="fu">.</span> T.find (<span class="fu">==</span> <span class="ch">&#39;@&#39;</span>)</code></pre>
-<p>For generating HTML using Heist, we need to maintain <code>HeistState</code> type, which keeps track of information that is needed for rendering templates.</p>
-<p>In the code below, `m’ is called “runtime monad” and represents the monad type that rendering functions operate on. We will see an example use later.</p>
-<p>I’m using <code>ScopedTypeVariables</code> extension to share type parameter <code>m</code> with type declarations in <code>where</code> part. This is only optional, since I could always use <code>let</code> or just inline the <code>heistConfig</code> definition.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; initHeistState ::</span> forall m<span class="fu">.</span> <span class="dt">MonadIO</span> m <span class="ot">=&gt;</span> <span class="dt">IO</span> (<span class="dt">HeistState</span> m)
-<span class="ot">&gt;</span> initHeistState <span class="fu">=</span> <span class="kw">do</span>
-<span class="ot">&gt;</span>     st <span class="ot">&lt;-</span> runEitherT <span class="fu">$</span> initHeist heistConfig
-<span class="ot">&gt;</span>     <span class="kw">case</span> st <span class="kw">of</span>
-<span class="ot">&gt;</span>       <span class="dt">Left</span> errors <span class="ot">-&gt;</span> error <span class="fu">$</span> unlines errors
-<span class="ot">&gt;</span>       <span class="dt">Right</span> state <span class="ot">-&gt;</span> return state
-<span class="ot">&gt;</span>   <span class="kw">where</span>
-<span class="ot">&gt;     heistConfig ::</span> <span class="dt">HeistConfig</span> m
-<span class="ot">&gt;</span>     <span class="co">-- In HeistConfig, we need to specify what load-time, compile-time and</span>
-<span class="ot">&gt;</span>     <span class="co">-- run-time splices will be available. We also have options for</span>
-<span class="ot">&gt;</span>     <span class="co">-- attibute splices(QUESTION: why we don&#39;t have time distinction in</span>
-<span class="ot">&gt;</span>     <span class="co">-- attribute splices?) and locations of template files.</span>
-<span class="ot">&gt;</span>     heistConfig <span class="fu">=</span> <span class="dt">HeistConfig</span>
-<span class="ot">&gt;</span>       {
-<span class="ot">&gt;</span>       <span class="co">-- default interpreted splices consists of</span>
-<span class="ot">&gt;</span>       <span class="co">-- `apply`, `bind`, `ignore` and `markdown` splices</span>
-<span class="ot">&gt;</span>         hcInterpretedSplices <span class="fu">=</span> defaultInterpretedSplices
-<span class="ot">&gt;</span>       <span class="co">-- this is same as default interpreted splices</span>
-<span class="ot">&gt;</span>       , hcLoadTimeSplices <span class="fu">=</span> defaultLoadTimeSplices
-<span class="ot">&gt;</span>       <span class="co">-- I&#39;m not using compiled splices because of the reason explained</span>
-<span class="ot">&gt;</span>       <span class="co">-- in first paragraphs</span>
-<span class="ot">&gt;</span>       , hcCompiledSplices <span class="fu">=</span> []
-<span class="ot">&gt;</span>       <span class="co">-- .. also here.</span>
-<span class="ot">&gt;</span>       , hcAttributeSplices <span class="fu">=</span> []
-<span class="ot">&gt;</span>       <span class="co">-- list of template locations. A template location is an</span>
-<span class="ot">&gt;</span>       <span class="co">-- IO action that either returns a list of error strings,</span>
-<span class="ot">&gt;</span>       <span class="co">-- or a map from template locations to template files.</span>
-<span class="ot">&gt;</span>       <span class="co">-- We&#39;re using `loadTemplates` from Heist package for loading</span>
-<span class="ot">&gt;</span>       <span class="co">-- templates from a folder. Subfolders are also traversed.</span>
-<span class="ot">&gt;</span>       , hcTemplateLocations <span class="fu">=</span> [loadTemplates <span class="st">&quot;templates&quot;</span>]
-<span class="ot">&gt;</span>       }</code></pre>
-<p>This is our function to render form templates written in Heist template format using digestive-functors forms. Digestive-functors forms are not directly renderable, instead we need a <code>View</code> object generated from <code>Form</code> using <code>getForm</code> or <code>postForm</code> from <code>Text.Digestive.View</code> (<code>digestive-functors</code> package).</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; renderForm ::</span> <span class="dt">HeistState</span> <span class="dt">IO</span> <span class="ot">-&gt;</span> <span class="dt">View</span> <span class="dt">T.Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-<span class="ot">&gt;</span> renderForm hs formView <span class="fu">=</span> <span class="kw">do</span></code></pre>
-<p>Because of a problem, we can’t use <code>digestiveSplices form</code> to get splices and then bind them manually using <code>bindSplices</code>. I think this is because of a type mismatch caused by current versions of digestive-functors-heist and heist libraries. So we need to use <code>bindDigestiveSplices</code> from <code>Text.Digestive.Heist</code> (<code>digestive-functors-heist</code> package).</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt;</span>     maybeBuilder <span class="ot">&lt;-</span> HI.renderTemplate (bindDigestiveSplices formView hs) <span class="st">&quot;user_form&quot;</span>
-<span class="ot">&gt;</span>     <span class="kw">case</span> maybeBuilder <span class="kw">of</span>
-<span class="ot">&gt;</span>       <span class="dt">Nothing</span> <span class="ot">-&gt;</span>
-<span class="ot">&gt;</span>         <span class="co">-- This happens when wrong template name is given to `renderTemplate`.</span>
-<span class="ot">&gt;</span>         error <span class="st">&quot;template is not rendered&quot;</span>
-<span class="ot">&gt;</span>       <span class="dt">Just</span> (builder, mimeType) <span class="ot">-&gt;</span> <span class="kw">do</span>
-<span class="ot">&gt;</span>         <span class="co">-- here `builder` has type `Blaze.ByteString.Builder.Builder` from</span>
-<span class="ot">&gt;</span>         <span class="co">-- `blaze-builder` package. It&#39;s used to efficiently build</span>
-<span class="ot">&gt;</span>         <span class="co">-- ByteStrings.</span>
-<span class="ot">&gt;</span>         BS.putStrLn (toByteString builder)
-<span class="ot">&gt;</span>         print mimeType</code></pre>
-<p>I’m just printing stuff, since this app is mostly for learning purposes.</p>
-<p>In main function, I do three things:</p>
-<ol style="list-style-type: decimal">
-<li>Just render the form on empty POST request environment. This just renders the form without filling HTML fields with values.</li>
-<li>Render form with invalid email address. This fills HTML fields with values form POST request environment, and renders an error message after email field saying that email is invalid. This validation part was handled in <code>validateEmail</code> function above, and error message was specified in <code>userForm</code> function.</li>
-<li>Render the form with valid values.</li>
-</ol>
-<p>After rendering the HTML code, I’m just printing it. Also, form rendering function(<code>postForm</code>) returns an optional User object depending on the validness of information from POST request. I’m also printing that User object.</p>
-<pre class="sourceCode literate literatehaskell"><code class="sourceCode literatehaskell"><span class="ot">&gt; main ::</span> <span class="dt">IO</span> ()
-<span class="ot">&gt;</span> main <span class="fu">=</span> <span class="kw">do</span>
-<span class="ot">&gt;</span>     hs <span class="ot">&lt;-</span> initHeistState
-<span class="ot">&gt;</span> 
-<span class="ot">&gt;</span>     <span class="co">-- we need to dynamically bind splices related with form generation</span>
-<span class="ot">&gt;</span>     <span class="co">-- while rendering `user_form` heist template. for that we need to use</span>
-<span class="ot">&gt;</span>     <span class="co">-- `Heist.Interpreter` functions to modify interpereted splices of our</span>
-<span class="ot">&gt;</span>     <span class="co">-- heist state.</span>
-<span class="ot">&gt;</span>     <span class="fu">--</span>
-<span class="ot">&gt;</span>     <span class="co">-- To get form splices, we need to pass some POST or GET request as</span>
-<span class="ot">&gt;</span>     <span class="co">-- ByteString to `Text.Digestive.View.getForm` or `postForm`. Then we</span>
-<span class="ot">&gt;</span>     <span class="co">-- can use `Text.Digestive.Heist.digestiveSplices` to get required</span>
-<span class="ot">&gt;</span>     <span class="co">-- splices to render form.</span>
-<span class="ot">&gt;</span> 
-<span class="ot">&gt;</span>     <span class="co">-- Here the type T.Text comes from first argument of userForm&#39;s return</span>
-<span class="ot">&gt;</span>     <span class="co">-- type</span>
-<span class="ot">&gt;</span>     (formView, maybeUser) <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm (const <span class="fu">$</span> return [])
-<span class="ot">&gt;                                ::</span> <span class="dt">IO</span> (<span class="dt">View</span> <span class="dt">T.Text</span>, <span class="dt">Maybe</span> <span class="dt">User</span>)
-<span class="ot">&gt;</span>     print maybeUser
-<span class="ot">&gt;</span>     renderForm hs formView
-<span class="ot">&gt;</span> 
-<span class="ot">&gt;</span> 
-<span class="ot">&gt;</span>     <span class="co">-- Case 2, POST request with invalid email address</span>
-<span class="ot">&gt;</span>     <span class="kw">let</span> env path <span class="fu">=</span> return <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
-<span class="ot">&gt;</span>                               [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;username&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;testuser&quot;</span>]
-<span class="ot">&gt;</span>                               [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;email&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;invalidemail&quot;</span>]
-<span class="ot">&gt;</span>                               _ <span class="ot">-&gt;</span> []
-<span class="ot">&gt;</span>     (formView&#39;, maybeUser&#39;) <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm env
-<span class="ot">&gt;</span>     print maybeUser&#39;
-<span class="ot">&gt;</span>     renderForm hs formView&#39;
-<span class="ot">&gt;</span> 
-<span class="ot">&gt;</span>     <span class="co">-- Case 3, POST request with valid email address and username</span>
-<span class="ot">&gt;</span>     <span class="kw">let</span> env&#39; path <span class="fu">=</span> return <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
-<span class="ot">&gt;</span>                                [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;username&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;testuser&quot;</span>]
-<span class="ot">&gt;</span>                                [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;email&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;valid@email.com&quot;</span>]
-<span class="ot">&gt;</span>                                _ <span class="ot">-&gt;</span> []
-<span class="ot">&gt;</span>     (formView&#39;&#39;, maybeUser&#39;&#39;) <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm env&#39;
-<span class="ot">&gt;</span>     print maybeUser&#39;&#39;
-<span class="ot">&gt;</span>     renderForm hs formView&#39;&#39;</code></pre>
-<p>Now our program is almost complete, only detail left is the Heist template file. We specified the template path in <code>initHeistState</code> as <code>templates</code> folder, and we’re rendering Heist template named <code>user_form</code> in <code>renderForm</code>. So the template file we need should be <code>templates/user_form.tpl</code>.</p>
-<p>Here’s the template file:</p>
-<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;dfForm&gt;</span>
-    <span class="kw">&lt;dfLabel</span><span class="ot"> ref=</span><span class="st">&quot;username&quot;</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/dfLabel&gt;</span>
-    <span class="kw">&lt;dfInputText</span><span class="ot"> ref=</span><span class="st">&quot;username&quot;</span> <span class="kw">/&gt;</span>
-    <span class="kw">&lt;dfErrorList</span><span class="ot"> ref=</span><span class="st">&quot;username&quot;</span> <span class="kw">/&gt;</span>
-
-    <span class="kw">&lt;dfLabel</span><span class="ot"> ref=</span><span class="st">&quot;email&quot;</span><span class="kw">&gt;</span>Email: <span class="kw">&lt;/dfLabel&gt;</span>
-    <span class="kw">&lt;dfInputText</span><span class="ot"> ref=</span><span class="st">&quot;email&quot;</span> <span class="kw">/&gt;</span>
-    <span class="kw">&lt;dfErrorList</span><span class="ot"> ref=</span><span class="st">&quot;email&quot;</span> <span class="kw">/&gt;</span>
-
-    <span class="kw">&lt;dfInputSubmit</span> <span class="kw">/&gt;</span>
-<span class="kw">&lt;/dfForm&gt;</span></code></pre>
-<p>One problem here is that there’s no way to know which tags to put in template file. I wrote this file mostly by looking to source code of <code>bindDigestiveSplices</code>, trial-and-error, and some open source examples.</p>
-<p>Output should be something like: (after creating the template file, see below)</p>
-<p>Case 1:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Nothing</span></code></pre>
-<p>because POST request environment is not valid, so it’s not possible to create a User object.</p>
-<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;form</span><span class="ot"> method=</span><span class="st">&#39;POST&#39;</span><span class="ot"> enctype=</span><span class="st">&#39;application/x-www-form-urlencoded&#39;</span><span class="kw">&gt;</span>
-    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">&#39;userform.username&#39;</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/label&gt;</span>
-    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">&#39;text&#39;</span><span class="ot"> id=</span><span class="st">&#39;userform.username&#39;</span><span class="ot"> name=</span><span class="st">&#39;userform.username&#39;</span><span class="ot"> value</span> <span class="kw">/&gt;</span>
-
-
-    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">&#39;userform.email&#39;</span><span class="kw">&gt;</span>Email: <span class="kw">&lt;/label&gt;</span>
-    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">&#39;text&#39;</span><span class="ot"> id=</span><span class="st">&#39;userform.email&#39;</span><span class="ot"> name=</span><span class="st">&#39;userform.email&#39;</span><span class="ot"> value</span> <span class="kw">/&gt;</span>
-    <span class="kw">&lt;ul&gt;&lt;li&gt;</span>invalid email<span class="kw">&lt;/li&gt;&lt;/ul&gt;</span>
-
-    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">&#39;submit&#39;</span> <span class="kw">/&gt;</span>
-<span class="kw">&lt;/form&gt;</span></code></pre>
-<p>User form is generated without filling any values and no error messages.</p>
-<p>Case 2:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Nothing</span></code></pre>
-<p>because email information in POST request environment is invalid.</p>
-<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;form</span><span class="ot"> method=</span><span class="st">&#39;POST&#39;</span><span class="ot"> enctype=</span><span class="st">&#39;application/x-www-form-urlencoded&#39;</span><span class="kw">&gt;</span>
-    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">&#39;userform.username&#39;</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/label&gt;</span>
-    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">&#39;text&#39;</span><span class="ot"> id=</span><span class="st">&#39;userform.username&#39;</span><span class="ot"> name=</span><span class="st">&#39;userform.username&#39;</span><span class="ot"> value=</span><span class="st">&#39;testuser&#39;</span> <span class="kw">/&gt;</span>
-
-
-    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">&#39;userform.email&#39;</span><span class="kw">&gt;</span>Email: <span class="kw">&lt;/label&gt;</span>
-    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">&#39;text&#39;</span><span class="ot"> id=</span><span class="st">&#39;userform.email&#39;</span><span class="ot"> name=</span><span class="st">&#39;userform.email&#39;</span><span class="ot"> value=</span><span class="st">&#39;invalidemail&#39;</span> <span class="kw">/&gt;</span>
-    <span class="kw">&lt;ul&gt;&lt;li&gt;</span>invalid email<span class="kw">&lt;/li&gt;&lt;/ul&gt;</span>
-
-    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">&#39;submit&#39;</span> <span class="kw">/&gt;</span>
-<span class="kw">&lt;/form&gt;</span></code></pre>
-<p>User form is generated with fields filled and an error message is rendered.</p>
-<p>Case 3:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Just</span> (<span class="dt">User</span> {uUsername <span class="fu">=</span> <span class="st">&quot;testuser&quot;</span>, uEmail <span class="fu">=</span> <span class="st">&quot;valid@email.com&quot;</span>, uKarma <span class="fu">=</span> <span class="dv">0</span>})</code></pre>
-<p>Since form data is valid, a User object is created.</p>
-<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;form</span><span class="ot"> method=</span><span class="st">&#39;POST&#39;</span><span class="ot"> enctype=</span><span class="st">&#39;application/x-www-form-urlencoded&#39;</span><span class="kw">&gt;</span>
-    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">&#39;userform.username&#39;</span><span class="kw">&gt;</span>Username: <span class="kw">&lt;/label&gt;</span>
-    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">&#39;text&#39;</span><span class="ot"> id=</span><span class="st">&#39;userform.username&#39;</span><span class="ot"> name=</span><span class="st">&#39;userform.username&#39;</span><span class="ot"> value=</span><span class="st">&#39;testuser&#39;</span> <span class="kw">/&gt;</span>
-
-
-    <span class="kw">&lt;label</span><span class="ot"> for=</span><span class="st">&#39;userform.email&#39;</span><span class="kw">&gt;</span>Email: <span class="kw">&lt;/label&gt;</span>
-    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">&#39;text&#39;</span><span class="ot"> id=</span><span class="st">&#39;userform.email&#39;</span><span class="ot"> name=</span><span class="st">&#39;userform.email&#39;</span><span class="ot"> value=</span><span class="st">&#39;valid@email.com&#39;</span> <span class="kw">/&gt;</span>
-
-
-    <span class="kw">&lt;input</span><span class="ot"> type=</span><span class="st">&#39;submit&#39;</span> <span class="kw">/&gt;</span>
-<span class="kw">&lt;/form&gt;</span></code></pre>
-<p>.. and for is created with values filled, no error messages is rendered.</p>
-<p>Note the form and input ids and names. The name passed to <code>postForm</code> is used as prefix of generated HTML elements, and thus also used in POST request environments.</p>
-<p>I hope this post helps starters with digestive-functors and heist.</p>]]></summary>
 </entry>
 
 </feed>
