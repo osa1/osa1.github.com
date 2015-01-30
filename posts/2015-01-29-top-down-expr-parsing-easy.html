@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Top-down expression parsing is easy</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Top-down expression parsing is easy</h1>
+
+<p><strong>January 29, 2015</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/lua.html">lua</a>, <a href="../tags/parsing.html">parsing</a>.</p>
+
+<p>I recently fixed <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>’s 2-years-old expression parsing bug. Previously it was using <a href="http://hackage.haskell.org/package/parsec-3.1.8/docs/Text-Parsec-Expr.html">Parsec’s expression parser</a>, which is actually horrible because it can’t handle chained unary operators.</p>
+<p>Two weeks ago I decided to take a look into Lua’s original implementation, and in about an hour or so the algorithm was crystal clear to me. I immediately <a href="https://github.com/osa1/language-lua/commit/b4bebe36e927dcc671dbe6dd19572b83073dc556#diff-630bbd2d118baf109da6ad79d3f168bfR257">implemented it</a> and closed the <a href="https://github.com/osa1/language-lua/issues/2">2-years-old bug report</a>.</p>
+<p>This implementation is essentially a port of Lua’s expression parser. Recently I thought about the algorithm and I was wondering if this has a name – the algorithm looked pretty obvious to me once I understand and given how much we know about parsing I thought this should have a name.</p>
+<p>I found <a href="http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing">this algorithm named “precedence climbing”</a>. This is almost the same algorithm, only difference is that instead of using <code>lookahead</code> I’m just consuming the binary operator and returning it to the caller(which is parsing an expression with lower precedence than current parser) if precedence is lower. Associativity handling is also different(I use different left and right precedences to handle associativity) but the idea is really the same.</p>
+<p>Now, there is also another algorithm called Pratt, and I can’t read the original paper(paywall), but according to <a href="http://lambda-the-ultimate.org/node/3682">this LtU discussion</a> it should also be similar. Indeed, <a href="http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/">this explanation of it</a> looks pretty similar, and <a href="http://stackoverflow.com/a/13637731/691032">this StackOverflow answer</a> says that Lua’s implementation is “Pratt style parsing”.</p>
+<p>So it seems like we have two, or maybe one since they’re actually very similar, solution(s) to solve top-down expression parsing problem and Haskell implementation using Parsec is possible in only 12 lines of code.</p>
+<h2 id="a-challenge">A challenge</h2>
+<p>One challenge might be to modify Parsec’s expression parser so that internally it generates a Pratt/precedence climbing parser. I’m hoping to spare some time to work on this.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

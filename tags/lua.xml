@@ -8,8 +8,23 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2015-01-16T00:00:00Z</updated>
+    <updated>2015-01-29T00:00:00Z</updated>
     <entry>
+    <title>Top-down expression parsing is easy</title>
+    <link href="http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html" />
+    <id>http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html</id>
+    <published>2015-01-29T00:00:00Z</published>
+    <updated>2015-01-29T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I recently fixed <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>’s 2-years-old expression parsing bug. Previously it was using <a href="http://hackage.haskell.org/package/parsec-3.1.8/docs/Text-Parsec-Expr.html">Parsec’s expression parser</a>, which is actually horrible because it can’t handle chained unary operators.</p>
+<p>Two weeks ago I decided to take a look into Lua’s original implementation, and in about an hour or so the algorithm was crystal clear to me. I immediately <a href="https://github.com/osa1/language-lua/commit/b4bebe36e927dcc671dbe6dd19572b83073dc556#diff-630bbd2d118baf109da6ad79d3f168bfR257">implemented it</a> and closed the <a href="https://github.com/osa1/language-lua/issues/2">2-years-old bug report</a>.</p>
+<p>This implementation is essentially a port of Lua’s expression parser. Recently I thought about the algorithm and I was wondering if this has a name – the algorithm looked pretty obvious to me once I understand and given how much we know about parsing I thought this should have a name.</p>
+<p>I found <a href="http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing">this algorithm named “precedence climbing”</a>. This is almost the same algorithm, only difference is that instead of using <code>lookahead</code> I’m just consuming the binary operator and returning it to the caller(which is parsing an expression with lower precedence than current parser) if precedence is lower. Associativity handling is also different(I use different left and right precedences to handle associativity) but the idea is really the same.</p>
+<p>Now, there is also another algorithm called Pratt, and I can’t read the original paper(paywall), but according to <a href="http://lambda-the-ultimate.org/node/3682">this LtU discussion</a> it should also be similar. Indeed, <a href="http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/">this explanation of it</a> looks pretty similar, and <a href="http://stackoverflow.com/a/13637731/691032">this StackOverflow answer</a> says that Lua’s implementation is “Pratt style parsing”.</p>
+<p>So it seems like we have two, or maybe one since they’re actually very similar, solution(s) to solve top-down expression parsing problem and Haskell implementation using Parsec is possible in only 12 lines of code.</p>
+<h1 id="a-challenge">A challenge</h1>
+<p>One challenge might be to modify Parsec’s expression parser so that internally it generates a Pratt/precedence climbing parser. I’m hoping to spare some time to work on this.</p>]]></summary>
+</entry>
+<entry>
     <title>Loading dynamic Haskell libs in Lua</title>
     <link href="http://osa1.net/posts/2015-01-16-haskell-so-lua.html" />
     <id>http://osa1.net/posts/2015-01-16-haskell-so-lua.html</id>
@@ -602,140 +617,6 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
 <li id="fn2"><p>Bu durumda, <em>sanırım</em>, teorik olarak stack denen yapıya ihtiyaç kalmıyor.<a href="#fnref2">↩</a></p></li>
 <li id="fn3"><p>Bu macroda bir sorun var fakat konumuzun dışında olduğundan, işleri karıştırmamak için önemsemedim: <code>continuation</code> parametresi <a href="http://www.bookshelf.jp/texi/onlisp/onlisp_10.html#SEC67"><em>variable capture</em></a>a maruz kalabilir. <code>gensym</code> ile parametre adı oluşturulması gerekir.<a href="#fnref3">↩</a></p></li>
 <li id="fn4"><p>Şu anda coroutineleri implement etmek için sanırım zaten stackin bir kopyasını çıkarmak zorundasınız.<a href="#fnref4">↩</a></p></li>
-</ol>
-</div>]]></summary>
-</entry>
-<entry>
-    <title>Lazy lists in Lua and eliminating tail-calls with continuations</title>
-    <link href="http://osa1.net/posts/2012-05-20-lazy-lists-in-lua-and-eliminating-tail-calls-with-continuations.html" />
-    <id>http://osa1.net/posts/2012-05-20-lazy-lists-in-lua-and-eliminating-tail-calls-with-continuations.html</id>
-    <published>2012-05-20T00:00:00Z</published>
-    <updated>2012-05-20T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I was reading some papers about parsing with continuations and I realized that I had never implemented continuations in any language. Since I’m interested in Lua nowadays, I want to implement it in Lua.</p>
-<p>After a while, I realized that you could use continuations to eliminate recursive calls to prevent stack overflows. Now, in a language like Lua, we have tail-call optimization(TCO) and recursive calls in tail positoins are not problem, but even in languages that don’t have TCO, you can easily convert tail calls to loops with help of continuations. And I found the underlying idea of this is pretty similar to lazy-lists. Now I’m going to try to explain how.</p>
-<p>For those who want to see the code, here’s the <a href="https://gist.github.com/2757232">gist</a>.</p>
-<p>Nowadays most of modern languages(functional ones or not), have some primitives for lazy evaluation(like Python’s generators), and I’m not an expert on Lua but AFAIK, Lua’s coroutines can be used for lazy evaluation. But even if you use a language that doesn’t have any non-strict primitives, you can have some lazy structures(ie. in JavaScript).</p>
-<p>The main idea of this is that you can always pass functions in a form that holds the function itself and a list of arguments that will be passed to function. And when you want to evaluate the result of the function call, you just call the function in that form with the arguments. Note that by “function itself”, I mean the function callback. Most modern languages nowadays have functions as first-class values or at least some kind of function pointers/referances, so this is not a problem.</p>
-<p>I’ll give the code in Lua. We’ll call the structure that holds a function callback(or whatever your language call it) and a list of parameters, <code>thunk</code><a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> In Lua, this will be a table with two keys: <code>f</code> and <code>args</code>. Here’s an example thunk.</p>
-<pre class="sourceCode lua"><code class="sourceCode lua">t <span class="ot">=</span> <span class="ot">{</span> f <span class="ot">=</span> <span class="fu">print</span><span class="ot">,</span> args <span class="ot">=</span> <span class="ot">{</span><span class="st">&quot;first arg&quot;</span><span class="ot">,</span> <span class="st">&quot; second arg&quot;</span><span class="ot">}</span> <span class="ot">}</span></code></pre>
-<p>So when we want to run the function in the thunk, we just call <code>evalThunk</code>, which is pretty straightforward to implement:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> evalThunk<span class="ot">(</span>t<span class="ot">)</span>
-    <span class="kw">return</span> t<span class="ot">.</span>f<span class="ot">(</span><span class="fu">unpack</span><span class="ot">(</span>t<span class="ot">.</span>args<span class="ot">))</span>
-<span class="kw">end</span>
-<span class="ot">&gt;</span> evalThunk<span class="ot">(</span>t<span class="ot">)</span>
-first arg        second arg</code></pre>
-<p>Basically, when we want to make a function non-strict, we just create a thunk of it, with <code>f</code> = function itself, and the <code>args</code> = the args we want to pass to the function when we run it. Here’s a helper for it:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> makeThunk<span class="ot">(</span>f<span class="ot">,</span> args<span class="ot">)</span>
-    <span class="kw">return</span> <span class="ot">{</span> <span class="fu">tag</span> <span class="ot">=</span> <span class="st">&quot;thunk&quot;</span><span class="ot">,</span> f <span class="ot">=</span> f<span class="ot">,</span> args <span class="ot">=</span> args <span class="ot">}</span>
-<span class="kw">end</span></code></pre>
-<p>Now, with the help of this two functions, we can create a infinite-length lazy linked-lists. Each node in our linked-lists will have two keys: <code>first</code> and <code>rest</code>. <code>first</code> will have the value of that node, and <code>rest</code> will have the next node connected to that node. Here’s a helper to create linked-list nodes.</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> cons<span class="ot">(</span>first<span class="ot">,</span> rest<span class="ot">)</span>
-    <span class="kw">return</span> <span class="ot">{</span> first <span class="ot">=</span> first<span class="ot">,</span>
-             rest  <span class="ot">=</span> rest <span class="ot">}</span>
-<span class="kw">end</span></code></pre>
-<p>In lazy-lists, we always have the <code>rest</code> part of the list as unevaluated thunks. To traverse the list to some point, we need to evaluate the nodes we passed, and when we evaluate this nodes, we just replace the thunks with evaluated values. Because we don’t want to evaluate the same node again and again for eact iteration.</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> evalPart<span class="ot">(</span>t<span class="ot">,</span> p<span class="ot">)</span>
-    <span class="kw">if</span> t <span class="ot">==</span> <span class="kw">nil</span> <span class="kw">then</span>
-        <span class="kw">return</span> <span class="kw">nil</span>
-    <span class="kw">elseif</span> <span class="fu">type</span><span class="ot">(</span>t<span class="ot">[</span>p<span class="ot">])</span> <span class="ot">==</span> <span class="st">&quot;table&quot;</span> <span class="kw">and</span> t<span class="ot">[</span>p<span class="ot">].</span>tag <span class="ot">==</span> <span class="st">&quot;thunk&quot;</span> <span class="kw">then</span>
-        t<span class="ot">[</span>p<span class="ot">]</span> <span class="ot">=</span> evalThunk<span class="ot">(</span>t<span class="ot">[</span>p<span class="ot">])</span>
-    <span class="kw">end</span>
-    <span class="kw">return</span> t<span class="ot">[</span>p<span class="ot">]</span>
-<span class="kw">end</span>
-<span class="kw">function</span> first<span class="ot">(</span>t<span class="ot">)</span>
-    <span class="kw">return</span> evalPart<span class="ot">(</span>t<span class="ot">,</span> <span class="st">&quot;first&quot;</span><span class="ot">)</span>
-<span class="kw">end</span>
-<span class="kw">function</span> rest<span class="ot">(</span>t<span class="ot">)</span>
-    <span class="kw">return</span> evalPart<span class="ot">(</span>t<span class="ot">,</span> <span class="st">&quot;rest&quot;</span><span class="ot">)</span>
-<span class="kw">end</span></code></pre>
-<p><code>first</code> and <code>rest</code> functions are returning the <code>first</code> and <code>rest</code> parts of our linked-list nodes. We’re expecting this parts to be unevaluated thunks. So if they’re thunks, we just evaluate them and replace the return value with thunks so that we don’t need to re-evaluate everytime we get a node.</p>
-<p>And with the last helper, we can start creating infinite lazy-lists in Lua:</p>
-<pre><code>function nth(t, n)
-    if n == 0 then
-        return first(t)
-    end
-    return nth(rest(t), n-1)
-end</code></pre>
-<p>This function is just getting the n. node in a linked list. And while getting this node, it’s evaluating all the thunk on the way with help of <code>rest</code> function. This is important because as you’ll see, we will be creating the rest of the lists while we’re traversing it.</p>
-<p>Let’s see an example of infinite lazy-list that creates a list of factorials, starting from 1!:</p>
-<pre><code>function fact(n, f)
-    n = n or 1
-    f = f or 1
-    return cons(n, makeThunk(fact, {n*f, f+1}))
-end</code></pre>
-<p>This function returns a linked-list that contains factorial of 1, and then a thunk of the same factorial function, but with different parameters. The function call in the <code>rest</code> part of the thunk will return the next factorial, and then the same function as a thunk in <code>rest</code> part of the thunk, in a recursive fashion. Note that our <code>nth</code> function is tail-recursive so we’ll never have stack overflows while traversing the list(it’s also trivial to implement an iterative loop version of it).</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="ot">&gt;</span> a <span class="ot">=</span> fact<span class="ot">()</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">1</span><span class="ot">))</span>
-<span class="dv">1</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">2</span><span class="ot">))</span>
-<span class="dv">2</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">10</span><span class="ot">))</span>
-<span class="dv">3628800</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">20</span><span class="ot">))</span>
-<span class="dv">2.4329020081766e+18</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">30</span><span class="ot">))</span>
-<span class="dv">2.6525285981219e+32</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">40</span><span class="ot">))</span>
-<span class="dv">8.159152832479e+47</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">50</span><span class="ot">))</span>
-<span class="dv">3.0414093201713e+64</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>nth<span class="ot">(</span>a<span class="ot">,</span> <span class="dv">250</span><span class="ot">))</span>
-inf</code></pre>
-<p>So it’s obviously generating all the factorials while we traverse the list. You can also try to see that every thunk is evaluated only once by adding some <code>print</code> functions to thunks.</p>
-<p>Here’s a lazy-list that contains all fibonacci numbers:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> fib<span class="ot">(</span>a<span class="ot">,</span> b<span class="ot">)</span>
-    a <span class="ot">=</span> a <span class="kw">or</span> <span class="dv">0</span>
-    b <span class="ot">=</span> b <span class="kw">or</span> <span class="dv">1</span>
-    <span class="kw">return</span> cons<span class="ot">(</span>a<span class="ot">,</span> makeThunk<span class="ot">(</span>fib<span class="ot">,</span> <span class="ot">{</span>b<span class="ot">,</span> a<span class="ot">+</span>b<span class="ot">}))</span>
-<span class="kw">end</span></code></pre>
-<p>You can also easily define functions that take linked-lists and map/filter and return the result as lazy-lists. I added them the to the gist.</p>
-<p>Now, how’s that related with continuations that eliminate tail-calls? Let’s work on an exmple:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> sum<span class="ot">(</span>n<span class="ot">,</span> cont<span class="ot">)</span>
-    <span class="kw">if</span> n <span class="ot">&lt;=</span> <span class="dv">1</span> <span class="kw">then</span>
-        <span class="kw">return</span> cont<span class="ot">(</span><span class="dv">1</span><span class="ot">)</span>
-    <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> newCont<span class="ot">(</span>v<span class="ot">)</span>
-        <span class="kw">return</span> cont<span class="ot">(</span>v<span class="ot">+</span>n<span class="ot">)</span>
-    <span class="kw">end</span>
-    <span class="kw">return</span> sum<span class="ot">(</span>n<span class="ot">-</span><span class="dv">1</span><span class="ot">,</span> newCont<span class="ot">)</span>
-<span class="kw">end</span></code></pre>
-<p>I found JavaScript version of this example in <a href="http://nathansuniversity.com/cont3.html">Nathan’s University</a> and I think it’s a typical usage of continuations. Instead of returning the result, we’re passing the result to the continuation function. And when we hit the buttom(ie. when n &lt;= 1) we pass the last result to continuation function and return it.</p>
-<p>I don’t explain why one would do that, you can read it from Nathan’s University.</p>
-<p>If you run a function like this in JavaScript, you get a stack overflow after a while since this function is recursive. But with the help of thunks, you can eliminate the recursive call entirely, even in JavaScript. Let’s change it to:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> sum<span class="ot">(</span>n<span class="ot">,</span> cont<span class="ot">)</span>
-    <span class="kw">if</span> n <span class="ot">&lt;=</span> <span class="dv">1</span> <span class="kw">then</span>
-        <span class="kw">return</span> makeThunk<span class="ot">(</span>cont<span class="ot">,</span> <span class="ot">{</span><span class="dv">1</span><span class="ot">})</span>
-    <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> newCont<span class="ot">(</span>v<span class="ot">)</span>
-        <span class="kw">return</span> makeThunk<span class="ot">(</span>cont<span class="ot">,</span> <span class="ot">{</span>v<span class="ot">+</span>n<span class="ot">})</span>
-    <span class="kw">end</span>
-    <span class="kw">return</span> makeThunk<span class="ot">(</span>sum<span class="ot">,</span> <span class="ot">{</span>n<span class="ot">-</span><span class="dv">1</span><span class="ot">,</span> newCont<span class="ot">})</span>
-<span class="kw">end</span></code></pre>
-<p>We replaced every function call with thunks. Now you can realize that <code>makeThunk</code> calls are just linking function calls together. For example, after calling <code>sum(10, function(n) print(&quot;result: &quot;, n) end)</code>, we get this thunk:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="ot">{</span> <span class="fu">tag</span> <span class="ot">=</span> <span class="st">&quot;thunk&quot;</span><span class="ot">,</span> f <span class="ot">=</span> sum<span class="ot">,</span> args <span class="ot">=</span> <span class="ot">{</span><span class="dv">9</span><span class="ot">,</span> <span class="kw">function</span><span class="ot">(</span>v<span class="ot">)</span> <span class="kw">return</span> makeThunk<span class="ot">(</span>cont<span class="ot">,</span> <span class="ot">{</span>v<span class="ot">+</span><span class="dv">10</span><span class="ot">})</span> <span class="kw">end</span><span class="ot">}}</span></code></pre>
-<p>When we evaluate this thunk, we just get another thunk unless the first arg is not &lt;= 1. Now we need a helper to evaluate the thunk, and then evaluate the thunk returned by the first thunk, until we evaluate all the thunks. This is what’s called “trampoline”:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> trampoline<span class="ot">(</span>thunk<span class="ot">)</span>
-    <span class="kw">while</span> <span class="kw">true</span> <span class="kw">do</span>
-        <span class="kw">if</span> <span class="fu">type</span><span class="ot">(</span>thunk<span class="ot">)</span> <span class="ot">~=</span> <span class="st">&quot;table&quot;</span> <span class="kw">then</span>
-            <span class="kw">return</span> thunk
-        <span class="kw">elseif</span> thunk<span class="ot">.</span>tag <span class="ot">==</span> <span class="st">&quot;thunk&quot;</span> <span class="kw">then</span>
-            thunk <span class="ot">=</span> evalThunk<span class="ot">(</span>thunk<span class="ot">)</span>
-        <span class="kw">end</span>
-    <span class="kw">end</span>
-<span class="kw">end</span>
-<span class="ot">&gt;</span> a <span class="ot">=</span> sum<span class="ot">(</span><span class="dv">10</span><span class="ot">,</span> <span class="kw">function</span><span class="ot">(</span>n<span class="ot">)</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;result: &quot;</span><span class="ot">,</span> n<span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
-<span class="ot">&gt;</span> <span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>tag<span class="ot">)</span>
-thunk
-<span class="ot">&gt;</span> trampoline<span class="ot">(</span>a<span class="ot">)</span>
-result:         <span class="dv">55</span></code></pre>
-<p>We’re evaluating the thunks in a <code>while</code> loop. This is how you can eliminate tail calls. Now, this exactly looks like the lazy-list method I mentioned in this post. And we already used the same thunk structure for both of them.</p>
-<p>The only difference is, in continuations we don’t save old thunks anywhere and just replace them with new continuations, and we only return a value other than new thunks when we finished the calculation(ie. when we reach the base case).</p>
-<p>So essentially, both continuations and lazy-lists have the same idea. And these are very easy to implement even in langauges that doesn’t support any non-strict primitives.</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>For a better explanation of <code>thunk</code>s, see <a href="http://mitpress.mit.edu/sicp/full-text/book/book-Z-H-27.html#footnote_Temp_580">SICP</a>.<a href="#fnref1">↩</a></p></li>
 </ol>
 </div>]]></summary>
 </entry>

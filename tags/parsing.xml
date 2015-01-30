@@ -8,8 +8,23 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2014-03-07T00:00:00Z</updated>
+    <updated>2015-01-29T00:00:00Z</updated>
     <entry>
+    <title>Top-down expression parsing is easy</title>
+    <link href="http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html" />
+    <id>http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html</id>
+    <published>2015-01-29T00:00:00Z</published>
+    <updated>2015-01-29T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I recently fixed <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>’s 2-years-old expression parsing bug. Previously it was using <a href="http://hackage.haskell.org/package/parsec-3.1.8/docs/Text-Parsec-Expr.html">Parsec’s expression parser</a>, which is actually horrible because it can’t handle chained unary operators.</p>
+<p>Two weeks ago I decided to take a look into Lua’s original implementation, and in about an hour or so the algorithm was crystal clear to me. I immediately <a href="https://github.com/osa1/language-lua/commit/b4bebe36e927dcc671dbe6dd19572b83073dc556#diff-630bbd2d118baf109da6ad79d3f168bfR257">implemented it</a> and closed the <a href="https://github.com/osa1/language-lua/issues/2">2-years-old bug report</a>.</p>
+<p>This implementation is essentially a port of Lua’s expression parser. Recently I thought about the algorithm and I was wondering if this has a name – the algorithm looked pretty obvious to me once I understand and given how much we know about parsing I thought this should have a name.</p>
+<p>I found <a href="http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing">this algorithm named “precedence climbing”</a>. This is almost the same algorithm, only difference is that instead of using <code>lookahead</code> I’m just consuming the binary operator and returning it to the caller(which is parsing an expression with lower precedence than current parser) if precedence is lower. Associativity handling is also different(I use different left and right precedences to handle associativity) but the idea is really the same.</p>
+<p>Now, there is also another algorithm called Pratt, and I can’t read the original paper(paywall), but according to <a href="http://lambda-the-ultimate.org/node/3682">this LtU discussion</a> it should also be similar. Indeed, <a href="http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/">this explanation of it</a> looks pretty similar, and <a href="http://stackoverflow.com/a/13637731/691032">this StackOverflow answer</a> says that Lua’s implementation is “Pratt style parsing”.</p>
+<p>So it seems like we have two, or maybe one since they’re actually very similar, solution(s) to solve top-down expression parsing problem and Haskell implementation using Parsec is possible in only 12 lines of code.</p>
+<h1 id="a-challenge">A challenge</h1>
+<p>One challenge might be to modify Parsec’s expression parser so that internally it generates a Pratt/precedence climbing parser. I’m hoping to spare some time to work on this.</p>]]></summary>
+</entry>
+<entry>
     <title>An idea to handle left-recursion in Parsec</title>
     <link href="http://osa1.net/posts/2014-03-07-parsec-left-recursion.html" />
     <id>http://osa1.net/posts/2014-03-07-parsec-left-recursion.html</id>
