@@ -366,7 +366,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
     <updated>2013-04-24T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
-<pre class="sourceCode JavaScript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
 <span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
 
 <span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
@@ -507,6 +507,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <p>I think most programming languages have a pseudo-random number generator, and that generators probably generate <a href="http://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">uniformly-distributed</a> pseudo-randoms. I’m using Lua and Lua’s <a href="http://www.lua.org/manual/5.2/manual.html#pdf-math.random">math.random</a> generates pretty much uniformly distributed numbers:</p>
 <div class="figure">
 <img src="/images/distroyazi/uniformdistro.png" />
+
 </div>
 <p>It’s written in Lua’s manual(link is given above) that it’s statistical properties cannot be guaranteed. It still works fine for my purposes as a uniformly distributed number generator.</p>
 <p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
@@ -521,10 +522,12 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <p>Here the variable <code>dev</code> stands for <a href="http://en.wikipedia.org/wiki/Standard_deviation">standard deviation</a>, though note that it’s value is not <em>standard deviation</em>, but just a value to play with to set standard deviation. I don’t know how can I set standard deviation with Box-Muller method. By playing this value you can get distributions with different standard deviations.</p>
 <div class="figure">
 <img src="/images/distroyazi/normaldistro.png" />
+
 </div>
 <p>I also generated two custom distributions, I don’t know if people gave them any special names, first one is this:</p>
 <div class="figure">
 <img src="/images/distroyazi/customdistro.png" />
+
 </div>
 <p>I think this is a very useful one, this means that if I give some <em>actions</em> in my game different numbers depending on their <em>priority</em> and use this random number generator, I get numbers of actions with more priority more than the ones with less priority. Here’s the code:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
@@ -539,6 +542,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <p>Last one is similar:</p>
 <div class="figure">
 <img src="/images/distroyazi/customdistro2.png" />
+
 </div>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
     <span class="kw">local</span> rate <span class="ot">=</span> <span class="dv">3</span>
@@ -585,16 +589,16 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <p>Buraya kadar herşey anlaşıldıysa, <code>call/cc</code>yi yazmak çok kolay. <code>call/cc</code>nin yaptığı, o anki continuation’ı açık bir şekilde kullanıcıya vermek. Normalde yukarıda bahsettiğim tüm olaylar derlenme aşamasında <em>CPS conversion</em> veya başka yöntemlerle hallediliyor ve kullanıcı aslında fonksiyonlarını bizim örneğimizdeki gibi yazmıyor. Dolayısıyla fonksiyonuna aktarılan continuation’a erişme şansı yok. Fakat <code>call/cc</code> hariç, <code>call/cc</code> tam olarak bu işi yapıyor, o anki continuation’a erişim izni veriyor. Şu şekilde:</p>
 <pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> call/cc </span>(continuation fun)
   (<span class="kw">funcall</span> fun continuation))</code></pre>
-<p>Bu fonksiyonun <code>defcont</code> ile tanımlandmadığına dikkat. Bu şu anlama geliyor, programlama dili böyle bir fonksiyon sunmuyorsa, bu fonksiyonun yazılması imkansız. Kullanıcının tek sahip olduğunun <code>defcont</code> olduğunu düşünün, yani tüm fonksiyonları <em>CPS conversion</em>a mağruz kalıyor, ve fonksiyon çağrıları otomatik olarak CPS’e dönüştürülüyor. Programcı yazdığı fonksiyonlara continuation’ın nasıl aktarıldığını bilmiyor veya bilse bile buna erişmesinin hiçbir yolu yok.</p>
+<p>Bu fonksiyonun <code>defcont</code> ile tanımlandmadığına dikkat. Bu şu anlama geliyor, programlama dili böyle bir fonksiyon sunmuyorsa, bu fonksiyonun yazılması imkansız. Kullanıcının tek sahip olduğunun <code>defcont</code> olduğunu düşünün, yani tüm fonksiyonları _CPS conversion_a mağruz kalıyor, ve fonksiyon çağrıları otomatik olarak CPS’e dönüştürülüyor. Programcı yazdığı fonksiyonlara continuation’ın nasıl aktarıldığını bilmiyor veya bilse bile buna erişmesinin hiçbir yolu yok.</p>
 <p><code>call/cc</code>, kendi aldığı continuation’ı <code>fun</code> parametresi olarka aldığı fonksiyona aktarıyor, ve daha sonra <code>fun</code> fonksiyonu o continuation ile her türlü çılgınlık yapabilir, örneğin bu continuation’ı bir yere kaydedip, bir daha bir daha çağırmak gibi. Bu continuation, dönüş değerinin aktarılacağı fonksiyonu tutuyor aslında.</p>
 <p>Hemen basit birkaç örnek yapalım. Şu iki fonksiyon arasındaki fark ne?</p>
 <pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) (<span class="kw">funcall</span> cont <span class="dv">11</span>)))
 (call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) <span class="dv">11</span>))</code></pre>
-<p>İlk çağrıda continuation’a 11 değerini gönderiyoruz ve sonuç beklenen gibi 21 oluyor, ikinci durumda ise continuation’ı yok sayıp 11 değerini dönüyoruz ve cevap 11 oluyor. Stack modelinde düşünürsek, ikinci örnekte yapılan şey, stackdeki bazı fonksiyon kayıtlarının atlanması aslında. Buna sanırım <code>stack unwinding</code> deniyor(emin değilim). Bu şekilde dil seviyesinde exception mekanizmaları yazılabilir, continuationlar kaydedilerek ve sırayla çağırılarak coroutineler<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>veya <em>lightweight thread</em>ler elde edilebilir(<em>green thread</em> de diyorlar sanırım).</p>
+<p>İlk çağrıda continuation’a 11 değerini gönderiyoruz ve sonuç beklenen gibi 21 oluyor, ikinci durumda ise continuation’ı yok sayıp 11 değerini dönüyoruz ve cevap 11 oluyor. Stack modelinde düşünürsek, ikinci örnekte yapılan şey, stackdeki bazı fonksiyon kayıtlarının atlanması aslında. Buna sanırım <code>stack unwinding</code> deniyor(emin değilim). Bu şekilde dil seviyesinde exception mekanizmaları yazılabilir, continuationlar kaydedilerek ve sırayla çağırılarak coroutineler<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>veya _lightweight thread_ler elde edilebilir(<em>green thread</em> de diyorlar sanırım).</p>
 <p>Scheme bilenler için bu kodun Scheme karşılıkları şu:</p>
 <pre class="sourceCode scheme"><code class="sourceCode scheme">(<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> <span class="dv">11</span>)))
 (<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> (cont <span class="dv">11</span>))))</code></pre>
-<p>Aralarındaki fark, Scheme kodu <em>CPS conversion</em>a mağruz kalmamış, Common Lisp kodu ise kalmış hali.</p>
+<p>Aralarındaki fark, Scheme kodu _CPS conversion_a mağruz kalmamış, Common Lisp kodu ise kalmış hali.</p>
 <p>Bu aşamada yapılabilecek çok fazla fantastik iş var ve çoğu durumda neler olup bittiğini anlama çok güç. Zaten bu yüzden <code>GOTO</code>larla karşılaştırılıyorlar bazen. Benim hoşuma giden bir kullanımını şu:</p>
 <pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defvar</span><span class="fu"> creturn </span><span class="kw">nil</span>)
 (call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> <span class="dv">1</span> r))

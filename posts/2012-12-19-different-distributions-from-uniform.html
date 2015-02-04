@@ -25,6 +25,7 @@
 <p>I think most programming languages have a pseudo-random number generator, and that generators probably generate <a href="http://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">uniformly-distributed</a> pseudo-randoms. I’m using Lua and Lua’s <a href="http://www.lua.org/manual/5.2/manual.html#pdf-math.random">math.random</a> generates pretty much uniformly distributed numbers:</p>
 <div class="figure">
 <img src="../images/distroyazi/uniformdistro.png" />
+
 </div>
 <p>It’s written in Lua’s manual(link is given above) that it’s statistical properties cannot be guaranteed. It still works fine for my purposes as a uniformly distributed number generator.</p>
 <p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
@@ -39,10 +40,12 @@
 <p>Here the variable <code>dev</code> stands for <a href="http://en.wikipedia.org/wiki/Standard_deviation">standard deviation</a>, though note that it’s value is not <em>standard deviation</em>, but just a value to play with to set standard deviation. I don’t know how can I set standard deviation with Box-Muller method. By playing this value you can get distributions with different standard deviations.</p>
 <div class="figure">
 <img src="../images/distroyazi/normaldistro.png" />
+
 </div>
 <p>I also generated two custom distributions, I don’t know if people gave them any special names, first one is this:</p>
 <div class="figure">
 <img src="../images/distroyazi/customdistro.png" />
+
 </div>
 <p>I think this is a very useful one, this means that if I give some <em>actions</em> in my game different numbers depending on their <em>priority</em> and use this random number generator, I get numbers of actions with more priority more than the ones with less priority. Here’s the code:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
@@ -57,6 +60,7 @@
 <p>Last one is similar:</p>
 <div class="figure">
 <img src="../images/distroyazi/customdistro2.png" />
+
 </div>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
     <span class="kw">local</span> rate <span class="ot">=</span> <span class="dv">3</span>
@@ -77,10 +81,7 @@
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
-    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
-
-    /* * * DON'T EDIT BELOW THIS LINE * * */
+    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
         dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';

@@ -75,7 +75,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
     <updated>2013-04-24T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
-<pre class="sourceCode JavaScript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
 <span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
 
 <span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
@@ -228,10 +228,6 @@ main <span class="fu">=</span> <span class="kw">do</span>
     life.drawTable(document.getElementById("lifegrid2"));
     life.run();
 </script>
-
-
-
-
 <pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;lifegrid&quot;</span><span class="kw">&gt;&lt;/div&gt;</span>
 <span class="kw">&lt;script&gt;</span>
     <span class="kw">var</span> opts = {<span class="st">&#39;height&#39;</span>: <span class="dv">30</span>,

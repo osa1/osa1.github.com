@@ -279,14 +279,14 @@ solve s1 s2 <span class="fu">=</span>
       }
 }</code></pre>
 <p>Bu çözümdeki iç içe iki for döngüsü tablonun tamamını bir turda ve her bir adım için 3 işlemde doldurduğumuzu gösteriyor ve çözümümüz dolayısıyla O(M*N).</p>
-<p>Bu problemin alıştırması <a href="http://www.spoj.com/SPOJ/problems/TLCS/">http://www.spoj.com/SPOJ/problems/TLCS/</a> adresinden yapılabilir.</p>
+<p>Bu problemin alıştırması <a href="http://www.spoj.com/SPOJ/problems/TLCS/" class="uri">http://www.spoj.com/SPOJ/problems/TLCS/</a> adresinden yapılabilir.</p>
 <h2 id="aşağıdan-yukarıya-ve-yukarıdan-aşağıya-çözümler">Aşağıdan-yukarıya ve yukarıdan-aşağıya çözümler</h2>
 <p>Bu noktada iki farklı dinamik programlama tekniği görmüş olduk. Biri memoization, biri ise adımlayarak tablo doldurma. Aralarında birkaç temel farklılık var.</p>
 <p>Memoization çözümünde tabloyu nasıl dolduracağımızı düşünmemize gerek kalmadı. Eğer tabloda cevap bulunmamışsa, o yerdeki cevabın bulunması için özyineli çağrı yapıldı. Bu şekilde çözüme “yukarıdan-aşağı (top-down)” diyoruz.</p>
 <p>İkinci çözüm yöntemimiz adımlayarak tablo doldurmaydı. Bu çözümün güzel yanı özyineli çağrı yapılmaması, fakat dezavantajı tabloyu nasıl bir sırayla dolduracağımızı düşünüp bulmamızı gerektirmesi. Diğer türlü, tabloda bir sonraki konumu doldururken aradığımız bir cevaba ulaşamayabiliriz.</p>
 <p>Komplekslik olarak aralarında bir fark yok. Şahsi görüşüm memoization çözümünün daha güzel olduğu yönünde. Sebebi de yukarıda bahsettiğim gibi, tablo doldurma sırasını düşünmemize gerek olmaması.</p>
 <h2 id="bir-soru-barkod">Bir soru: Barkod</h2>
-<p>Sorunun tanımını orjinal kaynaktan okuyabilirsiniz: <a href="http://codeforces.com/problemset/problem/225/C">http://codeforces.com/problemset/problem/225/C</a></p>
+<p>Sorunun tanımını orjinal kaynaktan okuyabilirsiniz: <a href="http://codeforces.com/problemset/problem/225/C" class="uri">http://codeforces.com/problemset/problem/225/C</a></p>
 <p>Her bir kolonu tamamen beyaza ve tamamen siyaha boyamanın masraflarını biliyor olalım.</p>
 <p>N. kolonu beyaza boyamak istediğimizi düşünelim, en az A en fazla B genişliğinde kolonlar istiyor olalım. Bu durumda X = [A … B] aralığı için N - X. kolonun siyah, [N - X + 1 … N] aralığındaki kolonların beyaz olması bize bir cevap verir(renklerin tam tersi olma durumu 2. bir cevap).</p>
 <p>Burada farkedilmesi gereken şen, N - X. kolonun siyah olması aslında bir alt problem, ve en doğal ifade edilme şeklide bir özyineli fonksiyon ile olur.</p>
@@ -321,7 +321,7 @@ solve s1 s2 <span class="fu">=</span>
   }
 }</code></pre>
 <h2 id="bir-soru-two-out-of-three">Bir soru: “Two out of three”</h2>
-<p>Bu soru önceki sorudan daha ilginç olmamakla beraber, memoization/tablolama yapma şekli biraz değişik olduğundan anlatmak istedim: <a href="http://codeforces.com/problemset/problem/82/D">http://codeforces.com/problemset/problem/82/D</a> .</p>
+<p>Bu soru önceki sorudan daha ilginç olmamakla beraber, memoization/tablolama yapma şekli biraz değişik olduğundan anlatmak istedim: <a href="http://codeforces.com/problemset/problem/82/D" class="uri">http://codeforces.com/problemset/problem/82/D</a> .</p>
 <p>Sıradaki son 3 elemandan 2 elemanın sürekli azalacağını biliyoruz, ve alt problem bu iki eleman hariç elemanlar için çözülecek. Fakat bu 3 elemandan seçilmeyen elemanı memoization işleminde nasıl kullanabiliriz? Sıradan ayrılan iki insan alt problemin sıradaki ilk 2 eleman hariç olan kısmı olduğunu gösteriyor. 3 kişiden seçilmeyen bir kişi de algoritmaya ekstra bir parametre olarak verildiğinde karşımıza şöyle bir sonuç çıkıyor:</p>
 <pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> solve(<span class="dt">int</span> lastElem, <span class="dt">int</span> offset, <span class="dt">const</span> vector&lt;<span class="dt">int</span>&gt; &amp;ppl,
     matrix&lt;<span class="dt">int</span>&gt; &amp;tbl, matrix&lt;<span class="dt">int</span>&gt; &amp;steps)

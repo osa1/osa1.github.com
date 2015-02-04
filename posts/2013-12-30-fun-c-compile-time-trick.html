@@ -39,7 +39,7 @@ typedef int foo[-1];
 <p>Here <code>3-4</code> looks like an expression, but it’s actually evaluated at compile-time and thus this code fails with same error as above.</p>
 <p>Using this two tricks, we can have some kind of compile-time assertions, like libSDL people use:</p>
 <pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define COMPILE_TIME_ASSERT(name, x) \</span>
-  <span class="kw">typedef</span> <span class="dt">int</span> dummy_ ## name[(x) * <span class="dv">2</span> - <span class="dv">1</span>]
+<span class="ot">  typedef int dummy_ ## name[(x) * 2 - 1]</span>
 
 <span class="kw">typedef</span> <span class="dt">uint16_t</span> Uint16;
 
@@ -57,10 +57,7 @@ COMPILE_TIME_ASSERT(uint16, <span class="kw">sizeof</span>(Uint16) == <span clas
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
-    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
-
-    /* * * DON'T EDIT BELOW THIS LINE * * */
+    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
         dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';

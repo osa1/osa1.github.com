@@ -28,6 +28,7 @@
 <p>Let’s assume a 2-3 tree, which we use as a <em>deque</em>. In order to make modifications on ends of the tree, we need to copy all nodes on it’s way to end. So we change the structure, like in zippers, create a new structure which looks like this:</p>
 <div class="figure">
 <img src="../images/fingertree/finger.png" />
+
 </div>
 <p>For those who have already read the original paper, this example is the same with the paper. But I change the look of it. I found drawing of this example in paper confusing. It shows different nodes with same shapes, then gives a definition of the structure, which I found completely unrelated with the drawing.</p>
 <p>This is a deque contains characters of “thisisnotatree”. To make some changes in front or back of the deque, all we need to change is the nodes containing “th” and “ree”, which are just ordinary arrays, and the root node. When arrays get bigger, we shift some elements from arrays to our tree structures. Let’s make some definitions(most of my ADTs are deriving from <code>Show</code>, I found it better to see internals of structures that I’m working on):</p>
@@ -135,10 +136,7 @@ leftTail x <span class="fu">=</span> <span class="kw">case</span> leftView x <sp
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
-    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
-
-    /* * * DON'T EDIT BELOW THIS LINE * * */
+    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
         dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';

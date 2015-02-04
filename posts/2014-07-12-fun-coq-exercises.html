@@ -27,8 +27,6 @@
   padding-left: 1em;
 }
 </style>
-
-
 <p>Formalizing abstractions/data structures and proving theorems about them in Coq is so much fun. I made up some simple exercises that consist of encoding some abstractions and laws we know from algebra and functional programming and then proving that some particular set + some operations on that set obeys the laws.</p>
 <p>Using my amazing(!) JavaScript skills, I set up some “show/hide answer” buttons after each exercise. Exercises are easy, but the latter ones are relatively harder. Some abstractions/laws are inspired by Haskell.</p>
 <p>Please note that I’m a beginner so my solutions probably have some flaws if you want to use them in large-scale verified programs :) I’m currently learning about typeclasses and records of Coq and I’m open to suggestions for improvements.</p>
@@ -46,8 +44,8 @@ Open Scope list_scope.</code></pre>
 | Semigroup_intro :
     (forall (a1 a2 a3 : A), Op a1 (Op a2 a3) = Op (Op a1 a2) a3) -&gt; semigroup A Op.</code></pre>
 </div>
-<button id="ex-btn-1.1"></button>
-
+<button id="ex-btn-1.1">
+</button>
 <p>Now prove that lists together with append operation form a semigroup. Use standard Coq lists and <code>app</code> function.</p>
 <div id="ex-div-1.2" class="solution">
 <pre class="coq"><code>Theorem list_semigroup : forall A, semigroup (list A) (@app A).
@@ -58,9 +56,8 @@ Proof.
   + simpl. f_equal. induction a2; auto.
 Qed.</code></pre>
 </div>
-<button id="ex-btn-1.2"></button>
-
-
+<button id="ex-btn-1.2">
+</button>
 <h2 id="exercise-2">Exercise 2</h2>
 <p>A <a href="http://en.wikipedia.org/wiki/Monoid">monoid</a> is a semigroup with an identity element. In our addition example, identity element is 0, because when applied to the monoid function(addition) as first or second argument, results is the other argument:</p>
 <pre class="coq"><code>forall (n : nat), 0 + n = n /\ n + 0 = n.</code></pre>
@@ -70,8 +67,8 @@ Qed.</code></pre>
 | Monoid_intro :
     semigroup A Op -&gt; (forall (a : A), Op U a = Op a U /\ Op U a = a) -&gt; monoid A Op sg U.</code></pre>
 </div>
-<button id="ex-btn-2.1"></button>
-
+<button id="ex-btn-2.1">
+</button>
 <p>Now prove that lists with empty list as unit element together with the proof that lists are monoids as we proved in previous exercise, form a monoid.</p>
 <div id="ex-div-2.2" class="solution">
 <pre class="coq"><code>Theorem list_monoid : forall A, monoid (list A) (@app A) (@list_semigroup A) [].
@@ -82,8 +79,8 @@ Proof.
   + reflexivity.
 Qed.</code></pre>
 </div>
-<button id="ex-btn-2.2"></button>
-
+<button id="ex-btn-2.2">
+</button>
 <h2 id="exercise-3">Exercise 3</h2>
 <p>In this exercise and exercise 4, we’ll be talking about Haskell definitions of abstractions, instead of algebra definitions. (although they may coincide)</p>
 <p>A functor is a type with one argument(in Haskell terms, a type with kind <code>* -&gt; *</code>) and a function, together with some laws. If you’re unfamiliar with functors of Haskell, you may want to skip this, or read <a href="http://www.haskell.org/haskellwiki/Typeclassopedia#Functor">Typeclassopedia</a>.</p>
@@ -107,8 +104,8 @@ Qed.</code></pre>
               fmap t1 t3 (fun a =&gt; p (q a)) f = fmap t2 t3 p (fmap t1 t2 q f)) :
     functor F fmap.</code></pre>
 </div>
-<button id="ex-btn-3.1"></button>
-
+<button id="ex-btn-3.1">
+</button>
 <p>Now prove that lists with standard map function form a functor.</p>
 <div id="ex-div-3.2" class="solution">
 <pre class="coq"><code>Theorem list_functor : functor list map.
@@ -118,8 +115,8 @@ Proof.
   + intros. induction f. reflexivity. simpl. f_equal. apply IHf.
 Qed.</code></pre>
 </div>
-<button id="ex-btn-3.2"></button>
-
+<button id="ex-btn-3.2">
+</button>
 <h2 id="exercise-4">Exercise 4</h2>
 <p>A monad is a functor with two more operations; let’s call <code>bind</code> and <code>lift</code> and some more laws. In Coq syntax: (<code>F</code> is our functor type)</p>
 <ul>
@@ -147,8 +144,8 @@ Qed.</code></pre>
                   bind t2 t3 (bind t1 t2 m f) g = bind t1 t3 m (fun x =&gt; bind t2 t3 (f x) g)) :
     monad F.</code></pre>
 </div>
-<button id="ex-btn-4.1"></button>
-
+<button id="ex-btn-4.1">
+</button>
 <p>Now prove that lists form a monad. You need to figure out what functions to use for <code>lift</code> and <code>bind</code>.</p>
 <div id="ex-div-4.2" class="solution">
 <p><code>lift</code> function:</p>
@@ -183,8 +180,8 @@ Proof.
       rewrite H. f_equal. rewrite map_app. reflexivity.
 Qed.</code></pre>
 </div>
-<button id="ex-btn-4.2"></button>
-
+<button id="ex-btn-4.2">
+</button>
 <h2 id="exercise-5">Exercise 5</h2>
 <p>Prove that standard <code>option</code> type with some operations form a semigroup, monoid, functor and monad. You need to find relevant operations.</p>
 <p>What restrictions do you need on <code>option</code>s type argument? (<code>A</code> in <code>option A</code>) Does it need to form a monoid for <code>option</code> to form a monoid?</p>
@@ -248,9 +245,8 @@ Proof.
   + intros. destruct m; auto.
 Qed.</code></pre>
 </div>
-<button id="ex-btn-5.1"></button>
-
-
+<button id="ex-btn-5.1">
+</button>
 <h2 id="exercise-6">Exercise 6</h2>
 <p>I only have a partial solution to this one and it’s not strictly a Coq exercise, but it’s still fun :)</p>
 <p>A <a href="http://en.wikipedia.org/wiki/Group_(mathematics)">group</a> is a monoid with inverse element of every element. In Coq syntax:</p>
@@ -261,15 +257,13 @@ Qed.</code></pre>
 <p>Someone at Coq IRC channel suggested diffs. Do you think a diff could form a group? What would associative operation, unit element, and inverse elements be?</p>
 <div id="ex-div-6.2" class="solution">
 <p>Diffs don’t form a group. Composing two diffs is the merge operation, which is partial function. We can’t always merge two diffs. (merge conflicts)</p>
-So I don’t have an answer to this exercise, If you know examples to this one, please write at comments :)
+<p>So I don’t have an answer to this exercise, If you know examples to this one, please write at comments :)</p>
 </div>
-<button id="ex-btn-6.2"></button>
-
+<button id="ex-btn-6.2">
+</button>
 </div>
-<button id="ex-btn-6.1"></button>
-
-
-
+<button id="ex-btn-6.1">
+</button>
 <script>
 function showMsg(exNum) {
   return "Show solution (ex. " + exNum + ")";
@@ -308,15 +302,10 @@ setUpShowHide(6.2);
 setUpShowHide(6.1);
 </script>
 
-
-
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
-    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
-
-    /* * * DON'T EDIT BELOW THIS LINE * * */
+    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
         dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';

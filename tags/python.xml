@@ -17,7 +17,7 @@
     <updated>2013-04-24T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
-<pre class="sourceCode JavaScript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
 <span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
 
 <span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
@@ -480,8 +480,8 @@ groups = []</code></pre>
     <published>2011-07-06T00:00:00Z</published>
     <updated>2011-07-06T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Dün ilk Arduino’m elime geçti. Ne olup bittiğini biraz kavradıktan sonra bugün ilk denemelerimi yapmaya başladım. Aşağıdak, Python ile Arduino’ya serial port üzerinden komut gönderme denemelerimin ilki:</p>
-<iframe width="425" height="349" src="http://www.youtube.com/embed/e1MC7re1r0s" frameborder="0" allowfullscreen></iframe>
-
+<iframe width="425" height="349" src="http://www.youtube.com/embed/e1MC7re1r0s" frameborder="0" allowfullscreen>
+</iframe>
 <p>Arduino’nun yaptığı, serial port’u dinleyip, gelen verinin 0’dan büyük bir takam olduğunu varsayarak(<code>val -= '0'</code>), bu veriye göre ledleri yakıp söndürmek.</p>
 <pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define ledPin1 13</span>
 <span class="ot">#define ledPin2 12</span>
@@ -574,10 +574,12 @@ running = <span class="dv">1</span>
 <p>Static typing çok hoş bir olay. Okula başladıktan sonra bol miktarda C(programlama yarışması) ve Java(ödevler) uğraşmam gerekti. Henüz sadece birkaç dili birşeyler üretebilecek seviyede biliyorum ve bu konuda çok da bilgili değilim, ama Python ile en çok dökümantasyon ve IDE sıkıntısı çekiyorum. Ücretli IDEleri denemedim ama denediğim tüm ücretsiz Python IDEleri Autocomplete konusunda çaresiz kalıyorlar. Python’da aşağıdaki gibi birşey görebilmek için herşeyimi(?!) verirdim:</p>
 <div class="figure">
 <img src="/images/eclipse_autocomplete.png" />
+
 </div>
 <p>Hatta mesela şöyle birşey yapabilseydim:</p>
 <div class="figure">
 <img src="/images/eclipse_autocomplete1.png" />
+
 </div>
 <p>Ama yok, örneğin PyDev daha aşağıdaki kodda çakılıyor:</p>
 <pre class="sourceCode python"><code class="sourceCode python">cls = Class1()
@@ -594,6 +596,7 @@ cls.</code></pre>
 <p>Bir süredir kafamda kendi IRC istemcimi yazma fikri var. Şu anda yazabilmek için gerekli herşeyi biliyorum. Dün oturdum, Java ve Python’da IRC sunucusuna bağlanabilmek için gerekli en küçük kodu yazmaya karar verdim(arayüz ile beraber). Java’da, kendi socket ve thread sınıfları ve Swing ile kolayca yazdım(bu arada Swing’in ne kadar kötü gözüktüğüne dikkat, platform bağımsız olarak iğrenç gözüken bir arayüz kütüphanesi kendisi, ehehe):</p>
 <div class="figure">
 <img src="/images/irc_client_java.png" />
+
 </div>
 <p>Python’da QT kullandım. Fakat garip bir şekilde, ne zaman sunucudan bir mesaj gelse, QT segmentation fault veriyor:</p>
 <pre><code>QObject::connect: Cannot queue arguments of type &#39;QTextCursor&#39;

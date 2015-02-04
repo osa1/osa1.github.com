@@ -73,16 +73,16 @@
 <p>Buraya kadar herşey anlaşıldıysa, <code>call/cc</code>yi yazmak çok kolay. <code>call/cc</code>nin yaptığı, o anki continuation’ı açık bir şekilde kullanıcıya vermek. Normalde yukarıda bahsettiğim tüm olaylar derlenme aşamasında <em>CPS conversion</em> veya başka yöntemlerle hallediliyor ve kullanıcı aslında fonksiyonlarını bizim örneğimizdeki gibi yazmıyor. Dolayısıyla fonksiyonuna aktarılan continuation’a erişme şansı yok. Fakat <code>call/cc</code> hariç, <code>call/cc</code> tam olarak bu işi yapıyor, o anki continuation’a erişim izni veriyor. Şu şekilde:</p>
 <pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> call/cc </span>(continuation fun)
   (<span class="kw">funcall</span> fun continuation))</code></pre>
-<p>Bu fonksiyonun <code>defcont</code> ile tanımlandmadığına dikkat. Bu şu anlama geliyor, programlama dili böyle bir fonksiyon sunmuyorsa, bu fonksiyonun yazılması imkansız. Kullanıcının tek sahip olduğunun <code>defcont</code> olduğunu düşünün, yani tüm fonksiyonları <em>CPS conversion</em>a mağruz kalıyor, ve fonksiyon çağrıları otomatik olarak CPS’e dönüştürülüyor. Programcı yazdığı fonksiyonlara continuation’ın nasıl aktarıldığını bilmiyor veya bilse bile buna erişmesinin hiçbir yolu yok.</p>
+<p>Bu fonksiyonun <code>defcont</code> ile tanımlandmadığına dikkat. Bu şu anlama geliyor, programlama dili böyle bir fonksiyon sunmuyorsa, bu fonksiyonun yazılması imkansız. Kullanıcının tek sahip olduğunun <code>defcont</code> olduğunu düşünün, yani tüm fonksiyonları _CPS conversion_a mağruz kalıyor, ve fonksiyon çağrıları otomatik olarak CPS’e dönüştürülüyor. Programcı yazdığı fonksiyonlara continuation’ın nasıl aktarıldığını bilmiyor veya bilse bile buna erişmesinin hiçbir yolu yok.</p>
 <p><code>call/cc</code>, kendi aldığı continuation’ı <code>fun</code> parametresi olarka aldığı fonksiyona aktarıyor, ve daha sonra <code>fun</code> fonksiyonu o continuation ile her türlü çılgınlık yapabilir, örneğin bu continuation’ı bir yere kaydedip, bir daha bir daha çağırmak gibi. Bu continuation, dönüş değerinin aktarılacağı fonksiyonu tutuyor aslında.</p>
 <p>Hemen basit birkaç örnek yapalım. Şu iki fonksiyon arasındaki fark ne?</p>
 <pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) (<span class="kw">funcall</span> cont <span class="dv">11</span>)))
 (call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) <span class="dv">11</span>))</code></pre>
-<p>İlk çağrıda continuation’a 11 değerini gönderiyoruz ve sonuç beklenen gibi 21 oluyor, ikinci durumda ise continuation’ı yok sayıp 11 değerini dönüyoruz ve cevap 11 oluyor. Stack modelinde düşünürsek, ikinci örnekte yapılan şey, stackdeki bazı fonksiyon kayıtlarının atlanması aslında. Buna sanırım <code>stack unwinding</code> deniyor(emin değilim). Bu şekilde dil seviyesinde exception mekanizmaları yazılabilir, continuationlar kaydedilerek ve sırayla çağırılarak coroutineler<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>veya <em>lightweight thread</em>ler elde edilebilir(<em>green thread</em> de diyorlar sanırım).</p>
+<p>İlk çağrıda continuation’a 11 değerini gönderiyoruz ve sonuç beklenen gibi 21 oluyor, ikinci durumda ise continuation’ı yok sayıp 11 değerini dönüyoruz ve cevap 11 oluyor. Stack modelinde düşünürsek, ikinci örnekte yapılan şey, stackdeki bazı fonksiyon kayıtlarının atlanması aslında. Buna sanırım <code>stack unwinding</code> deniyor(emin değilim). Bu şekilde dil seviyesinde exception mekanizmaları yazılabilir, continuationlar kaydedilerek ve sırayla çağırılarak coroutineler<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>veya _lightweight thread_ler elde edilebilir(<em>green thread</em> de diyorlar sanırım).</p>
 <p>Scheme bilenler için bu kodun Scheme karşılıkları şu:</p>
 <pre class="sourceCode scheme"><code class="sourceCode scheme">(<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> <span class="dv">11</span>)))
 (<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> (cont <span class="dv">11</span>))))</code></pre>
-<p>Aralarındaki fark, Scheme kodu <em>CPS conversion</em>a mağruz kalmamış, Common Lisp kodu ise kalmış hali.</p>
+<p>Aralarındaki fark, Scheme kodu _CPS conversion_a mağruz kalmamış, Common Lisp kodu ise kalmış hali.</p>
 <p>Bu aşamada yapılabilecek çok fazla fantastik iş var ve çoğu durumda neler olup bittiğini anlama çok güç. Zaten bu yüzden <code>GOTO</code>larla karşılaştırılıyorlar bazen. Benim hoşuma giden bir kullanımını şu:</p>
 <pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defvar</span><span class="fu"> creturn </span><span class="kw">nil</span>)
 (call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> <span class="dv">1</span> r))
@@ -476,11 +476,13 @@ CL-USER&gt; (compiler osx)
     <summary type="html"><![CDATA[<p>Tamamen Common Lisp ile basit bir IRC botu ve web arayüzünün nasıl yazılabileceğinden bahsedeceğim biraz. Web kısmında web server dahil herşey yine Common Lisp ile yazılmış olacak.</p>
 <div class="figure">
 <img src="/images/made-with-lisp-logo.jpg" />
+
 </div>
 <p>Gistler: <a href="https://gist.github.com/1570375">arayüz</a> <a href="https://gist.github.com/1566862">bot</a></p>
 <p>Öncelikle botun ne yapacağına karar verelim, benim amacım çalışan en minimal botu yazmak. Daha sonra üzerine istediğimiz özelliği ekleyebiliriz. Bu yüzden şimdilik sadece bağlandığı kanalları ve kendisine atılan özel mesajları kaydedip, bir web sayfasında yayınlayacak.</p>
 <div class="figure">
-<img src="/images/bot-web-ui.png" alt="/images/bot-web-ui.png" /><p class="caption">/images/bot-web-ui.png</p>
+<img src="/images/bot-web-ui.png" alt="/images/bot-web-ui.png" />
+<p class="caption">/images/bot-web-ui.png</p>
 </div>
 <p>Öncelikle IRC sunucusuna bağlanabilmemiz için bir socket kütüphanesine ihtiyacımız var(evet Common Lisp standardı socket içermiyor). Bu iş için <a href="http://common-lisp.net/project/usocket/">usocket</a>’i seçtim(uğraşacak olan varsa bir diğer alternatif de <a href="http://common-lisp.net/project/iolib/">iolib</a>, fakat ikisi için de işe yarar dökümantasyon yok dolayısıyla her türlü yolumuzu kendimiz bulmamız gerek).</p>
 <p>Programımızın ana döngüsü gayet basit:</p>

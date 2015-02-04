@@ -33,7 +33,7 @@ typedef int foo[-1];
 <p>Here <code>3-4</code> looks like an expression, but it’s actually evaluated at compile-time and thus this code fails with same error as above.</p>
 <p>Using this two tricks, we can have some kind of compile-time assertions, like libSDL people use:</p>
 <pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define COMPILE_TIME_ASSERT(name, x) \</span>
-  <span class="kw">typedef</span> <span class="dt">int</span> dummy_ ## name[(x) * <span class="dv">2</span> - <span class="dv">1</span>]
+<span class="ot">  typedef int dummy_ ## name[(x) * 2 - 1]</span>
 
 <span class="kw">typedef</span> <span class="dt">uint16_t</span> Uint16;
 

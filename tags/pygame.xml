@@ -32,8 +32,8 @@
     <published>2011-07-06T00:00:00Z</published>
     <updated>2011-07-06T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Dün ilk Arduino’m elime geçti. Ne olup bittiğini biraz kavradıktan sonra bugün ilk denemelerimi yapmaya başladım. Aşağıdak, Python ile Arduino’ya serial port üzerinden komut gönderme denemelerimin ilki:</p>
-<iframe width="425" height="349" src="http://www.youtube.com/embed/e1MC7re1r0s" frameborder="0" allowfullscreen></iframe>
-
+<iframe width="425" height="349" src="http://www.youtube.com/embed/e1MC7re1r0s" frameborder="0" allowfullscreen>
+</iframe>
 <p>Arduino’nun yaptığı, serial port’u dinleyip, gelen verinin 0’dan büyük bir takam olduğunu varsayarak(<code>val -= '0'</code>), bu veriye göre ledleri yakıp söndürmek.</p>
 <pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define ledPin1 13</span>
 <span class="ot">#define ledPin2 12</span>
@@ -119,6 +119,7 @@ running = <span class="dv">1</span>
 <p>Programdaki küçük(ya da bir daha düşündüm de, büyük) hata ise, toplar yüzeylere çarpmak üzereyken yüzeyleri hareket ettirirseniz, toplar alandan dışarı çıkıyorlar. Ekranın dışına çıktıklarında diğer taraftan tekrar girmelerini sağladığımdan, tekrardan alan içerisine alabiliyorum, ehaeuhe. Neden olduğu hakkında az da olsa fikrim var, bir şekilde çözeceğiz artık.</p>
 <div class="figure">
 <img src="/images/collision.png" />
+
 </div>
 <p>Bundan sonra 3. örnek, zıplayan toplar var. Önce topların alandan dışarı çıkmasını engellemeye çalışacağım sanırım.</p>
 <p>Bu arada tüm kodlar <a href="http://github.com/osa1">github</a>’da.</p>]]></summary>
@@ -134,6 +135,7 @@ running = <span class="dv">1</span>
 <p>Beklenmedik bir şekilde zor oldu :) . Öncelikle, genel olarak bu iş böyle mi yürüyor bilmiyorum ama, Pygame’de koordinat düzlemi biraz farklı. Aşağıdaki gibi.</p>
 <div class="figure">
 <img src="/images/koordinat.png" />
+
 </div>
 <p>Yani ekranın üst sol köşesi (0, 0) noktası, Y ekseni aşağı indikçe artıyor. Bilgiğimiz kartezyen düzlemin X eksenine göre döndürülmüş hali gibi yani. Bu tüm işleri zorlaştırıyor.</p>
 <p>Topları falan eklemeden önce, 2. örnekteki siyah çerçeveyi yapmaya başladım. Aklımdaki fikir şuydu, ekranın ortasından(orijin) mouse’u gösteren bir birim vektör yardımıyla, ona paralel ve dik doğrular çizip kaydıracaktım. Tabii ekranın ortası, üstteki şekildeki düzene göre, (150, 150) oluyor.</p>
@@ -162,14 +164,17 @@ posy = ekran_yuksekligi / <span class="dv">2</span>
 <p>Daha sonra bu vektöre dik ve zıt yönlü vektörler elde edip(koordinatlarını değiştirerek, - ile çarparak), ne uzunlukta istiyorsam koordinatlarını çarparak çizeceğim doğrunun diğer ucunu elde ediyorum(ilk ucu ekranın ortası zaten). Şöyle birşey:</p>
 <div class="figure">
 <img src="/images/pyg1.png" />
+
 </div>
 <p>Bundan sonra yapmam gereken, merkezden başlayarak, çizgilerin uç kısımlarına kalan olan kısmı vektör haline getirip, toplamam. Toplam vektörü bana oluşturmaya çalıştığım karenin köşelerini verecek:</p>
 <div class="figure">
 <img src="/images/pyg2.png" />
+
 </div>
 <p>Sonrası da zaten noktaları silip, bulundukları yere <code>pygame.draw.aaline()</code> ile çizgiler çizdirmek:</p>
 <div class="figure">
 <img src="/images/pyg3.png" />
+
 </div>
 <p>Kolay gibi gözükebilir, ama saatlerimi aldı. Koordinat düzlemi çok kafa karıştırıcı, ilk yazdığım fonksiyonu en başta yazıp, direkt normal, bildiğimiz kartezyen düzlemde çalışmaya başlamalıydım. İkinci olarak, vektörlerin bu kadar kullanışlı olacağını hiç bilmezdim, daha önce de hiç kullanmamıştım zaten. Onu öğrendim. Kapsamlı bir vektör sınıfı yazılabilir(vektörel/skaler çarpım, toplama, çıkarma, vb. işlemler için). Çarpışma için de sürekli kullanılacaklar zaten.</p>
 <p>Başta verdiğim kaynaktaki tüm örnekleri yapmaya çalışacağım. Olduğu kadarını github’a koyacağım muhtemelen. Şu anda kod kötü durumda, düzenledikten sonra bu halini de koyabilirim.</p>
@@ -236,9 +241,9 @@ balls = []
     pygame.display.flip()</code></pre>
 <p>Onun dışında kendime bir okunacaklar listesi hazırladım, ilk fırsatta okuyacaklarım:</p>
 <ul>
-<li><a href="http://www.pygame.org/docs/tut/MoveIt.html">http://www.pygame.org/docs/tut/MoveIt.html</a></li>
-<li><a href="http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/">http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/</a></li>
-<li><a href="http://ezide.com/games/writing-games.html">http://ezide.com/games/writing-games.html</a></li>
+<li><a href="http://www.pygame.org/docs/tut/MoveIt.html" class="uri">http://www.pygame.org/docs/tut/MoveIt.html</a></li>
+<li><a href="http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/" class="uri">http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/</a></li>
+<li><a href="http://ezide.com/games/writing-games.html" class="uri">http://ezide.com/games/writing-games.html</a></li>
 <li><a href="http://stackoverflow.com/questions/739654/understanding-python-decorators">StackOverflow - Understanding Python Decorators</a></li>
 <li><a href="http://stackoverflow.com/questions/231767/the-python-yield-keyword-explained">StackOverflow - Python yield Keyword</a></li>
 </ul>]]></summary>

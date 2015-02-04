@@ -80,12 +80,14 @@ end</code></pre>
 <p>As a solution, I was using <code>foldcolumn</code>, which, like line numbers, puts some space on the left side to show some folding information. It’s a nice solution if you never use folding in your code, and I wasn’t using folding in my code, but now I’m using folding and foldcolumn looks horrible:</p>
 <div class="figure">
 <img src="/images/vimtip1/foldmethodmarker1.png" />
+
 </div>
 <p>A nasty trick to make this folding guides hidden is making folding guides’ foreground and background color the same, and same as you colorscheme’s background color:</p>
 <pre class="vimscript"><code>autocmd Colorscheme * highlight FoldColumn guifg=bg guibg=bg</code></pre>
 <p>Put this in your .vimrc, somewhere before setting your colorscheme(ie. before <code>colorscheme ...</code> line) and whenever you change color colorscheme, foldcolumn’s colors will be set and folding guides will be hidden.</p>
 <div class="figure">
 <img src="/images/vimtip1/foldmethodmarker2.png" />
+
 </div>
 <p>How does it work: <code>bg</code> and <code>fg</code> are two special variables that will be set by vim automagically whenever you set <code>Normal</code> colors by calling <code>:highlight Normal [options]</code> and all colorschemes do that because that’s the way to set vim’s background color and default text color.</p>
 <p><code>autocmd Colorscheme *</code> makes this command run whenever you set your colorscheme by calling <code>:colorscheme ...</code> command. And now you have clear left margin. Enjoy.</p>]]></summary>
@@ -112,9 +114,9 @@ end</code></pre>
     <updated>2011-04-13T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>~20 gün boyunca Pardus’tan başka işletim sistemi kullanmama gibi çılgın bir karar aldım ve bugün uygulamaya başladım(dün gece temiz kurulum + devel deposu güncellemelerini yapmıştım). İlk günün sonundan birkaç not düşelim:</p>
 <ul>
-<li><p>Dropbox kullanmak isteyenler için, paket şu adreste: <a href="http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/dropbox/">http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/dropbox/</a> . <code>sudo pisi bi http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/dropbox/pspec.xml</code> ile build eder, <code>sudo pisi it dropbox*.pisi</code> ile kurarsınız. Daha sonra ne işe yaradığını tam bilmesem de(ben direkt ikisini beraber kurduğumdan farkı gözlemleyemedim) <a href="http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/kde-servicemenu-dropbox/">http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/kde-servicemenu-dropbox/</a> adresinden KDE servicemenu eklentisini kursanız hoş olur. Yöntem aynı.</p></li>
+<li><p>Dropbox kullanmak isteyenler için, paket şu adreste: <a href="http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/dropbox/" class="uri">http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/dropbox/</a> . <code>sudo pisi bi http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/dropbox/pspec.xml</code> ile build eder, <code>sudo pisi it dropbox*.pisi</code> ile kurarsınız. Daha sonra ne işe yaradığını tam bilmesem de(ben direkt ikisini beraber kurduğumdan farkı gözlemleyemedim) <a href="http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/kde-servicemenu-dropbox/" class="uri">http://svn.pardus.org.tr/pardus/playground/maidis/Dropbox/kde-servicemenu-dropbox/</a> adresinden KDE servicemenu eklentisini kursanız hoş olur. Yöntem aynı.</p></li>
 <li><p>Vim ile ctags kullanmak isterseniz, package manager ile kurduğunuz ctags’ı görmüyor vim. Ctags paketini incelediğimde şöyle birşey satır gördüm: (satır 24) <code>pisitools.rename(&quot;/usr/bin/ctags&quot;, &quot;exuberant-ctags&quot;)</code>. Farkedilebileceği gibi /usr/bin altındaki ctags çalıştırılabilirinin adı exuberant-ctags olarak değiştiriliyor. Bunu eski haline getirirseniz vim ile gayet düzgün çalışıyor.(ben adını değiştirmek yerine kopyaladım, iki tane oldu, heheh)</p></li>
-<li><p>Hayırlısıyla bir de şöyle bir hata kaydımız oldu ilk günden: <a href="http://bugs.pardus.org.tr/show_bug.cgi?id=17765">http://bugs.pardus.org.tr/show_bug.cgi?id=17765</a></p></li>
+<li><p>Hayırlısıyla bir de şöyle bir hata kaydımız oldu ilk günden: <a href="http://bugs.pardus.org.tr/show_bug.cgi?id=17765" class="uri">http://bugs.pardus.org.tr/show_bug.cgi?id=17765</a></p></li>
 </ul>
 <p>Bu 20 gün içerisinde Emacs için SLIME pisi paketi hazırlama gibi çılgın bir hedefim var ayrıca. Başarabilirsem paket hazırlama olayını çözdüğüm anlamına gelecek.</p>]]></summary>
 </entry>
@@ -131,6 +133,7 @@ end</code></pre>
 <p>İndirme işlemlerini threading ile yapıyorum(bu tip işlemlerde çok bariz performans artışı sağlıyor). Aşağıda programı test ederken yaptığım bir denemenin sonucunu görebilirsiniz. Genel olarak oldukça isabetli resimler indiriyor. Arama cümlesi değiştirilerek (sanatçı adı + albüm adı + &quot; album cover&quot; gibi mesela) daha uygun sonuçlar da elde edilebilir.</p>
 <div class="figure">
 <img src="http://www.osa1.net/media/script_yeni.png" />
+
 </div>
 <p>Yarın muhtemelen nautilus scriptine de ekleyeceğim bu özelliği, aslında ben zaten sadece nautilus scriptini kullanıyorum(aracı bir script ile, düzenleyip arşivimin olduğu yere kopyalıyor, onu da bir ara yazacağım sanırım).</p>
 <p>Bu arada, sanırım tüm kodlarımı github veya benzeri bir yere koyacağım. Bu şekilde çok zor olmaya başladı, her güncellemeden sonra tar dosyasını oluşturmak bile zor geliyor artık, bir yolunu bulmam lazım. Daha düzenli olacak sanırım öyle. Django admin scriptini de bayaa geliştirdim, örneğin artık programın üzerine sürüklediğim dosya veya klasörleri alanıma upload ediyor. Sadece bu programı kullanarak her işimi görebiliyorum. Kodlarımı bir yerde topladıktan sonra, Django admin programını da koyacağım. Nasıl birşey olduğunu merak edenler için, <a href="http://127.0.0.1:8000/bil113-finale-hazirlik/">şu yazımda</a> bir ekran görüntüsü koymuştum.</p>
@@ -153,6 +156,7 @@ end</code></pre>
 <p>Dolayısıyla bu sabah yine Vim’e bir şans vermeye karar verdim. Emacs bana hep Vim’den daha karışık gibi gelmiştir. Ayarlarıyla, kısayollarıyla falan. GVim kurulumu yaptım, sıfırdan başlamak yerine birkaç farklı kaynaktan vim ayar dosyalarını incelemeye başladım(.vimrc). Neticede birkaç yerden derlediğim ve kendi kattığım birkaç satırla kendi Vim’imi oluşturdum(bu arada resimdeki arşiv düzenleyinin arayüzünün son hali):</p>
 <div class="figure">
 <img src="/images/vim.png" />
+
 </div>
 <p>Henüz Vim’in çoğu özelliğinden faydalanamıyorum ve metin düzenlerken sıkıntılar yaşıyorum(hatta bu yazıyı yazdığım sırada nasıl tüm kelimeyi sileceğimi, ve kopyaladığım bir metini nasıl yapıştıracağımı bile bilmiyordum), ama en azından tam istediğim özelliklere sahip bir Python editorum oldu.</p>
 <p>Oturup vimtutor çalışarak öğrenmek yerine, işimi yaparken öğreneceğim artık. .vimrc dosyamı <a href="http://www.osa1.net/media/.vimrc">buradan</a> indirebilirsiniz. Çoğu satırda açıklama var zaten, kısayollar genelde bana ait. Eski alışkanlıklarımdan kurtulamadığımdan, alt+w, alt+s, tab değiştirmek için alt+oklar gibi kısayollar ekledim.</p>

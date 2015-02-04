@@ -28,6 +28,7 @@
 <p>Bir kullanım şöyle olabilir, bir RTS düşünün, tarafların 20 çeşit birimi olsun, her birimin farklı bir API’ı olacak ve bunları kullanarak birimdeki her bir elemanı programlayabileceksin. Buna göre saldıracaklar, savunacaklar, birbirlerine destek olacaklar. Sen ya oynamayacaksın(sadece programlayacaksın ve programlar savaşacak, Google AI Challange’da olduğu gibi) ya da bir karakteri falan oynatacaksın. Etrafında senin programladığın elemanlar işlerini yapmaya devam edecekler(kaynak toplamak, haritayı keşfetmek, savaşmak vs.). Ve bu adamlarla çokoyunculu arenalarda dövüşeceksin mesela. İyi programcı kazansın :) .</p>
 <div class="figure">
 <img src="../images/aibot_yazi/nwn21.jpg" />
+
 </div>
 <p><small>Burda birkaç karakterin oyuncuların programladığı botlar olduğunu düşünün</small></p>
 <p>İkinci bir kullanım da orduları programlamak yerine bir tür MMORPG’de az sayıda adamı programlamak olabilir. Sen yokken kaynak toplayabilir. Amelelik yapabilir. Dükkanda durabilir :P .</p>
@@ -41,6 +42,7 @@
 <p>Aynı şekilde hareket kabiliyeti olarak da oyuncuyla bot aynı olmalı. Bunu yapmanın benim için en bariz ve garanti yolu şu; oyun iki parçadan oluşacak. Bir parça sunucu tarafında çalışacak, oyundaki oyuncular arasındaki iletişimi sağlayacak, ve her bir oyuncudan yönettikleri her bir birim için girdi alıp(komutlar), her bir birimin çıktılarını gönderecek. Oyuncuların tarafında ise oyunlar tüm birimlerden gerekli girdileri okuyup gerekli komutları yollayak program olacak. Oyuncunun yönettiği birim ile programlanmış birimler arasındaki tek fark, oyuncunun yönettiği birimin çıktılarının ekrana yansıtılıp, girdilerinin klavye/mouse’dan alınıyor olması olacak.</p>
 <div class="figure">
 <img src="../images/aibot_yazi/coh1.jpg" />
+
 </div>
 <p><small>Bu sahnede oyuncunun ekrana bakarak elde edebileceği tüm bilgileri botların da elde edebilmesi lazım.</small></p>
 <p>Bu şekilde aslında bir oyuncu ile bot tamamen aynı imkanlara sahip olacaklar(aynı arabirimden veri okuyup aynı arabirimle komut gönderecekler). Sunucunun hangi karakterin oyuncu, hangi karakterin bot olduğunu bilmesine bile gerek yok.</p>
@@ -59,13 +61,14 @@
 <p>Bir örnek de Guild Wars’da var. Bilgisayar kontrolündeki birimler çoğu zaman gayet mantıklı hareket ediyorlar, çok fazla farklı durumu değerlendirebiliyorlardı.</p>
 <div class="figure">
 <img src="../images/aibot_yazi/gwhench.jpg" />
+
 </div>
 <p><small>Guild Warsdaki botlara bir örnek, bunlar örneğin aynı sınıfta olsalar bile farklı davranışlara sahiplerdi.</small></p>
 <p>Uygulamanın çok zor olmaması açısından GW tarzı birşey mantıklı olabilir. Tamamen bağımsız hareket eden bir karakteri(bir MMO’da oyuncu bir görevdeyken şehirde takılacak bir bot gibi) programlamak çok zorolabilir, GW’da henchmanler oyuncunun etrafında duran savaşçılardı. Yani aslında sadece savaş için programlanmışlardı, onun dışında tek yaptıkları oyuncuyu takip etmekti(takip sırasında da tek dikkat ettikleri tank biriminin önden, monk gibi destek birimlerinin arkadan takip etmesi gibi bariz şeylerdi).</p>
 <h3 id="kullanılacak-dil">Kullanılacak dil</h3>
 <p>Hahah buraya geleceğini tahmin etmemiştiniz değil mi :) . Konuyu buraya bağlamazsam ölürdüm.</p>
 <p>Hedef kitle sadece programcılar olmamalı. İsteyen bu oyunla program öğrenebilmeli. Hep programlama öğrenebilmek için fantastik ortamlar hayal etmişimdir(scratch gibi şeyler mesela). Güzel bir fırsat olabilir.</p>
-<p>Dil mümkün olduğunca basit olmalı, herhangi bir programlama diline ait spesifik şeyler içermemeli, örneğin syntax. Basit ama esnek olmalı. Örneğin <em>inheritance</em>a izin veren bir sınıf sistemi olmayabilir, ama isteyen kullanıcı tablolar(map) ve method çağrıları için bir yardımcı fonksiyon ile bunu yapabilmeli.</p>
+<p>Dil mümkün olduğunca basit olmalı, herhangi bir programlama diline ait spesifik şeyler içermemeli, örneğin syntax. Basit ama esnek olmalı. Örneğin _inheritance_a izin veren bir sınıf sistemi olmayabilir, ama isteyen kullanıcı tablolar(map) ve method çağrıları için bir yardımcı fonksiyon ile bunu yapabilmeli.</p>
 <p>Benim aklımdaki dil aslında Scheme’e çok benziyor. Macroları çıkar, birinci sınıf fonksiyonlar, closure’lar falan olmazsa olmaz ama immutability’ye Scheme kadar önem vermemeli. Veri yapıları olarak listeler ve mapler ile herşeyi yapabiliriz. Ama bunlar birbirinden farklı olmalı(Lua veya Javascript gibi değil yani).</p>
 <p>Yanlız şöyle bir problem var, fonksiyonel programlamaya aşina olmayanlar map, reduce, filter gibi higher-order fonksiyonlar veya list comprehensionlar yerine dögüleri tercih edebilir. Bir de koleksyonlar üzerinde map, reduce, filter gibi fonksiyonlar yardımıyla işlem yapacaksak bir miktar lazy-evaluation da gerekir. Ama diğer yandan bir fonksiyonel programcı imperative bir tarzda kolayca yazabilir.</p>
 <p>Bu iş için aslında Lua iyi gibi, C/C++ interop seçenekleri çok iyi, imperative dil ama güzel fonksiyonel özellikleri var. Ama bence biraz fazla kompleks(gerizekalı tablo veri yapısı, first-class environmentlar, coroutine’ler). JVM ortamı kullanılacaksa bir Jython altkümesi hazırlanabilir.</p>
@@ -73,6 +76,7 @@
 <p>İşin bir de debugging kısmı var. Vendetta Online’da adamlar sunucu tarafında bir Common Lisp yorumlayıcısı(SBCL) çalıştırıp buna benzer işler yapıyorlarmış mesela:</p>
 <div class="figure">
 <img src="../images/aibot_yazi/repl1.png" />
+
 </div>
 <p><small>Vendetta Online Lisp REPL</small></p>
 <p>Buna benzer bir debug ekranı olabilir. Oyuncu yönettiği botların tüm değişkenlerine, botların çevre değişkenlerine vs. erişebilir. Kodda print ettiği şeyler bu ekrana yazdırılır vs.</p>
@@ -80,6 +84,7 @@
 <p>Guild Wars oynayan varsa hatırlayacaktır, aşırı taktiksel bir oyundu ve wikilerde farklı görevler için ayarlanmış takımlar oluşturulurdu. Görevdeki düşmanlara ve amaçlara göre alınması gereken skiller, takımda bulunması gereken sınıflar, kimin nasıl oynaması gerektiği gibi bilgiler bulunurdu. Herkes kendi build’ini paylaşırdı. Hatta bir yerden sonra build kaydedip yükleme özelliği eklenmişti, buildlerinizi bir dosya olarak istediğinizle paylaşabiliyordunuz.</p>
 <div class="figure">
 <img src="../images/aibot_yazi/guildwarsbuild.png" />
+
 </div>
 <p><small>Guild Wars’daki buildler. Sol üstteki diskete bakın.</small></p>
 <p>Bir müddet sonra işler bu oyunda da öyle olabilir. Oyuncular wikilerde kod parçaları paylaşabilir veya direkt programlarını paylaşabilir. Bunda bir sorun yok.</p>
@@ -91,6 +96,7 @@
 <p>Bir problem çözme, program geliştirme gibi olayları oyunun tam içine koymanın bir yolu gibi geldi bu anlattıklarım. Saatlerce Starcraft oynayıp, bir sürü gereksiz refleks geliştireceğime, kafamı kullanmaya çalışmak daha cazip geliyor. Üstelik yapmak istediğim şey oyuncuyu oyundan kaldırmak falan değil, sadece programlanabilir botları oyunun tam ortasına yerleştirmek. RTS türü bir oyuna bu ne kadar güzel/kullanışlı/kolay olur bilmiyorum ama bir RPG için hayal ettikçe heyecanlanıyorum açıkçası.</p>
 <div class="figure">
 <img src="../images/aibot_yazi/googleai.png" />
+
 </div>
 <p><small>Google AI Challange</small></p>
 <p>Kısaca bir programcı olarak hayalim: Oyuncunun hazırlayabileceği, değiştirebileceği, geliştirebileceği bir dünya(şimdi düşündüm de, Lisp’i de bu yüzden sevmiyor muyuz? Dil o kadar esnek ki istediğimiz özelliği kolayca ekleyebiliyoruz), opsiyonel olarak programlanabilir kısımlara sahip olacak(illa kod yazma olarak düşünülmesin, yeterince esnek olacaksa her türlü olur) ve multiplayer olacak. Yaratıcılık ve yetenek tam içinde olacak, ama bunlara sahip olmayanları dışlamayacak(başkalarının haritalarında oynayabileceksin veya hazır programlanmış botları kullanabileceksin gibi). Minecraft bir yere kadar başardı, ben biraz daha farklı bir boyut kazandırmak istiyorum.</p>
@@ -100,6 +106,7 @@
 <p>Rage’de bir olay çok dikkatimi çekti, yaratıklar üzerinize koşarken tüm çevre şartlarını kullanıyor, sağa sola zıplıyor/tırmanıyor ve vurmak çok güçleşiyor. Bunları tamamen rastgele bir şekilde yapıyorlar. Örneğin düşman üzerinize koşarken kaydedin, load edip birkaç kere deneyin, düşman farklı farklı manevralar yapacaktır. Oynanabilirliği çok çok arttırıyor bence.</p>
 <div class="figure">
 <img src="../images/aibot_yazi/rage1.jpg" />
+
 </div>
 <p><small>Rage’deki adamlar işte bunlar</small></p>
 <p>İşte bu rastgeleliği mümkün olduğunca arttırmak istiyorum. Karakterlerin yapabileceği farklı hareketler olmalı ve bu hareketlerden rastgele seçim yapmalı. Oyuncuya çok daha iyi bir tecrübe sunacaktır.</p>
@@ -107,6 +114,7 @@
 <p>Gears of War’daki reload sistemi. Şöyle birşey:</p>
 <div class="figure">
 <img src="../images/aibot_yazi/geow-active_reload.jpg" />
+
 </div>
 <p>Burda reload etmeye başlamak için tuşa bastığınızda, bu beyaz çubuk barda ilerliyor, eğer ilk parlak kısımda bir kere daha tuşa basabilirseniz damage boost kazanıp hızlıca reload ediyorsunuz. Gri kısımda basarsanız yine hızlı reload yapmış oluyorsunuz ama damage boost almıyorsunuz.</p>
 <p>Bunun oynanabilirliğe katkısı çok büyük, birincisi, bu alanların genişliği oyunun durumuna göre değişiklik gösteriyor. Örneğin bazen geniş oluyor, bazen dar. Çatışmadaysanız daha bir dar oluyor, ama normalde de farklı uzunluklarda çıkıyorlar aslında. Bu sayede reload işini reflekse bağlamak zorlaşıyor.</p>
@@ -119,10 +127,7 @@
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
-    var disqus_shortname = 'osa1'; // required: replace example with your forum shortname
-
-    /* * * DON'T EDIT BELOW THIS LINE * * */
+    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
         dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
