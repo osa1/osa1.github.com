@@ -10,6 +10,174 @@
     </author>
     <updated>2015-01-29T00:00:00Z</updated>
     <entry>
+    <title>Some benchmarks for meta-tracing BF JIT and traditional BF implementations</title>
+    <link href="http://osa1.net/posts/2015-04-11-some-bf-benchmarks.html" />
+    <id>http://osa1.net/posts/2015-04-11-some-bf-benchmarks.html</id>
+    <published>2015-01-29T00:00:00Z</published>
+    <updated>2015-01-29T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I found RPython very interesting for several reasons which I may be talking about later, and I need to use it for a project, so I started running some tutorials. However, I had some concerns about the idea(I still have, and I’ll defer the discussion to some other post for now), and I wanted to experiment with different implementations of same interpreter and compare results.</p>
+<p>What I wanted to see is, given a very good and mature JIT compiler(LuaJIT in this case), how hard would it be to have similar optimizations without annotating code manually to give hints to the JIT compiler.</p>
+<p>So I implemented a simple BF interpreter in Lua, and started experimenting with different optimizations. As for benchmarking, I used <code>bench</code> program from this <a href="https://bitbucket.org/brownan/pypy-tutorial/">RPython tutorial repository</a>.</p>
+<p>Before diving into Lua implementation, here results of running them with RPython compiled interpreter, Python and PyPy:</p>
+<pre><code>./example5-rpython bench.b    0.94s user 0.00s system 99% cpu 0.947 total
+pypy example5.py   bench.b   15.57s user 0.01s system 99% cpu 15.597 total
+python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</code></pre>
+<p>The Lua implementation started with this:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> mainloop<span class="ot">(</span>program<span class="ot">,</span> bracket_map<span class="ot">,</span> dispatch_fn<span class="ot">)</span>
+    <span class="kw">local</span> pc <span class="ot">=</span> <span class="dv">1</span>
+    <span class="kw">local</span> tape <span class="ot">=</span> <span class="ot">{</span><span class="dv">0</span><span class="ot">}</span>
+    <span class="kw">local</span> tape_pos <span class="ot">=</span> <span class="dv">1</span>
+
+    <span class="kw">local</span> code
+    <span class="kw">while</span> pc <span class="ot">&lt;=</span> <span class="ot">#</span>program <span class="kw">do</span>
+        code <span class="ot">=</span> program<span class="ot">[</span>pc<span class="ot">]</span>
+        <span class="kw">if</span> code <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span>
+            tape_pos <span class="ot">=</span> tape_pos <span class="ot">+</span> <span class="dv">1</span>
+            <span class="kw">if</span> <span class="ot">#</span>tape <span class="ot">&lt;</span> tape_pos <span class="kw">then</span>
+                <span class="fu">table.insert</span><span class="ot">(</span>tape<span class="ot">,</span> <span class="dv">0</span><span class="ot">)</span>
+            <span class="kw">end</span>
+        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span>
+            tape_pos <span class="ot">=</span> tape_pos <span class="ot">-</span> <span class="dv">1</span>
+        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span>
+            tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">=</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">+</span> <span class="dv">1</span>
+        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span>
+            tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">=</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">-</span> <span class="dv">1</span>
+        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span>
+            <span class="fu">io.write</span><span class="ot">(</span><span class="fu">string.char</span><span class="ot">(</span>tape<span class="ot">[</span>tape_pos<span class="ot">]))</span>
+        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">and</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">==</span> <span class="dv">0</span> <span class="kw">then</span>
+            pc <span class="ot">=</span> bracket_map<span class="ot">[</span>pc<span class="ot">]</span>
+        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">and</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">then</span>
+            pc <span class="ot">=</span> bracket_map<span class="ot">[</span>pc<span class="ot">]</span>
+        <span class="kw">end</span>
+        pc <span class="ot">=</span> pc <span class="ot">+</span> <span class="dv">1</span>
+    <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+<p>I’m not sure how many reasonable different implementations one can come up with, given that the language is this small. Still, there are some optimizations that we can do and I’ve tried some of them. Here are some things I tried:</p>
+<ul>
+<li>I tried replacing one character strings with ASCII code equivalents. Since Lua doesn’t have character constants, I thought this may give us a few instructions per branch. But results were just the same.</li>
+<li>I tried replacing table getters and setters with <code>rawget</code> and <code>rawset</code>s. Nothing changed. Apparently it’s not worth the effort unless you have a metatable for your table.</li>
+<li><p>I tried generating a huge “if-then-else” statement for <code>bracket_map</code>, and used it as a jump table kind of thing. Here’s the code:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> gen_dispatch_fn<span class="ot">(</span>bracket_map<span class="ot">,</span> fun_name<span class="ot">)</span>
+    <span class="kw">local</span> first <span class="ot">=</span> <span class="kw">true</span>
+    <span class="kw">local</span> acc <span class="ot">=</span> <span class="ot">{}</span>
+    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;function &quot;</span> <span class="ot">..</span> fun_name <span class="ot">..</span> <span class="st">&quot;(arg)</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
+    <span class="kw">for</span> k<span class="ot">,</span>v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>bracket_map<span class="ot">)</span> <span class="kw">do</span>
+        <span class="kw">if</span> first <span class="kw">then</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    if arg == &quot;</span> <span class="ot">..</span> k <span class="ot">..</span> <span class="st">&quot; then</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
+            first <span class="ot">=</span> <span class="kw">false</span>
+        <span class="kw">else</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    elseif arg == &quot;</span> <span class="ot">..</span> k <span class="ot">..</span> <span class="st">&quot; then</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
+        <span class="kw">end</span>
+        <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;        return &quot;</span> <span class="ot">..</span> v <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
+    <span class="kw">end</span>
+    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    else</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
+    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;        error(</span><span class="ot">\&quot;</span><span class="st">invalid arg: </span><span class="ot">\&quot;</span><span class="st"> .. arg)</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
+    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
+    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
+    <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>acc<span class="ot">)</span>
+<span class="kw">end</span></code></pre>
+<p>I loaded this code using standard <code>load()</code> function. This also didn’t work. The reason is that, even if this is faster(which is probably not always the case), profiling showed that interpreter spents only 4% of the time for <code>bracket_map</code> lookups. So if this implementation only slightly faster, it just can’t make a big difference.</p></li>
+</ul>
+<p>Profiling output revealed that, 85% of the time spent on fetching the next instruction:</p>
+<pre><code>@@ 69 @@
+      |
+      |     local code
+      |     while pc &lt;= #program do
+  85% |         code = program[pc]
+      |         if code == 62 then
+      |             tape_pos = tape_pos + 1
+      |             if #tape &lt; tape_pos then
+@@ 89 @@
+      |             pc = bracket_map[pc]
+      |         elseif code == 93 and tape[tape_pos] ~= 0 then
+   4% |             pc = bracket_map[pc]
+      |         end
+      |         pc = pc + 1</code></pre>
+<p>Which really means that you can’t optimize anything, because there’s nothing optimizable in <code>code = program[pc]</code>, since this is one of the most primitive operations that you can do in this language. (note that we don’t have metamethod assigned to this table, so <code>rawget</code> is not an optimization)</p>
+<p>At this point the Lua results were like this:</p>
+<pre><code>luajit example_lua.lua bench.b  34.41s user 0.00s system 99% cpu 34.442 total</code></pre>
+<p>The fact that PyPy did better job than LuaJIT here is surprising and impressive. It seems like RPython and PyPy is doing a very good job here.</p>
+<p>Since I already started gradually compiling things, I thought why not go further and compile everything. Here’s a simple BF to Lua compiler:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> compile<span class="ot">(</span>str<span class="ot">)</span>
+    <span class="kw">local</span> pgm <span class="ot">=</span> <span class="ot">{}</span>
+    <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">[[</span>
+<span class="st">function pgm()</span>
+<span class="st">    local tape = {0}</span>
+<span class="st">    local tape_pos = 1</span>
+<span class="st">]]</span><span class="ot">)</span>
+
+    <span class="kw">local</span> adv <span class="ot">=</span> <span class="st">[[</span>
+<span class="st">    tape_pos = tape_pos + 1</span>
+<span class="st">    if #tape &lt; tape_pos then</span>
+<span class="st">        table.insert(tape, 0)</span>
+<span class="st">    end</span>
+<span class="st">]]</span>
+    <span class="kw">local</span> <span class="kw">function</span> dev<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape_pos = tape_pos - &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
+    <span class="kw">local</span> <span class="kw">function</span> inc<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] + &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
+    <span class="kw">local</span> <span class="kw">function</span> dec<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] - &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
+    <span class="kw">local</span> out  <span class="ot">=</span> <span class="st">&quot;    io.write(string.char(tape[tape_pos]))</span><span class="ot">\n</span><span class="st">&quot;</span>
+    <span class="kw">local</span> inp  <span class="ot">=</span> <span class="st">&quot;&quot;</span> <span class="co">-- no need for this</span>
+    <span class="kw">local</span> jmpF <span class="ot">=</span> <span class="st">&quot;    while tape[tape_pos] ~= 0 do</span><span class="ot">\n</span><span class="st">&quot;</span>
+    <span class="kw">local</span> jmpB <span class="ot">=</span> <span class="st">&quot;    if tape[tape_pos] == 0 then break end end</span><span class="ot">\n</span><span class="st">&quot;</span>
+
+    <span class="co">-- these are used to combine consecutive same instructions</span>
+    <span class="kw">local</span> devs <span class="ot">=</span> <span class="dv">0</span>
+    <span class="kw">local</span> incs <span class="ot">=</span> <span class="dv">0</span>
+    <span class="kw">local</span> decs <span class="ot">=</span> <span class="dv">0</span>
+
+    <span class="kw">local</span> indent <span class="ot">=</span> <span class="dv">0</span><span class="ot">;</span>
+
+    <span class="kw">for</span> i<span class="ot">=</span><span class="dv">1</span><span class="ot">,</span> <span class="ot">#</span>str <span class="kw">do</span>
+        <span class="kw">local</span> char <span class="ot">=</span> <span class="fu">string.char</span><span class="ot">(</span><span class="fu">string.byte</span><span class="ot">(</span>str<span class="ot">,</span> i<span class="ot">))</span>
+
+        <span class="kw">if</span> devs <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">and</span> char <span class="ot">~=</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> dev<span class="ot">(</span>devs<span class="ot">)))</span>
+            devs <span class="ot">=</span> <span class="dv">0</span>
+        <span class="kw">elseif</span> incs <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">and</span> char <span class="ot">~=</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> inc<span class="ot">(</span>incs<span class="ot">)))</span>
+            incs <span class="ot">=</span> <span class="dv">0</span>
+        <span class="kw">elseif</span> decs <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">and</span> char <span class="ot">~=</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> dec<span class="ot">(</span>decs<span class="ot">)))</span>
+            decs <span class="ot">=</span> <span class="dv">0</span>
+        <span class="kw">end</span>
+
+        <span class="kw">if</span> char <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span> <span class="co">-- 62</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> adv<span class="ot">))</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span> <span class="co">-- 60</span>
+            devs <span class="ot">=</span> devs <span class="ot">+</span> <span class="dv">1</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span> <span class="co">-- 43</span>
+            incs <span class="ot">=</span> incs <span class="ot">+</span> <span class="dv">1</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span> <span class="co">-- 45</span>
+            decs <span class="ot">=</span> decs <span class="ot">+</span> <span class="dv">1</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span> <span class="co">-- 46</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> out<span class="ot">))</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;,&quot;</span> <span class="kw">then</span> <span class="co">-- 44</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> inp<span class="ot">))</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">then</span> <span class="co">-- 91</span>
+            indent <span class="ot">=</span> indent <span class="ot">+</span> <span class="dv">4</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpF<span class="ot">))</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">then</span> <span class="co">-- 93</span>
+            indent <span class="ot">=</span> indent <span class="ot">-</span> <span class="dv">4</span>
+            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpB<span class="ot">))</span>
+        <span class="kw">end</span>
+    <span class="kw">end</span>
+
+    <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">&quot;end&quot;</span><span class="ot">)</span>
+    <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>pgm<span class="ot">)</span>
+<span class="kw">end</span></code></pre>
+<p>One thing to note here is that loops in BF programs correspond to loops in generated Lua. There’s another way to implement this compiler and it might turn out to be more efficient, but I didn’t try it. (see BF-to-C compiler below) Also, I’m merging some instructions together. This has significant performance impact, but it’s also necessary because if the generated code is too big, both PUC-Lua and LuaJIT is rejecting to load it. (this is documented, but the limit is not specified)</p>
+<p>Results:</p>
+<pre><code>luajit example_lua.lua bench.b  0.53s user 0.00s system 99% cpu 0.532 total</code></pre>
+<p>Note that runtime code generation and loading is NOT included in this number, but code generation takes less than 0.01s, so I might just include that.</p>
+<p>Just for completeness, I also tried a <a href="https://github.com/kgabis/brainfuck-c/blob/master/brainfuck.c">C interpreter</a>, and <a href="http://awk.info/?doc/bfc.html">BF-to-C</a> compiler:</p>
+<pre><code>./c-int bench.b  2.44s user 0.00s system 99% cpu 2.443 total
+./c-compiled     0.00s user 0.00s system 82% cpu 0.004 total</code></pre>
+<p>A fun thing about C compiler is that compiling generated C programs takes long time:</p>
+<pre><code>gcc -O3 awk_output.c  14.07s user 0.14s system 99% cpu 14.219 total</code></pre>
+<p>RPython once again does an impressive job here, because it’s even faster than C interpreter. I didn’t bother profiling C code and optimizing it, because it looks like a reasonable implementation: A simple “fetch instruction and run it in a case statement” loop.</p>
+<p>So I think the conclusion is that RPython and PyPy is doing really good job.</p>]]></summary>
+</entry>
+<entry>
     <title>Top-down expression parsing is easy</title>
     <link href="http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html" />
     <id>http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html</id>
@@ -1575,75 +1743,6 @@ setUpShowHide(5.1);
 setUpShowHide(6.2);
 setUpShowHide(6.1);
 </script>]]></summary>
-</entry>
-<entry>
-    <title>A complicated proof of a simple theorem</title>
-    <link href="http://osa1.net/posts/2014-07-10-complicated-proof-simple-thm.html" />
-    <id>http://osa1.net/posts/2014-07-10-complicated-proof-simple-thm.html</id>
-    <published>2014-07-10T00:00:00Z</published>
-    <updated>2014-07-10T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>It’s that time of the year again in which I’m suddenly very interested about verification and interactive theorem proving. I’m currently working on proving properties of some well-known algorithms.</p>
-<p>At least in the beginning even the simplest properties may turn out to be very hard to prove. In this post I’m going to give an example of a very simple theorem which turns out to be hard to prove for beginners like me.</p>
-<p>Let’s say I want to divide peano nats by 10. I can define <code>div10</code> in two ways: 1) I can implement a function that directly divides by 10 2) I can implement <code>div2</code> and <code>div5</code> and use those two to implement <code>div10</code>:</p>
-<pre class="coq"><code>(* first definition *)
-Fixpoint div10 (n : nat) : nat :=
-  match n with
-  | S (S (S (S (S (S (S (S (S (S n&#39;))))))))) =&gt; S (div10 n&#39;)
-  | _ =&gt; 0
-  end.
-
-(* second definition *)
-Fixpoint div5 (n : nat) : nat :=
-  match n with
-  | S (S (S (S (S n&#39;)))) =&gt; S (div5 n&#39;)
-  | _ =&gt; 0
-  end.
-
-Fixpoint div2 (n : nat) : nat :=
-  match n with
-  | S (S n&#39;) =&gt; S (div2 n&#39;)
-  | _ =&gt; 0
-  end.
-
-Definition div10&#39; (n : nat) : nat := div5 (div2 n).</code></pre>
-<p>It may be obvious enough that those two definitions are equal(in the sense that they always terminate and given same arguments they return same values) but as an exercise let’s try to prove it:</p>
-<pre class="coq"><code>Theorem divs_eq : forall n, div10 n = div10&#39; n.</code></pre>
-<p>It’s obvious that we need to do induction on n, but unfortunately that leads to very complicated induction hypothesis and I can’t make any use of them:</p>
-<pre class="coq"><code>Proof.
-  unfold div10&#39;. intro.
-  do 10 (induction n; auto). simpl. f_equal. 
-Abort.</code></pre>
-<p>At this point goal is same as our original goal, but induction hypothesis are about a hundred lines long so I can’t make any use of it. (and I don’t understand why induction hypothesis getting that big)</p>
-<p>It turns out that by using a different induction scheme we can easily prove this. Instead of using standard induction scheme of nats “prove P 0, assume P n and prove P (S n)” we can use “prove P 0, P 1, … P 9, assume P n and prove P (10 + n)”:</p>
-<pre class="coq"><code>Definition nat10ind : forall (P : nat -&gt; Prop),
-  P 0 -&gt; P 1 -&gt; P 2 -&gt; P 3 -&gt; P 4 -&gt; P 5 -&gt; P 6 -&gt; P 7 -&gt; P 8 -&gt; P 9 -&gt;
-  (forall n, P n -&gt; P (10 + n)) -&gt; forall n, P n.
-
-  intros.
-  assert (P n /\ P (1 + n) /\ P (2 + n) /\ P (3 + n) /\ P (4 + n) /\ P (5 + n) /\
-          P (6 + n) /\ P (7 + n) /\ P (8 + n) /\ P (9 + n)).
-  + induction n.
-    - simpl. repeat split; assumption.
-    - repeat (match goal with H : _ /\ _ |- _ =&gt; destruct H end).
-      repeat split; try assumption.
-      apply H9. assumption.
-  + destruct H10. assumption.
-Defined.</code></pre>
-<p>Now our main theorem is very easy to prove:</p>
-<pre class="coq"><code>Theorem divs_eq : forall n, div10 n = div10&#39; n.
-Proof.
-  unfold div10&#39;. intro.
-  induction n using nat10ind; auto.
-  simpl. f_equal. assumption.
-Qed.</code></pre>
-<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>See <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual011.html#sec447">tacexpr_1 production</a> of Coq expression syntax in reference manual for details.<a href="#fnref1">↩</a></p></li>
-</ol>
-</div>]]></summary>
 </entry>
 
 </feed>
