@@ -8,8 +8,32 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2015-01-29T00:00:00Z</updated>
+    <updated>2015-05-13T00:00:00Z</updated>
     <entry>
+    <title>Compilation through interpretation, a small experiment</title>
+    <link href="http://osa1.net/posts/2015-05-13-comp-through-interp.html" />
+    <id>http://osa1.net/posts/2015-05-13-comp-through-interp.html</id>
+    <published>2015-05-13T00:00:00Z</published>
+    <updated>2015-05-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been studying different program transformation techniques recently, and to me <a href="http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html">Futamura projections</a> are one of the most interesting applications of program transformations. Couple of days ago I finished a small project in which I implemented first Futamura projection(aka. interpreter specialization) using <a href="http://www.madore.org/~david/programs/unlambda/">Unlambda</a> as object language. You can see the project <a href="https://github.com/osa1/int-proj">here</a>. I tried to write some comments to the source when I get stuck because of a problem or realized something interesting, so I suggest reading the source if you’re interested.</p>
+<p>I did two implementations and used a different meta language for each one. There are multiple ways to achieve first Futamura projections: We can use a partial evaluator, a supercompiler(which may actually subsume partial evaluation, depending on how sophisticated it is), or just a “sufficiently smart” compiler. The problem though, we don’t have a lot of(read: any) usable implementations of partial evaluators or supercompilers, so I had to use the only language with a partial evaluator that I could find: <a href="https://github.com/idris-lang/Idris-dev">Idris</a><a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>.</p>
+<p>There’s one another technique that we can use. The techniques I listed above are all completely automated. If things don’t go as expected we’re on our own to figure out why is that and hack around to make the tool transform the program the way we want. Indeed this is happened even in this project, which is deliberately kept simple and small<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
+<p>At the other end of the spectrum is multi-stage programming. In multi-stage programming the programmer specifies, using some annotations<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>, what code to generate and how to generate it. It clearly separates code that runs in code generation time and generated code. When generated code is printed to be compiled later, multi-stage programming feels like a compiler or a partial evaluator that the programmer can guide to generate the code he/she wants.</p>
+<p>My second meta language is <a href="http://okmij.org/ftp/ML/MetaOCaml.html">MetaOCaml</a>, which is basically OCaml with multi-stage programming constructs. Using these two languages as representatives of two different program generation techniques, I implemented first Futamura projections for Unlambda.</p>
+<p>There’s a report file in the repository, and I refer interesting readers to that document. README file contains compilation directives and some interesting executions. One interesting thing is that I later added a simple partial evaluator to MetaOCaml implementation, and in the <code>programs/</code> directory there’s an Unlambda interpreter, written in Unlambda. Using these two programs, you can do things like partially applying(specializing) Unlambda interpreter to other programs or even itself. Before every experiment, I suggest thinking about what is the generated code you’re expecting(what does it do). What would a “sufficiently smart” partial evaluator generate? What would a simple partial evaluator generate? Similarly, try these while generating first projections.</p>
+<p>Finally, if you’re interested in program transformations, stay tuned for more blog posts.</p>
+<p><a href="https://github.com/osa1/int-proj">Link to the project.</a></p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>There is actually an <a href="https://github.com/annenkov/unmix">implementation of well-known partial evaluator unmix</a>. I knew about the project, but didn’t remember by the time I started this project. Still, I think I’d choose Idris even if I remembered.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Although some of those problems were implementation related, e.g. Idris was buggy. See the source code for comments and Github issues.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>In MetaOCaml case those annotations are term-level, but there are other cases where annotations happen in type level only. See <a href="http://scala-lms.github.io/">LMS</a> as an example. (I think it’s the only example for now)<a href="#fnref3">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>Some benchmarks for meta-tracing BF JIT and traditional BF implementations</title>
     <link href="http://osa1.net/posts/2015-04-11-some-bf-benchmarks.html" />
     <id>http://osa1.net/posts/2015-04-11-some-bf-benchmarks.html</id>
@@ -1456,293 +1480,6 @@ As a next step, I'm hoping to define an imperative language in Coq, like IMP of 
 <li><a href="http://homotopytypetheory.org/2012/08/18/a-master-thesis-on-homotopy-type-theory/">A master thesis on HoTT</a>: I just started reading this and it looks like easy to understand even for people with not much understanding of type theory or related topics, like me. The author was a student of Andrej Bauer.</li>
 </ul>
 <p>Side note: I’ll hopefully publish a blog post about verification of a somewhat weird and useless sorting algorithm soon.</p>]]></summary>
-</entry>
-<entry>
-    <title>Coq exercises for beginners</title>
-    <link href="http://osa1.net/posts/2014-07-12-fun-coq-exercises.html" />
-    <id>http://osa1.net/posts/2014-07-12-fun-coq-exercises.html</id>
-    <published>2014-07-12T00:00:00Z</published>
-    <updated>2014-07-12T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<style>
-.solution {
-  background-color: rgb(245, 245, 245);
-  padding-left: 1em;
-}
-</style>
-<p>Formalizing abstractions/data structures and proving theorems about them in Coq is so much fun. I made up some simple exercises that consist of encoding some abstractions and laws we know from algebra and functional programming and then proving that some particular set + some operations on that set obeys the laws.</p>
-<p>Using my amazing(!) JavaScript skills, I set up some “show/hide answer” buttons after each exercise. Exercises are easy, but the latter ones are relatively harder. Some abstractions/laws are inspired by Haskell.</p>
-<p>Please note that I’m a beginner so my solutions probably have some flaws if you want to use them in large-scale verified programs :) I’m currently learning about typeclasses and records of Coq and I’m open to suggestions for improvements.</p>
-<p>In exercises, when we talk that an abstraction should obey some laws, you need to enforce it in construction. e.g. You need to make constructors in a way that user would have to prove that the data structure + operations obey the laws.</p>
-<pre class="coq"><code>Require Import List.
-Import ListNotations.
-
-Open Scope list_scope.</code></pre>
-<h1 id="exercise-1">Exercise 1</h1>
-<p>A <a href="http://en.wikipedia.org/wiki/Semigroup">semigroup</a> is a set together with an associative binary function. For example, natural numbers and addition function form a semigroup, because we know/can prove that addition function is associative. More precisely: (in Coq syntax)</p>
-<pre class="coq"><code>forall (n1 n2 n3 : nat), n1 + (n2 + 3) = (n1 + n2) + n3.</code></pre>
-<p>Encode semigroups in Coq.</p>
-<div id="ex-div-1.1" class="solution">
-<pre class="coq"><code>Inductive semigroup (A : Type) (Op : A -&gt; A -&gt; A) : Prop :=
-| Semigroup_intro :
-    (forall (a1 a2 a3 : A), Op a1 (Op a2 a3) = Op (Op a1 a2) a3) -&gt; semigroup A Op.</code></pre>
-</div>
-<button id="ex-btn-1.1">
-</button>
-<p>Now prove that lists together with append operation form a semigroup. Use standard Coq lists and <code>app</code> function.</p>
-<div id="ex-div-1.2" class="solution">
-<pre class="coq"><code>Theorem list_semigroup : forall A, semigroup (list A) (@app A).
-Proof.
-  intro. apply Semigroup_intro. intros.
-  induction a1.
-  + reflexivity.
-  + simpl. f_equal. induction a2; auto.
-Qed.</code></pre>
-</div>
-<button id="ex-btn-1.2">
-</button>
-<h1 id="exercise-2">Exercise 2</h1>
-<p>A <a href="http://en.wikipedia.org/wiki/Monoid">monoid</a> is a semigroup with an identity element. In our addition example, identity element is 0, because when applied to the monoid function(addition) as first or second argument, results is the other argument:</p>
-<pre class="coq"><code>forall (n : nat), 0 + n = n /\ n + 0 = n.</code></pre>
-<p>Encode monoids in Coq.</p>
-<div id="ex-div-2.1" class="solution">
-<pre class="coq"><code>Inductive monoid A Op (sg : semigroup A Op) (U : A) : Prop :=
-| Monoid_intro :
-    semigroup A Op -&gt; (forall (a : A), Op U a = Op a U /\ Op U a = a) -&gt; monoid A Op sg U.</code></pre>
-</div>
-<button id="ex-btn-2.1">
-</button>
-<p>Now prove that lists with empty list as unit element together with the proof that lists are monoids as we proved in previous exercise, form a monoid.</p>
-<div id="ex-div-2.2" class="solution">
-<pre class="coq"><code>Theorem list_monoid : forall A, monoid (list A) (@app A) (@list_semigroup A) [].
-Proof.
-  intro. apply Monoid_intro. apply list_semigroup.
-  intro. split.
-  + rewrite app_nil_r. reflexivity.
-  + reflexivity.
-Qed.</code></pre>
-</div>
-<button id="ex-btn-2.2">
-</button>
-<h1 id="exercise-3">Exercise 3</h1>
-<p>In this exercise and exercise 4, we’ll be talking about Haskell definitions of abstractions, instead of algebra definitions. (although they may coincide)</p>
-<p>A functor is a type with one argument(in Haskell terms, a type with kind <code>* -&gt; *</code>) and a function, together with some laws. If you’re unfamiliar with functors of Haskell, you may want to skip this, or read <a href="http://www.haskell.org/haskellwiki/Typeclassopedia#Functor">Typeclassopedia</a>.</p>
-<p>A Coq definition would use these to encode functors:</p>
-<ul>
-<li>Functor type: <code>F : Type -&gt; Type</code></li>
-<li>Functor operation: <code>forall t1 t2, (t1 -&gt; t2) -&gt; f t1 -&gt; f t2</code> (let’s call it fmap)</li>
-</ul>
-<p>A functor should obey these laws:</p>
-<ul>
-<li><code>fmap id = id</code></li>
-<li><code>fmap (fun x =&gt; g (h x)) = fun x =&gt; (fmap g (fmap h x))</code></li>
-</ul>
-<p>Encode functors in Coq.</p>
-<div id="ex-div-3.1" class="solution">
-<pre class="coq"><code>Inductive functor (F : Type -&gt; Type) : (forall t1 t2, (t1 -&gt; t2) -&gt; f t1 -&gt; f t2) -&gt; Prop :=
-| Functor_intro
-    (fmap : forall t1 t2, (t1 -&gt; t2) -&gt; F t1 -&gt; F t2)
-    (l1   : forall t f, fmap t t id f = f)
-    (l2   : forall t1 t2 t3, forall (f : F t1) (p : t2 -&gt; t3) (q : t1 -&gt; t2),
-              fmap t1 t3 (fun a =&gt; p (q a)) f = fmap t2 t3 p (fmap t1 t2 q f)) :
-    functor F fmap.</code></pre>
-</div>
-<button id="ex-btn-3.1">
-</button>
-<p>Now prove that lists with standard map function form a functor.</p>
-<div id="ex-div-3.2" class="solution">
-<pre class="coq"><code>Theorem list_functor : functor list map.
-Proof.
-  apply Functor_intro.
-  + intros. induction f. reflexivity. simpl. rewrite IHf. reflexivity.
-  + intros. induction f. reflexivity. simpl. f_equal. apply IHf.
-Qed.</code></pre>
-</div>
-<button id="ex-btn-3.2">
-</button>
-<h1 id="exercise-4">Exercise 4</h1>
-<p>A monad is a functor with two more operations; let’s call <code>bind</code> and <code>lift</code> and some more laws. In Coq syntax: (<code>F</code> is our functor type)</p>
-<ul>
-<li>bind: <code>forall t1 t2, F t1 -&gt; (t1 -&gt; F t2) -&gt; F t2</code></li>
-<li>lift: <code>forall t, t -&gt; F t</code></li>
-</ul>
-<p>Laws:</p>
-<ul>
-<li>Left identity: <code>forall t1 t2 a f, bind t1 t2 (lift t1 a) f = f a</code></li>
-<li>Right identity: <code>right_id : forall t m, bind t t m (lift t) = m</code></li>
-<li>Associativity: <code>forall t1 t2 t3 m f g, bind t2 t3 (bind t1 t2 m f) g = bind t1 t3 m (fun x =&gt; bind t2 t3 (f x) g)</code></li>
-</ul>
-<p>Encode monads in Coq.</p>
-<div id="ex-div-4.1" class="solution">
-<pre class="coq"><code>Inductive monad : (Type -&gt; Type) -&gt; Prop :=
-| Monad_intro
-    (F        : Type -&gt; Type)
-    (fmap     : forall t1 t2, (t1 -&gt; t2) -&gt; F t1 -&gt; F t2)
-    (Fp       : functor F fmap)
-    (lift     : forall t, t -&gt; F t)
-    (bind     : forall t1 t2, F t1 -&gt; (t1 -&gt; F t2) -&gt; F t2)
-    (left_id  : forall t1 t2 a f, bind t1 t2 (lift t1 a) f = f a)
-    (right_id : forall t m, bind t t m (lift t) = m)
-    (assoc    : forall t1 t2 t3 m f g,
-                  bind t2 t3 (bind t1 t2 m f) g = bind t1 t3 m (fun x =&gt; bind t2 t3 (f x) g)) :
-    monad F.</code></pre>
-</div>
-<button id="ex-btn-4.1">
-</button>
-<p>Now prove that lists form a monad. You need to figure out what functions to use for <code>lift</code> and <code>bind</code>.</p>
-<div id="ex-div-4.2" class="solution">
-<p><code>lift</code> function:</p>
-<pre class="coq"><code>(* I couldn&#39;t find this in stdlib so let&#39;s define *)
-Definition singleton (A : Type) (x : A) := [x].</code></pre>
-<p>For <code>bind</code>, you can use standard <code>flat_map</code> function, but it’s argument order is reversed. So instead I rolled my own version:</p>
-<pre class="coq"><code>Fixpoint concat {A : Type} (l : list (list A)) : list A :=
-  match l with
-  | []     =&gt; []
-  | h :: t =&gt; app h (concat t)
-  end.
-
-(* I don&#39;t like argument order of flat_map in stdlib ... *)
-Definition concatMap (A : Type) (B : Type) (l : list A) (f : A -&gt; list B) : list B :=
-  concat (map f l).</code></pre>
-<p>Now most involved proof in this exercises: (still very easy)</p>
-<pre class="coq"><code>Theorem list_monad : monad list.
-Proof.
-  apply Monad_intro with (fmap := map) (lift := singleton) (bind := concatMap).
-  + apply list_functor.
-  + intros. unfold concatMap. simpl. rewrite app_nil_r. reflexivity.
-  + intros. unfold concatMap. induction m.
-    - reflexivity.
-    - simpl. f_equal. apply IHm.
-  + intros. induction m as [|h t].
-    - reflexivity.
-    - unfold concatMap in *. simpl. rewrite &lt;- IHt. 
-      assert (forall A (l1 : list (list A)) (l2 : list (list A)),
-                concat l1 ++ concat l2 = concat (l1 ++ l2)) as H.
-        intros. induction l1; auto.
-          simpl. rewrite &lt;- app_assoc. rewrite IHl1. auto.
-      rewrite H. f_equal. rewrite map_app. reflexivity.
-Qed.</code></pre>
-</div>
-<button id="ex-btn-4.2">
-</button>
-<h1 id="exercise-5">Exercise 5</h1>
-<p>Prove that standard <code>option</code> type with some operations form a semigroup, monoid, functor and monad. You need to find relevant operations.</p>
-<p>What restrictions do you need on <code>option</code>s type argument? (<code>A</code> in <code>option A</code>) Does it need to form a monoid for <code>option</code> to form a monoid?</p>
-<div id="ex-div-5.1" class="solution">
-<pre class="coq"><code>Definition map_option (A B : Type) (f : A -&gt; B) (opt : option A) :=
-  match opt with
-  | None =&gt; None
-  | Some t =&gt; Some (f t)
-  end.
-
-Definition append_option A OpA (sg : semigroup A OpA) (a b : option A) : option A :=
-  match a, b with
-  | None, None =&gt; None
-  | None, Some b&#39; =&gt; Some b&#39;
-  | Some a&#39;, None =&gt; Some a&#39;
-  | Some a&#39;, Some b&#39; =&gt; Some (OpA a&#39; b&#39;)
-  end.
-
-Theorem option_semigroup : forall A OpA (sg : semigroup A OpA),
-  semigroup (option A) (append_option A OpA sg).
-Proof.
-  intros. apply Semigroup_intro. intros. destruct a1.
-  + destruct a2.
-    - destruct a3.
-      * simpl. f_equal. inversion sg. apply H.
-      * simpl. reflexivity.
-    - destruct a3; simpl; reflexivity.
-  + destruct a2; destruct a3; auto.
-Qed.
-
-Theorem option_monoid : forall A OpA (sg : semigroup A OpA),
-  monoid (option A) (append_option A OpA sg) (option_semigroup A OpA sg) None.
-Proof.
-  intros. apply Monoid_intro. apply option_semigroup.
-  intros. split. auto. destruct a; auto.
-Qed.
-
-Definition option_map A B (f : A -&gt; B) (o : option A) : option B :=
-  match o with
-  | None =&gt; None
-  | Some a =&gt; Some (f a)
-  end.
-
-Theorem option_functor : functor option option_map.
-Proof.
-  apply Functor_intro; intros; destruct f; auto.
-Qed.
-
-Definition option_bind A B (o1 : option A) (f : A -&gt; option B) : option B :=
-  match o1 with
-  | None =&gt; None
-  | Some a =&gt; f a
-  end.
-
-Theorem option_monad : monad option.
-Proof.
-  apply Monad_intro with (fmap := option_map) (lift := Some) (bind := option_bind).
-  + apply option_functor.
-  + intros. auto.
-  + intros. destruct m; auto.
-  + intros. destruct m; auto.
-Qed.</code></pre>
-</div>
-<button id="ex-btn-5.1">
-</button>
-<h1 id="exercise-6">Exercise 6</h1>
-<p>I only have a partial solution to this one and it’s not strictly a Coq exercise, but it’s still fun :)</p>
-<p>A <a href="http://en.wikipedia.org/wiki/Group_(mathematics)">group</a> is a monoid with inverse element of every element. In Coq syntax:</p>
-<pre class="coq"><code>forall e, exists e_i -&gt; op e e_1 = U</code></pre>
-<p>where <code>op</code> is monoid operation and <code>U</code> is unit of monoid.</p>
-<p>Can you come up with a data structure that forms a group?</p>
-<div id="ex-div-6.1" class="solution">
-<p>Someone at Coq IRC channel suggested diffs. Do you think a diff could form a group? What would associative operation, unit element, and inverse elements be?</p>
-<div id="ex-div-6.2" class="solution">
-<p>Diffs don’t form a group. Composing two diffs is the merge operation, which is partial function. We can’t always merge two diffs. (merge conflicts)</p>
-<p>So I don’t have an answer to this exercise, If you know examples to this one, please write at comments :)</p>
-</div>
-<button id="ex-btn-6.2">
-</button>
-</div>
-<button id="ex-btn-6.1">
-</button>
-<script>
-function showMsg(exNum) {
-  return "Show solution (ex. " + exNum + ")";
-}
-
-function hideMsg(exNum) {
-  return "Hide solution (ex. " + exNum + ")";
-}
-
-function setUpShowHide(exNum) {
-  var div = document.getElementById("ex-div-" + exNum);
-  var btn = document.getElementById("ex-btn-" + exNum);
-  btn.innerHTML = showMsg(exNum);
-  btn.onclick = function() {
-    if (div.style.display !== 'none') {
-      div.style.display = 'none';
-      btn.innerHTML = showMsg(exNum);
-    } else {
-      div.style.display = 'block';
-      btn.innerHTML = hideMsg(exNum);
-    }
-  }
-  div.style.display = 'none';
-}
-
-setUpShowHide(1.1);
-setUpShowHide(1.2);
-setUpShowHide(2.1);
-setUpShowHide(2.2);
-setUpShowHide(3.1);
-setUpShowHide(3.2);
-setUpShowHide(4.1);
-setUpShowHide(4.2);
-setUpShowHide(5.1);
-setUpShowHide(6.2);
-setUpShowHide(6.1);
-</script>]]></summary>
 </entry>
 
 </feed>

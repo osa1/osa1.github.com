@@ -8,8 +8,32 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2015-01-11T00:00:00Z</updated>
+    <updated>2015-05-13T00:00:00Z</updated>
     <entry>
+    <title>Compilation through interpretation, a small experiment</title>
+    <link href="http://osa1.net/posts/2015-05-13-comp-through-interp.html" />
+    <id>http://osa1.net/posts/2015-05-13-comp-through-interp.html</id>
+    <published>2015-05-13T00:00:00Z</published>
+    <updated>2015-05-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been studying different program transformation techniques recently, and to me <a href="http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html">Futamura projections</a> are one of the most interesting applications of program transformations. Couple of days ago I finished a small project in which I implemented first Futamura projection(aka. interpreter specialization) using <a href="http://www.madore.org/~david/programs/unlambda/">Unlambda</a> as object language. You can see the project <a href="https://github.com/osa1/int-proj">here</a>. I tried to write some comments to the source when I get stuck because of a problem or realized something interesting, so I suggest reading the source if you’re interested.</p>
+<p>I did two implementations and used a different meta language for each one. There are multiple ways to achieve first Futamura projections: We can use a partial evaluator, a supercompiler(which may actually subsume partial evaluation, depending on how sophisticated it is), or just a “sufficiently smart” compiler. The problem though, we don’t have a lot of(read: any) usable implementations of partial evaluators or supercompilers, so I had to use the only language with a partial evaluator that I could find: <a href="https://github.com/idris-lang/Idris-dev">Idris</a><a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>.</p>
+<p>There’s one another technique that we can use. The techniques I listed above are all completely automated. If things don’t go as expected we’re on our own to figure out why is that and hack around to make the tool transform the program the way we want. Indeed this is happened even in this project, which is deliberately kept simple and small<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
+<p>At the other end of the spectrum is multi-stage programming. In multi-stage programming the programmer specifies, using some annotations<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>, what code to generate and how to generate it. It clearly separates code that runs in code generation time and generated code. When generated code is printed to be compiled later, multi-stage programming feels like a compiler or a partial evaluator that the programmer can guide to generate the code he/she wants.</p>
+<p>My second meta language is <a href="http://okmij.org/ftp/ML/MetaOCaml.html">MetaOCaml</a>, which is basically OCaml with multi-stage programming constructs. Using these two languages as representatives of two different program generation techniques, I implemented first Futamura projections for Unlambda.</p>
+<p>There’s a report file in the repository, and I refer interesting readers to that document. README file contains compilation directives and some interesting executions. One interesting thing is that I later added a simple partial evaluator to MetaOCaml implementation, and in the <code>programs/</code> directory there’s an Unlambda interpreter, written in Unlambda. Using these two programs, you can do things like partially applying(specializing) Unlambda interpreter to other programs or even itself. Before every experiment, I suggest thinking about what is the generated code you’re expecting(what does it do). What would a “sufficiently smart” partial evaluator generate? What would a simple partial evaluator generate? Similarly, try these while generating first projections.</p>
+<p>Finally, if you’re interested in program transformations, stay tuned for more blog posts.</p>
+<p><a href="https://github.com/osa1/int-proj">Link to the project.</a></p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>There is actually an <a href="https://github.com/annenkov/unmix">implementation of well-known partial evaluator unmix</a>. I knew about the project, but didn’t remember by the time I started this project. Still, I think I’d choose Idris even if I remembered.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Although some of those problems were implementation related, e.g. Idris was buggy. See the source code for comments and Github issues.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>In MetaOCaml case those annotations are term-level, but there are other cases where annotations happen in type level only. See <a href="http://scala-lms.github.io/">LMS</a> as an example. (I think it’s the only example for now)<a href="#fnref3">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>Understanding Futamura Projections</title>
     <link href="http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html" />
     <id>http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html</id>
