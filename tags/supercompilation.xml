@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>osa1.net - Posts tagged supercompilation</title>
+    <link href="http://osa1.net/tags/supercompilation.xml" rel="self" />
+    <link href="http://osa1.net" />
+    <id>http://osa1.net/tags/supercompilation.xml</id>
+    <author>
+        <name>Ömer Sinan Ağacan</name>
+        <email>omeragaca@gmail.com</email>
+    </author>
+    <updated>2015-05-16T00:00:00Z</updated>
+    <entry>
+    <title>Simplest pathological program for supercompilers</title>
+    <link href="http://osa1.net/posts/2015-05-16-simplest-pathological-pgm-for-supercompilers.html" />
+    <id>http://osa1.net/posts/2015-05-16-simplest-pathological-pgm-for-supercompilers.html</id>
+    <published>2015-05-16T00:00:00Z</published>
+    <updated>2015-05-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>While working on one of my program transformation ideas, I’ve found a very simple program that is apparently pathological for most supercompilers:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">loop x <span class="fu">=</span> loop (x <span class="fu">+</span> <span class="dv">1</span>)</code></pre>
+<p>I tried this program on several supercompilers:</p>
+<ul>
+<li><p><a href="https://github.com/ilya-klyuchnikov/sc-mini">sc-mini</a><a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>: It unfolds arbitrarily and generates this program:</p>
+<pre><code>f1(v1) = f1(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(
+              S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(
+                S(S(S(S(S(v1))))))))))))))))))))))))))))))))))))))));</code></pre></li>
+<li><p><a href="https://github.com/ndmitchell/supero">supero</a>: It just loops:</p>
+<pre><code>➜  supero4 git:(master) ✗ ../.cabal-sandbox/bin/supero --compile ../example/Example1.hs
+files: [&quot;../example/Example1.hs&quot;]
+Converting ../example/Example1.hs
+{-# LANGUAGE UnboxedTuples, NoMonomorphismRestriction #-}
+module ...example.Example1_gen(test) where
+define: _1 = (:) (loop 1) []
+peel: (:) (loop 1) []
+define: _2 = loop 1
+^C
+➜  supero4 git:(master) ✗</code></pre></li>
+<li><p><a href="https://github.com/batterseapower/supercompilation-by-evaluation">supercompilation-by-evaluation</a>: Similar to sc-mini, it unfolds for a while and generates this:</p>
+<pre><code>let
+  h0 = let
+         root_u15 = loop_u17 a_u51
+         loop_u17 = h1
+         a_u51 = h5
+       in root_u15
+  h1 = \i_u55 -&gt; h2 i_u55
+  h2 = \i_u55 -&gt; let
+                   loop_u17 = h1
+                   a_u60 = h3 i_u55
+                 in loop_u17 a_u60
+  h3 = \i_u55 -&gt; let a_u57 = (+) i_u55 h4
+                 in (+) a_u57 h4
+  h4 = 1 :: Int
+  h5 = 4 :: Int
+in h0</code></pre></li>
+</ul>
+<p>In the ideal case a supercompiler would just generate same program, without making any changes.</p>
+<p>There’s one supercompiler that I couldn’t try: <a href="https://github.com/batterseapower/chsc">chsc</a>(The Cambridge Haskell Supercompiler). I wasted a lot of time trying to make it working, but I failed. If you’re able to run it, please post the results in comments section below.</p>
+<p>If you know any other supercompilers that I can test, please tell me about those too.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>This supercompiler comes with <a href="https://themonadreader.files.wordpress.com/2014/04/super-final.pdf">this paper</a>. I highly recommend the paper if you’re interested in supercompilation.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+
+</feed>

@@ -8,8 +8,62 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2015-05-13T00:00:00Z</updated>
+    <updated>2015-05-16T00:00:00Z</updated>
     <entry>
+    <title>Simplest pathological program for supercompilers</title>
+    <link href="http://osa1.net/posts/2015-05-16-simplest-pathological-pgm-for-supercompilers.html" />
+    <id>http://osa1.net/posts/2015-05-16-simplest-pathological-pgm-for-supercompilers.html</id>
+    <published>2015-05-16T00:00:00Z</published>
+    <updated>2015-05-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>While working on one of my program transformation ideas, I’ve found a very simple program that is apparently pathological for most supercompilers:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">loop x <span class="fu">=</span> loop (x <span class="fu">+</span> <span class="dv">1</span>)</code></pre>
+<p>I tried this program on several supercompilers:</p>
+<ul>
+<li><p><a href="https://github.com/ilya-klyuchnikov/sc-mini">sc-mini</a><a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>: It unfolds arbitrarily and generates this program:</p>
+<pre><code>f1(v1) = f1(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(
+              S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(
+                S(S(S(S(S(v1))))))))))))))))))))))))))))))))))))))));</code></pre></li>
+<li><p><a href="https://github.com/ndmitchell/supero">supero</a>: It just loops:</p>
+<pre><code>➜  supero4 git:(master) ✗ ../.cabal-sandbox/bin/supero --compile ../example/Example1.hs
+files: [&quot;../example/Example1.hs&quot;]
+Converting ../example/Example1.hs
+{-# LANGUAGE UnboxedTuples, NoMonomorphismRestriction #-}
+module ...example.Example1_gen(test) where
+define: _1 = (:) (loop 1) []
+peel: (:) (loop 1) []
+define: _2 = loop 1
+^C
+➜  supero4 git:(master) ✗</code></pre></li>
+<li><p><a href="https://github.com/batterseapower/supercompilation-by-evaluation">supercompilation-by-evaluation</a>: Similar to sc-mini, it unfolds for a while and generates this:</p>
+<pre><code>let
+  h0 = let
+         root_u15 = loop_u17 a_u51
+         loop_u17 = h1
+         a_u51 = h5
+       in root_u15
+  h1 = \i_u55 -&gt; h2 i_u55
+  h2 = \i_u55 -&gt; let
+                   loop_u17 = h1
+                   a_u60 = h3 i_u55
+                 in loop_u17 a_u60
+  h3 = \i_u55 -&gt; let a_u57 = (+) i_u55 h4
+                 in (+) a_u57 h4
+  h4 = 1 :: Int
+  h5 = 4 :: Int
+in h0</code></pre></li>
+</ul>
+<p>In the ideal case a supercompiler would just generate same program, without making any changes.</p>
+<p>There’s one supercompiler that I couldn’t try: <a href="https://github.com/batterseapower/chsc">chsc</a>(The Cambridge Haskell Supercompiler). I wasted a lot of time trying to make it working, but I failed. If you’re able to run it, please post the results in comments section below.</p>
+<p>If you know any other supercompilers that I can test, please tell me about those too.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>This supercompiler comes with <a href="https://themonadreader.files.wordpress.com/2014/04/super-final.pdf">this paper</a>. I highly recommend the paper if you’re interested in supercompilation.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>Compilation through interpretation, a small experiment</title>
     <link href="http://osa1.net/posts/2015-05-13-comp-through-interp.html" />
     <id>http://osa1.net/posts/2015-05-13-comp-through-interp.html</id>
@@ -1462,23 +1516,6 @@ As a next step, I'm hoping to define an imperative language in Coq, like IMP of 
 <div class="code">
 </div>
 ]]></summary>
-</entry>
-<entry>
-    <title>Tartışma</title>
-    <link href="http://osa1.net/posts/2014-07-29-tartisma.html" />
-    <id>http://osa1.net/posts/2014-07-29-tartisma.html</id>
-    <published>2014-07-29T00:00:00Z</published>
-    <updated>2014-07-29T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Birkaç tip insanla ne pahasına olursa olsun tartışmak istemiyorum. Ne iddia ediyorlarsa haklılar.</p>
-<ol style="list-style-type: decimal">
-<li>Heyecanlananlar, sesini yükseltenler, sinirlenenler, gaza gelenler. Hatta gaza gelen kesim ölene kadar benden uzak dursa keşke.</li>
-<li><a href="http://staffhome.ecm.uwa.edu.au/~00043886/humour/invalid.proofs.html#1.1Proofbyexample">“Proof by example”</a> ispat tekniğini benimseyenler. Özellikle bunu insanlara uyguladığında gerzekliğin sınırları zorlanmış oluyor. “Ankaralı iki arkadaşım var ikisi de şöyleydi, o zaman büyün Ankaralılar öyledir”. Her geçen gün bunun ne kadar fazla uygulandığına hayret etmekteyim. (günlük hayatta karşılaştıklarımız bu kadar bariz olmadığından çoğu zaman iki taraf da argümanın geçersizliğini hiçbir zaman farkedemiyor)</li>
-<li>Pire için yorgan yakanlar. Kimsenin kusursuz olmasını bekleyemezsin, yiğidi öldür hakkını yeme demişler.</li>
-<li>Dedikodu, desteksiz atanlar. Duyduğun işine gelen şeyleri doğru kabul edenler.</li>
-<li>Haksız olmayı göze alamayanlar. Tartışmanın amacı orta yolu bulmak, hatalı olanların hatalarının farkında olması değil midir? Bir spor olarak tartışanlar.</li>
-</ol>
-<p>Umarım bu hatalara ben de yapmıyorumdur, gerçekten çok uğraşıyorum bunun için.</p>
-<p>Bu sebeplerden, Türkiye’de mutlu, üretken, sağlıklı olmanın sırrını siyasetten uzak durmak olarak görüyorum. Üniversitede sınıf arkadaşlarım bana “apolitik” derlerdi, ne anlama geldiği hakkında halen daha pek fikrim yok, ama o zamanlar “vaktini öldürmemek için çaba sarfeden” olarak yorumlardım :)</p>]]></summary>
 </entry>
 
 </feed>
