@@ -8,8 +8,32 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2015-05-13T00:00:00Z</updated>
+    <updated>2015-05-17T00:00:00Z</updated>
     <entry>
+    <title>Staging is not just code generation</title>
+    <link href="http://osa1.net/posts/2015-05-17-staging-is-not-just-codegen.html" />
+    <id>http://osa1.net/posts/2015-05-17-staging-is-not-just-codegen.html</id>
+    <published>2015-05-17T00:00:00Z</published>
+    <updated>2015-05-17T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<h1 id="section"></h1>
+<p>It feels weird to see that even <a href="http://okmij.org/ftp/">Oleg</a> seems to <a href="http://lambda-the-ultimate.org/node/5146#comment-85570">think about it that way</a>.</p>
+<p>Sure, we don’t have a definition of the term that’s supposed to be accepted by everyone, and one can use it in different meanings. My minimal definition for the term is “a technique for runtime code generation and linking”. If it’s missing “linking” part, then to me it’s just another AST definition + printer library(sometimes it’s embedded into the language to add some convenience syntactic sugar and/or quasiquotation to the language).</p>
+<p>To me the whole point is “runtime specialization”. For that you should be able to use the runtime data that’s available when you’re generating the code in the generated code<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. This is called “cross-stage persistence”. In a simple multi-stage language, this may be supported simply by serializing data as code, but this is not as flexible as one might need for runtime optimized code generation. For example, you can’t serialize a socket or file handle this way, but it’s safe and possible to use a socket or file handle that’s available while generating the code in the generated code. You can’t easily do that if the staging library/language doesn’t provide this as a feature.</p>
+<p>In the case of <a href="http://okmij.org/ftp/ML/MetaOCaml.html">BER-MetaOCaml</a>, I think this is one of the major limitations without any workarounds: It only supports OCaml bytecode. Printing the code and compiling manually is not a solution for the reason I just described.</p>
+<p>One more thing about printing the code: In my opinion, a multi-stage language should provide a way to print generated code <em>only for debugging purposes</em>. (e.g. To see if I’m really generating the code I want)<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
+<p>I should make this clear that it’s completely fine to use it for code generation, what I’m trying to say is that if all it can do is code generation then it’s missing the point.</p>
+<p>As an example, I used staging for code generation <a href="http://osa1.net/posts/2015-05-13-comp-through-interp.html">in my last project</a>, and it seems like <a href="http://scala-lms.github.io/">Scala LMS</a> people do this a lot too<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>In a sense this is like a closure, generated code should be able to refer to names in enclosing environment of code generator.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>I’m wondering if <a href="http://terralang.org/">Terra</a> has a way to print generated code. Any ideas?<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>I didn’t read the paper very carefully, but I think one example is <a href="http://dl.acm.org/citation.cfm?id=2429128">Optimizing Data Structures in High-Level Programs</a> paper which is published in POPL ’13.<a href="#fnref3">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>Compilation through interpretation, a small experiment</title>
     <link href="http://osa1.net/posts/2015-05-13-comp-through-interp.html" />
     <id>http://osa1.net/posts/2015-05-13-comp-through-interp.html</id>
