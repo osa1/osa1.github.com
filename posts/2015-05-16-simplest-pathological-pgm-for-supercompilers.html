@@ -26,9 +26,9 @@
 <p>I tried this program on several supercompilers:</p>
 <ul>
 <li><p><a href="https://github.com/ilya-klyuchnikov/sc-mini">sc-mini</a><a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>: It unfolds arbitrarily and generates this program:</p>
-<pre><code>f1(v1) = f1(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(
-              S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(S(
-                S(S(S(S(S(v1))))))))))))))))))))))))))))))))))))))));</code></pre></li>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">f1(v1) <span class="fu">=</span> f1(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(
+              <span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(
+                <span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(v1))))))))))))))))))))))))))))))))))))))));</code></pre></li>
 <li><p><a href="https://github.com/ndmitchell/supero">supero</a>: It just loops:</p>
 <pre><code>➜  supero4 git:(master) ✗ ../.cabal-sandbox/bin/supero --compile ../example/Example1.hs
 files: [&quot;../example/Example1.hs&quot;]
@@ -41,31 +41,73 @@ define: _2 = loop 1
 ^C
 ➜  supero4 git:(master) ✗</code></pre></li>
 <li><p><a href="https://github.com/batterseapower/supercompilation-by-evaluation">supercompilation-by-evaluation</a>: Similar to sc-mini, it unfolds for a while and generates this:</p>
-<pre><code>let
-  h0 = let
-         root_u15 = loop_u17 a_u51
-         loop_u17 = h1
-         a_u51 = h5
-       in root_u15
-  h1 = \i_u55 -&gt; h2 i_u55
-  h2 = \i_u55 -&gt; let
-                   loop_u17 = h1
-                   a_u60 = h3 i_u55
-                 in loop_u17 a_u60
-  h3 = \i_u55 -&gt; let a_u57 = (+) i_u55 h4
-                 in (+) a_u57 h4
-  h4 = 1 :: Int
-  h5 = 4 :: Int
-in h0</code></pre></li>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span>
+  h0 <span class="fu">=</span> <span class="kw">let</span>
+         root_u15 <span class="fu">=</span> loop_u17 a_u51
+         loop_u17 <span class="fu">=</span> h1
+         a_u51 <span class="fu">=</span> h5
+       <span class="kw">in</span> root_u15
+  h1 <span class="fu">=</span> \i_u55 <span class="ot">-&gt;</span> h2 i_u55
+  h2 <span class="fu">=</span> \i_u55 <span class="ot">-&gt;</span> <span class="kw">let</span>
+                   loop_u17 <span class="fu">=</span> h1
+                   a_u60 <span class="fu">=</span> h3 i_u55
+                 <span class="kw">in</span> loop_u17 a_u60
+  h3 <span class="fu">=</span> \i_u55 <span class="ot">-&gt;</span> <span class="kw">let</span> a_u57 <span class="fu">=</span> (<span class="fu">+</span>) i_u55 h4
+                 <span class="kw">in</span> (<span class="fu">+</span>) a_u57 h4
+  h4 <span class="fu">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span>
+  h5 <span class="fu">=</span> <span class="dv">4</span><span class="ot"> ::</span> <span class="dt">Int</span>
+<span class="kw">in</span> h0</code></pre></li>
 </ul>
 <p>In the ideal case a supercompiler would just generate same program, without making any changes.</p>
 <p>There’s one supercompiler that I couldn’t try: <a href="https://github.com/batterseapower/chsc">chsc</a>(The Cambridge Haskell Supercompiler). I wasted a lot of time trying to make it working, but I failed. If you’re able to run it, please post the results in comments section below.</p>
 <p>If you know any other supercompilers that I can test, please tell me about those too.</p>
 <hr />
+<p>[May 17, 2015] UPDATE: I thought about why this is a bad case for supercompilers and found some explanations.</p>
+<p>First of all, this was not a fair comparison. In the case of “supercompilation-by-evaluation” and “supero” I didn’t use Peano definitions, instead used integers and primitive operation <code>(+)</code>. I fixed this and “supercompilation-by-evaluation” produced this program:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span>
+  h0 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> h1 i_u18
+  h1 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> <span class="kw">let</span>
+                   loop_u15 <span class="fu">=</span> h2
+                   a_u48 <span class="fu">=</span> h3 i_u18
+                 <span class="kw">in</span> loop_u15 a_u48
+  h2 <span class="fu">=</span> \i_u52 <span class="ot">-&gt;</span> h1 i_u52
+  h3 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> <span class="kw">let</span> a_u35 <span class="fu">=</span> h4 i_u18
+                 <span class="kw">in</span> <span class="dt">S</span> a_u35
+  h4 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> <span class="kw">let</span> a_u20 <span class="fu">=</span> h5 i_u18
+                 <span class="kw">in</span> <span class="dt">S</span> a_u20
+  h5 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> <span class="dt">S</span> i_u18
+<span class="kw">in</span> h0</code></pre>
+<p>When simplified, it turns into:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">loop <span class="fu">=</span> loop <span class="fu">.</span> <span class="dt">S</span> <span class="fu">.</span> <span class="dt">S</span> <span class="fu">.</span> <span class="dt">S</span></code></pre>
+<p>So it still has this problem of unfolding it for a while.</p>
+<p>I didn’t try this on “supero”, but in any case a it shouldn’t loop forever. It’s probably a bug in the implementation. Both supercompilers use same termination criteria so I’d expect “supero” to do the same.</p>
+<p>“sc-mini” is deliberately kept simple. It checks size of the term, and blows the whistle<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> if it’s larger than some fixed amount(it’s set as 40 in the source code). Indeed, look at the term produced by sc-mini, it contains 39 <code>S</code> applications and a variable. In the paper <a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>, the author mentions “homeomorphic embedding” and refers the user to some papers that describe it.</p>
+<p>I think a supercompiler that uses homeomorphic embedding would stop earlier than “supercompilation-by-evaluation”. I’d imagine something like this:</p>
+<ul>
+<li>Supercompilation starts with the term <code>loop Z</code>.</li>
+<li>It takes a step to <code>loop (S Z)</code>. Now our process tree has an edge like this: <code>loop Z -&gt; loop (S Z)</code>.</li>
+<li>Our homeomorphic embedding relation holds between <code>loop (S Z)</code> and <code>loop Z</code>, so our whistle blows and evaluation stops.</li>
+<li>Now the supercompiler introduces a definition <code>fresh_v1 x = loop x</code> and replaces <code>loop (S Z)</code> with <code>fresh_v1 (S Z)</code>.</li>
+<li>Optional: A simplification step would replace <code>fresh_v1</code> with <code>loop</code>.</li>
+</ul>
+<p>This would compile our program to <code>loop (S Z)</code>, which is not ideal maybe(still took a redundant step) but better than what’s produced by others.</p>
+<p>Quoted from the paper <a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/supercompilation/supercomp-by-eval.pdf">“Supercompilation by Evalution”</a>:</p>
+<blockquote>
+<p>Much of the supercompilation literature makes use of the homeomorphic embedding test for ensuring termination. Users of this test uniformly report that testing the termination condition makes up the majority of their supercompilers runtime<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>. The tag-bag criteria appears to be much more efficient in practice, as our supercompiler spends only 6% of its runtime testing the criteria.</p>
+</blockquote>
+<p>Quoted from the paper <a href="http://community.haskell.org/~ndm/downloads/paper-rethinking_supercompilation-29_sep_2010.pdf">“Rethinking Supercompilation”</a>:</p>
+<blockquote>
+<p>In some cases, our rule is certainly less restrictive than the homeomorphic embedding. The example in §2.6.4 would have stopped one step earlier with a homeomorphic embedding. Under a fairly standard interpretation of variable names and let expressions, we can show that our rule is always less restrictive than the homeomorphic embedding – although other differences in our treatment of expressions mean such a comparison is not necessarily meaningful. However, we did not choose our termination criteria to permit more expressions – it was chosen for both simplicity and compilation speed.</p>
+</blockquote>
+<p>So it seems like tag-bag approach, when compared to homeomorphic embedding, 1) faster 2) less restrictive(meaning sometimes it allows more steps to be taken before stopping evaluation). This is probably why it evaluates the loop a couple of times where homeomorphic embedding would stop after just one evaluation.</p>
+<hr />
 <div class="footnotes">
 <hr />
 <ol>
 <li id="fn1"><p>This supercompiler comes with <a href="https://themonadreader.files.wordpress.com/2014/04/super-final.pdf">this paper</a>. I highly recommend the paper if you’re interested in supercompilation.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>I don’t know the original source, but apparently “whistle” is the traditional term for the heuristic that tells a supercompiler to stop.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>This supercompiler comes with <a href="https://themonadreader.files.wordpress.com/2014/04/super-final.pdf">this paper</a>. I highly recommend the paper if you’re interested in supercompilation.<a href="#fnref3">↩</a></p></li>
+<li id="fn4"><p>References two papers: <a href="https://www.sics.se/~pj/papers/scp/popl09-scp.pdf">“Positive supercompilation for higher order call-by-value language”</a>(apparently the author later wrote his PhD thesis on this topic) and <a href="http://community.haskell.org/~ndm/downloads/paper-a_supercompiler_for_core_haskell-01_may_2008.pdf">“A supercompiler for core Haskell”</a>.<a href="#fnref4">↩</a></p></li>
 </ol>
 </div>
 
