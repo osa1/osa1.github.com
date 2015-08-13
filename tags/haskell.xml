@@ -8,11 +8,48 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2015-08-09T00:00:00Z</updated>
+    <updated>2015-08-13T00:00:00Z</updated>
     <entry>
-    <title>On Sufficiently Smart Compilers</title>
-    <link href="http://osa1.net/posts/2015-8-9-sufficiently-smart-compiler.html" />
-    <id>http://osa1.net/posts/2015-8-9-sufficiently-smart-compiler.html</id>
+    <title>The issue of splitting without work duplication</title>
+    <link href="http://osa1.net/posts/2015-08-13-the-issue-of-splitting-wo-duplication.html" />
+    <id>http://osa1.net/posts/2015-08-13-the-issue-of-splitting-wo-duplication.html</id>
+    <published>2015-08-13T00:00:00Z</published>
+    <updated>2015-08-13T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>(I’m starting publishing my long list of unpublished blog posts with this post)</p>
+<p>(Examples are from <a href="http://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-835.html">Bolingbroke’s PhD thesis</a>)</p>
+<p><em>Example 1:</em></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a  <span class="fu">=</span> id y
+    id <span class="fu">=</span> \x <span class="ot">-&gt;</span> x
+ <span class="kw">in</span> <span class="dt">Just</span> a</code></pre>
+<p><em>Problem:</em> The compiler should know about <code>id</code> while compiling <code>a</code>. This is easy to do, just tell the compiler about every binding when compiling RHSs. However, it causes some other problems:</p>
+<p><em>Example 2:</em></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> n <span class="fu">=</span> fib <span class="dv">100</span>
+    b <span class="fu">=</span> n <span class="fu">+</span> <span class="dv">1</span>
+    c <span class="fu">=</span> n <span class="fu">+</span> <span class="dv">2</span>
+ <span class="kw">in</span> (b, c)</code></pre>
+<p><em>Problem:</em> If we tell about <code>n</code> to the compiler when it’s compiling <code>b</code> and <code>c</code>, we’re taking the risk of work duplication. It may seem like <code>fib 100</code> will be evaluated in compile time and so duplication is not a huge deal, but this is not necessarily the case. First, we can’t know if it’s going to be evaluated to a value in compile time. Second, even if it’s a closed term and we somehow know it’s going to be terminated, termination checker of the evaluator may want to stop it before it’s evaluated to a value. Third, most of the time it’ll be an open term that’ll get stuck in the middle of supercompilation.</p>
+<p>And when that happens we will generate a let-binding in residual code. In our case, we’ll be generating two let-bindings, one is for <code>b</code> and one is for <code>c</code>, and those let bindings will be doing same work.</p>
+<hr />
+<p><em>Question:</em> Can we rely on a post-processsing pass to eliminate common subexpressions? I.e. if we generate a code like this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> b <span class="fu">=</span> <span class="kw">let</span> n_supercompiled <span class="fu">=</span> <span class="fu">&lt;</span>supercompiled fib <span class="dv">100</span><span class="fu">&gt;</span>
+         <span class="kw">in</span> n_supercompiled <span class="fu">+</span> <span class="dv">1</span>
+    c <span class="fu">=</span> <span class="kw">let</span> n_supercompiled <span class="fu">=</span> <span class="fu">&lt;</span>supercompiled fib <span class="dv">100</span><span class="fu">&gt;</span>
+         <span class="kw">in</span> n_supercompiled <span class="fu">+</span> <span class="dv">2</span>
+ <span class="kw">in</span> (b, c)</code></pre>
+<p>It would transform it to obvious residual code that has single <code>n_supercompiled</code> which is in scope of <code>b</code> and <code>c</code>.</p>
+<p>What are trade-offs?</p>
+<hr />
+<p>Finding a good heuristic is hard. Let’s say we try to estimate costs of expressions and decide whether to tell the compiler about them or not. If we decide that <code>ys</code> and <code>xs</code> are expensive in this case:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> map <span class="fu">=</span> <span class="fu">...</span>
+    ys <span class="fu">=</span> map f zs
+    xs <span class="fu">=</span> map g ys
+ <span class="kw">in</span> <span class="dt">Just</span> xs</code></pre>
+<p>We miss a deforestation opportunity, because the compiler won’t know about <code>ys</code> while compiling <code>xs</code>.</p>]]></summary>
+</entry>
+<entry>
+    <title>On sufficiently smart compilers</title>
+    <link href="http://osa1.net/posts/2015-08-09-sufficiently-smart-compiler.html" />
+    <id>http://osa1.net/posts/2015-08-09-sufficiently-smart-compiler.html</id>
     <published>2015-08-09T00:00:00Z</published>
     <updated>2015-08-09T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I’ve been thinking about optimizing functional programs recently, for a project that I’m hoping to make my research topic in the near future. You probably already know about <a href="http://c2.com/cgi/wiki?SufficientlySmartCompiler">The Myth of the Sufficiently Smart Compiler</a>, which basically says that the advanced compiler that optimizes your high-level, highly abstracted programs to efficient low-level code, is basically a myth.</p>
@@ -565,17 +602,6 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 <p>In all hslua examples, we needed to create Lua state in Haskell, register Haskell functions inside Haskell and then run Lua files using Lua C API again in Haskell. I think in theory it is also possible to run Lua programs using standard Lua interpreter executables(instead of running the interpreter using Lua C API inside Haskell) and load Haskell functions compiled to <code>*.so</code> shared library files.</p>
 <p>About one year ago, I did something similar using C instead of Haskell. You can see the code <a href="https://github.com/osa1/lcl">here</a>. The library compiled to a <code>.so</code> file and by using Lua’s <code>package.loadlib</code>, you can load functions defined in the <code>.so</code>.</p>
 <p>Compiling raw Haskell <code>hslua</code> functions to a <code>.so</code> should not be tricky. <code>LuaState</code> type is just a wrapper around <code>Ptr ()</code>, and <code>CInt</code> is just a C integer, so it’s signature is already compatible. We probably need to use <code>foreign export ...</code> of GHC FFI and find GHC parameters to compile to <code>.so</code>. I’ll investigate this further and post updates.</p>]]></summary>
-</entry>
-<entry>
-    <title>I'm accepted into GSoC and I'll be hacking on GHCJS this summer</title>
-    <link href="http://osa1.net/posts/2014-04-24-accepted-to-gsoc.html" />
-    <id>http://osa1.net/posts/2014-04-24-accepted-to-gsoc.html</id>
-    <published>2014-04-24T00:00:00Z</published>
-    <updated>2014-04-24T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’m accepted into Google Summer of Code 2014 and I’ll be working on adding profiling support to GHCJS. This is very exciting for me, I’ll be hacking on JavaScript backend of my favorite compiler(GHC) all summer and get paid :)</p>
-<p>I can’t wait to start hacking, but unfortunately I still have one last and very important exam before my graduation from undergraduate school on 26th April and I have to study hard for that. After that, I’ll be hacking on GHCJS all summer long.</p>
-<p>Stay tuned for updates about my work and live demos that you can run from within your browser, thanks to GHCJS.</p>
-<p>You can see all accepted proposals of Haskell organization <a href="http://www.google-melange.com/gsoc/org2/google/gsoc2014/haskell">here</a>.</p>]]></summary>
 </entry>
 
 </feed>
