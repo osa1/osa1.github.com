@@ -8,8 +8,21 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2015-08-13T00:00:00Z</updated>
+    <updated>2015-08-16T00:00:00Z</updated>
     <entry>
+    <title>A learning system that is as fast as a static one</title>
+    <link href="http://osa1.net/posts/2015-08-16-a-learning-system-that-is-fast.html" />
+    <id>http://osa1.net/posts/2015-08-16-a-learning-system-that-is-fast.html</id>
+    <published>2015-08-16T00:00:00Z</published>
+    <updated>2015-08-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I was reading the 1986 paper <a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.128.6414">The Concept of a Supercompiler</a> one more time, and I found this amazing part that I either missed or didn’t find interesting when I read it for the first time:</p>
+<p>(emphasis mine)</p>
+<blockquote>
+<p>Supercompilation can also be performed throughout all levels of the system. Fix k = K and supercompile E(K, q) with a variable q. You have an expert system that cannot learn, but answers questions very quickly. You can restore the ability of the system to learn by endowing it with two memories: short-term and long-term. To answer a question, both memories must be scanned. The long-term memory has those procedures that are obtained by using a supercompiler with the knowledge present at the moment of the last supercompilation session. The short-term memory includes universal interpretive procedures operating on the incremental knowledge received after the last supercompilation session. Such a system can be both fast and able to learn. <em>When it has no questions to answer(the periods of “sleep”), it will execute supercompilation procedures, converting its short-range memory into the long-range one. This would be a step towards a computer individual.</em></p>
+</blockquote>
+<p>This is interesting for two reasons. First, we discussed similar ideas with my advisor couple of weeks ago, but in a different context. I’m hoping to write more about this in future posts. Second, I think the idea is easily implementable with a multi-stage language. I think this is one of the ideas that are very good yet even after years still waiting to be implemented and explored further.</p>]]></summary>
+</entry>
+<entry>
     <title>The issue with work sharing(common subexpression elimination)</title>
     <link href="http://osa1.net/posts/2015-08-13-the-issue-with-work-sharing.html" />
     <id>http://osa1.net/posts/2015-08-13-the-issue-with-work-sharing.html</id>
@@ -597,41 +610,6 @@ newBoundTask: RTS is not initialised; call hs_init() first</code></pre>
 <h1 id="conclusion">Conclusion</h1>
 <p>It turns out that extending Lua using Haskell is almost as easy as the doing it using the technique I explained in my <a href="http://osa1.net/posts/2014-04-27-calling-haskell-lua.html">previous blog post on this topic</a>.</p>
 <p>This post also demonstrates one other thing, namely, compiling Haskell libraries to shared libraries and dynamically loading them in different programs. I’m hoping that this post helps fellow Haskellers to extend their programs written in different languages with Haskell.</p>]]></summary>
-</entry>
-<entry>
-    <title>Understanding Futamura Projections</title>
-    <link href="http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html" />
-    <id>http://osa1.net/posts/2015-01-11-understanding-futamura-projections.html</id>
-    <published>2015-01-11T00:00:00Z</published>
-    <updated>2015-01-11T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Here’s a way to understand Futamura projections<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
-<p>(Quick note: “Partial evaluator” == “specializer”. As far as I can see these words are also used interchangeably in the literature)</p>
-<p>We call our specializer <code>specialize</code>. We specify languages using capital letters, <code>S</code>, <code>T</code>, <code>L</code> etc. We use Haskell syntax for applications. (e.g. <code>f a1 a2 a3</code> is a function application of <code>f</code> to three arguments, applications are left-associative in the case of currying)</p>
-<p><code>specialize</code> takes two arguments, first argument is the program(function) to specialize, second argument is the input to specialize the program(function) on.</p>
-<p>Note that our specializers are “correct”: For all specializer <code>s</code>, program <code>f</code> and program arguments <code>a</code> and <code>b</code>, <code>(s f a) b</code> is semantically same as <code>f a b</code>.</p>
-<p>We show a specializer written in L which operates on programs written in T as <code>specialize_L_T</code>.</p>
-<p>Now there are three interesting “Futamura projections”. Let’s say we have an interpreter for a language <code>L</code>, called <code>int</code>, which is written in <code>T</code>. We use <code>*</code> as a wildcard for languages. (e.g. it can be substituted with any language)</p>
-<ol style="list-style-type: decimal">
-<li><p><code>specialize_*_T int int_pgm</code>: We specialized the interpreter on a program <code>int_pgm</code>, resulting program is in <code>T</code>. We now have a program in <code>T</code> which just gets arguments of the interpreted program and produces output. This gives us a compiled version of <code>int_pgm</code> to <code>T</code>.</p></li>
-<li><p><code>specialize_T_T specialize_T_T int</code>: We specialized the specializer on an interpreter. Generated program will be in <code>T</code>, and it’ll be expecting interpreter programs as input. The output will be specialized version of <code>int</code> for the given interpreter program. So we got a compiler for the interpreter <code>int</code>!</p>
-<p>Note that specializers now need to be written in the language that they operate on. Alternatively, we could use two different specializers: One for specialize the interpreter, and one for specializing the interpreter specializer. (e.g. in most general form, we can have <code>specialize_A_B specialize_B_C int</code> where <code>int</code> is written in <code>C</code>)</p></li>
-<li><p><code>specialize_T_T specialize_T_T specialize T_T</code>: This one is tricky. Let’s try to think what will be the generated program. We know from (2) is that <code>specialize_T_T specialize_T_T int</code> is a compiler for the language that <code>int</code> interprets. Now, we know from the note above that specializing doesn’t change meaning of the program, so our term from (2) <code>specialize_T_T specialize_T_T int</code> should be same with <code>(specialize_T_T specialize_T_T specialize_T_T) int</code>. What happens if we don’t apply the last <code>int</code>? Then we got a program that takes an interpreter and specializes it, resulting with a program in <code>T</code> that doesn’t expect interpreter argument. This is a compiler-compiler. Given an interpreter in <code>T</code>, it gives us a compiled version.</p></li>
-</ol>
-<p>Futamura projections are originally introduced in Futamura’s <a href="https://cs.au.dk/~hosc/local/HOSC-12-4-pp381-391.pdf">“Partial Evaluation of Computation Process – An Approach to a Compiler-Compiler”</a> and also described in <a href="http://www.itu.dk/people/sestoft/pebook/jonesgomardsestoft-letter.pdf">“Partial Evaluation and Automatic Program Generation”</a>.</p>
-<p>Thinking about languages and interpreters are good way to have an intuition about how partial evaluation, specializing specializers etc. work, and “writing interpreters on problem domain” may be a good and general approach to solving problems<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>, but I’m wondering what interesting programs and results we would get if we apply the these to different domains. Any ideas and pointers would be appreciated.</p>
-<h1 id="problem-with-implementing-the-idea">Problem with implementing the idea</h1>
-<p>Implementing ideas are generally a good way to learn, but in this case it’s a bit tricky. If we want to specialize specializers(like in projection (2) and (3)) we need to write one specializer in the language that it specializes, so we need a <code>specialize_T_T</code> for a <code>T</code>.</p>
-<p>To be more concrete, if we want to write the specializer in Haskell, then it has to be operating on Haskell so that we could specialize it on itself. Now this is no trivial work, Haskell is a big and complicated language.</p>
-<p>On the other hand, if we want to roll our own language just to try this idea, then we’ll have to write the specializer in our language. This is also not trivial, because we need implement a language that is expressive enough to write a specializer for itself.</p>
-<p>Designing a minimal language that is expressive enough to implement the idea may be a good challenge.</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>Futamura projections are what you get when you apply partial evaluators to interpreters and to themselves. Have a look at <a href="http://en.wikipedia.org/wiki/Partial_evaluation#Futamura_projections">related Wikipedia page</a> and see bottom of the post for more resources.<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>I recently stumbled upon this <a href="http://stackoverflow.com/questions/27852709/enterprise-patterns-with-functional-programming/27860072#27860072">SO answer</a> to a question about functional design patterns. It’s interesting how forcing yourself to a particular paradigm leads to different approaches and ways to solving problems. This is one of the reasons why I’m trying to learn a new paradigm using a language that is specifically crafted for that paradigm(e.g. Haskell for functional programming instead of Lisps, Scala etc.).<a href="#fnref2">↩</a></p></li>
-</ol>
-</div>]]></summary>
 </entry>
 
 </feed>
