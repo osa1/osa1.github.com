@@ -8,8 +8,79 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2015-11-13T00:00:00Z</updated>
+    <updated>2015-11-16T00:00:00Z</updated>
     <entry>
+    <title>On -XStrict</title>
+    <link href="http://osa1.net/posts/2015-11-16-XStrict-faq.html" />
+    <id>http://osa1.net/posts/2015-11-16-XStrict-faq.html</id>
+    <published>2015-11-16T00:00:00Z</published>
+    <updated>2015-11-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p><code>-XStrict</code> has <a href="https://phabricator.haskell.org/D1142">landed in HEAD</a> a couple of days ago, and judged from the <a href="https://www.reddit.com/r/haskell/comments/3sts2t/strict_haskell_xstrict_has_landed/">upvotes</a> it seems like <a href="https://www.reddit.com/r/haskell">/r/haskell</a> was quite excited about it.</p>
+<p>In the thread I tried to answer questions about <code>-XStrict</code>s effects on programs’ semantics. Does it make the language effectively call-by-value? Do I still have bottoms in my values? Do I lose infinite lists(streams)? In this post I’ll try to give a more organized answer, with some answers to the questions asked in the Reddit thread.</p>
+<hr />
+<p>Let’s think about how to create a thunk in Haskell:</p>
+<ul>
+<li><p>Create a let-binding. The RHS of let-binding is a thunk until actually use it.</p></li>
+<li><p>Create a where-binding. This is just a syntactic sugar for a let-binding, so I won’t consider this as a different case.</p></li>
+<li><p>Pass an argument to a function or a data constructor. The argument will only be evaluated when it’s actually “used”.</p></li>
+</ul>
+<p>Here I deliberately don’t define what I mean by “used”, because it’ll complicate the discussion a lot.</p>
+<p>Now, with <code>-XStrict</code>, we have a bang pattern in every binder. This means that:</p>
+<ol style="list-style-type: decimal">
+<li><p>Let-bindings are now strict. E.g. if we have something like:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span> <span class="fu">...</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
+<p><code>a</code> is now evaluated before <code>&lt;body&gt;</code>, and so we can be sure that it won’t be bottom in <code>&lt;body&gt;</code>. Note however that this isn’t to say that <code>a</code> can’t <em>contain</em> bottoms. Here I’m just saying that <code>a</code> can’t be bottom in <code>&lt;body&gt;</code>.</p></li>
+<li><p>Function arguments are now strict. In a function like this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">f a b <span class="fu">=</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
+<p><code>a</code> and <code>b</code> can’t be bottom in <code>&lt;body&gt;</code>.</p></li>
+<li><p>Data constructor arguments(fields) are now strict. If we have this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="dt">Nil</span> <span class="fu">|</span> <span class="dt">Cons</span> a (<span class="dt">List</span> a)</code></pre>
+<p>The two fields of <code>Cons</code> are now strict. Now, this case may look a bit tricky at first. What we really say here is that once a <code>List</code> is constructed, it can’t contain bottoms. We can still do something like <code>undefined :: List Int</code>, but the program immediately fails, instead of running until you try to pattern match on that <code>undefined</code> value like in the lazy case. This follows from the first two rules. Keep reading for more details.</p></li>
+</ol>
+<p>When all these combined, it means that our programs are evaluated just like how they would be in a call-by-value language. For example, if we have:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span> <span class="fu">...</span>  <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
+<p>We can be sure that <code>a</code> won’t be bottom in <code>&lt;body&gt;</code>, and it can’t contain bottoms too! This follows from all the rules above. The first rule only says that <code>a</code> can’t be bottom itself. It doesn’t say anything about the fields(subexpressions) of <code>a</code>. Third rule says that it can’t contain bottom fields.</p>
+<p>When we make all the binders and fields strict, including all the modules in all the dependencies(<code>base</code> etc.), we guarantee that we our programs evaluate like in a call-by-value language.</p>
+<p>Now, call-by-value, call-by-name(and it’s efficient implementation call-by-need) etc. are really about how to evaluate a function application. In our case since we have a strictness annotation in all the function arguments, arguments will be evaluated before being passed to the function. Which really means evaluating the function application in call-by-value semantics.</p>
+<p>Below are some questions and answers that I answered in the Reddit thread and in some follow-up threads.</p>
+<hr />
+<h2 id="what-about-standard-list-tuple-etc.-types">What about standard list, tuple etc. types?</h2>
+<p>Unless we compile modules that define those using <code>-XStrict</code>, they’ll stay non-strict. For the standard types, we need <code>base</code> compiled with <code>-XStrict</code>. In practice this will probably never happen. But I think we can have another base, say, <code>base-strict</code>, which is the same <code>base</code>, except compiled with <code>-XStrict</code>. In this case depending on which one we’re using our lists, tuples etc. become strict or lazy.</p>
+<h2 id="what-about-monadic-code">What about monadic code?</h2>
+<p>Monadic code is really not special in any sense. When talking about the semantics we should see through the syntactic sugar. Say we have this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> a <span class="ot">&lt;-</span> m1
+   b <span class="ot">&lt;-</span> m2 a
+   return (a <span class="fu">+</span> b)</code></pre>
+<p>This is really just a syntactic sugar for:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">m1 <span class="fu">&gt;&gt;=</span> (\a <span class="ot">-&gt;</span> m2 a <span class="fu">&gt;&gt;=</span> (\b <span class="ot">-&gt;</span> return (a <span class="fu">+</span> b)))</code></pre>
+<p>With <code>-XStrict</code>, function arguments <code>a</code> and <code>b</code> and all the arguments of <code>&gt;&gt;=</code> and <code>return</code> will be strict. This makes the whole code strict. In this code this means that <code>m1</code> will be evaluated before <code>m2 a</code> is evaluated, and <code>return</code>s return value will be strict etc.</p>
+<h2 id="what-about-list-comprehensions-and-infinite-listsstreams">What about list comprehensions and infinite lists(streams)?</h2>
+<p>A list comprehension like <code>[1..]</code> is again a syntactic sugar. It’s expanded form is <code>enumFrom 1</code>. <code>enumFrom</code>’s type is <code>Enum a =&gt; a -&gt; [a]</code>. Let’s say we’re using <code>Enum Int</code> here. Since the instance is defined in <code>base</code>, and lists are also defined in <code>base</code>, this code will still work. However, if we compile <code>base</code> with <code>-XStrict</code>, this code loops because the standard list type will become strict.</p>
+<p>In practice we would probably define strict and lazy lists separately to have the laziness when we need.</p>
+<h2 id="what-about-higher-order-functions">What about higher-order functions?</h2>
+<p>Since we don’t distinguish strict and lazy functions in type level, when we have a higher-order functions it may seem like we’d loose the guarantees. But this is not the case, at least not in general. Suppose we have this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">map<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
+map _ []       <span class="fu">=</span> []
+map f (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class="fu">:</span> map f xs</code></pre>
+<p>This is compiled with <code>-XStrict</code>. Now suppose we pass a function <code>f</code> which is lazy in it’s argument. Since <code>(:)</code> is strict in this code, we’ll still evaluate the <code>f x</code> before returning. Our guarantee that the list won’t be bottom and won’t have bottom still holds.</p>
+<p>See also the paper <a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/strict-core/tacc-hs09.pdf">“Types are calling conventions”</a>.</p>
+<h2 id="haskells-denotational-semantics-says-that-lifted-types-have-bottoms">Haskell’s denotational semantics says that lifted types have bottoms</h2>
+<p>This is true. Even if we have this strict type:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="dt">Nil</span> <span class="fu">|</span> <span class="dt">Cons</span> <span class="fu">!</span>a <span class="fu">!</span>(<span class="dt">List</span> a)</code></pre>
+<p>We can construct bottom values of this type, using, for example, <code>undefined :: List Int</code> or <code>(let x = x in x) :: Blah</code>.</p>
+<p>However, if you think about how this value will be evaluated you’ll realize that this is exactly like how it would be evaluated in a call-by-value language. For example, if we try to bind it to a value:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span><span class="ot"> undefined ::</span> <span class="dt">List</span> <span class="dt">Int</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
+<p>This code will fail before <code>&lt;body&gt;</code> is run. In <code>&lt;body&gt;</code> <code>a</code> can’t be bottom and can’t contain bottoms.</p>
+<p>(See also <a href="https://mail.haskell.org/pipermail/ghc-devs/2015-September/009799.html">this ghc-devs thread</a> about adding user defined unlifted data types to GHC. With this we could eliminate all the bottoms in some user-defined types.)</p>
+<h2 id="but-haskell-will-still-generate-thunks-in-the-rts-level">But Haskell will still generate thunks in the RTS level?</h2>
+<p>This is exactly right. <code>-XStrict</code> is really a very simple compiler pass that adds strictness annotations to every binder and field. We don’t have any changes in the GHC RTS to take advantage of additional strictness.</p>
+<p>In other words, operational semantics of the language and implementation of this operational semantics in GHC RTS is still the same. We just do a program transformation to generate a program that evaluates like it would in a call-by-value language.</p>
+<p>This means that if we have this program:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span><span class="ot"> undefined ::</span> <span class="dt">List</span> <span class="dt">Int</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
+<p>A thunk is still constructed in the runtime, but it’s evaluated <em>before</em> the <code>&lt;body&gt;</code> is evaluated. So this code fails before <code>&lt;body&gt;</code> is evaluated, and if we evaluate <code>&lt;body&gt;</code> it means that <code>a</code> is not bottom and doesn’t have bottoms.</p>
+<p>This is another potential improvement over the <code>-XStrict</code>. For more details and some optimizations see <a href="https://mail.haskell.org/pipermail/ghc-devs/2015-October/010175.html">this ghc-devs thread</a>.</p>]]></summary>
+</entry>
+<entry>
     <title>On data representation in GHC Haskell</title>
     <link href="http://osa1.net/posts/2015-11-13-data-repr-1.html" />
     <id>http://osa1.net/posts/2015-11-13-data-repr-1.html</id>
@@ -642,21 +713,6 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
 <pre><code>gcc -O3 awk_output.c  14.07s user 0.14s system 99% cpu 14.219 total</code></pre>
 <p>RPython once again does an impressive job here, because it’s even faster than C interpreter. I didn’t bother profiling C code and optimizing it, because it looks like a reasonable implementation: A simple “fetch instruction and run it in a case statement” loop.</p>
 <p>So I think the conclusion is that RPython and PyPy are doing really good job.</p>]]></summary>
-</entry>
-<entry>
-    <title>Top-down expression parsing is easy</title>
-    <link href="http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html" />
-    <id>http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html</id>
-    <published>2015-01-29T00:00:00Z</published>
-    <updated>2015-01-29T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I recently fixed <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>’s 2-years-old expression parsing bug. Previously it was using <a href="http://hackage.haskell.org/package/parsec-3.1.8/docs/Text-Parsec-Expr.html">Parsec’s expression parser</a>, which is actually horrible because it can’t handle chained unary operators.</p>
-<p>Two weeks ago I decided to take a look into Lua’s original implementation, and in about an hour or so the algorithm was crystal clear to me. I immediately <a href="https://github.com/osa1/language-lua/commit/b4bebe36e927dcc671dbe6dd19572b83073dc556#diff-630bbd2d118baf109da6ad79d3f168bfR257">implemented it</a> and closed the <a href="https://github.com/osa1/language-lua/issues/2">2-years-old bug report</a>.</p>
-<p>This implementation is essentially a port of Lua’s expression parser. Recently I thought about the algorithm and I was wondering if this has a name – the algorithm looked pretty obvious to me once I understand and given how much we know about parsing I thought this should have a name.</p>
-<p>I found <a href="http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing">this algorithm named “precedence climbing”</a>. This is almost the same algorithm, only difference is that instead of using <code>lookahead</code> I’m just consuming the binary operator and returning it to the caller(which is parsing an expression with lower precedence than current parser) if precedence is lower. Associativity handling is also different(I use different left and right precedences to handle associativity) but the idea is really the same.</p>
-<p>Now, there is also another algorithm called Pratt, and I can’t read the original paper(paywall), but according to <a href="http://lambda-the-ultimate.org/node/3682">this LtU discussion</a> it should also be similar. Indeed, <a href="http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/">this explanation of it</a> looks pretty similar, and <a href="http://stackoverflow.com/a/13637731/691032">this StackOverflow answer</a> says that Lua’s implementation is “Pratt style parsing”.</p>
-<p>So it seems like we have two, or maybe one since they’re actually very similar, solution(s) to solve top-down expression parsing problem and Haskell implementation using Parsec is possible in only 12 lines of code.</p>
-<h1 id="a-challenge">A challenge</h1>
-<p>One challenge might be to modify Parsec’s expression parser so that internally it generates a Pratt/precedence climbing parser. I’m hoping to spare some time to work on this.</p>]]></summary>
 </entry>
 
 </feed>
