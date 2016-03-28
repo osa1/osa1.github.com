@@ -10,6 +10,296 @@
     </author>
     <updated>2015-11-16T00:00:00Z</updated>
     <entry>
+    <title>Rust borrow checker woes</title>
+    <link href="http://osa1.net/posts/2016-03-28-rust-brwchk-woes.html" />
+    <id>http://osa1.net/posts/2016-03-28-rust-brwchk-woes.html</id>
+    <published>2015-11-16T00:00:00Z</published>
+    <updated>2015-11-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been doing some Rust hacking in my free time, and unfortunately while it’s way, way better than how it was when I first tried it (around 0.4 or 0.6 IIRC), it still has some problems that encourage redundant runtime operations or bad programming practices. In this post I’ll give three examples that are all caused by dumb borrow checker. As you’ll see, in all cases the cost is either bad programming practices or runtime costs (which is really ironic, given that one of the design goals of Rust is performance).</p>
+<h1 id="no-local-reasoning-about-borrowing-rules-of-constructors">1. No local reasoning about borrowing rules of constructors</h1>
+<p>It’s types that borrow, not values, and that makes sense. If you have an <code>Option&lt;&amp;'a T&gt;</code> where <code>'a</code> is coming from some other variable <code>x</code>, 1) <code>x</code> needs to live longer than this <code>Option</code> value 2) you can’t borrow <code>x</code> mutably while keeping the <code>Option</code> in scope (or the other way around, you can’t borrow <code>Option</code> mutably while keeping <code>x</code> in scope).</p>
+<p>This makes sense because in compile time, given an <code>Option&lt;&amp;'a T&gt;</code>, you can’t make any assumptions on <code>Option</code>’s actual value. Since <code>Some</code> constructor of the <code>Option</code> type will borrow the <code>T</code> here, you just have to assume that values of this type always borrow <code>T</code> (and that’s why we have <code>&amp;'a</code> in the type).</p>
+<p>The problem is that it’s sometimes possible to do some local reasoning, and not doing that is too restrictive. Suppose you have this:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> ListOfThings {
+    list : Vec&lt;Thing&gt;,
+}
+
+<span class="kw">struct</span> Thing {
+    name : String,
+    <span class="co">// other fields here -- this is expensive to copy!</span>
+}
+
+<span class="kw">impl</span> Thing {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {}
+}
+
+<span class="kw">impl</span> ListOfThings {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
+        <span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) {
+            <span class="kw">None</span> =&gt; {
+                <span class="kw">self</span>.init_thing(name.to_owned());
+                <span class="kw">self</span>.do_something(name)
+            },
+            <span class="kw">Some</span>(t) =&gt; {
+                t.do_something()
+            },
+        }
+    }
+
+    <span class="kw">fn</span> find_thing_mut&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) -&gt; <span class="kw">Option</span>&lt;&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> Thing&gt; {
+        <span class="kw">self</span>.list.iter_mut().find(|t| t.name.as_str() == name)
+    }
+
+    <span class="kw">fn</span> init_thing(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : String) {
+        <span class="kw">self</span>.list.push(Thing { name: name })
+    }
+}</code></pre>
+<p>The important part is this expression:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) {
+    <span class="kw">None</span> =&gt; {
+        <span class="kw">self</span>.init_thing(name.to_owned());
+        <span class="kw">self</span>.do_something(name)
+    },
+    <span class="kw">Some</span>(t) =&gt; {
+        t.do_something()
+    },
+}</code></pre>
+<p>The error we get is:</p>
+<pre><code>&lt;anon&gt;:18:17: 18:21 error: cannot borrow `*self` as mutable more than once at a time [E0499]
+&lt;anon&gt;:18                 self.init_thing(name.to_owned());
+                          ^~~~
+&lt;anon&gt;:18:17: 18:21 help: see the detailed explanation for E0499
+&lt;anon&gt;:16:15: 16:19 note: previous borrow of `*self` occurs here; the mutable
+                          borrow prevents subsequent moves, borrows, or
+                          modification of `*self` until the borrow ends
+&lt;anon&gt;:16         match self.find_thing_mut(name) {
+                        ^~~~
+&lt;anon&gt;:24:10: 24:10 note: previous borrow ends here
+&lt;anon&gt;:16         match self.find_thing_mut(name) {
+...
+&lt;anon&gt;:24         }
+                  ^
+&lt;anon&gt;:19:17: 19:21 error: cannot borrow `*self` as mutable more than once at a time [E0499]
+&lt;anon&gt;:19                 self.do_something(name)
+                          ^~~~
+&lt;anon&gt;:19:17: 19:21 help: see the detailed explanation for E0499
+&lt;anon&gt;:16:15: 16:19 note: previous borrow of `*self` occurs here; the mutable
+                          borrow prevents subsequent moves, borrows, or
+                          modification of `*self` until the borrow ends
+&lt;anon&gt;:16         match self.find_thing_mut(name) {
+                        ^~~~
+&lt;anon&gt;:24:10: 24:10 note: previous borrow ends here
+&lt;anon&gt;:16         match self.find_thing_mut(name) {
+...
+&lt;anon&gt;:24         }
+                  ^</code></pre>
+<p><code>find_thing_mut()</code> really needs to return a ref, because <code>Thing</code> is expensive to copy. The problem is since <code>None</code> has type <code>Option&lt;&amp;'a mut Thing&gt;</code> where <code>a</code> is the lifetime of <code>self</code>, we can’t call a <code>&amp;mut self</code> when that <code>None</code> is in scope. This is annoying and could be improved by doing some local reasoning. In our case, since we know that <code>None</code> can’t borrow anything (it doesn’t have any references), we could refine our information about currently borrwed values, and let this compile.</p>
+<p>There are a couple of solutions. One half-solution is to use something like standard <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry"><code>HashMap</code>’s <code>entry()</code></a>. Imagine doing something like:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::HashMap;
+
+<span class="kw">struct</span> ListOfThings {
+    list : HashMap&lt;String, Thing&gt;,
+}
+
+<span class="kw">struct</span> Thing {
+    field1 : <span class="kw">i32</span>,
+    <span class="co">// other fields here -- this is expensive to copy!</span>
+}
+
+<span class="kw">impl</span> Thing {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {}
+}
+
+<span class="kw">impl</span> ListOfThings {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
+        <span class="kw">match</span> <span class="kw">self</span>.list.get_mut(name) {
+            <span class="kw">None</span> =&gt; {
+                <span class="kw">self</span>.list.insert(name.to_owned(), Thing { field1: <span class="dv">123</span> });
+            },
+            <span class="kw">Some</span>(t) =&gt; {
+                t.do_something();
+            }
+        }
+    }
+}</code></pre>
+<p>The error we get:</p>
+<pre><code>&lt;anon&gt;:20:17: 20:26 error: cannot borrow `self.list` as mutable more than once at a time [E0499]
+&lt;anon&gt;:20                 self.list.insert(name.to_owned(), Thing { field1: 123 });
+                          ^~~~~~~~~
+&lt;anon&gt;:20:17: 20:26 help: see the detailed explanation for E0499
+&lt;anon&gt;:18:15: 18:24 note: previous borrow of `self.list` occurs here; the
+                          mutable borrow prevents subsequent moves, borrows, or
+                          modification of `self.list` until the borrow ends
+&lt;anon&gt;:18         match self.list.get_mut(name) {
+                        ^~~~~~~~~
+&lt;anon&gt;:25:10: 25:10 note: previous borrow ends here
+&lt;anon&gt;:18         match self.list.get_mut(name) {
+...
+&lt;anon&gt;:25         }
+                  ^</code></pre>
+<p>This is exactly the same error we got before. The solution is to use <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry">the <code>Entry</code> API</a>:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::{HashMap, Entry};
+
+<span class="kw">struct</span> ListOfThings {
+    list : HashMap&lt;String, Thing&gt;,
+}
+
+<span class="kw">struct</span> Thing {
+    field1 : <span class="kw">i32</span>,
+    <span class="co">// other fields here -- this is expensive to copy!</span>
+}
+
+<span class="kw">impl</span> Thing {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {}
+}
+
+<span class="kw">impl</span> ListOfThings {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
+        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
+            Entry::Vacant(ve) =&gt; {
+                ve.insert(Thing { field1: <span class="dv">123</span> });
+            },
+            Entry::Occupied(<span class="kw">mut</span> oe) =&gt; {
+                oe.get_mut().do_something();
+            }
+        }
+    }
+}</code></pre>
+<p>Some things to not here:</p>
+<ol style="list-style-type: decimal">
+<li><p>We had to give ownership of the key to the lookup function (<code>HashMap::entry()</code>). This potentially means copying a value just to lookup. Ideally we only need to do this when inserting to the map. <code>HashMap::get()</code> doesn’t have this problem.</p></li>
+<li><p>I said “half-solution” because this doesn’t really make the original code working. See how I removed a line in the first case when in my <code>HashMap</code>-based implementation. If I change the first case to this:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
+            Entry::Vacant(ve) =&gt; {
+                ve.insert(Thing { field1: <span class="dv">123</span> });
+                <span class="kw">self</span>.do_something(name)
+            },</code></pre>
+<p>It’d still fail as <code>Entry</code> keeps a reference to <code>self</code>. Of course you could always do things like:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
+            Entry::Vacant(ve) =&gt; {
+                <span class="kw">let</span> <span class="kw">mut</span> thing = Thing { field1 : <span class="dv">123</span> };
+                thing.do_something();
+                ve.insert(thing);
+            },</code></pre>
+<p>Which works, but that’s quite different from our original program. Note that if we still had a method like <code>init_thing()</code> and has to pass <code>Entry</code> to that, it’d still fail with same error message. So yeah, not quite a solution.</p></li>
+</ol>
+<p>The solution I use is this:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> ListOfThings {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
+        <span class="kw">let</span> thing : <span class="kw">Option</span>&lt;*<span class="kw">mut</span> Thing&gt; = <span class="kw">self</span>.find_thing_mut(name).map(|t| (t <span class="kw">as</span> *<span class="kw">mut</span> _));
+        <span class="kw">match</span> thing {
+            <span class="kw">None</span> =&gt; {
+                <span class="kw">self</span>.init_thing(name.to_owned());
+                <span class="kw">self</span>.do_something(name)
+            },
+            <span class="kw">Some</span>(t) =&gt; {
+                <span class="kw">unsafe</span> { (*t).do_something() }
+            },
+        }
+    }
+}</code></pre>
+<p>(missing parts are the same as the original code),</p>
+<p>I basically work around the borrow checker by using a raw pointer and an <code>unsafe</code> block.</p>
+<h1 id="references-to-self-in-method-values">2. References to self in method values</h1>
+<p>A code like this fails if the method is <code>&amp;mut self</code>: <code>self.f(self.x)</code>. As a running example:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> Widget {
+    pos_x : <span class="kw">i32</span>,
+    pos_y : <span class="kw">i32</span>,
+}
+
+<span class="kw">impl</span> Widget {
+    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {
+        <span class="kw">self</span>.draw_at(<span class="kw">self</span>.pos_x, <span class="kw">self</span>.pos_y);
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> draw_at(&amp;<span class="kw">mut</span> <span class="kw">self</span>, pos_x : <span class="kw">i32</span>, pos_y : <span class="kw">i32</span>) {}
+}</code></pre>
+<p>These are the errors:</p>
+<pre><code>&lt;anon&gt;:8:22: 8:32 error: cannot use `self.pos_x` because it was mutably borrowed [E0503]
+&lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
+                              ^~~~~~~~~~
+&lt;anon&gt;:8:9: 8:13 note: borrow of `*self` occurs here
+&lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
+                 ^~~~
+&lt;anon&gt;:8:34: 8:44 error: cannot use `self.pos_y` because it was mutably borrowed [E0503]
+&lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
+                                          ^~~~~~~~~~
+&lt;anon&gt;:8:9: 8:13 note: borrow of `*self` occurs here
+&lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
+                 ^~~~</code></pre>
+<p>Basically the method itself (<code>self.draw_at</code>) borrows <code>self</code> mutably, and since arguments are evaluated <em>after</em> the function in a function application, we get this borrow checker error. The solution is simple in this case:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">let</span> pos_x = <span class="kw">self</span>.pos_x;
+<span class="kw">let</span> pos_y = <span class="kw">self</span>.pos_y;
+<span class="kw">self</span>.draw_at(pos_x, pos_y);</code></pre>
+<h1 id="variables-that-live-across-loops">3. Variables that live across loops</h1>
+<p>Suppose you have a loop that internally calls some <code>&amp;mut self</code> methods, and when it returns, it returns something with a reference to <code>&amp;self</code>. Something like:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">pub</span> <span class="kw">struct</span> TUI {
+    field1: <span class="kw">i32</span>,
+}
+
+<span class="kw">pub</span> <span class="kw">enum</span> TUIRet&lt;<span class="ot">&#39;a</span>&gt; {
+    Abort,
+    KeyHandled,
+    Input(&amp;<span class="ot">&#39;a</span> <span class="kw">str</span>),
+}
+
+<span class="kw">impl</span> TUI {
+    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">&#39;a</span>&gt; {
+        <span class="kw">loop</span> {
+            <span class="kw">self</span>.draw();
+
+            <span class="kw">match</span> <span class="kw">self</span>.keypressed() {
+                ret @ TUIRet::Abort =&gt; { <span class="kw">return</span> ret; },
+                ret @ TUIRet::Input(_) =&gt; { <span class="kw">return</span> ret; },
+                _ =&gt; {},
+            }
+        }
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> keypressed(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet {
+        <span class="ot">panic!</span>()
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">self</span>) {}
+}</code></pre>
+<p>Can you see what could go wrong here? Here’s the error:</p>
+<pre><code>&lt;anon&gt;:18:13: 18:17 error: cannot borrow `*self` as immutable because it is also borrowed as mutable [E0502]
+&lt;anon&gt;:18             self.draw();
+                      ^~~~
+&lt;anon&gt;:20:19: 20:23 note: previous borrow of `*self` occurs here; the mutable
+                          borrow prevents subsequent moves, borrows, or
+                          modification of `*self` until the borrow ends
+&lt;anon&gt;:20             match self.keypressed() {
+                            ^~~~
+&lt;anon&gt;:26:6: 26:6 note: previous borrow ends here
+&lt;anon&gt;:16     pub fn idle_loop&lt;&#39;a&gt;(&amp;&#39;a mut self) -&gt; TUIRet&lt;&#39;a&gt; {
+...
+&lt;anon&gt;:26     }
+              ^
+&lt;anon&gt;:20:19: 20:23 error: cannot borrow `*self` as mutable more than once at a time [E0499]
+&lt;anon&gt;:20             match self.keypressed() {
+                            ^~~~
+&lt;anon&gt;:20:19: 20:23 help: see the detailed explanation for E0499
+&lt;anon&gt;:20:19: 20:23 note: previous borrow of `*self` occurs here; the mutable
+                          borrow prevents subsequent moves, borrows, or
+                          modification of `*self` until the borrow ends
+&lt;anon&gt;:20             match self.keypressed() {
+                            ^~~~
+&lt;anon&gt;:26:6: 26:6 note: previous borrow ends here
+&lt;anon&gt;:16     pub fn idle_loop&lt;&#39;a&gt;(&amp;&#39;a mut self) -&gt; TUIRet&lt;&#39;a&gt; {
+...
+&lt;anon&gt;:26     }
+              ^</code></pre>
+<p>This is probably the worst of all. The weird part is that this works:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust">    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">&#39;a</span>&gt; {
+        <span class="kw">loop</span> {
+            <span class="kw">self</span>.draw();
+            <span class="kw">return</span> <span class="kw">self</span>.keypressed();
+        }
+    }</code></pre>
+<p>Only solution I could find here was to remove the references to <code>self</code>, by just copying the value to <code>Input</code>. This unfortunately means more redundant copying.</p>]]></summary>
+</entry>
+<entry>
     <title>On -XStrict</title>
     <link href="http://osa1.net/posts/2015-11-16-XStrict-faq.html" />
     <id>http://osa1.net/posts/2015-11-16-XStrict-faq.html</id>
@@ -546,174 +836,6 @@ define: _2 = loop 1
 <li id="fn3"><p>In MetaOCaml case those annotations are term-level, but there are other cases where annotations happen in type level only. See <a href="http://scala-lms.github.io/">LMS</a> as an example. (I think it’s the only example for now)<a href="#fnref3">↩</a></p></li>
 </ol>
 </div>]]></summary>
-</entry>
-<entry>
-    <title>Some benchmarks for meta-tracing BF JIT and traditional BF implementations</title>
-    <link href="http://osa1.net/posts/2015-04-11-some-bf-benchmarks.html" />
-    <id>http://osa1.net/posts/2015-04-11-some-bf-benchmarks.html</id>
-    <published>2015-01-29T00:00:00Z</published>
-    <updated>2015-01-29T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I found RPython very interesting for several reasons which I may be talking about later, and I need to use it for a project, so I started running some tutorials. However, I had some concerns about the idea(I still have, and I’ll defer the discussion to some other post for now), and I wanted to experiment with different implementations of same interpreter and compare results.</p>
-<p>What I wanted to see is, given a very good and mature JIT compiler(LuaJIT in this case), how hard would it be to have similar optimizations without annotating code manually to give hints to the JIT compiler.</p>
-<p>So I implemented a simple BF interpreter in Lua, and started experimenting with different optimizations. As for benchmarking, I used <code>bench</code> program from this <a href="https://bitbucket.org/brownan/pypy-tutorial/">RPython tutorial repository</a>.</p>
-<p>Before diving into Lua implementation, here results of running them with RPython compiled interpreter, Python and PyPy:</p>
-<pre><code>./example5-rpython bench.b    0.94s user 0.00s system 99% cpu 0.947 total
-pypy example5.py   bench.b   15.57s user 0.01s system 99% cpu 15.597 total
-python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</code></pre>
-<p>The Lua implementation started with this:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> mainloop<span class="ot">(</span>program<span class="ot">,</span> bracket_map<span class="ot">,</span> dispatch_fn<span class="ot">)</span>
-    <span class="kw">local</span> pc <span class="ot">=</span> <span class="dv">1</span>
-    <span class="kw">local</span> tape <span class="ot">=</span> <span class="ot">{</span><span class="dv">0</span><span class="ot">}</span>
-    <span class="kw">local</span> tape_pos <span class="ot">=</span> <span class="dv">1</span>
-
-    <span class="kw">local</span> code
-    <span class="kw">while</span> pc <span class="ot">&lt;=</span> <span class="ot">#</span>program <span class="kw">do</span>
-        code <span class="ot">=</span> program<span class="ot">[</span>pc<span class="ot">]</span>
-        <span class="kw">if</span> code <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span>
-            tape_pos <span class="ot">=</span> tape_pos <span class="ot">+</span> <span class="dv">1</span>
-            <span class="kw">if</span> <span class="ot">#</span>tape <span class="ot">&lt;</span> tape_pos <span class="kw">then</span>
-                <span class="fu">table.insert</span><span class="ot">(</span>tape<span class="ot">,</span> <span class="dv">0</span><span class="ot">)</span>
-            <span class="kw">end</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span>
-            tape_pos <span class="ot">=</span> tape_pos <span class="ot">-</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span>
-            tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">=</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span>
-            tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">=</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">-</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span>
-            <span class="fu">io.write</span><span class="ot">(</span><span class="fu">string.char</span><span class="ot">(</span>tape<span class="ot">[</span>tape_pos<span class="ot">]))</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">and</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">==</span> <span class="dv">0</span> <span class="kw">then</span>
-            pc <span class="ot">=</span> bracket_map<span class="ot">[</span>pc<span class="ot">]</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">and</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">then</span>
-            pc <span class="ot">=</span> bracket_map<span class="ot">[</span>pc<span class="ot">]</span>
-        <span class="kw">end</span>
-        pc <span class="ot">=</span> pc <span class="ot">+</span> <span class="dv">1</span>
-    <span class="kw">end</span>
-<span class="kw">end</span></code></pre>
-<p>I’m not sure how many reasonable different implementations one can come up with, given that the language is this small. Still, there are some optimizations that we can do and I’ve tried some of them. Here are some things I tried:</p>
-<ul>
-<li>I tried replacing one character strings with ASCII code equivalents. Since Lua doesn’t have character constants, I thought this may give us a few instructions per branch. But results were just the same.</li>
-<li>I tried replacing table getters and setters with <code>rawget</code> and <code>rawset</code>s. Nothing changed. Apparently it’s not worth the effort unless you have a metatable for your table.</li>
-<li><p>I tried generating a huge “if-then-else” statement for <code>bracket_map</code>, and used it as a jump table kind of thing. Here’s the code:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> gen_dispatch_fn<span class="ot">(</span>bracket_map<span class="ot">,</span> fun_name<span class="ot">)</span>
-    <span class="kw">local</span> first <span class="ot">=</span> <span class="kw">true</span>
-    <span class="kw">local</span> acc <span class="ot">=</span> <span class="ot">{}</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;function &quot;</span> <span class="ot">..</span> fun_name <span class="ot">..</span> <span class="st">&quot;(arg)</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="kw">for</span> k<span class="ot">,</span>v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>bracket_map<span class="ot">)</span> <span class="kw">do</span>
-        <span class="kw">if</span> first <span class="kw">then</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    if arg == &quot;</span> <span class="ot">..</span> k <span class="ot">..</span> <span class="st">&quot; then</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-            first <span class="ot">=</span> <span class="kw">false</span>
-        <span class="kw">else</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    elseif arg == &quot;</span> <span class="ot">..</span> k <span class="ot">..</span> <span class="st">&quot; then</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-        <span class="kw">end</span>
-        <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;        return &quot;</span> <span class="ot">..</span> v <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="kw">end</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    else</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;        error(</span><span class="ot">\&quot;</span><span class="st">invalid arg: </span><span class="ot">\&quot;</span><span class="st"> .. arg)</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>acc<span class="ot">)</span>
-<span class="kw">end</span></code></pre>
-<p>I loaded this code using standard <code>load()</code> function. This also didn’t work. The reason is that, even if this is faster(which is probably not always the case), profiling showed that interpreter spents only 4% of the time for <code>bracket_map</code> lookups. So if this implementation only slightly faster, it just can’t make a big difference.</p></li>
-</ul>
-<p>Profiling output revealed that, 85% of the time spent on fetching the next instruction:</p>
-<pre><code>@@ 69 @@
-      |
-      |     local code
-      |     while pc &lt;= #program do
-  85% |         code = program[pc]
-      |         if code == 62 then
-      |             tape_pos = tape_pos + 1
-      |             if #tape &lt; tape_pos then
-@@ 89 @@
-      |             pc = bracket_map[pc]
-      |         elseif code == 93 and tape[tape_pos] ~= 0 then
-   4% |             pc = bracket_map[pc]
-      |         end
-      |         pc = pc + 1</code></pre>
-<p>Which really means that you can’t optimize anything, because there’s nothing optimizable in <code>code = program[pc]</code>, since this is one of the most primitive operations that you can do in this language. (note that we don’t have metamethod assigned to this table, so <code>rawget</code> is not an optimization)</p>
-<p>At this point the Lua results were like this:</p>
-<pre><code>luajit example_lua.lua bench.b  34.41s user 0.00s system 99% cpu 34.442 total</code></pre>
-<p>The fact that PyPy did better job than LuaJIT here is surprising and impressive. It seems like RPython and PyPy is doing a very good job here.</p>
-<p>Since I already started gradually compiling things, I thought why not go further and compile everything. Here’s a simple BF to Lua compiler:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> compile<span class="ot">(</span>str<span class="ot">)</span>
-    <span class="kw">local</span> pgm <span class="ot">=</span> <span class="ot">{}</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">[[</span>
-<span class="st">function pgm()</span>
-<span class="st">    local tape = {0}</span>
-<span class="st">    local tape_pos = 1</span>
-<span class="st">]]</span><span class="ot">)</span>
-
-    <span class="kw">local</span> adv <span class="ot">=</span> <span class="st">[[</span>
-<span class="st">    tape_pos = tape_pos + 1</span>
-<span class="st">    if #tape &lt; tape_pos then</span>
-<span class="st">        table.insert(tape, 0)</span>
-<span class="st">    end</span>
-<span class="st">]]</span>
-    <span class="kw">local</span> <span class="kw">function</span> dev<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape_pos = tape_pos - &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> inc<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] + &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> dec<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] - &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
-    <span class="kw">local</span> out  <span class="ot">=</span> <span class="st">&quot;    io.write(string.char(tape[tape_pos]))</span><span class="ot">\n</span><span class="st">&quot;</span>
-    <span class="kw">local</span> inp  <span class="ot">=</span> <span class="st">&quot;&quot;</span> <span class="co">-- no need for this</span>
-    <span class="kw">local</span> jmpF <span class="ot">=</span> <span class="st">&quot;    while tape[tape_pos] ~= 0 do</span><span class="ot">\n</span><span class="st">&quot;</span>
-    <span class="kw">local</span> jmpB <span class="ot">=</span> <span class="st">&quot;    if tape[tape_pos] == 0 then break end end</span><span class="ot">\n</span><span class="st">&quot;</span>
-
-    <span class="co">-- these are used to combine consecutive same instructions</span>
-    <span class="kw">local</span> devs <span class="ot">=</span> <span class="dv">0</span>
-    <span class="kw">local</span> incs <span class="ot">=</span> <span class="dv">0</span>
-    <span class="kw">local</span> decs <span class="ot">=</span> <span class="dv">0</span>
-
-    <span class="kw">local</span> indent <span class="ot">=</span> <span class="dv">0</span><span class="ot">;</span>
-
-    <span class="kw">for</span> i<span class="ot">=</span><span class="dv">1</span><span class="ot">,</span> <span class="ot">#</span>str <span class="kw">do</span>
-        <span class="kw">local</span> char <span class="ot">=</span> <span class="fu">string.char</span><span class="ot">(</span><span class="fu">string.byte</span><span class="ot">(</span>str<span class="ot">,</span> i<span class="ot">))</span>
-
-        <span class="kw">if</span> devs <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">and</span> char <span class="ot">~=</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> dev<span class="ot">(</span>devs<span class="ot">)))</span>
-            devs <span class="ot">=</span> <span class="dv">0</span>
-        <span class="kw">elseif</span> incs <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">and</span> char <span class="ot">~=</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> inc<span class="ot">(</span>incs<span class="ot">)))</span>
-            incs <span class="ot">=</span> <span class="dv">0</span>
-        <span class="kw">elseif</span> decs <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">and</span> char <span class="ot">~=</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> dec<span class="ot">(</span>decs<span class="ot">)))</span>
-            decs <span class="ot">=</span> <span class="dv">0</span>
-        <span class="kw">end</span>
-
-        <span class="kw">if</span> char <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span> <span class="co">-- 62</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> adv<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span> <span class="co">-- 60</span>
-            devs <span class="ot">=</span> devs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span> <span class="co">-- 43</span>
-            incs <span class="ot">=</span> incs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span> <span class="co">-- 45</span>
-            decs <span class="ot">=</span> decs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span> <span class="co">-- 46</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> out<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;,&quot;</span> <span class="kw">then</span> <span class="co">-- 44</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> inp<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">then</span> <span class="co">-- 91</span>
-            indent <span class="ot">=</span> indent <span class="ot">+</span> <span class="dv">4</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpF<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">then</span> <span class="co">-- 93</span>
-            indent <span class="ot">=</span> indent <span class="ot">-</span> <span class="dv">4</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpB<span class="ot">))</span>
-        <span class="kw">end</span>
-    <span class="kw">end</span>
-
-    <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">&quot;end&quot;</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>pgm<span class="ot">)</span>
-<span class="kw">end</span></code></pre>
-<p>One thing to note here is that loops in BF programs correspond to loops in generated Lua. There’s another way to implement this compiler and it might turn out to be more efficient, but I didn’t try it. (see BF-to-C compiler below) Also, I’m merging some instructions together. This has significant performance impact, but it’s also necessary because if the generated code is too big, both PUC-Lua and LuaJIT is rejecting to load it. (this is documented, but the limit is not specified)</p>
-<p>Results:</p>
-<pre><code>luajit example_lua.lua bench.b  0.53s user 0.00s system 99% cpu 0.532 total</code></pre>
-<p>Note that runtime code generation and loading is NOT included in this number, but code generation takes less than 0.01s, so I might just include that.</p>
-<p>Just for completeness, I also tried a <a href="https://github.com/kgabis/brainfuck-c/blob/master/brainfuck.c">C interpreter</a>, and <a href="http://awk.info/?doc/bfc.html">BF-to-C</a> compiler:</p>
-<pre><code>./c-int bench.b  2.44s user 0.00s system 99% cpu 2.443 total
-./c-compiled     0.00s user 0.00s system 82% cpu 0.004 total</code></pre>
-<p>A fun thing about C compiler is that compiling generated C programs takes long time:</p>
-<pre><code>gcc -O3 awk_output.c  14.07s user 0.14s system 99% cpu 14.219 total</code></pre>
-<p>RPython once again does an impressive job here, because it’s even faster than C interpreter. I didn’t bother profiling C code and optimizing it, because it looks like a reasonable implementation: A simple “fetch instruction and run it in a case statement” loop.</p>
-<p>So I think the conclusion is that RPython and PyPy are doing really good job.</p>]]></summary>
 </entry>
 
 </feed>
