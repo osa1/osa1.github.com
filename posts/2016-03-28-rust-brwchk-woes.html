@@ -19,7 +19,7 @@
             <div class="inner">
                 <h1 id="post-title">Rust borrow checker woes</h1>
 
-<p><strong>November 16, 2015</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/rust.html">rust</a>.</p>
+<p><strong>March 28, 2016</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/rust.html">rust</a>.</p>
 
 <p>I’ve been doing some Rust hacking in my free time, and unfortunately while it’s way, way better than how it was when I first tried it (around 0.4 or 0.6 IIRC), it still has some problems that encourage redundant runtime operations or bad programming practices. In this post I’ll give three examples that are all caused by dumb borrow checker. As you’ll see, in all cases the cost is either bad programming practices or runtime costs (which is really ironic, given that one of the design goals of Rust is performance).</p>
 <h2 id="no-local-reasoning-about-borrowing-rules-of-constructors">1. No local reasoning about borrowing rules of constructors</h2>
