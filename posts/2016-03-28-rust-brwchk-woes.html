@@ -171,10 +171,10 @@
         }
     }
 }</code></pre>
-<p>Some things to not here:</p>
+<p>Some things to note here:</p>
 <ol style="list-style-type: decimal">
-<li><p>We had to give ownership of the key to the lookup function (<code>HashMap::entry()</code>). This potentially means copying a value just to lookup. Ideally we only need to do this when inserting to the map. <code>HashMap::get()</code> doesn’t have this problem.</p></li>
-<li><p>I said “half-solution” because this doesn’t really make the original code working. See how I removed a line in the first case when in my <code>HashMap</code>-based implementation. If I change the first case to this:</p>
+<li><p>We had to give ownership of the key to the lookup function (<code>HashMap::entry()</code>). This potentially means copying a value just to lookup. Ideally we’d only need to do this when inserting to the map. <code>HashMap::get()</code> doesn’t have this problem.</p></li>
+<li><p>I said “half-solution” because this doesn’t really make the original code working. See how I removed a line in the first case in my <code>HashMap</code>-based implementation. If I change the first case to this:</p>
 <pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
             Entry::Vacant(ve) =&gt; {
                 ve.insert(Thing { field1: <span class="dv">123</span> });
@@ -205,9 +205,9 @@
     }
 }</code></pre>
 <p>(missing parts are the same as the original code),</p>
-<p>I basically work around the borrow checker by using a raw pointer and an <code>unsafe</code> block.</p>
+<p>I basically work around the borrow checker by using a raw pointer and an <code>unsafe</code> block, and hope that my <code>.map()</code> will be compiled as a no-op.</p>
 <h2 id="references-to-self-in-method-values">2. References to self in method values</h2>
-<p>A code like this fails if the method is <code>&amp;mut self</code>: <code>self.f(self.x)</code>. As a running example:</p>
+<p>A code like this fails if the method is mutable in self: <code>self.f(self.x)</code>. As a running example:</p>
 <pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> Widget {
     pos_x : <span class="kw">i32</span>,
     pos_y : <span class="kw">i32</span>,
