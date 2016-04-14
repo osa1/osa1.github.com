@@ -19,7 +19,7 @@
             <div class="inner">
                 <h1 id="post-title">An interesting case of closures: is closed-over variable reference or value?</h1>
 
-<p><strong>April 24, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/ocaml.html">ocaml</a>, <a href="../tags/lua.html">lua</a>, <a href="../tags/javascript.html">javascript</a>, <a href="../tags/python.html">python</a>.</p>
+<p><strong>April 24, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/lua.html">lua</a>, <a href="../tags/javascript.html">javascript</a>, <a href="../tags/python.html">python</a>.</p>
 
 <p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
@@ -54,11 +54,12 @@
 <pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
-  <span class="fu">table.insert</span><span class="ot">(</span>callbacks<span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;say &quot;</span> <span class="ot">..</span> v<span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
+    <span class="kw">local</span> say <span class="ot">=</span> <span class="st">&quot;say &quot;</span> <span class="ot">..</span> v
+    <span class="fu">table.insert</span><span class="ot">(</span>callbacks<span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span>say<span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
 <span class="kw">end</span>
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>callbacks<span class="ot">)</span> <span class="kw">do</span>
-  v<span class="ot">()</span>
+    v<span class="ot">()</span>
 <span class="kw">end</span></code></pre>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
