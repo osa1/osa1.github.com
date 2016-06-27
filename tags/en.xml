@@ -8,8 +8,50 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2016-06-19T00:00:00Z</updated>
+    <updated>2016-06-27T00:00:00Z</updated>
     <entry>
+    <title>On matching bang patterns</title>
+    <link href="http://osa1.net/posts/2016-06-27-matching-bang-pattern.html" />
+    <id>http://osa1.net/posts/2016-06-27-matching-bang-pattern.html</id>
+    <published>2016-06-27T00:00:00Z</published>
+    <updated>2016-06-27T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I thought a bang pattern is all about <code>seq</code>. That may actually be true, but when that <code>seq</code> is happening may not be obvious. Even after ~5 years of Haskell I was initially very confused by this, and in fact at first I thought it was a bug:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T</span> <span class="fu">=</span> <span class="dt">A</span> <span class="fu">|</span> <span class="dt">B</span> <span class="fu">|</span> <span class="dt">C</span>
+
+<span class="ot">fn5 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">T</span>] <span class="ot">-&gt;</span> <span class="dt">Int</span>
+fn5  i []       <span class="fu">=</span> i
+fn5  i (<span class="dt">A</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 (i <span class="fu">+</span> <span class="dv">1</span>) ts
+fn5 <span class="fu">!</span>i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts
+fn5  i (<span class="dt">C</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 <span class="dv">0</span> ts</code></pre>
+<p>The question is, given these definitions, what does this evaluate to, and why:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 undefined [<span class="dt">C</span>]</code></pre>
+<p>This question is basically a <code>BangPatterns</code> question. The key point is that a bang pattern <em>first evaluates the value</em> to match, then looks at the pattern. This is from GHC 8.0.1 user manual, <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#bang-patterns-informal">section 9.28.1</a>:</p>
+<blockquote>
+<p>Matching an expression e against a pattern !p is done by first evaluating e (to WHNF) and then matching the result against p.</p>
+</blockquote>
+<p>My initial thought was that this example would not crash because the pattern <code>i</code> always matches, and since second argument is only matched by last case of this definition, which doesn’t evaluate <code>i</code>, <code>i</code> would not get evaluated.</p>
+<p>Or in other words, I thought all this bang pattern does is to add a <code>seq</code>, <em>to the RHS</em>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> i <span class="ot">`seq`</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts</code></pre>
+<p>which is not what it really does!</p>
+<hr />
+<p>Before bang patterns, I think this pattern was considered as the standard way of forcing a function argument (mostly used for accumulator arguments):</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">f acc _ <span class="fu">|</span> acc <span class="ot">`seq`</span> <span class="dt">False</span> <span class="fu">=</span> undefined
+f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre>
+<p>The guard in first equation always fails, but it forces the <code>acc</code> by the time it fails. While this looks bad<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, it compiles to nice code after a case-of-case transformation, and it evaluates <code>acc</code> as first thing to do whenever it’s applied to two arguments.</p>
+<p>Now, with <code>BangPatterns</code>, we get to do this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">!</span>acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre>
+<p>Which is good when we have one equation only, but when we have multiple equations like in <code>fn5</code> above, we need add bang patterns to every equation, or we risk having bugs<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
+<p>So in short, we don’t have a good solution for saying a function is strict on some arguments, without risking bugs (by trying to add minimum number of bangs) or adding a lot of them.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>I don’t like seeing <code>undefined</code>s like this, because I reserve them for code that’s not yet implemented but needs to be implemented. Using <code>undefined</code> as a proxy is also not OK these days, as we have <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#visible-type-application">visible type applications in GHC 8.0.1</a> and <a href="http://hackage.haskell.org/package/base-4.9.0.0/docs/Data-Proxy.html"><code>Proxy</code> in base</a> since <code>base-4.7</code>.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>I don’t mean semantic bugs, rather, unexpected memory usage etc. caused by not forcing thunks on time.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>]]></summary>
+</entry>
+<entry>
     <title>How I solved the Synacor Challenge</title>
     <link href="http://osa1.net/posts/2016-06-19-solving-synacor-challenge.html" />
     <id>http://osa1.net/posts/2016-06-19-solving-synacor-challenge.html</id>
@@ -949,102 +991,6 @@ Productivity  23.9% of total user, 19.4% of total elapsed</code></pre>
 <li id="fn1"><p>In a sense this is like a closure, generated code should be able to refer to names in enclosing environment of code generator.<a href="#fnref1">↩</a></p></li>
 <li id="fn2"><p>I’m wondering if <a href="http://terralang.org/">Terra</a> has a way to print generated code. Any ideas?<a href="#fnref2">↩</a></p></li>
 <li id="fn3"><p>I didn’t read the paper very carefully, but I think one example is <a href="http://dl.acm.org/citation.cfm?id=2429128">Optimizing Data Structures in High-Level Programs</a> paper which is published in POPL’13.<a href="#fnref3">↩</a></p></li>
-</ol>
-</div>]]></summary>
-</entry>
-<entry>
-    <title>Simplest pathological program for supercompilers</title>
-    <link href="http://osa1.net/posts/2015-05-16-simplest-pathological-pgm-for-supercompilers.html" />
-    <id>http://osa1.net/posts/2015-05-16-simplest-pathological-pgm-for-supercompilers.html</id>
-    <published>2015-05-16T00:00:00Z</published>
-    <updated>2015-05-16T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>While working on one of my program transformation ideas, I’ve found a very simple program that is apparently pathological for most supercompilers:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">loop x <span class="fu">=</span> loop (x <span class="fu">+</span> <span class="dv">1</span>)</code></pre>
-<p>I tried this program on several supercompilers:</p>
-<ul>
-<li><p><a href="https://github.com/ilya-klyuchnikov/sc-mini">sc-mini</a><a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>: It unfolds arbitrarily and generates this program:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">f1(v1) <span class="fu">=</span> f1(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(
-              <span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(
-                <span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(<span class="dt">S</span>(v1))))))))))))))))))))))))))))))))))))))));</code></pre></li>
-<li><p><a href="https://github.com/ndmitchell/supero">supero</a>: It just loops:</p>
-<pre><code>➜  supero4 git:(master) ✗ ../.cabal-sandbox/bin/supero --compile ../example/Example1.hs
-files: [&quot;../example/Example1.hs&quot;]
-Converting ../example/Example1.hs
-{-# LANGUAGE UnboxedTuples, NoMonomorphismRestriction #-}
-module ...example.Example1_gen(test) where
-define: _1 = (:) (loop 1) []
-peel: (:) (loop 1) []
-define: _2 = loop 1
-^C
-➜  supero4 git:(master) ✗</code></pre></li>
-<li><p><a href="https://github.com/batterseapower/supercompilation-by-evaluation">supercompilation-by-evaluation</a>: Similar to sc-mini, it unfolds for a while and generates this:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span>
-  h0 <span class="fu">=</span> <span class="kw">let</span>
-         root_u15 <span class="fu">=</span> loop_u17 a_u51
-         loop_u17 <span class="fu">=</span> h1
-         a_u51 <span class="fu">=</span> h5
-       <span class="kw">in</span> root_u15
-  h1 <span class="fu">=</span> \i_u55 <span class="ot">-&gt;</span> h2 i_u55
-  h2 <span class="fu">=</span> \i_u55 <span class="ot">-&gt;</span> <span class="kw">let</span>
-                   loop_u17 <span class="fu">=</span> h1
-                   a_u60 <span class="fu">=</span> h3 i_u55
-                 <span class="kw">in</span> loop_u17 a_u60
-  h3 <span class="fu">=</span> \i_u55 <span class="ot">-&gt;</span> <span class="kw">let</span> a_u57 <span class="fu">=</span> (<span class="fu">+</span>) i_u55 h4
-                 <span class="kw">in</span> (<span class="fu">+</span>) a_u57 h4
-  h4 <span class="fu">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span>
-  h5 <span class="fu">=</span> <span class="dv">4</span><span class="ot"> ::</span> <span class="dt">Int</span>
-<span class="kw">in</span> h0</code></pre></li>
-</ul>
-<p>In the ideal case a supercompiler would just generate same program, without making any changes.</p>
-<p>There’s one supercompiler that I couldn’t try: <a href="https://github.com/batterseapower/chsc">chsc</a>(The Cambridge Haskell Supercompiler). I wasted a lot of time trying to make it working, but I failed. If you’re able to run it, please post the results in comments section below.</p>
-<p>If you know any other supercompilers that I can test, please tell me about those too.</p>
-<hr />
-<p>[May 17, 2015] UPDATE: I thought about why this is a bad case for supercompilers and found some explanations.</p>
-<p>First of all, this was not a fair comparison. In the case of “supercompilation-by-evaluation” and “supero” I didn’t use Peano definitions, instead used integers and primitive operation <code>(+)</code>. I fixed this and “supercompilation-by-evaluation” produced this program:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span>
-  h0 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> h1 i_u18
-  h1 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> <span class="kw">let</span>
-                   loop_u15 <span class="fu">=</span> h2
-                   a_u48 <span class="fu">=</span> h3 i_u18
-                 <span class="kw">in</span> loop_u15 a_u48
-  h2 <span class="fu">=</span> \i_u52 <span class="ot">-&gt;</span> h1 i_u52
-  h3 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> <span class="kw">let</span> a_u35 <span class="fu">=</span> h4 i_u18
-                 <span class="kw">in</span> <span class="dt">S</span> a_u35
-  h4 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> <span class="kw">let</span> a_u20 <span class="fu">=</span> h5 i_u18
-                 <span class="kw">in</span> <span class="dt">S</span> a_u20
-  h5 <span class="fu">=</span> \i_u18 <span class="ot">-&gt;</span> <span class="dt">S</span> i_u18
-<span class="kw">in</span> h0</code></pre>
-<p>When simplified, it turns into:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">loop <span class="fu">=</span> loop <span class="fu">.</span> <span class="dt">S</span> <span class="fu">.</span> <span class="dt">S</span> <span class="fu">.</span> <span class="dt">S</span></code></pre>
-<p>So it still has this problem of unfolding it for a while.</p>
-<p>I didn’t try this on “supero”, but in any case a it shouldn’t loop forever. It’s probably a bug in the implementation. Both supercompilers use same termination criteria so I’d expect “supero” to do the same.</p>
-<p>“sc-mini” is deliberately kept simple. It checks size of the term, and blows the whistle<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> if it’s larger than some fixed amount(it’s set as 40 in the source code). Indeed, look at the term produced by sc-mini, it contains 39 <code>S</code> applications and a variable. In the paper <a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>, the author mentions “homeomorphic embedding” and refers the user to some papers that describe it.</p>
-<p>I think a supercompiler that uses homeomorphic embedding would stop earlier than “supercompilation-by-evaluation”. I’d imagine something like this:</p>
-<ul>
-<li>Supercompilation starts with the term <code>loop Z</code>.</li>
-<li>It takes a step to <code>loop (S Z)</code>. Now our process tree has an edge like this: <code>loop Z -&gt; loop (S Z)</code>.</li>
-<li>Our homeomorphic embedding relation holds between <code>loop (S Z)</code> and <code>loop Z</code>, so our whistle blows and evaluation stops.</li>
-<li>Now the supercompiler introduces a definition <code>fresh_v1 x = loop x</code> and replaces <code>loop (S Z)</code> with <code>fresh_v1 (S Z)</code>.</li>
-<li>Optional: A simplification step would replace <code>fresh_v1</code> with <code>loop</code>.</li>
-</ul>
-<p>This would compile our program to <code>loop (S Z)</code>, which is not ideal maybe(still took a redundant step) but better than what’s produced by others.</p>
-<p>Quoted from the paper <a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/supercompilation/supercomp-by-eval.pdf">“Supercompilation by Evalution”</a>:</p>
-<blockquote>
-<p>Much of the supercompilation literature makes use of the homeomorphic embedding test for ensuring termination. Users of this test uniformly report that testing the termination condition makes up the majority of their supercompilers runtime<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>. The tag-bag criteria appears to be much more efficient in practice, as our supercompiler spends only 6% of its runtime testing the criteria.</p>
-</blockquote>
-<p>Quoted from the paper <a href="http://community.haskell.org/~ndm/downloads/paper-rethinking_supercompilation-29_sep_2010.pdf">“Rethinking Supercompilation”</a>:</p>
-<blockquote>
-<p>In some cases, our rule is certainly less restrictive than the homeomorphic embedding. The example in §2.6.4 would have stopped one step earlier with a homeomorphic embedding. Under a fairly standard interpretation of variable names and let expressions, we can show that our rule is always less restrictive than the homeomorphic embedding – although other differences in our treatment of expressions mean such a comparison is not necessarily meaningful. However, we did not choose our termination criteria to permit more expressions – it was chosen for both simplicity and compilation speed.</p>
-</blockquote>
-<p>So it seems like tag-bag approach, when compared to homeomorphic embedding, 1) faster 2) less restrictive(meaning sometimes it allows more steps to be taken before stopping evaluation). This is probably why it evaluates the loop a couple of times where homeomorphic embedding would stop after just one evaluation.</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>This supercompiler comes with <a href="https://themonadreader.files.wordpress.com/2014/04/super-final.pdf">this paper</a>. I highly recommend the paper if you’re interested in supercompilation.<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>I don’t know the original source, but apparently “whistle” is the traditional term for the heuristic that tells a supercompiler to stop.<a href="#fnref2">↩</a></p></li>
-<li id="fn3"><p>This supercompiler comes with <a href="https://themonadreader.files.wordpress.com/2014/04/super-final.pdf">this paper</a>. I highly recommend the paper if you’re interested in supercompilation.<a href="#fnref3">↩</a></p></li>
-<li id="fn4"><p>References two papers: <a href="https://www.sics.se/~pj/papers/scp/popl09-scp.pdf">“Positive supercompilation for higher order call-by-value language”</a>(apparently the author later wrote his PhD thesis on this topic) and <a href="http://community.haskell.org/~ndm/downloads/paper-a_supercompiler_for_core_haskell-01_may_2008.pdf">“A supercompiler for core Haskell”</a>.<a href="#fnref4">↩</a></p></li>
 </ol>
 </div>]]></summary>
 </entry>
