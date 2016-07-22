@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Unboxed sums FAQ</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Unboxed sums FAQ</h1>
+
+<p><strong>July 22, 2016</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+
+<p>The unboxed sums patch that implements unlifted, unboxed sum types (as described in <a href="https://ghc.haskell.org/trac/ghc/wiki/UnpackedSumTypes">this Wiki page</a>) was merged yesterday, and a <a href="https://www.reddit.com/r/haskell/comments/4txuo7/unboxed_sum_types_with_unpack_support_will_be_in/">/r/haskell discussion</a> emerged shortly after. As the implementor, I tried to answer questions there, but to keep answers more organized I wanted to write a blog post about it.</p>
+<p>The reason I’m not writing this to the Wiki page is because this is about current plans and status of the feature. The wiki page may be updated in the future as the feature evolves and/or may be edited by others. This page reflects the current status as of today, future plans, and my own ideas.</p>
+<hr />
+<h3 id="syntax-is-awful-why">Syntax is awful, why?</h3>
+<p>This feature is designed to complement the similar feature for product types (tuples), called <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#unboxed-tuples">“unboxed tuples”</a>. The syntax is thus chosen to reflect this idea. Instead of commas in the unboxed tuple syntax, we used bars (similar to how bars used in sum type declarations). The syntax looks bad for several reasons:</p>
+<ul>
+<li><p>Type argument of an alternative have to be a single type. If we want multiple types in an alternative, we have to use an unboxed tuple. For example, unboxed sum version of the type <code>data T = T1 Int | T2 String Bool</code> is <code>(# Int | (# String, Bool #) #)</code>. That’s a lot of parens and hashes.</p></li>
+<li><p>Similarly, for nullary alternatives (alternatives/constructors with no arguments) we have to use empty unboxed tuples. So a bool-like type looks like <code>(# (# #) | (# #) #)</code>.</p></li>
+<li><p>Data constructors use the same syntax, except we have to put spaces between bars. For example, if you have a type with 10 alternatives, you do something like <code>(# | | | | value | | | | | #)</code>. Space between bars is optional in the type syntax, but not optional in the term syntax. The reason is because otherwise we’d have to steal some existing syntax. For example, <code>(# ||| a #)</code> can be parsed as singleton unboxed tuple of <code>Control.Arrow.|||</code> applied to an argument, or an unboxed sum with 4 alternatives.</p></li>
+</ul>
+<p>Note that the original Wiki page for unboxed sums included a “design questions” section that discussed some alterantive syntax (see <a href="https://ghc.haskell.org/trac/ghc/wiki/UnpackedSumTypes?version=32">this version</a>). Nobody made any progress to flesh out the ideas, and I updated the Wiki page to reflect the implementation. So it was known that the syntax is not good, but it just wasn’t a major concern.</p>
+<p>Answer to the second question is also an answer to this question.</p>
+<h3 id="how-is-this-supposed-to-be-used-by-users">How is this supposed to be used by users?</h3>
+<p>We’re not expecting users to use this type extensively. It’ll mostly be used by the compiler, for optimizations. In fact, we could have skipped the front-end syntax entirely, and it’d be OK for the most part. If you haven’t used unboxed tuples before, you probably won’t be using unboxed sums.</p>
+<p>The only place you may want to use this syntax is when you’re writing a high-performance library or program, and you have a sum type that’s used strictly and can take advantage of removing a level of indirection.</p>
+<h3 id="how-is-this-used-by-the-compiler">How is this used by the compiler?</h3>
+<p>A detailed answer would take too long, but here’s a summary:</p>
+<ul>
+<li><p><a href="research.microsoft.com/en-us/um/people/simonpj/Papers/cpr/cpr.ps.gz">Constructed product analysis</a> can now be used for returning sums efficiently. Note that this feature was left as “future work” in the paper (which is from 2004. See section 3.2). The high-level idea is that if a function returns a value that <em>it constructs</em>, then instead of boxing the components of the value and returning a boxed object, it can just return the components instead. In the case where the function result is directly scrutinized (i.e. case expressions), this usually reduces allocations. In other cases, it moves the allocation from the callee to the call site, which in turn leads to stack allocation is some cases (when the object doesn’t escape from the scope).</p>
+<p>For product types, unboxed tuples are used for returning the value without heap allocation. For sum types, we use unboxed sums.</p></li>
+<li><p>Result of strictness (or “demand”) analysis can now be used to pass sums efficiently. As a result worker/wrapper transformations can now be done for functions that take sum arguments. See <a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/Demand">this Wiki page for demand analysis</a> and <a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/usage-types/cardinality-popl14.pdf">this 2014 paper</a>.</p></li>
+<li><p><code>{-# UNPACK #-}</code> pragmas now work on sum types, using unboxed sums under the hood.</p></li>
+</ul>
+<p>Note that none of these need a concrete syntax for unboxed sums.</p>
+<hr />
+<p>Hopefully this clarifies some questions and concerns, especially about the syntax. We have plenty of time until the first RC for 8.2 (<a href="https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.2.1">mid-February 2017</a>), so it’s certainly possible to improve the syntax, and I’ll be working on that part once I’m done with the optimizations.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'osa1';
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

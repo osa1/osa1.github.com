@@ -8,8 +8,41 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2016-06-27T00:00:00Z</updated>
+    <updated>2016-07-22T00:00:00Z</updated>
     <entry>
+    <title>Unboxed sums FAQ</title>
+    <link href="http://osa1.net/posts/2016-07-22-unboxed-sums-faq.html" />
+    <id>http://osa1.net/posts/2016-07-22-unboxed-sums-faq.html</id>
+    <published>2016-07-22T00:00:00Z</published>
+    <updated>2016-07-22T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>The unboxed sums patch that implements unlifted, unboxed sum types (as described in <a href="https://ghc.haskell.org/trac/ghc/wiki/UnpackedSumTypes">this Wiki page</a>) was merged yesterday, and a <a href="https://www.reddit.com/r/haskell/comments/4txuo7/unboxed_sum_types_with_unpack_support_will_be_in/">/r/haskell discussion</a> emerged shortly after. As the implementor, I tried to answer questions there, but to keep answers more organized I wanted to write a blog post about it.</p>
+<p>The reason I’m not writing this to the Wiki page is because this is about current plans and status of the feature. The wiki page may be updated in the future as the feature evolves and/or may be edited by others. This page reflects the current status as of today, future plans, and my own ideas.</p>
+<hr />
+<h2 id="syntax-is-awful-why">Syntax is awful, why?</h2>
+<p>This feature is designed to complement the similar feature for product types (tuples), called <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#unboxed-tuples">“unboxed tuples”</a>. The syntax is thus chosen to reflect this idea. Instead of commas in the unboxed tuple syntax, we used bars (similar to how bars used in sum type declarations). The syntax looks bad for several reasons:</p>
+<ul>
+<li><p>Type argument of an alternative have to be a single type. If we want multiple types in an alternative, we have to use an unboxed tuple. For example, unboxed sum version of the type <code>data T = T1 Int | T2 String Bool</code> is <code>(# Int | (# String, Bool #) #)</code>. That’s a lot of parens and hashes.</p></li>
+<li><p>Similarly, for nullary alternatives (alternatives/constructors with no arguments) we have to use empty unboxed tuples. So a bool-like type looks like <code>(# (# #) | (# #) #)</code>.</p></li>
+<li><p>Data constructors use the same syntax, except we have to put spaces between bars. For example, if you have a type with 10 alternatives, you do something like <code>(# | | | | value | | | | | #)</code>. Space between bars is optional in the type syntax, but not optional in the term syntax. The reason is because otherwise we’d have to steal some existing syntax. For example, <code>(# ||| a #)</code> can be parsed as singleton unboxed tuple of <code>Control.Arrow.|||</code> applied to an argument, or an unboxed sum with 4 alternatives.</p></li>
+</ul>
+<p>Note that the original Wiki page for unboxed sums included a “design questions” section that discussed some alterantive syntax (see <a href="https://ghc.haskell.org/trac/ghc/wiki/UnpackedSumTypes?version=32">this version</a>). Nobody made any progress to flesh out the ideas, and I updated the Wiki page to reflect the implementation. So it was known that the syntax is not good, but it just wasn’t a major concern.</p>
+<p>Answer to the second question is also an answer to this question.</p>
+<h2 id="how-is-this-supposed-to-be-used-by-users">How is this supposed to be used by users?</h2>
+<p>We’re not expecting users to use this type extensively. It’ll mostly be used by the compiler, for optimizations. In fact, we could have skipped the front-end syntax entirely, and it’d be OK for the most part. If you haven’t used unboxed tuples before, you probably won’t be using unboxed sums.</p>
+<p>The only place you may want to use this syntax is when you’re writing a high-performance library or program, and you have a sum type that’s used strictly and can take advantage of removing a level of indirection.</p>
+<h2 id="how-is-this-used-by-the-compiler">How is this used by the compiler?</h2>
+<p>A detailed answer would take too long, but here’s a summary:</p>
+<ul>
+<li><p><a href="research.microsoft.com/en-us/um/people/simonpj/Papers/cpr/cpr.ps.gz">Constructed product analysis</a> can now be used for returning sums efficiently. Note that this feature was left as “future work” in the paper (which is from 2004. See section 3.2). The high-level idea is that if a function returns a value that <em>it constructs</em>, then instead of boxing the components of the value and returning a boxed object, it can just return the components instead. In the case where the function result is directly scrutinized (i.e. case expressions), this usually reduces allocations. In other cases, it moves the allocation from the callee to the call site, which in turn leads to stack allocation is some cases (when the object doesn’t escape from the scope).</p>
+<p>For product types, unboxed tuples are used for returning the value without heap allocation. For sum types, we use unboxed sums.</p></li>
+<li><p>Result of strictness (or “demand”) analysis can now be used to pass sums efficiently. As a result worker/wrapper transformations can now be done for functions that take sum arguments. See <a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/Demand">this Wiki page for demand analysis</a> and <a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/usage-types/cardinality-popl14.pdf">this 2014 paper</a>.</p></li>
+<li><p><code>{-# UNPACK #-}</code> pragmas now work on sum types, using unboxed sums under the hood.</p></li>
+</ul>
+<p>Note that none of these need a concrete syntax for unboxed sums.</p>
+<hr />
+<p>Hopefully this clarifies some questions and concerns, especially about the syntax. We have plenty of time until the first RC for 8.2 (<a href="https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.2.1">mid-February 2017</a>), so it’s certainly possible to improve the syntax, and I’ll be working on that part once I’m done with the optimizations.</p>]]></summary>
+</entry>
+<entry>
     <title>On matching bang patterns</title>
     <link href="http://osa1.net/posts/2016-06-27-matching-bang-pattern.html" />
     <id>http://osa1.net/posts/2016-06-27-matching-bang-pattern.html</id>
@@ -586,45 +619,6 @@ newBoundTask: RTS is not initialised; call hs_init() first</code></pre>
 <p>Another very useful tip: You may still have some installation problems because of dependency conflicts. In that cases always try to install with <code>cabal install --allow-newer</code>. Most of the time this sandbox approach + <code>--allow-newer</code> should solve all your problems.</p>
 <p>As a last thing, if you still have problems because you installed some libs globally for some reason, you may want to reset your whole Cabal state. In that case, just copy <code>~/.cabal/bin/cabal</code> to somewhere else and remove <code>~/.cabal</code>. Then using copied <code>cabal</code> executable, run <code>cabal update &amp;&amp; cabal install Cabal cabal-install</code> again. Now you have a fresh Cabal state and you can remove copied <code>cabal</code> executable and go with the one just installed at <code>~/.cabal/bin</code>.</p>
 <p>I hope this helps.</p>]]></summary>
-</entry>
-<entry>
-    <title>Stack traces in GHCJS</title>
-    <link href="http://osa1.net/posts/2014-06-20-stack-traces-in-ghcjs.html" />
-    <id>http://osa1.net/posts/2014-06-20-stack-traces-in-ghcjs.html</id>
-    <published>2014-06-20T00:00:00Z</published>
-    <updated>2014-06-20T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’m about to finish the first part of my GSoC project and as a part of my project I have implemented stack traces for GHCJS. Currently <code>GHC.Stack</code> functions should work in GHCJS, except for some cases I explain below.</p>
-<p>As a demo, I set up <a href="http://osa1.net/files/stacktrace.jsexe/index.html">this page</a>, it runs the Haskell program rendered on the page (some part of the code is copied from Simon Marlow’s <a href="http://www.youtube.com/watch?v=J0c4L-AURDQ">“Why can’t I get stack traces?” presentation</a>). Output is printed to the console. You should be seeing something like this:</p>
-<div class="figure">
-<img src="http://osa1.net/images/ghcjs-stacktrace.png" />
-
-</div>
-<p>My main goal is to implement profiling features of GHC (cost-centres, SCC annotations, reporting allocations/ticks etc.) for GHCJS. It turns out that cost-centre stacks and call stacks are same thing. <code>GHC.Stack.currentCallStack</code> returns the current cost-centre stack, and cost attribution is done to current call-stack(or current cost-centre stack, since they’re exactly the same thing). Similarly, <code>GHC.Stack.whoCreated</code> returns the cost centre stack that was active when the heap object was created.</p>
-<p><a href="https://github.com/osa1/ghcjs/compare/ghcjs:master...work3">20 changed files with 810 additions and 527 deletions</a> later, I had <code>GHC.Stack</code> working. You won’t need to do anything different once it’s merged into GHCJS, but for now it requires some effort to install. It also still has some bugs and differences from GHC version. Rest of the post explains how to test it, bugs, and differences from GHC.</p>
-<h1 id="how-to-use">How to use</h1>
-<p>Because of a horrible bug(see bugs section), you need a 32bit system to use profiling features of GHCJS. You should clone my fork of <a href="https://github.com/osa1/ghcjs">GHCJS</a> and <a href="https://github.com/osa1/shims">shims</a>. For GHCJS, switch to <code>work3</code> branch(that 3 represents how many times I started from scratch :) and for shims switch to <code>work2</code> branch. You need to install <a href="https://github.com/ghcjs/Cabal">modified Cabal for GHCJS</a>. After installing Cabal, install GHCJS and run <code>ghcjs-boot --init -q --prof</code>. This takes about 20 minutes on my system and compiles <code>base</code> and some other libraries. <code>--prof</code> is used to generate profiled versions of libraries.</p>
-<p>After GHCJS has been booted, replace ~/.ghcjs/&lt;your platform&gt;/shims folder with my fork of shims(make sure you switched to work2 branch). Now you should be able to compile and run programs with profiling options of GHC. For example, to compile and run the example program given above, run <code>ghcjs stacktrace.hs -prof -fprof-auto</code> and then run generated <code>stacktrace.jsexe/all.js</code> using nodejs. Enabling profiling gives you a debug executable, with more metadata (object names) and longer (non-renamed) variable names.</p>
-<h1 id="differences">Differences</h1>
-<p>Because GHCJS represents some objects as unboxed numbers and currently we don’t associate any cost-centres with this type of objects, <code>whoCreated</code> returns an empty list. If there’s demand, we can disable unboxing with a command line switch and <code>whoCreated</code> on these values would work. In the example program, second and third lines are printing empty lists because of this.</p>
-<h1 id="bugs">Bugs</h1>
-<p>Currently we discovered two bugs:</p>
-<ol style="list-style-type: decimal">
-<li><p>There’s a horrible bug happening outside of GHCJS code, see my <a href="http://osa1.net/posts/2014-05-27-worst-bug.html">blog post</a> and <a href="http://www.haskell.org/pipermail/ghc-devs/2014-May/005059.html">ghc-devs mail</a>. Because of this bug, booting GHCJS with profiling enabled is resulting with a segfault on 64bit systems. I’m developing this project on a 32bit VM, running on a VPS :) I need to make some more progress before tracking this bug.</p></li>
-<li><p>We’re having a bug that makes stack traces sometimes a bit different than the ones generated by GHC compiled programs. For example, the example program should have printed this stack trace:</p>
-<pre><code>Main.errorM.\ (stacktrace.hs:13:22-54)
-Main.errorM (stacktrace.hs:13:1-54)
-Main.foo.\.\ (stacktrace.hs:27:23-30)
-Main.foo.\ (stacktrace.hs:27:16-33)
-Main.foo (stacktrace.hs:27:1-36)
-Main.bar (stacktrace.hs:24:1-20)
-Main.runM.(...) (stacktrace.hs:16:20-31)
-Main.runM (stacktrace.hs:16:1-36)
-Main.main (stacktrace.hs:(29,1)-(38,36))
-Main.CAF (&lt;entire-module&gt;)</code></pre>
-<p>.. but <code>runM</code> calls are missing in GHCJS output. I have no idea what could be the reason for this and I’m currently working to fix this. After fixing this, I think we’ll have exactly same stack traces as the ones produced by GHC compiled programs.</p></li>
-</ol>
-<h1 id="acknowledgement">Acknowledgement</h1>
-<p>I’d like to thank my mentor Luite Stegeman for answering my endless questions, helping me understanding GHC and GHCJS internals and reviewing this blog post.</p>]]></summary>
 </entry>
 
 </feed>
