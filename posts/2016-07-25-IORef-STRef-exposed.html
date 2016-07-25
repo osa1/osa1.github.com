@@ -60,10 +60,10 @@ writeSTRef (<span class="dt">STRef</span> var<span class="st">#) val = ST $ \s1#
 <p>Note that there’s no <code>atomicModifySTRef</code>, because that only makes sense in IO context. So <code>atomicModifyIORef</code> directly calls the primop.</p>
 <p>In summary:</p>
 <ul>
-<li><p>IORef: <code>MutVar#</code>, wrapped with <code>STRef</code>. When we unpack an <code>IORef</code> in data constructor fields, internally we store a <code>MutVar#</code>.</p></li>
-<li><p>writeIORef, writeSTRef: <code>writeMutVar#</code></p></li>
-<li><p>readIORef, readSTRef: <code>readMutVar#</code></p></li>
-<li><p>atomicModifyIORef: <code>atomicModifyMutVar#</code></p></li>
+<li>IORef: <code>MutVar#</code>, wrapped with <code>STRef</code>. When we unpack an <code>IORef</code> in data constructor fields, internally we store a <code>MutVar#</code>.</li>
+<li>writeIORef, writeSTRef: <code>writeMutVar#</code></li>
+<li>readIORef, readSTRef: <code>readMutVar#</code></li>
+<li>atomicModifyIORef: <code>atomicModifyMutVar#</code></li>
 </ul>
 <h2 id="readmutvar">readMutVar#</h2>
 <p>Primop definition:</p>
