@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Add a flag to your compiler to print errors in reversed order</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Add a flag to your compiler to print errors in reversed order</h1>
+
+<p><strong>September  4, 2016</strong> - Tagged as: <a href="../tags/en.html">en</a>.</p>
+
+<p>About a year ago <a href="https://ghc.haskell.org/trac/ghc/ticket/10848">I opened a feature request</a> for printing error messages in reversed order in GHC. By default most compilers print error messages by sorting them by the line number that they’re originated from. This is good when you get one or two error messages because in that case messages usually fit in the screen. But when you’re middle of a big refactoring (even if it’s just renaming a type) usually what happens is, you make your changes, reload/recompile the code, scroll up for 5 seconds to find the first error, fix it, and repeat.</p>
+<p>The reason you scroll up is because most of the time declarations come before uses, and fixing a declaration makes error messages originated from use sites go away.</p>
+<p>With a flag that reverses the error message order this becomes much simpler because you don’t need to scroll every time you reload/recompile. So if you’re developing a compiler, please consider adding this to your compiler.</p>
+<p>(If you’re a GHC user, this is available with <code>-freverse-errors</code> flag)</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'osa1';
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
