@@ -21,6 +21,20 @@
 <p>(If you’re a GHC user, this is available with <code>-freverse-errors</code> flag)</p>]]></summary>
 </entry>
 <entry>
+    <title>I'm available for job offers</title>
+    <link href="http://osa1.net/posts/2016-09-04-available-for-offers.html" />
+    <id>http://osa1.net/posts/2016-09-04-available-for-offers.html</id>
+    <published>2016-09-04T00:00:00Z</published>
+    <updated>2016-09-04T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>After two years as a PhD student at Indiana University, I finally decided to move to the industry, and I’m currently available for job offers.</p>
+<p>For the most part I really enjoyed my time here at Indiana University. I still think that IU is the ideal place for someone like me to pursue a PhD. We have a great <a href="http://wonks.github.io/">programming languages group</a>, and the group I work more closely (with <a href="http://www.cs.indiana.edu/~rrnewton/homepage.html">my advisor</a>) is doing lots of hacking, on GHC (we have two core GHC developers in our group!), various Haskell libraries like <a href="https://github.com/iu-parfunc/lvars">lvish</a>, and <a href="http://www.cs.indiana.edu/~rrnewton/papers/pldi16-crossmod.pdf">runtime binary instrumentation tools</a>, which I really enjoy.</p>
+<p>But publications are still a big part of the life as a PhD student, and I really, really disliked everything about publishing a paper. I’ve never wanted to have great publications, I’m more interested in learning about programming languages, compilers, and related tools, and contributing to projects that I believe are contributing to the community (which is one of my motivations when contributing to GHC). I want to have a deep understanding of fundamentals of programming languages and compilers, but I also want to develop as a programmer and software engineer.</p>
+<p>Graduate school just didn’t let me do these as much as I’d like, and instead forced me to write papers. After about a year it started to become clear to me that academia is not the right place for me because I will probably never enjoy writing papers or grant proposals. So I realized that the long road to PhD in the US (about 6 years usually, followed by more years as postdoc) will be mostly a waste of time, and I won’t be as successful as I want because I don’t enjoy publishing papers.</p>
+<p>Sure, I can be a PL researcher/developer in the industry after a PhD. But I believe if I can find a somewhat related job right now, in a few years I can be a PL researcher/developer, without wasting my 3-4 years suffering while trying to publish papers. If I can’t find such a job, well, I think I’ll still be happier because at least I’ll be programming and be much more productive.</p>
+<p>So I decided that it’s best for me to do the switch as soon as possible.</p>
+<p>If you’re interested, send me an email and let’s have a chat.</p>]]></summary>
+</entry>
+<entry>
     <title>IORef and STRef under the hood</title>
     <link href="http://osa1.net/posts/2016-07-25-IORef-STRef-exposed.html" />
     <id>http://osa1.net/posts/2016-07-25-IORef-STRef-exposed.html</id>
@@ -1085,43 +1099,6 @@ Productivity  23.9% of total user, 19.4% of total elapsed</code></pre>
 <p>Supercompilation can also be performed throughout all levels of the system. Fix k = K and supercompile E(K, q) with a variable q. You have an expert system that cannot learn, but answers questions very quickly. You can restore the ability of the system to learn by endowing it with two memories: short-term and long-term. To answer a question, both memories must be scanned. The long-term memory has those procedures that are obtained by using a supercompiler with the knowledge present at the moment of the last supercompilation session. The short-term memory includes universal interpretive procedures operating on the incremental knowledge received after the last supercompilation session. Such a system can be both fast and able to learn. <em>When it has no questions to answer(the periods of “sleep”), it will execute supercompilation procedures, converting its short-range memory into the long-range one. This would be a step towards a computer individual.</em></p>
 </blockquote>
 <p>This is interesting for two reasons. First, we discussed similar ideas with my advisor couple of weeks ago, but in a different context. I’m hoping to write more about this in future posts. Second, I think the idea is easily implementable with a multi-stage language. I think this is one of the ideas that are very good yet even after years still waiting to be implemented and explored further.</p>]]></summary>
-</entry>
-<entry>
-    <title>The issue with work sharing (common subexpression elimination)</title>
-    <link href="http://osa1.net/posts/2015-08-13-the-issue-with-work-sharing.html" />
-    <id>http://osa1.net/posts/2015-08-13-the-issue-with-work-sharing.html</id>
-    <published>2015-08-13T00:00:00Z</published>
-    <updated>2015-08-13T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’d expect more work sharing to be always more beneficial. But apparently this is not the case, as pointed out in (Chitil, 1997)<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>.</p>
-<p>Here’s an example from the paper: (slightly changed)</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">sum [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>] <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]</code></pre>
-<p>We can evaluate this expression to WHNF using heap space enough for a single list(to be more specific, we only need a single cons cell at any time). After evaluating a subexpression, we can deallocate and allocate for the next list etc.</p>
-<p>However, if we eliminate common subexpressions, and generate this code:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> v <span class="fu">=</span> [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]
- <span class="kw">in</span> sum v <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod v</code></pre>
-<p>Now <code>v</code> has to live until the let body is evaluated to a value. We win in allocation/deallocation side, but we lose in residency side. In paper’s words: “Whereas the transformation always decreases total heap usage, it may considerably influence heap residency.”</p>
-<p>In general, we can’t do this transformation, without risking increased residency:</p>
-<p>\[ e’[e,e] \leadsto \texttt{let}\; x = e\; \texttt{in}\; e’[x,x] \]</p>
-<p>As a solution, the paper suggests this:</p>
-<ol style="list-style-type: decimal">
-<li>We always do CSE if the subexpressions’ WHNF == NF(i.e. if it’s a “safe type” in paper’s terms). According to the paper, “a partially evaluated expression is certain to require only a small, fixed amount of space if it’s not a function, whose environment may refer to arbitrary large data structures, and its WHNF is already its normal form”.</li>
-<li>We always do CSE when a named expression is syntactically dominating another equal expression:</li>
-</ol>
-<p>\[ \texttt{let}\; x = e\; \texttt{in}\; e’[e] \leadsto \texttt{let}\; x = e\; \texttt{in}\; e’[x] \]</p>
-<hr />
-<p>Note that (1) is not always true, assume an expression with type <code>ForeignPtr a</code> where <code>a</code> is a huge FFI object. This has WHNF == NF property, but it may increase residency significantly. Maybe GHC didn’t have FFI at the time the paper is written.</p>
-<p>Also, I’m wondering how is CSE is handled in current GHC.</p>
-<hr />
-<p>In supercompilation, we want to avoid evaluating same expressions in a loop forever, so we keep some kind of “history”, and when we come across a term that we evaluated before, we fold the process tree and avoid evaluating same term again.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">(fib <span class="dv">1000</span>, fib <span class="dv">1000</span>)</code></pre>
-<p>Unless we make sure to split it in a way that branches of the process tree are unaware of each other, we may end up eliminating common subexpressions. However, since there are lots of cases where we may want CSE, a splitter that always prevents it is not always desirable. We should instead allow CSE in a controlled way.</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>Olaf Chitil, “Common Subexpression Elimination in a Lazy Functional Language”, section 3.5.<a href="#fnref1">↩</a></p></li>
-</ol>
-</div>]]></summary>
 </entry>
 
 </feed>
