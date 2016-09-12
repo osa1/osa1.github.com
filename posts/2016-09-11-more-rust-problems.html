@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - More Rust problems (and a sketch of a solution)</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">More Rust problems (and a sketch of a solution)</h1>
+
+<p><strong>September 11, 2016</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/rust.html">rust</a>.</p>
+
+<p>It’s a nice coincidence that after a good productive weekend of Rust hacking I saw <a href="https://hackernoon.com/why-im-dropping-rust-fd1c32986c88">this blog post</a> about why the author is dropping Rust. I’ve been doing a lot of Rust programming lately (I have at least 3 programs –not libraries– that I’m hoping to publish in the near future), and I’m surprised to see that no one mentioned what IMHO is one of the most annoying problems with Rust.</p>
+<p>Borrow checker rejects some programs that are perfectly valid in other languages, and by itself this isn’t a problem. Similar things happen in all languages <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. One of the first problems I encountered after started to write Rust was the OP’s second problem, namely, cyclic data structures (or graphs, but more specifically, widgets with parent/child relations). However, there is at least one pretty good solution for this, and all you need is to think harder and experiment with alternative designs. I’m actually very happy with my solution to this (which is also discovered independently by many people, for an example, see <a href="https://crates.io/crates/petgraph">petgraph</a>).</p>
+<p>However, there are problems that basically can’t be solved in Rust without paying some runtime costs or using bad practices. See my <a href>previous blog post</a> for some examples. In this post I’m going to show another, and more annoying, problem.</p>
+<h2 id="self-borrows-all-of-its-fields"><code>self</code> borrows all of its fields</h2>
+<p>This is a problem that happened in pretty much every single Rust program I’ve ever written. In a method, you can’t borrow some fields, and call another <code>&amp;mut self</code> method. This is because methods borrow the whole <code>self</code>, so you get an error saying that you can’t borrow <code>self</code> twice.</p>
+<p>As an example, imagine implementing a compiler. For some reason you want to collect all the variables defined in a scope, and then generate fresh variables for those. You may do something like this:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> FreshGen { <span class="co">/* abstract */</span> }
+
+<span class="kw">struct</span> Var { <span class="co">/* abstract */</span> }
+
+<span class="kw">impl</span> FreshGen {
+    <span class="kw">fn</span> fresh(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; Var {
+        <span class="ot">unimplemented!</span>()
+    }
+}
+
+<span class="kw">struct</span> Compiler {
+    fresh_gen: FreshGen,
+    vars_in_scope: Vec&lt;Var&gt;,
+}
+
+<span class="kw">impl</span> Compiler {
+    <span class="kw">fn</span> fresh(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; Var {
+        <span class="kw">self</span>.fresh_gen.fresh()
+    }
+
+    <span class="kw">fn</span> gen_locals(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {
+        <span class="kw">let</span> <span class="kw">mut</span> fresh_vars = <span class="ot">vec!</span>[];
+        <span class="kw">for</span> var in <span class="kw">self</span>.vars_in_scope.iter() {
+            fresh_vars.push(<span class="kw">self</span>.fresh());
+        }
+        <span class="co">// use fresh_vars</span>
+    }
+}</code></pre>
+<p>Can you see any problems here? When I compile this with nightly 11/9/2016, I get this annoying error message:</p>
+<pre><code>error[E0502]: cannot borrow `*self` as mutable because `self.vars_in_scope` is also borrowed as immutable
+  --&gt; &lt;anon&gt;:24:29
+   |
+23 |         for var in self.vars_in_scope.iter() {
+   |                    ------------------ immutable borrow occurs here
+24 |             fresh_vars.push(self.fresh());
+   |                             ^^^^ mutable borrow occurs here
+25 |         }
+   |         - immutable borrow ends here</code></pre>
+<p>So basically, <code>self.vars_in_scope</code> is borrowed from <code>self</code>, and then <code>self.fresh()</code> is called while <code>vars_in_scope</code> is still borrowed. Even though <code>self.fresh()</code> doesn’t have anything to do with <code>self.vars_in_scope</code>, this is not allowed because the compiler simply doesn’t care about what pieces of <code>self</code> methods actually borrow. For me this is probably the #1 most annoying problem with Rust.</p>
+<p>Now, I believe this problem is solvable. I imagine an algorithm like this:</p>
+<p>It works in two steps.</p>
+<ol style="list-style-type: decimal">
+<li><p>We generate, for every method, borrow sets. A borrow set is a set of fields that are, at some point in the method, borrowed from <code>self</code>.</p></li>
+<li><p>For every method call statement in every method, we look at intersections of currently borrowed fields and the borrow set of callee (i.e. (1) for the method being called).</p></li>
+</ol>
+<p>(1) works like this:</p>
+<pre><code>workset = set of all methods
+caller-graph = graph of all methods, with edges from callees to callers
+
+# initially none of methods borrow any fields
+for method in methods:
+    method.borrows = empty set
+
+while workset is not empty:
+    work = workset.pop()
+    for statement in work.statements:
+        for field in self.borrowed_at(statement):
+            if not work.borrows.contains(field):
+                work.borrows.insert(field)
+                for caller in caller-graph[work]:
+                    workset.insert(caller)</code></pre>
+<p>For a statement that has a method call, <code>borrowed_at()</code> returns the borrow set of the method being called. So when we update borrow set of a method, we add its callers to the workset and <code>borrowed_at()</code> will return more variables next time, propagating the information in the graph from callees to callers.</p>
+<p>Now, for the second step, we first need to generate “live ranges” of borrowed fields. Assume that they’re generated.</p>
+<pre><code>for method in methods:
+    for borrowed_field in method.borrows():
+        for field_live_range in borrowed_field.live_ranges():
+            # for methods called in the range
+            for method in method_calls(field_live_range):
+                if method.borrows().contains(borrowed_field):
+                    error(&quot;can't borrow twice&quot;)</code></pre>
+<p>I sketched this in 30 minutes so I don’t expect this to work perfectly. Also, 4-level nested for loops look scary! But this is just to give an idea of how this might be solved.</p>
+<p>In the example I showed above, borrow set of <code>fresh</code> would be <code>{fresh_gen}</code>, and borrow set of <code>gen_locals</code> would be <code>{vars_in_scope, fresh_gen}</code>. Now we look at live ranges of variables borrowed from <code>self</code> in <code>gen_locals</code>.</p>
+<ul>
+<li><code>vars_in_scope</code> lives between lines 2-4 in the method.</li>
+<li><code>fresh_gen</code> lives in line 3 in the method.</li>
+</ul>
+<p>Since each variable has only one live range here, clearly there won’t be any intersections. So this would pass the borrow checker.</p>
+<p>If <code>fresh</code> was also borrowing <code>vars_in_scope</code>, we’d get an error because <code>vars_in_scope</code> would now have two “live range”: between lines 2-4 as before, and in line 3. Since those intersect, we get an error.</p>
+<p>(Again, this is a very quick sketch, so let me know if I’m missing something.)</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>I’m hoping to write more about this later. For now, think Haskell’s type system that separates pure functions from effectful ones as an example.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'osa1';
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
