@@ -24,21 +24,21 @@
 <p>It took 4 attempts at various coffee shops in Cambridge/UK (where I’m spending this summer – more on this later) but I finally solved the <a href="https://challenge.synacor.com/">Synacor Challenge</a>. Here’s how I did it.</p>
 <p>WARNING: This post spoils everything! Do not read further if you’re interested in solving it yourself. It’s a lot of fun, so I highly recommend that.</p>
 <h2 id="first-attempt">First attempt</h2>
-<p>Initial VM implementation took about an hour. It worked well until I’ve been eaten by a damn grue. At that point I realized that I need a save/load system.</p>
-<p>The game looks like a classic text-based adventure where you just interact by typing commands. So I thought saving the commands should be enough for “save game”. To load, VM would just load the input from the save file to its input buffer (which is used when <code>in</code> instruction is executed). Indeed it works nicely.</p>
+<p>Initial VM implementation took about an hour. It worked well until I was eaten by a grue. At that point I realized that I need a save/load system.</p>
+<p>The game looks like a classic text-based adventure where you interact by typing commands. So I thought saving the commands should be enough for “save game”. To load, VM would just load the input from the save file to its input buffer (which is used when <code>in</code> instruction is executed). Indeed it works nicely.</p>
 <p>The game is very easy until you make it to the “office”. IIRC, you collect 6 out of 8 codes until that point. At the office you learn about the teleporter, which is the first real challenge in the game…</p>
 <h2 id="second-attempt">Second attempt</h2>
-<p>At this point I implemented about 20 debugger commands, for things like stepping, breaking at an instruction, breaking at an address, breaking on a specific register read, setting the instruction pointer etc. Just by using these commands I was able to teleport to the right place. However, the code I found there did not really work. It turns out the code is generated dynamically, based on value in R8. Which is kind of expected, otherwise we could find all the codes just by looking at strings in the binary.</p>
+<p>At this point I implemented about 20 debugger commands, for things like stepping, breaking at an instruction, breaking at an address, breaking on a specific register read, setting the instruction pointer etc. Just by using these commands I was able to teleport to the right place. However, the code I found there did not really work. It turns out the code is generated dynamically, based on the value in R8. Which is kind of expected, otherwise we could find all the codes just by looking at strings in the binary.</p>
 <p>So at this point I realize I need a disassembler…</p>
 <h2 id="third-attempt">Third attempt</h2>
 <p>The disassembler was trivial to implement. I implement it as a part of VM because 1) in theory the program can generate code in runtime (although I don’t think this is the case in practice) 2) code and data is in the same address space and instruction boundaries are not clearly known. I guess I could do something like: Start with address 0, at each jump disassemble the jump target etc. but I’m not sure if that works as some jump targets are generated dynamically.</p>
 <p>Anyway, the debugger has a disassembler now, and I start disassembling functions.</p>
 <p>When I step instruction by instruction after using the teleporter, I see that it’s checking R8, if it’s not 0, then calling a function which is the “confimation process” that’s supposed to take 1 billion years. The function has very complex control flow so I try to avoid actually debugging it.</p>
-<p>I look at the code that this function returns. It’s checking if R1 (which has the return value) is 6. So I think, why not just set R1 6 and return the function? Indeed, it works, but not really how I expected. I already knew that the code I’m searching is generated dynamically, but it’s actually generated using R8, and only when R1 is 6. So as it turns out, I need to guess a value of R8 that makes the validation function return 6. Just making the function return 6 doesn’t really work.</p>
+<p>I look at the code that this function returns to. It’s checking if R1 (which has the return value) is 6. So I think, why not just set R1 6 and return from the function? Indeed, it works, but not really how I expected. I already knew that the code I’m searching is generated dynamically, but it’s actually generated using R8, and only when R1 is 6. So as it turns out, I need to guess a value of R8 that makes the validation function return 6. Just making the function return 6 doesn’t really work.</p>
 <p>However, I said “it kinda worked”. Because the teleporter actually teleports me to the right place. It’s just that the generated code is not valid.</p>
 <h2 id="fourth-attempt">Fourth attempt</h2>
-<p>Before disassembling the verification function, I decide to solve the rest of the challenge. I realize that we’re now in a maze, 4x4. Each tile in the maze has either a number, or an operation (<code>+</code>, <code>-</code>, <code>*</code>). There’s an orb in the south-west corner, and there’s a door in the north-east corner. “30” is written on the door, and “22” is printed on the Orb. It’s easy to see what’s going on. Two things to realize that every time we return to the first tile things get reset. Also, the goal tile can be visited once (Orb disappears on visit).</p>
-<p>I implement a program that does breadth-first search on this state space, see <code>maze.rs</code>. It then prints directions to move. When we follow those directions we find the final code and the challenge is completed.</p>
+<p>Before disassembling the verification function, I decide to solve the rest of the challenge. I realize that we’re now in a maze, 4x4. Each tile in the maze has either a number, or an operation (<code>+</code>, <code>-</code>, <code>*</code>). There’s an orb in the south-west corner, and there’s a door in the north-east corner. “30” is written on the door, and “22” is printed on the Orb. It’s easy to see what’s going on. Two things to realize are that every time we return to the first tile things get reset, and the goal tile can be visited only once (the orb disappears on visit).</p>
+<p>I implement a program that does breadth-first search on this state space, see <code>maze.rs</code>. It then prints directions. When we follow those directions we find the final code and the challenge is completed.</p>
 <p>However, since I by-passed the previous challenge, I need to solve that now.</p>
 <p>This is the most fun part, it involves lots of debugging, and some programming. Here’s the disassembly of the verification function:</p>
 <pre><code>                                         -- fn(reg0 = 4, reg1 = 1, reg7 = our value) {
@@ -57,7 +57,7 @@
 [6059] Pop [Reg(0)]                      --   reg0 = pop();
 [6061] Add [Reg(0), Reg(0), Num(32767)]  --   reg0 -= 1;
 [6065] Call [Num(6027)] ------ loop      --   fn();
-[6067] Ret [] -- end of basic block 6027 --   return;
+[6067] Ret [] -- end of function at 6027 --   return;
                                          -- }</code></pre>
 <p>I added next to each instruction how they would look like in a C-like language. It’s hard to understand what’s going on. So to experiment with it I implement it in Rust. Since registers are shared in each call, I use shared state in my initial implementation:</p>
 <pre class="sourceCode rust"><code class="sourceCode rust"><span class="ot">#[</span>inline<span class="ot">]</span>
@@ -205,7 +205,7 @@
     memo.insert((reg0, reg1), ret);
     <span class="kw">return</span> ret;
 }</code></pre>
-<p>This version is super fast when compared to the original version. I feel like I can just search the whole space in a few hours. I start the search and as it searches through the search space I start wondering about how to further improve it. I think, why not split search space into pieces and search in paralell?</p>
+<p>This version is super fast when compared to the original version. I feel like I can just search the whole space in a few hours. I start the search and as it searches through the search space I start wondering about how to further improve it. I think, why not split search space into pieces and search in parallel?</p>
 <pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> search(start_range : <span class="kw">u16</span>, end_range : <span class="kw">u16</span>) -&gt; <span class="kw">Option</span>&lt;<span class="kw">u16</span>&gt; {
     <span class="kw">for</span> i in start_range .. end_range {
         <span class="co">// println!(&quot;i = {}&quot;, i);</span>
@@ -247,7 +247,7 @@
 <p>It works perfectly, with a working code printed to the screen!</p>
 <h2 id="code-and-conclusion">Code and conclusion</h2>
 <p>Overall I enjoyed this a lot. My favorite part was definitely debugging the verification function. I don’t really enjoy text adventures but that’s really a very small part of the challenge, so it wasn’t a big deal.</p>
-<p><a href="https://github.com/osa1/synacor-challenge">My code is on Github</a>. I didn’t organize the code at all, so you can see my inline notes, logs, and commented out code with their improved/changed versions, and have a feeling of how I developed my solutions. In the repo you’ll also see the original binary and challenge spec. I pushed those in case the original challenge page goes down in the future.</p>
+<p><a href="https://github.com/osa1/synacor-challenge">My code is on Github</a>. I didn’t organize the code at all, so you can see my inline notes, logs, and commented out code with their improved/changed versions, and have a feeling of how I developed my solutions. In the repo you’ll also see the original binary and challenge spec. I pushed those in case the original challenge page disappears in the future.</p>
 <p>The Rust compiler I used was <code>rustc 1.11.0-nightly (0554abac6 2016-06-10)</code>.</p>
 <p>If you know similar challenges let me know in the comment section below. One challenge that looks similar is ICFP’06 programming contest <a href="http://www.boundvariable.org/">“The Cult of the Bound Variable”</a>, which I always wanted to solve but never really got a chance. Maybe I should try it next.</p>
 
