@@ -10,6 +10,242 @@
     </author>
     <updated>2016-09-11T00:00:00Z</updated>
     <entry>
+    <title>Papers I read in 2015-2016</title>
+    <link href="http://osa1.net/posts/2016-11-15-2015-2016-papers.html" />
+    <id>http://osa1.net/posts/2016-11-15-2015-2016-papers.html</id>
+    <published>2016-09-11T00:00:00Z</published>
+    <updated>2016-09-11T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>This is my last week at Indiana University. It’ll be almost two years (1 year 11 months) since I came here, and it’s time for me to move on. While cleaning my messy desk covered with papers today I thought maybe I should make list of papers that I read (or at least printed) during this two-year period, so here it is.</p>
+<p>Papers are sorted by publication dates. <code>???</code> indicates that the publication date is unknown (or may not be published at all), and those are listed last. I’ve added some very brief notes below some of the papers. Only last names of authors are listed.</p>
+<hr />
+<ul>
+<li><p>On computable numbers, with an application to Entscheidungsproblem – Turing. 1936.</p></li>
+<li><p>Computing Machinery and Intelligence – Turing. 1950.</p>
+<p>Defines “the imitation game” aka. “Turing test”. Tries to answer some philosophical questions. I remember finding some of the arguments pretty weak.</p></li>
+<li><p>Recursive Functions of Symbolic Expressions and Their Computation by Machine, Part I – McCarthy. 1960.</p>
+<p>A classic. Defines “garbage collection”, “free list” and “stack” for the first time, without actually using those words.</p></li>
+<li><p>A basis for a mathematical theory of computation – McCarthy. 1963.</p>
+<p>Haven’t read.</p></li>
+<li><p>The Next 700 Programming Languages – Landin. 1966.</p>
+<p>Classic.</p></li>
+<li><p>A Nonrecursive List Compacting Algorithm – Cheney. 1970.</p>
+<p>A classic. Only two pages. Algorithm can easily be generalized to collect arbitrary heap objects. Known as “Cheney’s algorithm” in GC literature.</p></li>
+<li><p>Monotone Data Flow Analysis Frameworks – Kam, Ullman. 1975.</p></li>
+<li><p>Global Data Flow Analysis and Iterative Algorithms – Kam, Ullman. 1976.</p></li>
+<li><p>Abstract interpretation: a unified lattice model for static analysis of programs by construction or approximation of fixpoints – Cousot, Cousot. 1977.</p>
+<p>Cousot &amp; Cousot, so avoid. Read “Principles of Program Analysis” (book) by Nielson, Nielson and Hanking.</p></li>
+<li><p>A Real-Time Garbage Collector Based on the Lifetimes of Objects – Lieberman, Hewitt. 1983.</p>
+<p>An early generational GC paper. Defines “scavenging” and “evacuation”, some of the terms used in GHC’s GC.</p></li>
+<li><p>Generation Scavenging: A Non-disruptive High Performance Storage Reclamation Algorithm – Ungar. 1984.</p></li>
+<li><p>Compiling Pattern Matching – Augustsson. 1985.</p>
+<p>A very early paper on lazy pattern matching in LML. IIRC the idea is very simple and maybe even obvious, but this is a very early publication on the topic.</p></li>
+<li><p>How to Replace Failure by a List of Successes - A method for exception handling, backtracking, and pattern matching in lazy functional languages – Wadler. 1985.</p>
+<p>I don’t remember reading this.</p></li>
+<li><p>Multilisp: A anguage for Concurrent Symbolic Computation – Halstead. 1985.</p>
+<p>Haven’t read this.</p></li>
+<li><p>Programming as Theory Building – Naur. 1985.</p>
+<p>All I remember about this paper is that I disagreed very strongly with the points made. I see some notes on the paper about why analogies don’t work and are harmful.</p></li>
+<li><p>Control Operators, the SECD-Machine, and the λ-Calculus – Felleisen, Friedman. 1986.</p></li>
+<li><p>Hygienic Macro Expansion – Kohlbecker, Friedman, Felleisen, Duba. 1986.</p></li>
+<li><p>No Silver Bullet - Essence and Accident in Software Engineering – Brooks. 1986.</p></li>
+<li><p>ORBIT: An Optimizing Compiler for Scheme. Kranz, Kelsey, Rees, Hudak, Philbin, Adams. 1986.</p></li>
+<li><p>The Concept of a Supercompiler – Turchin. 1986.</p>
+<p>This is one of the earliest supercompilation papers published in English.</p>
+<p>First supercompilation papers were in Russian. First supercompilation paper in English was “A supercompiler system based on the langauge Refal”, Turchin, 1979. I don’t know what happened in the 7 year period, but I think the next paper was this one.</p></li>
+<li><p>Efficient Compilation of Pattern-Matching (The Implementation of Functional Programming Languages book chapter) – Wadler. 1987.</p></li>
+<li><p>Re-opening Closures – Appel. 1987.</p>
+<p>The idea is to optimize closures in runtime using captured variables. I’ve heard that Mu uses some variant of this idea.</p></li>
+<li><p>The Concatenate Vanishes – Wadler, 1987.</p>
+<p>An even earlier work than the deforestation one. Wadler shows how to “deforest” intermediate lists in some programs. I don’t remember how the idea worked, but it must be just a very simple case-of-case transformation.</p></li>
+<li><p>Theorems for free! – Wadler. 1989.</p>
+<p>Great paper, shows how parametricity leads to theorems.</p></li>
+<li><p>Deforestation: Transforming programs to eliminate trees – Wadler. 1990.</p>
+<p>I think this is another classic and coined the term “deforestation”. The paper makes a huge simplifying assumption and assumes that variables are used linearly in function bodies, which makes beta reduction safe in terms of work duplication. So not very useful for practical purposes.</p></li>
+<li><p>Linear types can change the world! – Wadler. 1990.</p></li>
+<li><p>Implementing Projection-based Strictness Analysis – Kubiak, Hughes, Launchbury. 1992.</p></li>
+<li><p>Undecidability of Static Analysis – Landi. 1992.</p>
+<p>IIRC this paper shows how interesting static analysis problems are undecidable, by means of reductions from known undecidable problems like the halting problem.</p></li>
+<li><p>Unboxed objects and polymorphic typing – Leroy. 1992.</p></li>
+<li><p>A Short Cut to Deforestation – Gill, Launchbury, Jones. 1993.</p>
+<p>Introduces fold/build rules. Still in use today in GHC.</p></li>
+<li><p>Metaobject protocols: Why we want them and what else they can do – Kiczales, Ashley, Rodriguez, Vahdat, Bobrow. 1993.</p></li>
+<li><p>Occam’s Razor in Metacomputation: the Notion of a Perfect Process Tree – Glück, Klimov. 1993.</p>
+<p>An even earlier paper on “perfect information propagation”. Uses “process trees” which are only used in very early supercompilation papers (including Turchin ones IIRC).</p></li>
+<li><p>Syntactic Abstraction in Scheme – Dybvig, Hieb, Bruggeman. 1993.</p>
+<p>Go IU!</p></li>
+<li><p>What is a Purely Functional Language? – Sabry. 1993.</p></li>
+<li><p>Partial Deduction and Driving are Equivalent – Glück, Sørensen. 1994.</p></li>
+<li><p>Mix Ten Years Later – Jones. 1995.</p>
+<p>I love Neil Jones’s partial evaluation work (and especially the book “Partial Evaluation and Automatic Program Generation” by Jones, Gomard, Sestoft).</p></li>
+<li><p>The Design of a Pretty-printing Library – Hughes. 1995.</p></li>
+<li><p>A Roadmap to Metacomputation by Supercompilation – Glück, Sørensen. 1996.</p>
+<p>Shows how to use supercompilation for metaprogramming tasks “specialization”, “composition” and “inversion”. I don’t even remember what are the latter two though.</p></li>
+<li><p>Building Domain-Specific Embedded Languages – Hudak. 1996.</p></li>
+<li><p>On Perfect Supercompilation – Secher, Sørensen. 1996.</p>
+<p>This paper shows how to do “negative information propagation” during “driving” (see Jones, 2000). “Negative” means “what forms a value cannot take”.</p>
+<p>Now that I think about this idea again, I’m wondering in what sense “negative” information is special. Assuming the set of values of a type is finite, you can always express negative information as positive information, e.g. if the set contains <code>{X, Y, Z}</code> <code>cannot be X =&gt; is one of {Y, Z}</code>.</p></li>
+<li><p>Realistic Compilation by Partial Evaluator – Sperber, Thiemann. 1996.</p>
+<p>I love this paper. It inspired <a href="http://osa1.net/posts/2015-05-13-comp-through-interp.html">a project of mine</a>. I met the first author at ICFP’16 after coincidentally sitting next to him at lunch :) .</p></li>
+<li><p>A transformation-based optimiser for Haskell – Jones, Santos. 1997.</p>
+<p>Describes “let-no-escape” optimizations that is still in used today in GHC.</p></li>
+<li><p>Improvement Theory and its Application – Sands. 1997.</p>
+<p>The idea is used in Bolingbroke’s PhD thesis, that’s why I printed this, but I haven’t read it yet.</p></li>
+<li><p>MetaML and Multi-Stage Programming with Explicit Annotations – Taha, Sheard. 1997.</p>
+<p>Introduction to MetaML.</p></li>
+<li><p>Definitional Interpreters for Higher-Order Programming Languages – Reynolds. 1998.</p>
+<p>Classic.</p></li>
+<li><p>Growing a Language – Steele. 1998.</p>
+<p>Watch his talk with the same title instead, it’s awesome.</p></li>
+<li><p>Positive supercompilation for a higher-order call-by-value language – Jonsson, Nordlander. 1998.</p>
+<p>Funny how the pages are full of notes, yet I don’t remember anything about this paper.</p></li>
+<li><p>Type Inference with Constrained Types – Odersky, Sulzmann, Wehr. 1998.</p></li>
+<li><p>On the Power of Homeomorphic Embedding for Online Termination – Leuschel, 1998.</p></li>
+<li><p>A semantics for imprecise exceptions – Jones, Reid, Hoare, Marlow, Henderson. 1999.</p></li>
+<li><p>Call-By-Push-Value: A Subsuming Paradigm (extended abstract) – Levy. 1999.</p>
+<p>Another paper that I just couldn’t finish.</p></li>
+<li><p>Introduction to Supercompilation – Sørensen, Glück. 1999.</p>
+<p>This is a really good introduction. It uses “process trees” which help a lot when trying to understand the idea for the first time. I made a presentation here at IU using process trees in this paper.</p></li>
+<li><p>Linear Scan Register Allocation – Poletto, Sarkar. 1999.</p>
+<p>Very famous algorithm, used in many JIT compilers. I think GHC also has a variant of this (see <code>compiler/nativeGen/RegAlloc/Linear</code> directory).</p></li>
+<li><p>Partial Evaluation and Automatic Program Generation – Jones, Gomard, Sestoft. 1999.</p>
+<p>I really like this book. I tried to implement every language in this book, but it became tiresome real quick. Best introduction to partial evaluation.</p></li>
+<li><p>Secrets of the Glasgow Haskell Compiler inliner – Jones, Marlow. 1999.</p></li>
+<li><p>The STG runtime system (revised) – Jones, Marlow. 1999.</p></li>
+<li><p>Compiling Embedded Languages – Elliott, Finne, de Moor. 2000.</p></li>
+<li><p>Type-Preserving Garbage Collectors – Wang, Appel. 2001.</p>
+<p>Haven’t read this.</p></li>
+<li><p>The Essence of Program Transformation by Partial Evaluation and Driving – Jones. 2000.</p>
+<p>This paper defines the concept of “driving” which IIRC is also used in some early (before Mitchell and Bolingbroke papers) supercompilation papers.</p></li>
+<li><p>Composable and Compilable Macros - When Want it When? – Flatt. 2002.</p></li>
+<li><p>Template Meta-programming for Haskell – Sheard, Jones. 2002.</p></li>
+<li><p>A Functional Correspondence between Evaluators and Abstract Machines – Ager, Biernacki, Danvy, Midtgaard. 2003.</p></li>
+<li><p>From Interpreter to Compiler and Virtual Machine: A Functional Derivation – Ager, Biernacki, Danvy, Midtgaard. 2003.</p></li>
+<li><p>Garbage-First Garbage Collection – Detlefts, Flood, Heller, Printezis. 2004.</p></li>
+<li><p>Self-Adjusting Computation (PhD thesis) – Acar. 2005.</p>
+<p>I started reading this a couple of time, failed every time. I was looking for some “automated” way of getting incremental compilation out of compiler passes that don’t take incremental compilation into account.</p></li>
+<li><p>Gaussian Elimination: a case study in efficient genericity with MetaOCaml – Carette. 2005.</p></li>
+<li><p>Fast and Loose Reasoning is Morally Correct – Danielsson, Hughes, Hansson, Gibbons. 2006.</p></li>
+<li><p>Haskell Is Not Not ML – Rudiak-Gould, Mycroft, Jones. 2006.</p>
+<p>I remember trying to read this paper many times, but I couldn’t succeed. I was thinking about an intermediate language that support both lazy and strict programs equally well.</p></li>
+<li><p>Out of the Tar Pit – Moseley, Marks. 2006.</p>
+<p>Defines “essential complexity” and “accidental complexity”.</p></li>
+<li><p>The Development of Chez Scheme – Dybvig. 2006.</p>
+<p>Chez in <a href="https://github.com/cisco/ChezScheme">now open source</a>. The runtime performance of Chez programs is good, but the compiler was a huge disappointment for me. Unreadable, undocumented mess, and the passes I was expecting to see is not there (sub-0CFA).</p></li>
+<li><p>Call-pattern Specialisation for Haskell Programs – Jones. 2007.</p></li>
+<li><p>Faster Laziness Using Dynamic Pointer Tagging – Marlow, Yakushev, Jones. 2007.</p>
+<p>The idea is very simple and very effective. It’s in use in GHC today, and it’s saving us a lot of jumps. One of the reasons why unpacking sum types are not as useful as one might expect.</p>
+<p>Over the summer 2016 one of the projects I worked on was to improve this in some cases. The problem was that in some cases (when strict fields are involved) GHC is currently not tagging some pointers even though in theory it could and that’d save us some instructions in the binaries. Unfortunately the rabbit hole goes quite deep and I had to drop it to focus on unboxed sums.</p></li>
+<li><p>System F with Type Equality Coercions – Sulzmann, Chakravarty, Jones, Donnelly. 2007.</p></li>
+<li><p>Generational Real-Time Garbage Collection - A Three-Part Invention for Young Objects – Frampton, Bacon, Cheng, Grove. 2007.</p>
+<p>Haven’t read yet.</p></li>
+<li><p>Bitcoin: A Peer-to-Peer Electronic Cash System – Satoshi Nakamoto. 2008.</p></li>
+<li><p>Computation and State Machines – Lamport. 2008.</p></li>
+<li><p>Finally Tagless, Partially Evaluate - Tagless Staged Interpreters for Simpler Typed Languages – Carette, Kiselyov, Shan. 2009.</p></li>
+<li><p>Idempotent Work Stealing – Michael, Vechev, Saraswat. 2009.</p>
+<p>This idea is used in LVish.</p></li>
+<li><p>Positive Supercompilation for a Higher Order Call-By-Value Language – Jonsson, Nordlander. 2009.</p>
+<p>An attempt at supercompiling a call-by-value language.</p></li>
+<li><p>Supercompiler HOSC 1.0: under the hood – Klyuchnikov, 2009.</p>
+<p>The author’s another paper (also listed here) is my favorite introduction to supercompilation.</p></li>
+<li><p>Tracing the Meta-Level: PyPy’s Tracing JIT Compiler – Bolz, Cuni, Fijalkowski, Rigo. 2009.</p>
+<p>Everything done by RPython/PyPy team is great.</p></li>
+<li><p>Types are calling conventions – Bolingbroke, Jones. 2009.</p>
+<p>Yet another great Bolingbroke work. I worked on a variant of this during the summer of 2016.</p></li>
+<li><p>Abstracting Abstract Machines – Horn, Might. 2010.</p>
+<p>I was told that this is very cool work, but I haven’t read it yet.</p></li>
+<li><p>A Play on Regular Expressions – Fischer, Huch, Wilke. 2010.</p></li>
+<li><p>Lightweight Modular Staging: A Pragmatic Approach to Runtime Code Generation and Compiled DSLs – Rompf, Odersky. 2010.</p>
+<p>Scala LMS paper.</p></li>
+<li><p>Proving the Equivalence of Higher-Order Terms by Means of Supercompilation – Klyuchnikov, Romanenko. 2010.</p></li>
+<li><p>Rethinking Supercompilation – Mitchell. 2010.</p>
+<p>I remember that I really liked this paper at the time. Unlike most other papers, this paper can be implemented in a couple of hours, and it works good enough. IIRC the main novelty here was the tag-bag based termination criterion, which was later developed further by Bolingbroke in first “Supercompilation by evaluation” and then in his PhD thesis.</p></li>
+<li><p>Scrapping your Inefficient Engine: Using Partial Evaluation to Improve Domain-Specific Language Implementation – Brady, Hammond. 2010.</p>
+<p>Introduces Idris’s partial evaluator.</p></li>
+<li><p>Supercompilation by Evaluation – Bolingbroke, Jones. 2010.</p>
+<p>Best supercompilation paper at the time. The record was later broken again by the author of this paper in his PhD thesis (also listed here). The author is amazing and I was depressed for a very long time after reading his papers (another notable one is “Termination Combinators Forever” which is also listed here). I’ll never be this good as a researcher.</p></li>
+<li><p>Ur: Statically-Typed Metaprogramming with Type-Level Record Computation – Chilpala. 2010.</p></li>
+<li><p>C4: The Continuously Concurrent Compacting Collector – Tene, Iyengar, Wolf. 2011.</p>
+<p>Haven’t read yet.</p></li>
+<li><p>Flow-Sensitive Type Recovery in Linear-Log Time – Adams, Keep, Midtgaard, Might, Chauhan, Dybvig. 2011.</p>
+<p>Sub-0CFA for type inference. Not used in current Chez implementation as far as I can see. Goal is to eliminate runtime type checks.</p></li>
+<li><p>How To Write Shared Libraries – Drepper. 2011.</p></li>
+<li><p>Practical aspects of evidence-based compilation in System FC – Vytiniotis, Jones. 2011.</p>
+<p>IIRC this stuff was introduced with GHC 7.2. For some reason that I can’t recall, it’s sometimes useful to return coercions in functions. This paper is about that. I don’t remember much although the paper has some notes on it.</p></li>
+<li><p>Termination Combinators Forever – Bolingbroke, Jones, Vytiniotis. 2011.</p>
+<p>Shows how to build online termination checkers using some primitives and combinators. Checkers are correct by construction. The implementation is used in the author’s implementation of his PhD thesis.</p></li>
+<li><p>Challenges for a Trace-Based Just-In-Time Compiler for Haskell – Schilling. 2012.</p>
+<p>Read his PhD thesis instead.</p></li>
+<li><p>Chaperones and Impersonators: Run-time Support for Reasonable Interposition – Strickland, Tobin-Hochstadt, Findler, Flatt. 2012.</p>
+<p>I have a big “NO” marked on the paper in red.</p></li>
+<li><p>Explicitly Heterogeneous Metaprogramming with MetaHaskell – Mainland. 2012.</p></li>
+<li><p>Self-Optimizing AST Interpreters – Würthinger, Wöß, Stadler, Duboscq, Simon, Wimmer. 2012.</p></li>
+<li><p>The HERMIT in the Machine - A Plugin for the Interactive Transformation of GHC Core Language Programs – Farmer, Gill, Komp, Sculthorpe. 2012.</p></li>
+<li><p>Call-by-need supercompilation (PhD thesis) – Bolingbroke. 2013.</p></li>
+<li><p>Forge: Generating a High Performance DSL Implementation from a Declarative Specification – Sujeeth, Gibbons, Brown, Lee, Rompf, Odersky, Olukotun. 2013.</p>
+<p>After having played with LMS and Delite a little bit, I have nothing good to say about this work. Things may be improved since then though.</p></li>
+<li><p>Hybrid Partial Evaluation – Shali, Cook. 2013.</p>
+<p>Cook has an introductory blog post / web page about partial evaluation which is pretty good.</p></li>
+<li><p>Optimizing Data Structures in High-Level Programs – Rompf, Sujeeth, Amin, Brown, Jovanovic, Lee, Jonnalagedda, Olukotun, Odersky. 2013.</p>
+<p>A Scala LMS paper. All I remember about these papers is that I didn’t like them.</p></li>
+<li><p>One VM to Rule Them All – Würthinger, Wimmer, Wöß, Stadler, Duboscq, Humer, Richards, Simon, Wolczko. 2013.</p>
+<p>Has 9 authors.</p></li>
+<li><p>Simple and Efficient Construction of Static Single Assignment Form – Braun, Buchwalk, Hack, Leißa, Malloc, Zwinkau. 2013.</p>
+<p>I think the algorithm was already known in the compilers community, but this paper publishes it first and benchmarks it.</p></li>
+<li><p>Supercompiling Erlang (MSc thesis) – Weinholt. 2013.</p></li>
+<li><p>Terra: A Multi-Stage Language for High-Performance Computing – DeVito, Hegarty, Aiken, Hanrahan, Vitek. 2013.</p>
+<p>Terra is awesome. I talked a little bit about it in my blog posts <a href="http://osa1.net/posts/2015-05-17-staging-is-not-just-codegen.html">1</a>, <a href="http://osa1.net/posts/2015-08-09-sufficiently-smart-compiler.html">2</a>.</p></li>
+<li><p>Trace-based Just-in-time Compilation for Lazy Functional Programming Languages (PhD thesis) – Schilling, 2013.</p>
+<p>Two good theses published in 2013, Bolingbroke and this one. Too bad neither of them were pursued further.</p>
+<p>IIRC the JIT introduction in this thesis is very easy to read, doesn’t assume a lot of background.</p></li>
+<li><p>Combinators for Impure yet Hygienic Code Generation – Kameyama, Kiselyov, Shan. 2014.</p></li>
+<li><p>Compiling a Reflective Language using MetaOCaml – Asai. 2014.</p>
+<p>I love everything related with MetaOCaml.</p></li>
+<li><p>Freeze After Writing - Quasi-Deterministic Parallel Programming with LVars – Kuper, Turon, Krishnaswami, Newton. 2014.</p></li>
+<li><p>Macros that Work Together - Compile-Time Bindings, Partial Expression, and Definition Contexts – Flatt, Culpepper, Darais, Findler. 2014.</p></li>
+<li><p>Modular, Higher-Order Cardinality Analysis in Theory and Practice – Sergey, Vytiniotis, Jones. 2014.</p>
+<p>This is still in use in GHC today. Cardinality analysis is done as a part of demand analysis (lattice is extended to handle cardinalities).</p></li>
+<li><p>Optimizing SYB Is Easy! – Adams, Farmer, Magalhaes. 2014.</p></li>
+<li><p>Safe Zero-cost Coercions for Haskell (extended edition) – Breitner, Eisenberg, Jones, Weirich. 2014.</p>
+<p>Another paper full of notes yet I don’t remember anything.</p></li>
+<li><p>Supercompilation: Ideas and Methods – Klyuchnikov, Krustev. 2014.</p>
+<p>Published in “The Monad.Reader” issue 23, this is without a doubt the best introduction to supercompilation. It’s very well written, provides great bibliography for further reading, and comes with a simple implementation. Great stuff, although the language is too simple to be useful.</p></li>
+<li><p>Taming the Parallel Effect Zoo – Kuper, Todd, Tobin-Hochstadt, Newton. 2014.</p></li>
+<li><p>The Kansas University Rewrite Engine - A Haskell-Embedded Strategic Programming Language with Custom Closed Universes – Sculthorpe, Frisby, Gill. 2014.</p>
+<p>This is about KURE, rewrite engine that powers HERMIT. I remember that at the time I decided to implement my own rewrite combinators than fighting HERMIT API to do whatever I wanted to do.</p></li>
+<li><p>Go 1.5 concurrent garbage collector pacing – Celements. 2015.</p></li>
+<li><p>Static Program Analysis (lecture notes) – Møller, Schwartzbach. 2015.</p>
+<p><a href="https://cs.au.dk/~amoeller/spa/" class="uri">https://cs.au.dk/~amoeller/spa/</a></p></li>
+<li><p>Static Single Assignment Book (in-progress book) – “Lots of authors”. 2015 (ongoing)</p>
+<p>I’m still reading this.</p></li>
+<li><p>Shallow Embedding of DSLs via Online Partial Evaluation – Leißa, Boesche, Hack, Membarth, Slusallek. 2015.</p></li>
+<li><p>The Design of Terra: Harnessing the Best Features of High-Level and Low-Level Languages – DeVito, Hanrahan. 2015.</p></li>
+<li><p>Improving Implicit Parallelism – Trilla, Runciman. 2015.</p></li>
+<li><p>K-Java: A Complete Semantics of Java – Bogdanas, Rosu. 2015.</p></li>
+<li><p>Zero-Overhead Metaprogramming – Marr, Seaton, Ducasse. 2015.</p>
+<p>Related with JITs, partial evaluation, and metaobject protocols. I don’t remember reading this.</p></li>
+<li><p>GADTs Meet Their Match: Pattern-Matching Warnings That Account for GADTs, Guards, and Laziness – Karachalias, Schrivers, Vytiniotis, Jones. 2016.</p></li>
+<li><p>Staging Generic Programming – Yallop. 2016.</p></li>
+<li><p>State Machines All The Way Down - An Architecture for Dependently Typed Applications – Brady. 2016.</p></li>
+</ul>
+<hr />
+<ul>
+<li><p>Common Subexpression Elimination in a Lazy Functional Language – Chitil. ???</p>
+<p>Shows how CSE can lead to more memory residency and is not always beneficial.</p></li>
+<li><p>Constructed Product Result Analysis for Haskell – Baker-Finch, Glynn, Jones. ???</p>
+<p>This is still a part of GHC, done during demand analysis. We recently extended this to work on sum types.</p></li>
+<li><p>Demand analysis (draft, not published) – Jones, Sestoft, Hughes</p>
+<p>I hate this paper because it wasted so much of my time. GHC wiki links to that, even though this is not relevant to the implementation. Read Sergey et al. instead.</p></li>
+<li><p>Lecture Notes: Control Flow Analysis for Functional Languages (lecture notes) – Aldrich. ???</p></li>
+<li><p>Supercompiling with Staging – Inoue. ???</p>
+<p>Shows how to use MetaOCaml’s staging operators to do supercompilation-like transformations.</p></li>
+<li><p>Space and Time Efficient Supercompilation (PhD thesis) – Jonsson. ???.</p></li>
+<li><p>The Design and Implementation of BER MetaOCaml – Kiselyov. ???</p></li>
+<li><p>The Next Stage of Staging – Inoue, Kiselyov, Kameyama. ???</p></li>
+<li><p>Two Techniques for Compiling Lazy Pattern Matching – Maranget. ???</p></li>
+<li><p>Warnings for pattern matching – Maranget. ???</p></li>
+</ul>]]></summary>
+</entry>
+<entry>
     <title>More Rust problems (and a sketch of a solution)</title>
     <link href="http://osa1.net/posts/2016-09-11-more-rust-problems.html" />
     <id>http://osa1.net/posts/2016-09-11-more-rust-problems.html</id>
@@ -1028,163 +1264,6 @@ map f (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span><span class="ot"> undefined ::</span> <span class="dt">List</span> <span class="dt">Int</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
 <p>A thunk is still constructed in the runtime, but it’s evaluated <em>before</em> the <code>&lt;body&gt;</code> is evaluated. So this code fails before <code>&lt;body&gt;</code> is evaluated, and if we evaluate <code>&lt;body&gt;</code> it means that <code>a</code> is not bottom and doesn’t have bottoms.</p>
 <p>This is another potential improvement over the <code>-XStrict</code>. For more details and some optimizations see <a href="https://mail.haskell.org/pipermail/ghc-devs/2015-October/010175.html">this ghc-devs thread</a>.</p>]]></summary>
-</entry>
-<entry>
-    <title>On data representation in GHC Haskell</title>
-    <link href="http://osa1.net/posts/2015-11-13-data-repr-1.html" />
-    <id>http://osa1.net/posts/2015-11-13-data-repr-1.html</id>
-    <published>2015-11-13T00:00:00Z</published>
-    <updated>2015-11-13T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>It’s been a while since last time I wrote a blog post. This is not because I don’t have anything to write, rather, I have too much to write, and I was afraid that if I start writing it’d take too long.</p>
-<p>But now that I started writing stuff for different applications(fellowships, internships etc.) I thought maybe this is a good time to write some blog posts too.</p>
-<hr />
-<p>At ICFP this year<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> we initiated a discussion about data representation in GHC Haskell. <a href="http://www.cs.indiana.edu/~rrnewton/homepage.html">My advisor</a> gave <a href="https://youtu.be/TT4poCUSf3A?t=59s">lightning talk at HIW</a>(Haskell Implementors Workshop). It’s a 5-minute talk and I recommend everyone reading this blog post to watch it. In the presentation, he showed this plot: (click on it to maximize)</p>
-<p><a href="/images/data_repr_1/plot_old.png"><img src="/images/data_repr_1/plot_old_small.png" /></a></p>
-<p>I put that here as a reference, but I’ll actually use some more detailed plots and correct a mistake in that plot. You can generate all the plots I show here using my benchmark programs <a href="https://github.com/osa1/spec_bench">here</a>.</p>
-<p>In this post I want to make a point that is similar to Ryan’s point in the lightning talk: In Haskell, we’re not doing good job in data layouts. Our data is lazy by default, and laziness implies indirections(pointers). Updating a lazy record field means first generating a thunk and pointing to that thunk from the record. When the thunk is evaluated, we get one more indirection: A new pointer pointing to the actual data<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>. This means that we need two pointer dereferencing just to read a single <code>Int</code> from a record.</p>
-<p>At this point garbage collector helps to eliminate one level of indirection, and updates the field to point to the data directly. But this waits until the next garbage collection.</p>
-<p>GHC has some support for “unpacking” fields of ADTs and records. When a field is “unpacked”, it means that 1) the field is strict 2) the value is not allocated separately and pointed to by a pointer, it’s part of the data constructor/record<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>.</p>
-<p>To illustrate how important unpacking is, I implemented two benchmarks. This is the data types I use in the benchmarks:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">GL</span> a <span class="fu">=</span> <span class="dt">GLNil</span> <span class="fu">|</span> <span class="dt">GLCons</span> a (<span class="dt">GL</span> a)
-
-<span class="kw">data</span> <span class="dt">SGL</span> a <span class="fu">=</span> <span class="dt">SGLNil</span> <span class="fu">|</span> <span class="dt">SGLCons</span> <span class="fu">!</span>a (<span class="dt">SGL</span> a)
-
-<span class="kw">data</span> <span class="dt">IntList</span> <span class="fu">=</span> <span class="dt">ILNil</span> <span class="fu">|</span> <span class="dt">ILCons</span> <span class="ot">{-# UNPACK #-}</span> <span class="fu">!</span><span class="dt">Int</span> <span class="dt">IntList</span></code></pre>
-<p>The first type, <code>GL</code>, is the exactly the same as GHC’s standard list type. Second one is mostly the same, only difference is I have a strictness annotation(a <a href="https://downloads.haskell.org/~ghc/7.10.2/docs/html/users_guide/bang-patterns.html"><code>BangPattern</code></a>) before in the head(or <code>car</code>) part of the list. Third one is similar to second one, except I also unpack the <code>car</code>.</p>
-<p>Note that if you look at the types, first two of these types are parametric on the list elements, while the third one is specialized to integers. This is essentially monomorphization, and some compilers can do that automatically in some cases(<a href="http://mlton.org/Monomorphise">1</a>, <a href="http://www.impredicative.com/ur/">2</a>, if you know other compilers that do this, please write a comment), but in the presence of higher-order functions(and probably some other features), it’s in general not possible to monomorphise everything<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>. GHC has some limited support for this with the <a href="https://downloads.haskell.org/~ghc/7.10.2/docs/html/users_guide/pragmas.html#specialize-pragma"><code>SPECIALIZE</code> pragma</a>, but it only works on functions and it doesn’t specialize data types(and maybe it can’t do this even in theory).</p>
-<p>Now, I’m going to implement two functions on these data types. First function is for summing up all the elements:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">glSum ::</span> <span class="dt">GL</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
-glSum <span class="fu">=</span> glSumAcc <span class="dv">0</span>
-
-<span class="ot">glSumAcc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">GL</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
-glSumAcc <span class="fu">!</span>acc <span class="dt">GLNil</span>        <span class="fu">=</span> acc
-glSumAcc <span class="fu">!</span>acc (<span class="dt">GLCons</span> h t) <span class="fu">=</span> glSumAcc (acc <span class="fu">+</span> h) t</code></pre>
-<p>I implement exactly the same function for other types too.</p>
-<p>Second function is the length function:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">glLength ::</span> <span class="dt">GL</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span>
-glLength <span class="fu">=</span> glLengthAcc <span class="dv">0</span>
-
-<span class="ot">glLengthAcc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">GL</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span>
-glLengthAcc <span class="fu">!</span>acc <span class="dt">GLNil</span>        <span class="fu">=</span> acc
-glLengthAcc <span class="fu">!</span>acc (<span class="dt">GLCons</span> _ l) <span class="fu">=</span> glLengthAcc (acc <span class="fu">+</span> <span class="dv">1</span>) l</code></pre>
-<p>(Similarly for other two types..)</p>
-<p>Now I’m going to benchmark these two function for all three variants, but let’s just speculate about what would be the expected results.</p>
-<p>Clearly the third one should be faster for <code>sum</code>, because we don’t need to follow pointers for reading the integer. But should the second type(parametric but strict) be any faster? I’d say yes. The reason is because the field is strict, and so when we do pattern matching on <code>Int</code> to add integers, we don’t need to enter any thunks, we know that <code>Int</code> is already in WHNF. We should be able to just read the field.</p>
-<p>Here’s the result: (click on it to maximize)</p>
-<p><a href="/images/data_repr_1/plot_sum.png"><img src="/images/data_repr_1/plot_sum_small.png" /></a></p>
-<p>As you can see I have an extra line in this plot: I added GHC’s standard lists and used <a href="http://hackage.haskell.org/package/base-4.8.1.0/docs/Data-List.html#v:sum">standard <code>sum</code> function</a>. It’s ridiculously slow, it’s almost two orders of magnitude slower on a list with length 10^7. Before moving on and interpreting rest of the lines let’s just talk a bit about why this is slower. We only need to look at the type of <code>sum</code> function:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">sum<span class="ot"> ::</span> (<span class="dt">Foldable</span> t, <span class="dt">Num</span> a) <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> a</code></pre>
-<p>This function is very, very general. There’s no way for this function to run fast, unless GHC is smart enough to generate a specialized version of this for <code>[Int]</code>. It turns out GHC is not smart enough, and in our case this is causing trouble. Note that we need two specializations here. First is to eliminate <code>Foldable t</code> part(we statically know that <code>t</code> is <code>[]</code>), and second is to eliminate <code>Num a</code> part(we statically know that <code>a</code> is <code>Int</code>).</p>
-<p>Now that we have this out of the way, let’s look at the other 3 lines. We can see that unboxed version is really faster(0.039 seconds other lists vs. 0.018 seconds unboxed list), which was expected. The interesting part is strict version is exactly the same as lazy version. Now, I don’t have a good explanation for this. The generated Core and STG for these two variants of <code>sum</code> are exactly the same. The Cmm or assembly code should be different. The problem is, I really can’t make any sense of generated Cmm code. I should study Cmm more for this.</p>
-<p>But I have an idea: Pattern matching means entering the thunk to reveal the WHNF structure. Since our integers are boxed, we need to pattern match on them to read the primitive <code>Int#</code>s. This means entering the thunks, even if the field is strict.</p>
-<p>In my benchmarks, I only used completely normalized lists. This means that in the lazy case we enter thunks, only to return immediately, because the <code>Int</code> is already in WHNF. There’s no difference in lazy and strict variants in pattern matching.</p>
-<p>Only difference is when we update the field, in which case generated code should be different if the field is strict.</p>
-<p>To validate the second part of this claim, I wrote another benchmark. In this benchmark I again create a list of length 10^7, but every cell has an integer calculated using a function. I then measure list generation and consumption(sum) times. The idea is that in the case of strict list, list generation should be slower, but consumption should be faster, and the opposite in the lazy list case. Indeed we can observe this in the output:</p>
-<pre><code>Performing major GC
-Generating generic list
-Took 0.737606563 seconds.
-Performing major GC
-Summing generic list
-Took 0.490998969 seconds.
-Performing major GC
-Generating strict list
-Took 0.870686580 seconds.
-Performing major GC
-Summing strict list
-Took 0.035886157 seconds.</code></pre>
-<p>The program is <a href="https://github.com/osa1/spec_bench/commit/b63322eb1edd32792837b58853c00ba0effad0a6">here</a>. We can see that summing strict list is 10x faster, but producing is slower, because instead of generating thunks we’re actually doing the work while producing cons cells.</p>
-<p>(One thing to note here is that if the computation in thunks is not expensive enough, strict lists are faster in both production and consumption. I think the reason is because thunking overhead is bigger than actually doing the work in some cases)</p>
-<p>OK, I hope this explains the story with <code>sum</code>. The second part of the benchmark is even more interesting. It runs <code>length</code>. Here’s the plot:</p>
-<p><a href="/images/data_repr_1/plot_len.png"><img src="/images/data_repr_1/plot_len_small.png" /></a></p>
-<p>We again have a line for standard Haskell list here. Good news is that even though standard <a href="http://hackage.haskell.org/package/base-4.8.1.0/docs/Data-List.html#v:length">length</a>’s type is again very general, this time GHC was able to optimize:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">length<span class="ot"> ::</span> <span class="dt">Foldable</span> t <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> <span class="dt">Int</span></code></pre>
-<p>Interesting part is that unboxed list is again faster! But why? We’re not using head fields, whether it’s a pointer or not should not matter, right?</p>
-<p>Here I again have an idea: Even though we never use head parts, the garbage collector has to traverse all the data, and copy them from one generation to other.</p>
-<p>(We also allocate more, but I’m not measuring that in the benchmarks)</p>
-<p>To again back my claims, I have another set of benchmark programs that generate some GC stats. Here’s the output for “generic” case:</p>
-<pre><code>   800,051,568 bytes allocated in the heap
- 1,138,797,344 bytes copied during GC
-   310,234,360 bytes maximum residency (12 sample(s))
-    68,472,584 bytes maximum slop
-           705 MB total memory in use (0 MB lost due to fragmentation)
-
-                                   Tot time (elapsed)  Avg pause  Max pause
-Gen  0      1520 colls,     0 par    0.207s   0.215s     0.0001s    0.0009s
-Gen  1        12 colls,     0 par    0.348s   0.528s     0.0440s    0.1931s
-
-INIT    time    0.000s  (  0.000s elapsed)
-MUT     time    0.126s  (  0.082s elapsed)
-GC      time    0.555s  (  0.743s elapsed)
-EXIT    time    0.004s  (  0.050s elapsed)
-Total   time    0.685s  (  0.875s elapsed)
-
-%GC     time      81.0%  (84.9% elapsed)
-
-Alloc rate    6,349,615,619 bytes per MUT second
-
-Productivity  19.0% of total user, 14.9% of total elapsed</code></pre>
-<p>“Generic strict” case:</p>
-<pre><code>   800,051,568 bytes allocated in the heap
- 1,138,797,344 bytes copied during GC
-   310,234,360 bytes maximum residency (12 sample(s))
-    68,472,584 bytes maximum slop
-           705 MB total memory in use (0 MB lost due to fragmentation)
-
-                                   Tot time (elapsed)  Avg pause  Max pause
-Gen  0      1520 colls,     0 par    0.211s   0.213s     0.0001s    0.0008s
-Gen  1        12 colls,     0 par    0.367s   0.531s     0.0442s    0.1990s
-
-INIT    time    0.000s  (  0.000s elapsed)
-MUT     time    0.114s  (  0.080s elapsed)
-GC      time    0.578s  (  0.744s elapsed)
-EXIT    time    0.003s  (  0.045s elapsed)
-Total   time    0.698s  (  0.869s elapsed)
-
-%GC     time      82.8%  (85.6% elapsed)
-
-Alloc rate    7,017,996,210 bytes per MUT second
-
-Productivity  17.2% of total user, 13.8% of total elapsed</code></pre>
-<p>“Unboxed” case:</p>
-<pre><code>   560,051,552 bytes allocated in the heap
-   486,232,928 bytes copied during GC
-   123,589,752 bytes maximum residency (9 sample(s))
-     3,815,304 bytes maximum slop
-           244 MB total memory in use (0 MB lost due to fragmentation)
-
-                                   Tot time (elapsed)  Avg pause  Max pause
-Gen  0      1062 colls,     0 par    0.117s   0.123s     0.0001s    0.0018s
-Gen  1         9 colls,     0 par    0.116s   0.179s     0.0199s    0.0771s
-
-INIT    time    0.000s  (  0.001s elapsed)
-MUT     time    0.070s  (  0.054s elapsed)
-GC      time    0.233s  (  0.302s elapsed)
-EXIT    time    0.002s  (  0.019s elapsed)
-Total   time    0.306s  (  0.376s elapsed)
-
-%GC     time      76.1%  (80.4% elapsed)
-
-Alloc rate    8,000,736,457 bytes per MUT second
-
-Productivity  23.9% of total user, 19.4% of total elapsed</code></pre>
-<p>Interesting parts are productivity rates and total bytes allocated. We can see that unboxed version is a lot better in both.</p>
-<p>The reason why productivities are too bad in all cases is, I think, that because this is purely an allocation benchmark, all we do is to allocate and then we do one pass on the whole thing. In this type of programs it makes sense to increase the initial heap a little bit to increase the productivity. For example, if I use <code>-H1G</code> productivity increases to 64% in generic list case and to 97% in unboxed list case.</p>
-<p>So what’s the lesson here?</p>
-<p>The data layout matters a lot. Even if the data is not used in some hot code path, GC needs to traverse all the live data and in the case of GHC Haskell it needs to copy them in each GC cycle. Also, lazy-by-default is bad for performance.</p>
-<h1 id="an-improvement">An improvement</h1>
-<p>I recently finished implementing hard parts of a project. I don’t want to give too much detail here for now but let’s just say we’re improving the unboxing story in GHC. With our new patch, you will be able to <code>{-# UNPACK #-}</code> some of the types that you can’t right now. When/if the patch lands I’m going to announce it here.</p>
-<p>With <a href="http://downloads.haskell.org/~ghc/master/users-guide/glasgow_exts.html?highlight=strictdata#strict-haskell"><code>-XStrictData</code></a>, <a href="https://phabricator.haskell.org/D1142"><code>-XStrict</code></a> and flags like <code>-funbox-strict-fields</code>(search for it <a href="https://downloads.haskell.org/~ghc/7.10.2/docs/html/users_guide/flag-reference.html">here</a>) we’ll have a lot better story about data layout than we have today. But there are still some missing pieces. Our patch will hopefully implement one more missing piece and we’ll have even better data layout story.</p>
-<p>I think the next step then will be <a href="https://mail.haskell.org/pipermail/ghc-devs/2015-October/010175.html">better calling conventions for strict functions</a> and some other tweaks in the runtime system for better strict code support overall. Then maybe we can officially declare Haskell as a language with lazy and strict evaluation ;-) .</p>
-<hr />
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>I realized that I forgot to announce it here, but <a href="/papers/cnf.pdf">we had a paper at ICFP</a>, and I gave a <a href="https://www.youtube.com/watch?v=gkx-D-7Y1EU">talk at Haskell Implementors Workshop</a> this year.<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>That data is still not totally normalized, it’s in weak head normal form. The new heap object that we get when we evaluate a thunk is called an “indirection”. See more details <a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/Storage/HeapObjects#Indirections">here</a>.<a href="#fnref2">↩</a></p></li>
-<li id="fn3"><p>See the <a href="https://downloads.haskell.org/~ghc/7.10.2/docs/html/users_guide/pragmas.html#unpack-pragma">GHC user manual entry</a> for more info.<a href="#fnref3">↩</a></p></li>
-<li id="fn4"><p>I’m hoping to make this a subject to another blog post. One thing to note here is that even when monomorphization is possible, it may cause a code explosion.<a href="#fnref4">↩</a></p></li>
-</ol>
-</div>]]></summary>
 </entry>
 
 </feed>
