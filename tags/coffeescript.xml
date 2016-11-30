@@ -17,7 +17,7 @@
     <updated>2013-04-17T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I’m using <a href="http://threejs.org">THREE.js</a> for a project I’m working on. This is my first experience programming a 3D environment and I’m having hard times wrapping my head around 3D coordinate system.</p>
 <p>So I wrote a helper function that draws axis arrows to the scene center to help me see how to translate/rotate my objects.</p>
-<pre class="sourceCode coffee"><code class="sourceCode coffee">drawAxisHelpers <span class="kw">=</span> <span class="fu">(params = {}) -&gt;</span>
+<div class="sourceCode"><pre class="sourceCode coffee"><code class="sourceCode coffee">drawAxisHelpers <span class="kw">=</span> <span class="fu">(params = {}) -&gt;</span>
     params<span class="kw">.</span>radius <span class="kw">=</span> params<span class="kw">.</span>radius <span class="kw">||</span> <span class="fl">0.05</span>
     params<span class="kw">.</span>height <span class="kw">=</span> params<span class="kw">.</span>height <span class="kw">||</span> <span class="dv">2</span>
     params<span class="kw">.</span>scene  <span class="kw">=</span> params<span class="kw">.</span>scene  <span class="kw">||</span> scene
@@ -51,7 +51,7 @@
     zAxisMesh<span class="kw">.</span>rotation<span class="kw">.</span>x  <span class="kw">+=</span> <span class="dv">90</span> <span class="kw">*</span> <span class="ot">Math</span><span class="kw">.</span>PI <span class="kw">/</span> <span class="dv">180</span>
     zArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
     zAxisMesh<span class="kw">.</span>position<span class="kw">.</span>z  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    params<span class="kw">.</span>scene<span class="kw">.</span>add zAxisMesh</code></pre>
+    params<span class="kw">.</span>scene<span class="kw">.</span>add zAxisMesh</code></pre></div>
 <p><code>drawAxisHelpers</code> function takes named parameters, all optional. <code>radius</code> and <code>height</code> are for sizes of arrows, and <code>scene</code> is the scene object to draw arrows. When isn’t provided, a global <code>scene</code> object is used.</p>
 <p>Here’s an example: (you can zoom in/out with mouse scroll, move around with left/right clicks)</p>
 <canvas id="target" width="600" height="600" style="background-color: #39342E; float: center;">

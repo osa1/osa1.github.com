@@ -32,7 +32,7 @@
 <p>I think this is also the reason why we can’t instantiate generics in Java with primitive types.</p>
 <p>Here’s an explanation:</p>
 <p>Let’s think this C++ code:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
 {
   <span class="dt">int</span> a, b;
   test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}
@@ -50,7 +50,7 @@
 T f3(T t)
 {
   t.a = <span class="dv">20</span>;
-  <span class="kw">return</span> t;
+  <span class="cf">return</span> t;
 }
 
 <span class="dt">int</span> main()
@@ -59,8 +59,8 @@ T f3(T t)
   test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);
   f3&lt;test2&gt;(t2);
   f3&lt;test3&gt;(t3);
-  <span class="kw">return</span> <span class="dv">0</span>;
-}</code></pre>
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
 <p>The key thing to realize here is that I’m passing parameter by value, ie. values are copied to function stack frame. But this function is still polymorphic on parameter type. This is possible in C++ because for each distinct instance of <code>f3</code>, a specialized code will be generated. To observe this, I put a breakpoint to that <code>f3</code> function and looked to disassembly output.</p>
 <pre><code>        18	T f3(T t)
 0x400af6  &lt;+0x0000&gt;         push   rbp
@@ -96,21 +96,21 @@ T f3(T t)
 0x400b37  &lt;+0x002c&gt;         pop    rbp
 0x400b38  &lt;+0x002d&gt;         ret</code></pre>
 <p>So what happened here is two new functions is generated from the definition, one with type <code>test2 f3(test2)</code> and one with type <code>test3 f3(test3)</code>. This gives a great opportunity, for instance, we can have this function:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
 
 <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
 T someFun(T arg1, T arg2)
 {
-  <span class="kw">return</span> arg1 + arg2;
+  <span class="cf">return</span> arg1 + arg2;
 }
 
-<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> *argv[])
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="at">const</span> <span class="dt">char</span> *argv[])
 {
-  std::cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
-  std::cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.</span><span class="dv">4</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
+  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;
 
-  <span class="kw">return</span> <span class="dv">0</span>;
-}</code></pre>
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
 <p>..which is impossible to have in Java, without manually overloading the method definition.</p>
 <p>(An off-topic but interesting note: I was expecting <code>SP</code> to be set here, but here it’s not set. I think the reason is that the compiler is clever enough to see there is no recursive calls, so no need to set <code>SP</code>, when I added a dummy function call in the middle of <code>f3</code>, <code>SP</code> is got set)</p>
 <p>So in a way, C++ generics are gives us the most general way for parametric polymorphism. For any type you instantiated the template with, it generates a specialized definition. And if that definition is accepted by type checker, you’re fine.</p>
@@ -131,18 +131,18 @@ T someFun(T arg1, T arg2)
 <pre><code>ctpop(bmp &amp; ((1&lt;&lt;n)-1))</code></pre>
 <p><code>ctpop</code>, population count fonksiyonu, yani bir sayının iki tabanında gösterilişindeki 1 bitleri sayıyor. Bu Java’da <code>Integer.bitCount</code> fonksiyonu(öhm, static methodu) ile bulunabilir.</p>
 <p>Birkaç deneme yaparak nasıl yaptığını anlayabilir ve kendimizi ikna edebiliriz:</p>
-<pre class="sourceCode python"><code class="sourceCode python">In [^<span class="dv">2</span>]: bmp = <span class="dv">0</span>
-In [^<span class="dv">3</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">15</span>
-In [^<span class="dv">4</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">4</span>]: <span class="dv">0</span>
-In [^<span class="dv">5</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">21</span>
-In [^<span class="dv">6</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">10</span>
-In [^<span class="dv">7</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">7</span>]: <span class="dv">0</span>
-In [^<span class="dv">8</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">8</span>]: <span class="dv">1</span>
-In [^<span class="dv">9</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">21</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">9</span>]: <span class="dv">2</span></code></pre>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">In [<span class="op">^</span><span class="dv">2</span>]: bmp <span class="op">=</span> <span class="dv">0</span>
+In [<span class="op">^</span><span class="dv">3</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">15</span>
+In [<span class="op">^</span><span class="dv">4</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))
+Out[<span class="op">^</span><span class="dv">4</span>]: <span class="dv">0</span>
+In [<span class="op">^</span><span class="dv">5</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">21</span>
+In [<span class="op">^</span><span class="dv">6</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">10</span>
+In [<span class="op">^</span><span class="dv">7</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">10</span>)<span class="op">-</span><span class="dv">1</span>))
+Out[<span class="op">^</span><span class="dv">7</span>]: <span class="dv">0</span>
+In [<span class="op">^</span><span class="dv">8</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))
+Out[<span class="op">^</span><span class="dv">8</span>]: <span class="dv">1</span>
+In [<span class="op">^</span><span class="dv">9</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">21</span>)<span class="op">-</span><span class="dv">1</span>))
+Out[<span class="op">^</span><span class="dv">9</span>]: <span class="dv">2</span></code></pre></div>
 <p>Eğer arraydeki n. yere bir eleman ekliyorsak, n’den itibaren arrayi bir kaydırmamız lazım. En büyük index her zaman arrayde de daha sonda oluyor.</p>
 <p>Ne yaptığına bakalım. 25. elemanın arraydeki yerine bakarken, <code>1 &lt;&lt; 25</code>i hesaplıyorum ki bu aslında (2 tabanında) 1 ve yanına 25 tane 0 koymak demek. Daha sonra bu sayıdan 1 çıkararak, en sağdan itibaren(en anlamsız bitten itibaren) tüm 0ları 1 yapıyorum, ilk gördüğüm 1’i 0 yapıyorum, gerisine dokunmuyorum(bu şartlar altında geriye kalan tüm bitler 0 oluyor). Daha sonra bu sayı ile bitmap’i logical and(bazı yerlerde bitwise and diyor, aynı şeyler sanırım?) işlemine sokup ctpop yaptığımda, bitmap’de (1 &lt;&lt; n)’den itibaren kaç tane 1 olduğunu saymış oluyorum ve bu da bana array’deki indeximi veriyor. Çok mantıklı.</p>
 <p>Bu arada kullandığınız dile göre bu işlemi daha kolay bir şekilde yapabilirsiniz. Bazı diller(Java’da <code>Integer.bitcount</code>, Common Lisp’de <code>logcount</code> gibi) direkt olarak <code>bitCount</code> gibi fonksiyonlar sunuyor. Bir de ben Common Lisp’de hiç kaydır 1 çıkart falan demeden direkt “şu bitle şu bit arasında kaç 1 olduğunu say” şeklinde bir fonksiyon yazdım, bitwise trickler yapmadan, şöyle:</p>
@@ -169,15 +169,15 @@ Out[^<span class="dv">9</span>]: <span class="dv">2</span></code></pre>
 
 </div>
 <p>Ama yok, örneğin PyDev daha aşağıdaki kodda çakılıyor:</p>
-<pre class="sourceCode python"><code class="sourceCode python">cls = Class1()
-cls.</code></pre>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">cls <span class="op">=</span> Class1()
+cls.</code></pre></div>
 <p>Daha burda bile, Class1’in methodlarını gösteremiyor. Direkt olarak <code>Class1.</code> şeklinde yazıp, autocomplete çalıştırırsak, methodları gösteriyor, bu iyi, fakat bu sefer de bound-unbound method farkını anlayamıyor ve bound methodları da gösteriyor. Ki bound methodlar bu şekilde çağırılamaz. Fail.</p>
 <p>WingIDE diyenler için, personal sürümü, sanki “öyle gerekli özellikler çıkaralım ki, kimse almasın” diye düşünülerek hazırlanmış. O kısıtlı özellikleri çıkardığımızda, Vim ile de yapıyorum zaten geri kalanları. <a href="https://wingware.com/wingide/features/personal">Burdan bakın</a>. Professional sürümü de çok pahalı.</p>
 <p>PyCharm diyenler için, Open Source lisansı ücretsiz, fakat <a href="http://www.opensource.org/docs/osd">Open Source Definition</a>’a uyan bir projeniz olmalı. Benim yok.</p>
 <p>Eclipse, Java’nın verdiği acıyı inanılmaz derecede hafifletiyor. Yoksa sınıflar arasındaki saçma derecede karmaşık ilişkiler başka türlü çözülemez. Python’da ise, benzer karışıklıkta tasarlanmış(muhtemelen başka bir dilde, örneğin QT için C++) bir kütüphane ile çalışıyorsanız, acınızı hafifletecek hiçbir şey yok.</p>
 <p>Konudan biraz sapacağım ama, Python hakkında beni sinirlendiren bir başka konu da, threading ve socket olayları. Ne zaman socket veya threading kullansam, mutlaka bir problemle karşılaşıyorum ve bunu ne zaman IRC’de sorsam, mutlaka birileri Twisted kullanmamı söylüyor. Kötü alışkanlıklardan, yanlış programlamadan vs bahsedip duruyorlar. Sanki Freenode #python kanalında, içinde şöyle bir kod olan bir sürü bot varmış gibi:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> <span class="st">&quot;socket&quot;</span> in msg or <span class="st">&quot;thread&quot;</span> in msg:
-    <span class="ot">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</code></pre>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="cf">if</span> <span class="st">&quot;socket&quot;</span> <span class="kw">in</span> msg <span class="kw">or</span> <span class="st">&quot;thread&quot;</span> <span class="kw">in</span> msg:
+    <span class="va">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</code></pre></div>
 <p>Java’da yaklaşık bir hafta kadar önce kullanılabilr bir hale getirdiğimiz chat istemci/sunucusu, dilin kendi thread ve socketlerini kullanıyor. Thread ve socket kullanımı ile alakalı dökümantasyon hariç hiçbir yere baktığımı hatırlamıyorum. Python’dan gelen birisi olarak şaşırtıcı derecede kolay ve stabil oldu.</p>
 <hr />
 <p>Bir süredir kafamda kendi IRC istemcimi yazma fikri var. Şu anda yazabilmek için gerekli herşeyi biliyorum. Dün oturdum, Java ve Python’da IRC sunucusuna bağlanabilmek için gerekli en küçük kodu yazmaya karar verdim(arayüz ile beraber). Java’da, kendi socket ve thread sınıfları ve Swing ile kolayca yazdım(bu arada Swing’in ne kadar kötü gözüktüğüne dikkat, platform bağımsız olarak iğrenç gözüken bir arayüz kütüphanesi kendisi, ehehe):</p>
@@ -251,8 +251,8 @@ Segmentation fault</code></pre>
 <p>Aksini belirttiklerim hariç, çözümlerim <a href="http://osa1.net/media/bil113final/Calisma.java">bu</a> ve <a href="http://osa1.net/media/bil113final/Sort.java">şu</a> dosyalarda(main methodları testlerim için). Sort.java dosyasındaki düzenleme methodların ilk bakışta arrayi değiştirmesi gerekirken aslında neden değiştirmediği(ya da hangi arrayi değiştirdiği) de düşünülebilir. İlk başta anlam verememiştim. Tam sınav sorusu bence.</p>
 <p>Bunların dışında, codingbat’deki sorular güzel. Hepsi bittikten sonra çözümlerini yazacağım buraya.</p>
 <p>Bu arada, biraz konu dışı olacak ama, Python’da tek satırda quicksort, ibretlik:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> qsortr(<span class="dt">list</span>):
-    <span class="kw">return</span> [] <span class="kw">if</span> <span class="dt">list</span>==[]  <span class="kw">else</span> qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &lt; <span class="dt">list</span>[^<span class="dv">0</span>]) + [<span class="dt">list</span>[^<span class="dv">0</span>] + qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &gt;= <span class="dt">list</span>[^<span class="dv">0</span>])</code></pre>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> qsortr(<span class="bu">list</span>):
+    <span class="cf">return</span> [] <span class="cf">if</span> <span class="bu">list</span><span class="op">==</span>[]  <span class="cf">else</span> qsortr([x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">list</span>[<span class="dv">1</span>:] <span class="cf">if</span> x <span class="op">&lt;</span> <span class="bu">list</span>[<span class="op">^</span><span class="dv">0</span>]) <span class="op">+</span> [<span class="bu">list</span>[<span class="op">^</span><span class="dv">0</span>] <span class="op">+</span> qsortr([x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">list</span>[<span class="dv">1</span>:] <span class="cf">if</span> x <span class="op">&gt;=</span> <span class="bu">list</span>[<span class="op">^</span><span class="dv">0</span>])</code></pre></div>
 <p>Bu arada(2), bu yazıyı aşağıda ekran görüntüsünü görebileceğiniz programla ekliyorum: <img src="/images/screenshot-yaziekle.png" alt="lol" /></p>
 <p>Bunu da yine fizik finalinden önce yazmıştım. Burda, adres satırı Django admin’de olduğu gibi, yazı başlığından otomatik olarak üretiliyor. Henüz bazı durumlarda yanlış sonuçlar verebiliyor. Tek tuşla yazılı django development server’da ekliyorum, kontrol edip, web’e tıklıyorum ve bir daha gönderiyorum. Çok pratik oldu. Normalde localde admin panelinden yazıyı ekleyip, herşey tamamsa, webe kopyalıyordum. Şimdilik sadece benim yönetici panelimde çalışsa da, biraz düzenlemeyle istediğim esnekliğe getireceğim programı. Daha sonra birkaç ekleme daha yapıp burada yayınlayacağım yine.(örneğin dosya upload işini daha kolaylaştıracak birşeyler ekledikten sonra)</p>
 <p>Yazı eklemeyi daha da kolay hale getirebilmek için önceki projelerimden bkz. <a href="http://www.osa1.net/nautilus-icin-ftp-upload-scripti/">nautilus için ftp upload scripti</a></p>]]></summary>
@@ -314,16 +314,16 @@ Segmentation fault</code></pre>
     <updated>2010-10-31T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Bugün olduğumuz Bil113 arasınavında gördük ki, “hello world”ü bile Eclipse, Netbeans vs. ile yazan bizler, iş kağıt kalem ile yazmaya gelince çakılıyoruz(ben öyle değil ama yine de çakıldım gerçi). Aslında sınavın kağıt kalemle çözmek için biraz zor olduğunu düşünüyorum. Sınavda onlarca dakika uğraştığım soruları bilgisayar karşısında 5 dakikada çözebildim.</p>
 <p>Asal sayıları tespit etme gibi kolay soruları değil de, değişik bir şekilde çözdüğümü düşündüğüm üçgen sorusunu yazayım. Soru: verilen 3 kenarla bir üçgen oluşturulup oluşturulamayacağını döndür(boolean):</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">kontrol</span>(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) {
-    <span class="kw">return</span> (a &lt; b+c &amp;&amp; a &gt; Math.<span class="fu">abs</span>(b-c) &amp;&amp; b &lt; a+c &amp;&amp; b &gt; Math.<span class="fu">abs</span>(a-c) &amp;&amp; c &lt; a+b &amp;&amp; c &gt; Math.<span class="fu">abs</span>(a-b));
-}</code></pre>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">kontrol</span>(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) {
+    <span class="kw">return</span> (a &lt; b+c &amp;&amp; a &gt; <span class="bu">Math</span>.<span class="fu">abs</span>(b-c) &amp;&amp; b &lt; a+c &amp;&amp; b &gt; <span class="bu">Math</span>.<span class="fu">abs</span>(a-c) &amp;&amp; c &lt; a+b &amp;&amp; c &gt; <span class="bu">Math</span>.<span class="fu">abs</span>(a-b));
+}</code></pre></div>
 <p>Bu tek satırı kağıt üzerinde yazmak bayaa zor oluyor gerçi. Neyse. Sınavın sanırım en zor sorusu olan farklı tabanlarda sayıları kaydedip kendi aralarında işleme sokabildiğimiz soru:</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> Sayi {
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> Sayi {
 
-    String s;
+    <span class="bu">String</span> s;
     <span class="dt">int</span> d;
     
-    <span class="kw">public</span> <span class="fu">Sayi</span>(String s, <span class="dt">int</span> d) {
+    <span class="kw">public</span> <span class="fu">Sayi</span>(<span class="bu">String</span> s, <span class="dt">int</span> d) {
         
         <span class="kw">this</span>.<span class="fu">s</span> = s;
         <span class="kw">this</span>.<span class="fu">d</span> = d;
@@ -334,18 +334,18 @@ Segmentation fault</code></pre>
         <span class="dt">int</span> r = <span class="dv">0</span>;
         
         <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>(); i++) {
-            r += Integer.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i<span class="dv">+1</span>)) * Math.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i<span class="dv">-1</span>);
+            r += <span class="bu">Integer</span>.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i<span class="dv">+1</span>)) * <span class="bu">Math</span>.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i<span class="dv">-1</span>);
         }
         
         <span class="kw">return</span> r;
     }
     
     
-    <span class="kw">public</span> <span class="dt">static</span> String <span class="fu">taban</span>(<span class="dt">int</span> s, <span class="dt">int</span> d) {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="bu">String</span> <span class="fu">taban</span>(<span class="dt">int</span> s, <span class="dt">int</span> d) {
         <span class="co">// Girilen s sayısını d tabanında döndür</span>
 
-        String r1 = <span class="st">&quot;&quot;</span>;
-        String r2 = <span class="st">&quot;&quot;</span>;
+        <span class="bu">String</span> r1 = <span class="st">&quot;&quot;</span>;
+        <span class="bu">String</span> r2 = <span class="st">&quot;&quot;</span>;
         
         
         <span class="kw">while</span> (s &gt;= d) {
@@ -360,13 +360,13 @@ Segmentation fault</code></pre>
         
     }
     
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
         
         Sayi deneme = <span class="kw">new</span> <span class="fu">Sayi</span>(<span class="st">&quot;134125&quot;</span>, <span class="dv">6</span>);
-        System.<span class="fu">out</span>.<span class="fu">println</span>(deneme.<span class="fu">onluk</span>());
-        System.<span class="fu">out</span>.<span class="fu">println</span>(Sayi.<span class="fu">taban</span>(<span class="dv">987652</span>, <span class="dv">2</span>));
+        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(deneme.<span class="fu">onluk</span>());
+        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(Sayi.<span class="fu">taban</span>(<span class="dv">987652</span>, <span class="dv">2</span>));
     }
-}</code></pre>
+}</code></pre></div>
 <p>Sorunun tamamı bu kadar değil de, bu kısımdan sonrası ıvır zıvır. Sınavda yaptım bu soruyu aslında da, muhtemelen bir sürü yanlışım çıkacaktır(yeterince detaylı incelenirse, hatta belki de kodum derlenemez bile).</p>
 <p>Kağıt-kalem olduğumuz bu programlama sınavından öğrenilenler:</p>
 <ul>
@@ -378,9 +378,9 @@ Segmentation fault</code></pre>
 </ul>
 <h2 id="ekleme">Ekleme</h2>
 <p>Sınavdan birkaç dakika önce ‘ya çıkarsa’ diye bir arkadaşla yazdığımız, bir matrisin karesini alan kod:</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> MatrisDeneme {
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> MatrisDeneme {
     
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
         
         <span class="dt">int</span>[][] matris ={{<span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">9</span>},
                          {<span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">1</span>},
@@ -404,11 +404,11 @@ Segmentation fault</code></pre>
             }
         }
         
-        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">2</span>]<span class="dv">2</span>]);
-        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">0</span>]<span class="dv">1</span>]);
+        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">2</span>]<span class="dv">2</span>]);
+        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">0</span>]<span class="dv">1</span>]);
     }
 
-}</code></pre>]]></summary>
+}</code></pre></div>]]></summary>
 </entry>
 
 </feed>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - My new XFCE + i3 setup</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">My new XFCE + i3 setup</h1>
+
+<p><strong>November 30, 2016</strong> - Tagged as: <a href="../tags/en.html">en</a>.</p>
+
+<p>I’ve been running Linux exclusively since 6-7 years ago, and since my first days on Linux I’ve been obsessed with two things:</p>
+<ul>
+<li><p>I hate the mouse, and I try really hard to not use it.</p></li>
+<li><p>I need a very stable system. If my distro is not stable enough, I try to bring the system to a stable state and then I never update anything. My previous setup had one year uptime and that’s because I never updated anything and it kept running without any problems <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>.</p></li>
+</ul>
+<p>Initially I was running GNOME 2, but I had to switch to KDE because the distro I was working on at the time (Pardus) was mainly a KDE distro and as far as I remember it was the only DE that was officially supported<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>. It took some time but I ended up liking it quite a lot, and kept using it after I stopped working on Pardus and switched to openSUSE.</p>
+<p>My KDE setup was weird. I had dozens of key bindings for window management, and I was using vim and yakuake with lots of customization and key bindings. I basically rolled my own tiling window manager using KDE settings and key bindings.</p>
+<p>I tried <a href="http://xmonad.org/">XMonad</a> and <a href="https://awesome.naquadah.org/">awesomewm</a> a couple of times, but I was too lazy to configure them to a stable state where all the services (login/logout, power management, sound and brightness settings, network controllers etc.) work flawlessly.</p>
+<p>Then I discovered <a href="https://i3wm.org/">i3</a>. In my first hours with it all I had to change was the <code>jkl;</code> combination for left/down/up/right: I was already an experienced vim user so I changed it to <code>hjkl</code> and that was pretty much it. I had a usable setup already.</p>
+<p>The way I run it was again weird. I replaced KDE’s window manager, so all other KDE services were running. This setup had many problems, for example, neither <code>i3bar</code> nor the KDE status bar worked, so I didn’t use a status bar. KDE’s desktop was still running, so I added a status bar widget to the desktop, and I was using a spare i3 desktop when I needed to use the status bar. I had to disable some of the KDE services (like the one that detects connected monitors) because they weren’t working as expected when I replaced the window manager etc. This system worked great for about 2 years once I disabled some of the KDE services that didn’t work properly.</p>
+<p>Then, 3 weeks ago, I had some free time, and decided to finally update my system. I was using openSUSE, and I wanted to stick with it, so I installed openSUSE Tumbleweed. This time instead of using a weird KDE + i3 setup I wanted a proper i3 setup. I messed with a plain i3 setup for a while, but it got tiresome real quick, so I looked at other DEs to find one that works with i3.</p>
+<p>Long story short, I found out that <a href="https://www.xfce.org/">XFCE</a> and i3 work really great together. It takes 15 minutes to set up my desktop. Here’s how I do it:</p>
+<ol style="list-style-type: decimal">
+<li><p>Install a distro with a recent XFCE and i3. Install a full XFCE desktop and i3.</p></li>
+<li><p><code>xfce4-session-settings</code> &gt; “Session”: Remove everything other than <code>Xfsettingsd</code> and <code>Power Manager</code>.</p></li>
+<li><p><code>xfce4-session-settings</code> &gt; “Advanced”: Enable “Launch GNOME services on startup”.</p></li>
+<li><p><code>xfce4-session-settings</code> &gt; “Application Autostart”: Add <code>i3</code> executable.</p></li>
+</ol>
+<p>That’s all you need to get a working XFCE + i3 setup! <code>i3-bar</code> will be used instead of XFCE panel (which you disabled already in step (2)). After this just configure XFCE and i3 as usual.</p>
+<p>Here is some of the configurations I do:</p>
+<ul>
+<li><p>I add <code>/usr/bin/setxkbmap -option &quot;ctrl:nocaps&quot;</code> to <code>xfce4-settings-manager</code> &gt; “Application Autostart” to make caps lock an additional ctrl.</p></li>
+<li><p>I install <code>feh</code> and run i3 on i3 startup to set a desktop background image (see my i3 config below).</p></li>
+<li><p>I add some key bindings in <code>xfce4-keyboard-settings</code> for sound controls. Normally I add key bindings to i3 config, but it’s hard to find key names for <code>Fn + key</code> combinations and XFCE helps with that part.</p></li>
+<li><p>In <code>xfce4-keyboard-settings</code> I set repeat delay 260ms and repeat speed 55 key strokes/second.</p></li>
+</ul>
+<p>Then I install zsh, vim etc. and generate symlinks for my <a href="https://github.com/osa1/rcbackup">configs</a>. My i3 config is <a href="https://github.com/osa1/rcbackup/blob/master/.i3/config">here</a>.</p>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>It probably had some security issues though…<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>There was an unofficial work on a GNOME port but it was never completed as far as I know.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'osa1';
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

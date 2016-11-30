@@ -55,45 +55,45 @@
 <p>Continuation-passing style’a aşina olduğunuzu varsayıyorum. Aşina olmayanlar Google’dan kolaylıkla süper kaynaklar edinebilir. JavaScript gibi yaygın bir dilin CPS kullanabilmek için gereken fonksiyonelliği sağlıyor olması çok büyük şans, yoksa CPSı anlamak için Scheme kodu okumak zorunda kalabilirdiniz :P . Ben implementasyonu Common Lisp ile vereceğim.</p>
 <p><code>call-with-current-continuation</code> veya kısaca <code>call/cc</code>nin genel olarak iki farklı implementasyon yöntemi var<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> biri stack kopyalama işlemi, diğeri <em>CPS conversion</em> dediğimiz, benim birazdan anlatım Common Lisp ile yazacağım yöntem.</p>
 <p>Tüm programlarımızın üstü kapalı bir şekilde(<em>implicit</em>) CPS yazıldığını düşünelim. Yani tüm fonksiyon çağrıları aslında bir değer dönmek yerine, bu döneceği değer ile continuation’ı çağırmalı<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> Bunu sağlamak için tüm fonksiyonlar ilk parametre olarak continuation alabilir ve diğer parametreleri fonksiyon tanımı sırasında verilen parametreler olur. Daha sonra fonksiyon döneceği değer ile ilk parametresini, yani continuation’ı çağırır. Bu fonksiyonları bir macro ile kolayca oluşturabiliriz<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defcont </span>(name (&amp;<span class="kw">rest</span> params) &amp;body body)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defcont </span>(name (&amp;<span class="kw">rest</span> params) &amp;body body)
   (<span class="kw">let</span> ((result (<span class="kw">gensym</span>)))
     `(<span class="kw">defun</span><span class="fu"> </span>,name (continuation ,@params)
        (<span class="kw">let</span> ((,result ,@body))
-         (<span class="kw">funcall</span> continuation ,result)))))</code></pre>
+         (<span class="kw">funcall</span> continuation ,result)))))</code></pre></div>
 <p>Bu macronun syntaxı <code>defun</code>un tamamen aynısı, sadece ekstradan ilk parametre olarak continuation alıyor ve dönüş değeriyle aslında continuation’ı çağırıyor. Bu şekilde yazılan fonksiyonlar <em>CPS conversion</em> a maruz kalıyor yani.</p>
 <p>Örnek olarak bu şekilde basit bir toplama ve çarpma fonksiyonları oluşturalım:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defcont multiply (&amp;<span class="kw">rest</span> args)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defcont multiply (&amp;<span class="kw">rest</span> args)
   (<span class="kw">apply</span> #&#39;* args))
 (defcont add (&amp;<span class="kw">rest</span> args)
-  (<span class="kw">apply</span> #&#39;+ args))</code></pre>
+  (<span class="kw">apply</span> #&#39;+ args))</code></pre></div>
 <p>Burda fonksiyonların içinde CPS formatında olmayan, dilin kendi fonksiyonlarını çağırıyoruz ama bu sorun değil.</p>
 <p>Bu durumda normalde <code>(* 3 (+ 1 2))</code> şeklinde yazacağımız fonksiyonu şu şekilde yazmamız gerekiyor: <code>(add (lambda (r) (multiply #'identity r 3)) 1 2)</code>. İşte bu dönüşümü yapmaya <code>CPS conversion</code> diyoruz. Ne yaptığına bakalım, çarpma işleminin sonucu <code>(+ 1 2)</code> çağrısının dönüş değerine bağlı, buna göre ilk başta toplama işlemi yapılıp, sonucu çarpma işlemine aktarılmalı. Çarpma işlemi de toplama işleminin sonucunu alıp, 3 ile çarptıktan sonra bir continuation’a aktarmalı. Burda bu son continuation olarak <code>identity</code> fonksiyonunu seçtim ki sonucu elde edebilelim. Normalde, eğer örneğin sonucu yazdırmak istiyorsak, orata <code>prin1</code> gibi bir fonksiyon göndermemiz gerekir.</p>
 <p>Bu şekilde yazılan programların nasıl çalıştığına bakarsanız, aslında fonksiyon çağrıları için stack modeline ne kadar benzediğini farkedersiniz. Stack modelinde, çarpma fonksiyonu çağırıldığında stack’de fonksiyon çağrısı hakkında gerekli verileri tutan bir kayıt oluşturulacak, daha sonra toplama işlemi çağırıldığında bunun üzerine bir kayıt daha eklenecek, ve fonksiyon çağrıları bittikçe bu kayıtlar stackten toplanarak bir alt seviyeye dönüş değerlerini bir şekilde aktaracak.</p>
 <p>CPS’de tamamen aynı, toplama işlemi önce bitecek ve çarpma işlemine dönüş değerini aktaracak. Bunun için çarpma fonksiyonunu ilk parametresi olarak alacak, çarpma fonksiyonu da kendi sonucunu hangi fonksiyona aktaracaksa o fonksiyonu ilk parametre olarak alacak gibi.</p>
 <p>Buraya kadar herşey anlaşıldıysa, <code>call/cc</code>yi yazmak çok kolay. <code>call/cc</code>nin yaptığı, o anki continuation’ı açık bir şekilde kullanıcıya vermek. Normalde yukarıda bahsettiğim tüm olaylar derlenme aşamasında <em>CPS conversion</em> veya başka yöntemlerle hallediliyor ve kullanıcı aslında fonksiyonlarını bizim örneğimizdeki gibi yazmıyor. Dolayısıyla fonksiyonuna aktarılan continuation’a erişme şansı yok. Fakat <code>call/cc</code> hariç, <code>call/cc</code> tam olarak bu işi yapıyor, o anki continuation’a erişim izni veriyor. Şu şekilde:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> call/cc </span>(continuation fun)
-  (<span class="kw">funcall</span> fun continuation))</code></pre>
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> call/cc </span>(continuation fun)
+  (<span class="kw">funcall</span> fun continuation))</code></pre></div>
 <p>Bu fonksiyonun <code>defcont</code> ile tanımlandmadığına dikkat. Bu şu anlama geliyor, programlama dili böyle bir fonksiyon sunmuyorsa, bu fonksiyonun yazılması imkansız. Kullanıcının tek sahip olduğunun <code>defcont</code> olduğunu düşünün, yani tüm fonksiyonları _CPS conversion_a mağruz kalıyor, ve fonksiyon çağrıları otomatik olarak CPS’e dönüştürülüyor. Programcı yazdığı fonksiyonlara continuation’ın nasıl aktarıldığını bilmiyor veya bilse bile buna erişmesinin hiçbir yolu yok.</p>
 <p><code>call/cc</code>, kendi aldığı continuation’ı <code>fun</code> parametresi olarka aldığı fonksiyona aktarıyor, ve daha sonra <code>fun</code> fonksiyonu o continuation ile her türlü çılgınlık yapabilir, örneğin bu continuation’ı bir yere kaydedip, bir daha bir daha çağırmak gibi. Bu continuation, dönüş değerinin aktarılacağı fonksiyonu tutuyor aslında.</p>
 <p>Hemen basit birkaç örnek yapalım. Şu iki fonksiyon arasındaki fark ne?</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) (<span class="kw">funcall</span> cont <span class="dv">11</span>)))
-(call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) <span class="dv">11</span>))</code></pre>
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(call/cc (<span class="kw">lambda</span> (r) (<span class="op">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) (<span class="kw">funcall</span> cont <span class="dv">11</span>)))
+(call/cc (<span class="kw">lambda</span> (r) (<span class="op">+</span> r <span class="dv">10</span>)) (<span class="kw">lambda</span> (cont) <span class="dv">11</span>))</code></pre></div>
 <p>İlk çağrıda continuation’a 11 değerini gönderiyoruz ve sonuç beklenen gibi 21 oluyor, ikinci durumda ise continuation’ı yok sayıp 11 değerini dönüyoruz ve cevap 11 oluyor. Stack modelinde düşünürsek, ikinci örnekte yapılan şey, stackdeki bazı fonksiyon kayıtlarının atlanması aslında. Buna sanırım <code>stack unwinding</code> deniyor(emin değilim). Bu şekilde dil seviyesinde exception mekanizmaları yazılabilir, continuationlar kaydedilerek ve sırayla çağırılarak coroutineler<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>veya _lightweight thread_ler elde edilebilir(<em>green thread</em> de diyorlar sanırım).</p>
 <p>Scheme bilenler için bu kodun Scheme karşılıkları şu:</p>
-<pre class="sourceCode scheme"><code class="sourceCode scheme">(<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> <span class="dv">11</span>)))
-(<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> (cont <span class="dv">11</span>))))</code></pre>
+<div class="sourceCode"><pre class="sourceCode scheme"><code class="sourceCode scheme">(<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> <span class="dv">11</span>)))
+(<span class="kw">call/cc</span> (<span class="kw">lambda</span> (cont) (<span class="kw">+</span> <span class="dv">10</span> (cont <span class="dv">11</span>))))</code></pre></div>
 <p>Aralarındaki fark, Scheme kodu _CPS conversion_a mağruz kalmamış, Common Lisp kodu ise kalmış hali.</p>
 <p>Bu aşamada yapılabilecek çok fazla fantastik iş var ve çoğu durumda neler olup bittiğini anlama çok güç. Zaten bu yüzden <code>GOTO</code>larla karşılaştırılıyorlar bazen. Benim hoşuma giden bir kullanımını şu:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defvar</span><span class="fu"> creturn </span><span class="kw">nil</span>)
-(call/cc (<span class="kw">lambda</span> (r) (<span class="kw">+</span> <span class="dv">1</span> r))
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defvar</span><span class="fu"> creturn </span><span class="kw">nil</span>)
+(call/cc (<span class="kw">lambda</span> (r) (<span class="op">+</span> <span class="dv">1</span> r))
          (<span class="kw">lambda</span> (cont)
            (<span class="kw">setf</span> creturn cont)
-           <span class="dv">1</span>))</code></pre>
+           <span class="dv">1</span>))</code></pre></div>
 <p>Continuation’ı bir değişkene kaydediyorum ve daha sonra istediğim zaman o continuation’ı çağırıp işlemi kaldığı yerden devam ettiriyorum.</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">15</span>)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">15</span>)
 <span class="dv">16</span>
 CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
-<span class="dv">21</span></code></pre>
+<span class="dv">21</span></code></pre></div>
 <p>Kısaca, işlemi istediğim bir yerden durdurdum ve kopyaladım. Daha sonra durdurduğum andan itibaren istediğim bir değer ile devam ettiriyorum. Müthiş bir olay. Bu gösterdiğim örnekler en basit ve sıradan örnekler, neler yapılabileceği hakkında çok fazla güzel kaynak var, açıkçası ben çoğunun ne yaptığını anlamakta güçlük çekiyorum, bazı patternlara aşina olmak gerekiyor. <code>call/cc</code>nin Scheme’den kaldırılması da <a href="http://lists.scheme-reports.org/pipermail/scheme-reports/2012-February/001824.html">şu ortamda</a> epey tartışılmış.</p>
 <p>Çok bilinen iki implementasyon yöntemi demiştim, diğer yöntem de stack kopyalama. Bu örneği düşünelim, <code>call/cc</code> aslında stack’in o anki durumunu aktarıyor aslında. Burda yapılan işlem büyük ihtimalle en baştan beri tüm stackin kopyalanması değil. <a href="http://en.wikipedia.org/wiki/Spaghetti_stack">Sphagetti stack</a> gibi bir yapı kullanılıyor olabilir.</p>
 <p>Bu arada, coroutine demişken, implementasyon detaylarını merak eden varsa: <a href="http://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=6&amp;ved=0CHgQFjAF&amp;url=http%3A%2F%2Fciteseerx.ist.psu.edu%2Fviewdoc%2Fdownload%3Fdoi%3D10.1.1.104.1441%26rep%3Drep1%26type%3Dpdf&amp;ei=PAXmT8TBEaeB4ASj-5ygAQ&amp;usg=AFQjCNENWM4b5ib96CKcno8KgEeJk4KQ6g">Coroutines in Lua</a>. Lua’yı seviyoruz.</p>
@@ -119,97 +119,97 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
 <p>In the rest of the post, when I use <code>Lisp</code>, I’ll be mentioning the Lisp in micro-manual, not the modern dialects.</p>
 <p>Lisp programs are formed by symbolic expressions(s-exps, sexps, sexprs), and a sexp is either a <code>list</code> or an <code>atom</code>. Before interpreting our Lisp, we should read sexps and convert them into a form that we can work on with our host language(in my case, it’s Python).</p>
 <p>I’ll convert Lisp lists into ordinary Python lists, and atoms into Python strings. My reader has two parts, the first part is getting the input and parsing tokens:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Reader:
-    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, form):
-        <span class="ot">self</span>.form = form
-        <span class="ot">self</span>.index = <span class="dv">0</span>
-    <span class="kw">def</span> seek_char(<span class="ot">self</span>):
-        <span class="kw">if</span> <span class="ot">self</span>.index &gt;= <span class="dt">len</span>(<span class="ot">self</span>.form):
-            <span class="kw">return</span> <span class="ot">None</span>
-        <span class="kw">return</span> <span class="ot">self</span>.form[<span class="ot">self</span>.index]
-    <span class="kw">def</span> unread_char(<span class="ot">self</span>):
-        <span class="ot">self</span>.index -= <span class="dv">1</span>
-    <span class="kw">def</span> read_char(<span class="ot">self</span>):
-        <span class="kw">if</span> <span class="ot">self</span>.index &gt;= <span class="dt">len</span>(<span class="ot">self</span>.form):
-            <span class="kw">return</span> <span class="ot">None</span>
-        <span class="ot">self</span>.index += <span class="dv">1</span>
-        <span class="kw">return</span> <span class="ot">self</span>.form[<span class="ot">self</span>.index<span class="dv">-1</span>]
-    <span class="kw">def</span> read_token(<span class="ot">self</span>):
-        ch = <span class="ot">self</span>.read_char()
-        <span class="kw">if</span> ch == <span class="st">&#39;(&#39;</span>:
-            <span class="kw">return</span> <span class="st">&#39;(&#39;</span>
-        <span class="kw">elif</span> ch == <span class="st">&#39;)&#39;</span>:
-            <span class="kw">if</span> <span class="ot">self</span>.seek_char() == <span class="st">&#39; &#39;</span>:
-                <span class="ot">self</span>.read_char()
-            <span class="kw">return</span> <span class="st">&#39;)&#39;</span>
-        <span class="kw">else</span>:
-            buf = <span class="st">&#39;&#39;</span>
-            <span class="kw">while</span> ch != <span class="st">&#39; &#39;</span> and ch != <span class="ot">None</span>:
-                <span class="kw">if</span> ch == <span class="st">&#39;)&#39;</span>:
-                    <span class="ot">self</span>.unread_char()
-                    <span class="kw">return</span> buf
-                <span class="kw">else</span>:
-                    buf += ch
-                    ch = <span class="ot">self</span>.read_char()
-            <span class="kw">return</span> buf</code></pre>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Reader:
+    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, form):
+        <span class="va">self</span>.form <span class="op">=</span> form
+        <span class="va">self</span>.index <span class="op">=</span> <span class="dv">0</span>
+    <span class="kw">def</span> seek_char(<span class="va">self</span>):
+        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):
+            <span class="cf">return</span> <span class="va">None</span>
+        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index]
+    <span class="kw">def</span> unread_char(<span class="va">self</span>):
+        <span class="va">self</span>.index <span class="op">-=</span> <span class="dv">1</span>
+    <span class="kw">def</span> read_char(<span class="va">self</span>):
+        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):
+            <span class="cf">return</span> <span class="va">None</span>
+        <span class="va">self</span>.index <span class="op">+=</span> <span class="dv">1</span>
+        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index<span class="dv">-1</span>]
+    <span class="kw">def</span> read_token(<span class="va">self</span>):
+        ch <span class="op">=</span> <span class="va">self</span>.read_char()
+        <span class="cf">if</span> ch <span class="op">==</span> <span class="st">&#39;(&#39;</span>:
+            <span class="cf">return</span> <span class="st">&#39;(&#39;</span>
+        <span class="cf">elif</span> ch <span class="op">==</span> <span class="st">&#39;)&#39;</span>:
+            <span class="cf">if</span> <span class="va">self</span>.seek_char() <span class="op">==</span> <span class="st">&#39; &#39;</span>:
+                <span class="va">self</span>.read_char()
+            <span class="cf">return</span> <span class="st">&#39;)&#39;</span>
+        <span class="cf">else</span>:
+            buf <span class="op">=</span> <span class="st">&#39;&#39;</span>
+            <span class="cf">while</span> ch <span class="op">!=</span> <span class="st">&#39; &#39;</span> <span class="kw">and</span> ch <span class="op">!=</span> <span class="va">None</span>:
+                <span class="cf">if</span> ch <span class="op">==</span> <span class="st">&#39;)&#39;</span>:
+                    <span class="va">self</span>.unread_char()
+                    <span class="cf">return</span> buf
+                <span class="cf">else</span>:
+                    buf <span class="op">+=</span> ch
+                    ch <span class="op">=</span> <span class="va">self</span>.read_char()
+            <span class="cf">return</span> buf</code></pre></div>
 <p>Well, it may not be the best way to parse an input to tokens, but it works great. It return a <code>(</code>, <code>)</code>, or a string each time you call <code>read_token</code>. When we read <code>(</code>, we start collecting a list, until reading a <code>)</code>(we should also consider lists into lists):</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_list(reader):
-    result = []
-    token = reader.read_token()
-    <span class="kw">while</span> token:
-        <span class="kw">if</span> token == <span class="st">&#39;(&#39;</span>:
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_list(reader):
+    result <span class="op">=</span> []
+    token <span class="op">=</span> reader.read_token()
+    <span class="cf">while</span> token:
+        <span class="cf">if</span> token <span class="op">==</span> <span class="st">&#39;(&#39;</span>:
             result.append(read_list(reader))
-        <span class="kw">elif</span> token == <span class="st">&#39;)&#39;</span>:
-            <span class="kw">return</span> result
-        <span class="kw">else</span>:
+        <span class="cf">elif</span> token <span class="op">==</span> <span class="st">&#39;)&#39;</span>:
+            <span class="cf">return</span> result
+        <span class="cf">else</span>:
             result.append(token)
-        token = reader.read_token()
-    <span class="kw">return</span> result</code></pre>
+        token <span class="op">=</span> reader.read_token()
+    <span class="cf">return</span> result</code></pre></div>
 <p><code>read_atom</code> functions is easier, since each each atom is also a token:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_atom(reader):
-    <span class="kw">return</span> reader.read_token()</code></pre>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_atom(reader):
+    <span class="cf">return</span> reader.read_token()</code></pre></div>
 <p>At this point, we have a Lisp reader that reading s-expressions, converting lists to Python lists and atoms to Python strings. Now we can define our 9 primitive procedures(<code>quote</code>, <code>car</code>, <code>cdr</code>, <code>cons</code>, <code>equal</code>, <code>atom</code>, <code>cond</code>, <code>lambda</code>, <code>label</code>):</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> quote(e):
-    <span class="kw">return</span> e
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> quote(e):
+    <span class="cf">return</span> e
 <span class="kw">def</span> car(e):
-    <span class="kw">assert</span> <span class="dt">isinstance</span>(e, <span class="dt">list</span>)
-    <span class="kw">return</span> e[^<span class="dv">0</span>]<span class="kw">def</span> cdr(e):
-    <span class="kw">assert</span> <span class="dt">isinstance</span>(e, <span class="dt">list</span>)
-    <span class="kw">return</span> e[<span class="dv">1</span>:]
+    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)
+    <span class="cf">return</span> e[<span class="op">^</span><span class="dv">0</span>]<span class="kw">def</span> cdr(e):
+    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)
+    <span class="cf">return</span> e[<span class="dv">1</span>:]
 <span class="kw">def</span> cons(e1, e2):
-    <span class="kw">if</span> <span class="dt">isinstance</span>(e2, <span class="dt">list</span>):
-        <span class="kw">return</span> [e1] + e2
-    <span class="kw">return</span> [e1, e2]
+    <span class="cf">if</span> <span class="bu">isinstance</span>(e2, <span class="bu">list</span>):
+        <span class="cf">return</span> [e1] <span class="op">+</span> e2
+    <span class="cf">return</span> [e1, e2]
 <span class="kw">def</span> equal(e1, e2):
-    <span class="kw">return</span> e1 == e2
+    <span class="cf">return</span> e1 <span class="op">==</span> e2
 <span class="kw">def</span> atom(e):
-    <span class="kw">return</span> not <span class="dt">isinstance</span>(e, <span class="dt">list</span>)</code></pre>
+    <span class="cf">return</span> <span class="kw">not</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)</code></pre></div>
 <p>These are obvious. Since I’ve already converted sexp lists into Python lists, all I need to do is to call some Python list methods.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> cond(*cases):
-    <span class="kw">for</span> case in cases:
-        <span class="kw">if</span> eval_(case[^<span class="dv">0</span>] is not <span class="ot">None</span>:
-            <span class="kw">for</span> expr in cdr(case)[:-<span class="dv">1</span>]:
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> cond(<span class="op">*</span>cases):
+    <span class="cf">for</span> case <span class="kw">in</span> cases:
+        <span class="cf">if</span> eval_(case[<span class="op">^</span><span class="dv">0</span>] <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:
+            <span class="cf">for</span> expr <span class="kw">in</span> cdr(case)[:<span class="op">-</span><span class="dv">1</span>]:
                 eval_(expr)
-            <span class="kw">return</span> eval_(case[-<span class="dv">1</span>])
-    <span class="kw">return</span> <span class="ot">None</span></code></pre>
+            <span class="cf">return</span> eval_(case[<span class="op">-</span><span class="dv">1</span>])
+    <span class="cf">return</span> <span class="va">None</span></code></pre></div>
 <p>An important point here is that in <code>cond</code>, I’m not evaluating all expressions, but I’m evaluating the test forms until I find a form that evaluates something that’s not <code>nil</code>, and then evaluating it’s form.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> lambda_(args, *exprs):
-    <span class="kw">def</span> fn(*arg_vals):
-        fn_env = {k:v <span class="kw">for</span> (k, v) in <span class="dt">zip</span>(args, arg_vals)}
-        fn_env[<span class="st">&#39;parent_env&#39;</span>] = env
-        <span class="kw">for</span> expr in exprs[:-<span class="dv">1</span>]:
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> lambda_(args, <span class="op">*</span>exprs):
+    <span class="kw">def</span> fn(<span class="op">*</span>arg_vals):
+        fn_env <span class="op">=</span> {k:v <span class="cf">for</span> (k, v) <span class="kw">in</span> <span class="bu">zip</span>(args, arg_vals)}
+        fn_env[<span class="st">&#39;parent_env&#39;</span>] <span class="op">=</span> env
+        <span class="cf">for</span> expr <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:
             eval_(expr, fn_env)
-        <span class="kw">return</span> eval_(exprs[-<span class="dv">1</span>], fn_env)
-    <span class="kw">return</span> fn
-<span class="kw">def</span> label(name, lambda_exp, *exprs):
-    func = eval_(lambda_exp)
-    label_env = env.copy()
-    label_env[name] = func
-    <span class="kw">for</span> exp in exprs[:-<span class="dv">1</span>]:
+        <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], fn_env)
+    <span class="cf">return</span> fn
+<span class="kw">def</span> label(name, lambda_exp, <span class="op">*</span>exprs):
+    func <span class="op">=</span> eval_(lambda_exp)
+    label_env <span class="op">=</span> env.copy()
+    label_env[name] <span class="op">=</span> func
+    <span class="cf">for</span> exp <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:
         eval_(exp, label_env)
-    <span class="kw">return</span> eval_(exprs[-<span class="dv">1</span>], label_env)</code></pre>
+    <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], label_env)</code></pre></div>
 <p><code>label</code> is a way to name lambdas, so you can create recursive functions. I’m creating a new environment for each label, and connecting it to the parent environment.</p>
-<pre class="sourceCode python"><code class="sourceCode python">env = {<span class="st">&#39;quote&#39;</span>: quote,
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">env <span class="op">=</span> {<span class="st">&#39;quote&#39;</span>: quote,
        <span class="co">&#39;car&#39;</span>: car,
        <span class="co">&#39;cdr&#39;</span>: cdr,
        <span class="co">&#39;cons&#39;</span>: cons,
@@ -218,46 +218,46 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
        <span class="co">&#39;cond&#39;</span>: cond,
        <span class="co">&#39;lambda&#39;</span>: Lambda,
        <span class="co">&#39;label&#39;</span>: label,
-       <span class="co">&#39;defun&#39;</span>: defun}</code></pre>
+       <span class="co">&#39;defun&#39;</span>: defun}</code></pre></div>
 <p>The global environment. When an atom is evaluated, it’s value is searched in here, with this function:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> search_in_env(env, key):
-    val = env.get(key)
-    <span class="kw">if</span> val:
-        <span class="kw">return</span> val
-    <span class="kw">if</span> env.has_key(<span class="st">&#39;parent_env&#39;</span>):
-        <span class="kw">return</span> search_in_env(env[<span class="st">&#39;parent_env&#39;</span>], key)
-    <span class="kw">raise</span> <span class="ot">KeyError</span>(key)</code></pre>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> search_in_env(env, key):
+    val <span class="op">=</span> env.get(key)
+    <span class="cf">if</span> val:
+        <span class="cf">return</span> val
+    <span class="cf">if</span> env.has_key(<span class="st">&#39;parent_env&#39;</span>):
+        <span class="cf">return</span> search_in_env(env[<span class="st">&#39;parent_env&#39;</span>], key)
+    <span class="cf">raise</span> <span class="pp">KeyError</span>(key)</code></pre></div>
 <p>Since each environment may be connected to a parent environment(the case of <code>label</code>), we should search all the chain of environments.</p>
 <p>So now we have the Lisp described in the micro-manual, we only need the eval:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_(exp, env=env):
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_(exp, env<span class="op">=</span>env):
     <span class="co"># print &quot;evaluating: %s&quot; % str(exp)</span>
-    <span class="kw">if</span> <span class="dt">isinstance</span>(exp, <span class="dt">list</span>):
-        <span class="kw">if</span> <span class="dt">isinstance</span>(exp[^<span class="dv">0</span>] <span class="dt">list</span>):
-            op = eval_(exp[^<span class="dv">0</span>]
-        <span class="kw">else</span>:
-            op = search_in_env(env, exp[^<span class="dv">0</span>]
-        <span class="kw">if</span> op in [quote, cond, lambda_, label, defun]:
-            <span class="kw">return</span> <span class="dt">apply</span>(op, exp[<span class="dv">1</span>:])
-        <span class="kw">return</span> <span class="dt">apply</span>(op, [eval_(e, env) <span class="kw">for</span> e in exp[<span class="dv">1</span>:]])
-    <span class="kw">return</span> search_in_env(env, exp)</code></pre>
+    <span class="cf">if</span> <span class="bu">isinstance</span>(exp, <span class="bu">list</span>):
+        <span class="cf">if</span> <span class="bu">isinstance</span>(exp[<span class="op">^</span><span class="dv">0</span>] <span class="bu">list</span>):
+            op <span class="op">=</span> eval_(exp[<span class="op">^</span><span class="dv">0</span>]
+        <span class="cf">else</span>:
+            op <span class="op">=</span> search_in_env(env, exp[<span class="op">^</span><span class="dv">0</span>]
+        <span class="cf">if</span> op <span class="kw">in</span> [quote, cond, lambda_, label, defun]:
+            <span class="cf">return</span> <span class="bu">apply</span>(op, exp[<span class="dv">1</span>:])
+        <span class="cf">return</span> <span class="bu">apply</span>(op, [eval_(e, env) <span class="cf">for</span> e <span class="kw">in</span> exp[<span class="dv">1</span>:]])
+    <span class="cf">return</span> search_in_env(env, exp)</code></pre></div>
 <p>And some helpers for REPL:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_from_string(string):
-    <span class="kw">return</span> eval_(read(Reader(string)))
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_from_string(string):
+    <span class="cf">return</span> eval_(read(Reader(string)))
 <span class="kw">def</span> expr_repr(expr):
-    <span class="kw">if</span> <span class="dt">isinstance</span>(expr, <span class="dt">list</span>):
-        <span class="kw">return</span> <span class="st">&#39;(&#39;</span> + <span class="st">&#39; &#39;</span>.join([expr_repr(e) <span class="kw">for</span> e in expr]) + <span class="st">&#39;)&#39;</span>
-    <span class="kw">elif</span> <span class="dt">isinstance</span>(expr, <span class="dt">bool</span>):
-        <span class="kw">if</span> expr:
-            <span class="kw">return</span> <span class="st">&#39;T&#39;</span>
-        <span class="kw">return</span> <span class="st">&#39;nil&#39;</span>
-    <span class="kw">return</span> <span class="dt">str</span>(expr)
+    <span class="cf">if</span> <span class="bu">isinstance</span>(expr, <span class="bu">list</span>):
+        <span class="cf">return</span> <span class="st">&#39;(&#39;</span> <span class="op">+</span> <span class="st">&#39; &#39;</span>.join([expr_repr(e) <span class="cf">for</span> e <span class="kw">in</span> expr]) <span class="op">+</span> <span class="st">&#39;)&#39;</span>
+    <span class="cf">elif</span> <span class="bu">isinstance</span>(expr, <span class="bu">bool</span>):
+        <span class="cf">if</span> expr:
+            <span class="cf">return</span> <span class="st">&#39;T&#39;</span>
+        <span class="cf">return</span> <span class="st">&#39;nil&#39;</span>
+    <span class="cf">return</span> <span class="bu">str</span>(expr)
 <span class="kw">def</span> repl():
-    <span class="kw">while</span> <span class="ot">True</span>:
-        <span class="kw">try</span>:
-            <span class="dt">input</span> = <span class="dt">raw_input</span>(<span class="st">&quot;&gt; &quot;</span>)
-            <span class="dt">print</span> expr_repr(eval_(read(Reader(<span class="dt">input</span>))))
-        <span class="kw">except</span> (<span class="ot">KeyboardInterrupt</span>, <span class="ot">EOFError</span>):
-            <span class="kw">return</span></code></pre>
+    <span class="cf">while</span> <span class="va">True</span>:
+        <span class="cf">try</span>:
+            <span class="bu">input</span> <span class="op">=</span> <span class="bu">raw_input</span>(<span class="st">&quot;&gt; &quot;</span>)
+            <span class="bu">print</span> expr_repr(eval_(read(Reader(<span class="bu">input</span>))))
+        <span class="cf">except</span> (<span class="pp">KeyboardInterrupt</span>, <span class="pp">EOFError</span>):
+            <span class="cf">return</span></code></pre></div>
 <p>I also wrote some unit-tests based on examples in the paper. You can read the implementation and tests from <a href="https://gist.github.com/2147404">the gist</a>. To run the interpreter, just save the code and run <code>python lisp.py</code>.</p>]]></summary>
 </entry>
 <entry>
@@ -289,15 +289,15 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
     <summary type="html"><![CDATA[<p>Hiçbir motivasyonum olmaksızın Common Lisp ile uğraştığım şu günlerde(şu ana kadar kullandığım diller arasında bariz bir şekilde kullanması en zevkli olanı, bu konu hakkında bir yazı yazdım birkaç düzenlemeye hazır olur), staj projem için yaptığım çalışmalar sırasında öğrendiğim bazı şeyleri Common Lisp ile uyguluyorum. Bunlardan birisi de JVM yapısı. Common Lisp ile basit bir JVM işine giriştim. Şimdilik epey iyi gidiyorum, amacım birkaç JVM komutu(instructuion, opcode, artık ne derseniz) çalıştırabilen bir altyapı. Tüm native kütüphaneleriyle beraber Java programlarını çalıştırabilecek bir JVM yapmıyorum tabii ki.</p>
 <p>İlk adım olarak bir Java class dosyasını okuyup, istediğim kısımlarına kolayla ulaşabileceğim bir şekilde yüklemekti. class dosyalarının yapısını <a href="http://java.sun.com/docs/books/jvms/second_edition/html/ClassFile.doc.html">şuradan</a> inceleyebilirsiniz.</p>
 <p>Bunu yaparken bazı kod parçalarının çok tekrar ettiğini farkettim, örneğin n byte’lık bir kısmı, bir sonraki kısımdan(bu 1 byte’lık bir veri de olabilir, tamamen farklı bir yapı da olabilir, örneğin bir interface referansı) kaç tane olduğunu bilmek için okumak. Şu şekilde birşeyler yani:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">let*</span> ((constant-count (read-bytes <span class="dv">2</span> <span class="kw">stream</span>))
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">let*</span> ((constant-count (read-bytes <span class="dv">2</span> <span class="kw">stream</span>))
        (constants (<span class="kw">make-array</span> constant-count)))
-  (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="kw">1-</span> constant-count) <span class="kw">do</span>
-    (<span class="kw">setf</span> (<span class="kw">elt</span> constants i) (read-constant <span class="kw">stream</span>))))</code></pre>
+  (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="op">1-</span> constant-count) <span class="kw">do</span>
+    (<span class="kw">setf</span> (<span class="kw">elt</span> constants i) (read-constant <span class="kw">stream</span>))))</code></pre></div>
 <p>Burda yaptığım, 2 byte okuyarak constant pool’da kaç tane sabit olduğunu öğrenmek. Buna göre kaç byte daha okuyacağıma karar vereceğim çünkü.</p>
 <p>Tabii bir de class dosyasının istediğim kısımlarına kolayca ulaşabilmek için dosyayı farklı parçaları için structlara bölmem gerekti. Bir yerden sonra her bir struct için farklı bir okuma fonksiyonu oluşturmuştum. Ve bu okuma fonksiyonlarında da bir sürü ortak kısım vardı. Bir DSL’e çevirmeye karar verdim.</p>
 <p>Aslında DSL ile API’ın arasındaki fark tam belli değil. Benim DSL’den kastettiğim arayüzü sunarken kendisine özel bir syntax ile sunmak. Bu yaptığım biraz da yeni birşey öğrenince hemen uygulamaya çalışma merakı aslında.</p>
 <p>Önce nasıl kullanıldığını göstereyim, sonra macrolardan bahsedeceğim. Tüm kodu görmek isteyenler için, <a href="https://gist.github.com/1706229">şu</a> class dosyasını ayrıştıran kod, <a href="https://gist.github.com/1704351">şu</a> da DSL macroları. Tüm class dosyasını tanımladığım yapı şöyle birşey:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct class-file
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct class-file
   (magic <span class="dv">4</span>)
   (minor-version <span class="dv">2</span>)
   (major-version <span class="dv">2</span>)
@@ -312,24 +312,24 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
   (:temp (jmethods-count <span class="dv">2</span>))
   (methods (:list (:struct jmethod) jmethods-count))
   (:temp (attributes-count <span class="dv">2</span>))
-  (attributes (:list (:struct attribute) attributes-count)))</code></pre>
+  (attributes (:list (:struct attribute) attributes-count)))</code></pre></div>
 <p>Tanımın yukarıda linkini verdiğim class dosyası yapısına ne kadar benzediğine dikkat edin. Şöyle çalışıyor, her <code>defbinstruct</code> için bir <code>struct</code> oluşturuluyor, içindeki her bir liste için gerekiyorsa(<code>:temp</code> olup olmadığına göre) struct’a <code>slot</code> ekleniyor. <code>:temp</code> değişkenler farklı amaçlar için gerekebilir. Örneğin dosyadaki boşluklar(<code>padding</code> diye geçer genelde) için, veya dosyada bir yapıdan kaç tane olduğunu okumanız gerektiğinde, ama bu değeri okuduyup oluşturduğunuz yapıya dahil etmek istemiyorsanız. Her bir <code>defbinstruct</code> için bir de okuma fonksiyonu oluşturuluyor, yapının adına “read” eklenerek(burdaki örnek için <code>read-class-file</code> yani).</p>
 <p>Değişken isminden sonra gelen kısım eğer tamsayı ise, o tamsayı kadar byte okunup bu slota atanıyor, eğer <code>(:list a b)</code> veya <code>(:vector a b)</code> şeklinde birşeyse, <code>a</code>dan <code>b</code> kere okunup, liste veya vector olarak atanıyor. Eğer tamsayı kısmına <code>(:struct a)</code> gibi birşey gelmişse, <code>a</code>nın bir <code>defbinstruct</code> ile oluşturulmuş yapı olması gerekiyor(yani <code>read-a</code> diye bir fonksiyon olmalı). Bu tanımlamaların recursive bir formda olabileceğine dikkat. Şöyle birşey olabilir mesela: <code>(field-1 (:list (:list (:struct sub-field) sub-field-count) field-count))</code>.</p>
 <p>Dönüş değeri de tanımladığınız yapıdan oluşturulmuş bir <code>struct</code>. Örnekteki kodda <code>class-file-interfaces</code> ile interfaces alanına ulaşabilirsiniz mesela.</p>
 <p>Okunan değerlere göre daha kompleks işler yapmanız gerektiğinde <code>:custom</code> keywordu ile <code>read</code> fonksiyonunu kendiniz tanımlayabilirsiniz. <code>:custom</code> keywordunden sonraki kısım da yapıda olacak slotların listesi. Örneğin <code>constant-pool</code>u okumak biraz daha zor(mesela double ve long sabitler constant-pool’da 2 slot kaplıyor), şöyle:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct constant-pool
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct constant-pool
   :custom
   (constants)
-  (<span class="kw">let*</span> ((constant-pool-count (<span class="kw">1-</span> (read-bytes <span class="dv">2</span> <span class="kw">stream</span>)))
+  (<span class="kw">let*</span> ((constant-pool-count (<span class="op">1-</span> (read-bytes <span class="dv">2</span> <span class="kw">stream</span>)))
          (constants (<span class="kw">make-array</span> constant-pool-count)))
-    (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="kw">1-</span> constant-pool-count) <span class="kw">do</span>
+    (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="op">1-</span> constant-pool-count) <span class="kw">do</span>
       (<span class="kw">let</span> ((tag (read-bytes <span class="dv">1</span> <span class="kw">stream</span>)))
-        (<span class="kw">if</span> (<span class="kw">or</span> (<span class="kw">=</span> tag <span class="dv">5</span>) (<span class="kw">=</span> tag <span class="dv">6</span>))
-            (<span class="kw">let</span> ((constant (<span class="kw">if</span> (<span class="kw">=</span> tag <span class="dv">5</span>)
+        (<span class="kw">if</span> (<span class="kw">or</span> (<span class="op">=</span> tag <span class="dv">5</span>) (<span class="op">=</span> tag <span class="dv">6</span>))
+            (<span class="kw">let</span> ((constant (<span class="kw">if</span> (<span class="op">=</span> tag <span class="dv">5</span>)
                                 (read-jlong <span class="kw">stream</span>)
                                 (read-jdouble <span class="kw">stream</span>))))
               (<span class="kw">setf</span> (<span class="kw">elt</span> constants i) constant
-                    (<span class="kw">elt</span> constants (<span class="kw">1+</span> i)) constant)
+                    (<span class="kw">elt</span> constants (<span class="op">1+</span> i)) constant)
               (<span class="kw">incf</span> i))
             (<span class="kw">setf</span> (<span class="kw">elt</span> constants i)
                   (<span class="kw">funcall</span>
@@ -344,32 +344,32 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
                      (<span class="dv">11</span> #&#39;read-interface-method-ref)
                      (<span class="dv">12</span> #&#39;read-descriptor))
                    <span class="kw">stream</span>)))))
-    (make-constant-pool :constants constants)))</code></pre>
+    (make-constant-pool :constants constants)))</code></pre></div>
 <p>Bu tanımladığımız read fonksiyonuna <code>stream</code> diye bir parametre aktarıldığını varsayıyoruz(macro tarafından oluşturulmuş kodda aktarılıyor). Burda aslında stream yerine lexical scope ile <code>*standard-input*</code>a bu <code>stream</code> atanabilir. Yine de çaktırmadan <code>*standard-input*</code> ile oynamak bana çok iyi bir yolmuş gibi gelmedi.</p>
 <p>Bir başka örnek olarak da yine constant-pooldaki string sabitlerini nasıl okuduğumu göstereyim:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct utf<span class="dv">-8</span>
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct utf<span class="dv">-8</span>
   (:temp (<span class="kw">length</span> <span class="dv">2</span>))
-  (value (:vector <span class="dv">1</span> <span class="kw">length</span>)))</code></pre>
+  (value (:vector <span class="dv">1</span> <span class="kw">length</span>)))</code></pre></div>
 <p>İlk 2 byte, string’in uzunluğunu veriyor. Daha sonra bu uzunluk kadar 1 byte okuyup bir vector olarak kaydediyorum.</p>
 <p>Şimdi macrolara bakalım. İlk önce <code>defbinstruct</code> kodundaki keywordleri(<code>:vector</code>, <code>:list</code>, <code>:struct</code>) recursive olarak silip yerine gerekli Lisp kodunu ekleyen <code>remove-keywords</code> macrosu:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> remove-keywords </span>(form)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> remove-keywords </span>(form)
   (<span class="kw">cond</span> ((<span class="kw">null</span> form) &#39;())
         ((<span class="kw">integerp</span> form)
          `(read-bytes ,form <span class="kw">stream</span>))
         ((<span class="kw">and</span> (<span class="kw">consp</span> form) (<span class="kw">keywordp</span> (<span class="kw">first</span> form)))
          (<span class="kw">case</span> (<span class="kw">first</span> form)
            ((:list)
-            `(<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="kw">1-</span> ,(<span class="kw">third</span> form))
+            `(<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="op">1-</span> ,(<span class="kw">third</span> form))
                    collect (remove-keywords ,(<span class="kw">second</span> form))))
            ((:vector)
-            `(<span class="kw">coerce</span> (<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="kw">1-</span> ,(<span class="kw">third</span> form))
+            `(<span class="kw">coerce</span> (<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="op">1-</span> ,(<span class="kw">third</span> form))
                            collect (remove-keywords ,(<span class="kw">second</span> form)))
                      &#39;vector))
            ((:struct)
             `(,(<span class="kw">intern</span> (<span class="kw">concatenate</span> &#39;string <span class="st">&quot;READ-&quot;</span> (<span class="kw">string</span> (<span class="kw">second</span> form)))) <span class="kw">stream</span>))))
-        (<span class="kw">t</span> form)))</code></pre>
+        (<span class="kw">t</span> form)))</code></pre></div>
 <p>Yaptığı şey çok basit, her <code>:struct</code> keywordu gördüğü yere <code>(read-x)</code> fonksiyonunu ekliyor, <code>:list</code> veya <code>:vector</code> gördüğü yerde de gereken <code>loop</code> kodunu. İkinci olarak olarak <code>defbinstruct</code>:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defbinstruct </span>(name &amp;body attributes)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defbinstruct </span>(name &amp;body attributes)
   (<span class="kw">labels</span> ((make-reader-name (name-symbol)
              (<span class="kw">intern</span> (<span class="kw">concatenate</span> &#39;string <span class="st">&quot;READ-&quot;</span> (<span class="kw">string</span> name-symbol)))))
     (<span class="kw">if</span> (<span class="kw">and</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attributes))
@@ -402,7 +402,7 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
                  
                  (,(<span class="kw">intern</span> (<span class="kw">concatenate</span> &#39;string <span class="st">&quot;MAKE-&quot;</span> (<span class="kw">string</span> name)))
                   ,@(<span class="kw">mapcan</span> (<span class="kw">lambda</span> (name) (<span class="kw">list</span> (<span class="kw">intern</span> (<span class="kw">string</span> name) <span class="st">&quot;KEYWORD&quot;</span>) name))
-                            attr-struct-names)))))))))</code></pre>
+                            attr-struct-names)))))))))</code></pre></div>
 <p>Burda da <code>defbinstruct</code> altındaki listeleri gezip, oluşturulacak olan <code>struct</code>a gerekli <code>slot</code>ları ekliyorum ve <code>read</code> fonksiyonunu oluşturuyorum. Her bir <code>defbinstruct</code> için bir <code>struct</code> bir de fonksiyon tanımlıyorum yani.</p>
 <p>Kütüphane toplam 52 satır. İkinci bir örnek olarak da ID3 etiketlerini okuyacaktım ama çok kompleks geldi. Dikkat edilmesi gereken çok fazla istisna var. Aklıma daha basit bir örnek gelirse ekleyeceğim(ara ara kütüphaneyi de güncelliyorum, gistlerden takip edebilirsiniz).</p>]]></summary>
 </entry>
@@ -413,34 +413,34 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
     <published>2012-01-08T00:00:00Z</published>
     <updated>2012-01-08T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Bir önceki yazımda biraz bahsetmiştim Clojure ve Common Lisp multimethodları arasındaki farklardan. Bugün Common Lisp için olabilecek en basit Clojure usulü multimethod implementasyonu yaptım. 2 macro ve toplamda 14 satır sürdü. Örnek olarak Joy of Clojure kitabındaki bir kod parçasını Common Lisp ile yazacağım. Clojure hali şöyle:</p>
-<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defmulti</span><span class="fu"> compiler </span><span class="kw">:os</span>)
-(<span class="kw">defmethod</span><span class="fu"> compiler </span><span class="kw">::unix</span> [m] (<span class="kw">get</span> m <span class="kw">:c-compiler</span>))
-(<span class="kw">defmethod</span><span class="fu"> compiler </span><span class="kw">::osx</span>  [m] (<span class="kw">get</span> m <span class="kw">:c-compiler</span>))</code></pre>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">defmulti</span><span class="fu"> compiler </span><span class="at">:os</span>)
+(<span class="bu">defmethod</span><span class="fu"> compiler </span><span class="at">::unix</span> [m] (<span class="kw">get</span> m <span class="at">:c-compiler</span>))
+(<span class="bu">defmethod</span><span class="fu"> compiler </span><span class="at">::osx</span>  [m] (<span class="kw">get</span> m <span class="at">:c-compiler</span>))</code></pre></div>
 <p>Burda yapılan şey şu, <code>compiler</code> adlı bir multimethod oluşturuluyor ve dispatch fonksiyonunu seçmek için kullanılacak fonksiyon olarak <code>:os</code> keywordu olarak belirleniyor<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> Daha sonra iki tane method tanımlanıyor, ilkinde test fonksiyonumuz(yani <code>:os</code> fonksiyonu) <code>:unix</code> keywordünü dönerse çalıştırılacak fonksiyon, ikincisinde de <code>:osx</code> keywordünü dönerse çalıştırılacak fonksiyonu belirleniyor. Test fonksiyonuna da <code>m</code> parametresinin aktarıldığına dikkat. Yani <code>m</code> önce test fonksiyonu tarafından kullanılıyor, sonra da dönüş değerine göre dispatch fonksiyonlarından biri tarafından.</p>
 <p>Kullanımı şöyle:</p>
-<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">def</span><span class="fu"> unix </span>{<span class="kw">:os</span> <span class="kw">::unix</span>, <span class="kw">:c-compiler</span> <span class="st">&quot;cc&quot;</span>})
-(<span class="kw">def</span><span class="fu"> osx  </span>{<span class="kw">:os</span> <span class="kw">::osx</span>,  <span class="kw">:c-compiler</span> <span class="st">&quot;gcc&quot;</span>})
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">def</span><span class="fu"> unix </span>{<span class="at">:os</span> <span class="at">::unix</span>, <span class="at">:c-compiler</span> <span class="st">&quot;cc&quot;</span>})
+(<span class="bu">def</span><span class="fu"> osx  </span>{<span class="at">:os</span> <span class="at">::osx</span>,  <span class="at">:c-compiler</span> <span class="st">&quot;gcc&quot;</span>})
 (compiler unix)
 =&gt; <span class="st">&quot;cc&quot;</span>
 (compiler osx)
-=&gt; <span class="st">&quot;gcc&quot;</span></code></pre>
+=&gt; <span class="st">&quot;gcc&quot;</span></code></pre></div>
 <p>multimethodların test fonksiyonunu ve bunun dönüş değerlerine karşılık gelen dispatch fonksiyonlarını tutmaları lazım. dönüş değeri-dispatch fonksiyonu ikililerini bir hash-table’da tuttum. Her bir multimethod için 2 tane closure oluşturdum, bir tanesi yeni methodlar eklemek istediğimizde çağırılık dönüş değeri-dispatch fonksiyonları ikililerini tutan hash-table’ı güncelleyecek, diğeri de testi yapıp hash-table’dan fonksiyonu çekip çağıracak.</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defmulti </span>(name (&amp;<span class="kw">rest</span> args) dispatch-fn)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defmulti </span>(name (&amp;<span class="kw">rest</span> args) dispatch-fn)
   (<span class="kw">let</span> ((dispatch-table (<span class="kw">gensym</span>)))
-    `(<span class="kw">let</span> ((,dispatch-table (<span class="kw">make-hash-table</span> <span class="kw">:test</span> #&#39;equal)))
+    `(<span class="kw">let</span> ((,dispatch-table (<span class="kw">make-hash-table</span> <span class="bu">:test</span> #&#39;equal)))
        (<span class="kw">defun</span><span class="fu"> </span>,name (,@args)
          (<span class="kw">funcall</span> (<span class="kw">gethash</span> (<span class="kw">funcall</span> ,dispatch-fn ,@args) ,dispatch-table)
                   ,@args))
        (<span class="kw">defun</span><span class="fu"> </span>,(<span class="kw">intern</span> (<span class="kw">concatenate</span> &#39;string (<span class="kw">string</span> name) <span class="st">&quot;-ADD-METHOD&quot;</span>))
            (dispatch-fn-return-val <span class="kw">method</span>)
-         (<span class="kw">setf</span> (<span class="kw">gethash</span> dispatch-fn-return-val ,dispatch-table) <span class="kw">method</span>)))))</code></pre>
+         (<span class="kw">setf</span> (<span class="kw">gethash</span> dispatch-fn-return-val ,dispatch-table) <span class="kw">method</span>)))))</code></pre></div>
 <p>Görüldüğü gibi multimethodlar aslında normal fonksiyonlar(aslında closure, <code>dispatch-table</code>ı tutuyor). Bu sayede herhangi bir fonksiyona aktarılabilirler. Özel bir yapı yok yani ortada. Bir de aslında çaktırmadan tanımladığımız multimethod’a <code>-add-method</code> eki getirerek bir fonksiyon daha oluşturuyoyruz. Bunu kullanıcının çağırmasına hiç gerek yok, sadece yeni method ekleme işlemini kolaylaştırmak için.</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defmulmethod </span>(name dispatch-fn-return-val <span class="kw">method</span>)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defmulmethod </span>(name dispatch-fn-return-val <span class="kw">method</span>)
   `(,(<span class="kw">intern</span> (<span class="kw">concatenate</span> &#39;string (<span class="kw">string</span> name) <span class="st">&quot;-ADD-METHOD&quot;</span>))
     ,dispatch-fn-return-val
-    ,<span class="kw">method</span>))</code></pre>
+    ,<span class="kw">method</span>))</code></pre></div>
 <p><code>defmethod</code> adı Common Lisp’e ait olduğundan adını <code>defmulmethod</code> yaptım. Önceki macroda oluşturulan <code>-add-method</code> fonksiyonu yardımıyla <code>dispatch-table</code>a yeni fonksiyonu ekliyor. Bundan sonra aynı örneği Common Lisp ile şöyle yapabiliriz.</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defmulti compiler (x) (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :os x)))
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defmulti compiler (x) (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :os x)))
 (defmulmethod compiler :unix (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :c-compiler x)))
 (defmulmethod compiler :osx (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :c-compiler x)))
 
@@ -451,7 +451,7 @@ CL-USER&gt; (<span class="kw">funcall</span> creturn <span class="dv">20</span>)
 
 (<span class="kw">setf</span> osx (<span class="kw">make-hash-table</span>))
 (<span class="kw">setf</span> (<span class="kw">gethash</span> :os osx) :osx)
-(<span class="kw">setf</span> (<span class="kw">gethash</span> :c-compiler osx) :gcc)</code></pre>
+(<span class="kw">setf</span> (<span class="kw">gethash</span> :c-compiler osx) :gcc)</code></pre></div>
 <pre><code>CL-USER&gt; (compiler unix)
 :CC
 
@@ -486,7 +486,7 @@ CL-USER&gt; (compiler osx)
 </div>
 <p>Öncelikle IRC sunucusuna bağlanabilmemiz için bir socket kütüphanesine ihtiyacımız var(evet Common Lisp standardı socket içermiyor). Bu iş için <a href="http://common-lisp.net/project/usocket/">usocket</a>’i seçtim(uğraşacak olan varsa bir diğer alternatif de <a href="http://common-lisp.net/project/iolib/">iolib</a>, fakat ikisi için de işe yarar dökümantasyon yok dolayısıyla her türlü yolumuzu kendimiz bulmamız gerek).</p>
 <p>Programımızın ana döngüsü gayet basit:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> run </span>()
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> run </span>()
   (<span class="kw">let*</span> ((socket (socket-connect <span class="st">&quot;irc.freenode.org&quot;</span> <span class="dv">8001</span>))
          (socket-stream (socket-stream socket))
          (start-time (<span class="kw">get-universal-time</span>)))
@@ -495,13 +495,13 @@ CL-USER&gt; (compiler osx)
         (<span class="kw">format</span> <span class="kw">t</span> <span class="st">&quot;~A~%&quot;</span> msg) <span class="co">;; debug ve gozetleme amacli</span>
         (<span class="kw">multiple-value-bind</span> (prefix command params) (parse-msg msg)
           (handle-command prefix (<span class="kw">intern</span> (<span class="kw">string-upcase</span> command)) params socket-stream)))
-      (<span class="kw">let</span> ((time-passed (<span class="kw">-</span> (<span class="kw">get-universal-time</span>) start-time)))
-        (<span class="kw">when</span> (<span class="kw">&gt;</span> time-passed (<span class="kw">*</span> <span class="dv">1</span> <span class="dv">30</span>))
+      (<span class="kw">let</span> ((time-passed (<span class="op">-</span> (<span class="kw">get-universal-time</span>) start-time)))
+        (<span class="kw">when</span> (<span class="op">&gt;</span> time-passed (<span class="op">*</span> <span class="dv">1</span> <span class="dv">30</span>))
           (update-html)
-          (<span class="kw">setf</span> start-time (<span class="kw">get-universal-time</span>)))))))</code></pre>
+          (<span class="kw">setf</span> start-time (<span class="kw">get-universal-time</span>)))))))</code></pre></div>
 <p>Bir socket oluşturup Freenode sunucularına bağlanıyoruz. Socket’e yazma ve socket’den okuma işlemlerini socket’in stream’ine yapacağız<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> <code>read-line</code> ile sunucudan her seferinde bir tam satır okuyoruz ve <code>parse-msg</code>a gönderiyoruz. <code>parse-msg</code> gelen mesajı <a href="http://www.irchelp.org/irchelp/rfc/rfc.html">IRC RFC</a>’de belirtilen mesaj formatında göre <code>prefix</code>, <code>command</code> ve <code>params</code> olarak 3 parçaya bölüyor ve Common Lisp’in <code>values</code> özel formu ile bunları dönüyor<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> Daha sonra bu parçaları <code>handle-command</code> generic fonksiyonuna gönderiyoruz. <code>handle-command</code> <code>command</code> parametresine göre gerekli dispatch fonksiyonunu çağırıyor<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> Daha basit olamazdı. Son olarak yeterli vakit geçtiyse(ben 30 saniyede bir güncelliyordum sık sık debug ile uğraştığımdan), static html sayfalarını güncelleyecek olan <code>update-html</code>i çağırıyoruz. Burda zamanı çok da düzgün tutmadığımıza dikkat. Eğer socket’den 10 dakika yanıt gelmezse 30 saniyede bir de güncelliyor olsak 10 dakika beklemek zorundayız<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
 <p>Mesajları parçalara ayıran fonksiyonumuz şöyle:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> parse-msg </span>(msg)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> parse-msg </span>(msg)
   <span class="st">&quot;Parse irc message to prefix, command and params.</span>
 <span class="st">http://www.irchelp.org/irchelp/rfc/chapter2.html#c2_3_1</span>
 <span class="st">&lt;message&gt; ::=</span>
@@ -515,38 +515,38 @@ CL-USER&gt; (compiler osx)
 <span class="st">&quot;</span>
   (<span class="kw">let*</span> ((first-space (<span class="kw">position</span> <span class="ch">#\s</span>pace msg))
          (<span class="kw">first</span> (<span class="kw">subseq</span> msg <span class="dv">0</span> first-space))
-         (<span class="kw">rest</span> (<span class="kw">subseq</span> msg (<span class="kw">1+</span> first-space)))
+         (<span class="kw">rest</span> (<span class="kw">subseq</span> msg (<span class="op">1+</span> first-space)))
          (prefix (<span class="kw">if</span> (<span class="kw">eq</span> (<span class="kw">elt</span> <span class="kw">first</span> <span class="dv">0</span>) <span class="ch">#\:</span>)
                      (<span class="kw">subseq</span> <span class="kw">first</span> <span class="dv">1</span>)
                      <span class="kw">nil</span>))
          (second-space (<span class="kw">position</span> <span class="ch">#\s</span>pace <span class="kw">rest</span>)))
     (<span class="kw">if</span> prefix
         (<span class="kw">let</span> ((command (<span class="kw">subseq</span> <span class="kw">rest</span> <span class="dv">0</span> second-space))
-              (params (<span class="kw">subseq</span> <span class="kw">rest</span> (<span class="kw">1+</span> second-space))))
+              (params (<span class="kw">subseq</span> <span class="kw">rest</span> (<span class="op">1+</span> second-space))))
           (<span class="kw">values</span> prefix command params))
         (<span class="kw">let</span> ((command (<span class="kw">subseq</span> <span class="kw">first</span> <span class="dv">0</span> first-space))
               (params <span class="kw">rest</span>))
-          (<span class="kw">values</span> <span class="kw">nil</span> command params)))))</code></pre>
+          (<span class="kw">values</span> <span class="kw">nil</span> command params)))))</code></pre></div>
 <p>Ben burda ciddi bir şekilde parse etmektense, önek, komut ve parametreleri birbirlerinden ayıran boşluklar olduğunu farkettim ve basitçe bu boşluklara göre ayırdım. Saatlerdir log tutuyor henüz bir problem yaşamadım.</p>
 <p>Mesajları parçaladıktan sonra şu generic fonksiyona gönderiyoruz:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defgeneric</span><span class="fu"> handle-command </span>(prefix command params socket-stream))</code></pre>
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defgeneric</span><span class="fu"> handle-command </span>(prefix command params socket-stream))</code></pre></div>
 <p>Bu fonksiyonu çağırırken <code>command</code> parametresinin her zaman bir sembol olması lazım. Başka türlü command parametresine göre dispatch fonksiyonuna karar veremiyoruz<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a> Ana döngüde string’i sembole çevirdiğim hacky kısım bu yüzden.</p>
 <p>Şu aşamada ilgimizi çeken 3 komut var. <code>PRIVMSG</code>, <code>NOTICE</code>, ve <code>PING</code>. <code>PING</code> komutunu sunucu bize, uzun süre yanıt vermediğimiz için gönderecek(sürekli dinlemede olacağımızdan) ve hemen <code>PONG</code> cevabını vermemiz lazım. <code>PRIVMSG</code> herhangi bir kanala veya bize bir mesaj gönderildiğinde gelecek. <code>NOTICE</code>de ne zaman login olmak için komut göndermemiz gerektiğine karar vermemiz için. Burda en kritik olanı <code>PRIVMSG</code>, diğerlerine gist’den bakabilirsiniz:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmethod</span><span class="fu"> handle-command </span>(prefix (command (<span class="kw">eql</span> &#39;privmsg)) params socket-stream)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmethod</span><span class="fu"> handle-command </span>(prefix (command (<span class="kw">eql</span> &#39;privmsg)) params socket-stream)
   (<span class="kw">let</span> ((channel-or-nick (<span class="kw">subseq</span> params <span class="dv">0</span> (<span class="kw">position</span> <span class="ch">#\s</span>pace params)))
         (sender (<span class="kw">subseq</span> prefix <span class="dv">0</span> (<span class="kw">position</span> <span class="ch">#\!</span> prefix)))
-        (msg (<span class="kw">subseq</span> params (<span class="kw">+</span> <span class="dv">2</span> (<span class="kw">position</span> <span class="ch">#\s</span>pace params)))))
+        (msg (<span class="kw">subseq</span> params (<span class="op">+</span> <span class="dv">2</span> (<span class="kw">position</span> <span class="ch">#\s</span>pace params)))))
     (<span class="kw">multiple-value-bind</span> (channel-message-queue channel-exists)
         (<span class="kw">gethash</span> channel-or-nick *channels*)
       (<span class="kw">unless</span> channel-exists
         (<span class="kw">setf</span> (<span class="kw">gethash</span> channel-or-nick *channels*) &#39;()))
       (<span class="kw">setf</span> (<span class="kw">gethash</span> channel-or-nick *channels*)
             (<span class="kw">cons</span> (make-message :msg msg
-                                :sender sender) channel-message-queue)))))</code></pre>
+                                :sender sender) channel-message-queue)))))</code></pre></div>
 <p><code>*channels*</code>, tüm kanallar için bir liste tuttuğumuz hash tablomuz. Burda static web sayfalarını güncelleme vaktimiz gelene kadar gelen mesajları tutuyoruz(gelen mesajı yine IRC RFC’nin <a href="http://www.irchelp.org/irchelp/rfc/chapter4.html#c4_4_1">şu bölümü</a>ne göre parçalıyorum). Mesajları tuttuğumuz yapımız basitçe sadece mesajın içeriğini ve göndereni tutuyor:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defstruct</span><span class="fu"> message </span>msg sender)</code></pre>
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defstruct</span><span class="fu"> message </span>msg sender)</code></pre></div>
 <p>Son olarak static sayfaları güncellemek için çağırdığımız <code>update-html</code>:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> update-html </span>()
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> update-html </span>()
   (<span class="kw">loop</span> for channel-or-nick being <span class="kw">the</span> hash-keys of *channels* <span class="kw">do</span>
     (<span class="kw">let</span> ((msgs (<span class="kw">reverse</span> (<span class="kw">gethash</span> channel-or-nick *channels*))))
       (<span class="kw">with-open-file</span> (<span class="kw">file-stream</span> (concat <span class="st">&quot;/home/sinan/Desktop/cl/logs/&quot;</span>
@@ -554,50 +554,50 @@ CL-USER&gt; (compiler osx)
                                                (<span class="kw">subseq</span> channel-or-nick <span class="dv">1</span>)
                                                <span class="st">&quot;direct-messages&quot;</span>)
                                            <span class="st">&quot;.html&quot;</span>) <span class="co">;; remove # from channel name</span>
-                                   <span class="kw">:direction</span> <span class="kw">:output</span>
-                                   :if-exists <span class="kw">:append</span>
-                                   :if-does-not-exist <span class="kw">:create</span>)
+                                   <span class="bu">:direction</span> <span class="bu">:output</span>
+                                   :if-exists <span class="bu">:append</span>
+                                   :if-does-not-exist <span class="bu">:create</span>)
         (with-html-output (<span class="kw">file-stream</span>)
           (<span class="kw">dolist</span> (msg msgs)
             (<span class="kw">let</span> ((message-text (concat (message-sender msg)
                                         <span class="st">&quot;&gt; &quot;</span>
                                         (message-msg msg))))
               (htm (:p :class <span class="st">&quot;msg&quot;</span> (str message-text)))))))
-      (<span class="kw">setf</span> (<span class="kw">gethash</span> channel-or-nick *channels*) &#39;()))))</code></pre>
+      (<span class="kw">setf</span> (<span class="kw">gethash</span> channel-or-nick *channels*) &#39;()))))</code></pre></div>
 <p>Burda html çıktısını üretmek için <a href="http://weitz.de/cl-who/">cl-who</a> kütüphanesini kullanıyoruz<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a> <code>with-open-file</code> ile kanal adına ait dosyayı açıp(yoksa oluşturup, varsa sonuna ekleyerek) <code>with-html-output</code> ile html elementlerini Lisp formları ve keywordler ile yazarak html kodunu dosyaya yazıyoruz ve hash tablomuzdaki mesaj listesini boşaltıyoruz(henüz tüm sayfayı oluşturmuyoruz, sadece mesajları html formatında kaydettik).</p>
 <p>Şu anda sunucuda istediğiniz kanalları dinleyip kaydeden bir botumuz var(kod hakkında eksik olan birkaç tanımlama için en başta verdiğim gistlere bakabilirsiniz).</p>
 <p>İkinci adım olarak web arayüzü. Static sayfaları sunmak için <a href="http://weitz.de/hunchentoot/">Hunchentoot</a> kullanacağız. Bu gibi basit işler için inanılmaz rahat bir kütüphane.</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defvar</span><span class="fu"> server </span>(<span class="kw">make-instance</span> &#39;easy-acceptor :port <span class="dv">4242</span>
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defvar</span><span class="fu"> server </span>(<span class="kw">make-instance</span> &#39;easy-acceptor :port <span class="dv">4242</span>
                                              :document-root <span class="st">&quot;/home/sinan/Desktop/cl/static&quot;</span>))
-(start server)</code></pre>
+(start server)</code></pre></div>
 <p>Hunchentoot ile 4242. portu dinleyen bir sunucu oluşturduk ve başlattık. <code>document-root</code>, static dosyaların(css dosyaları, resimler vs.) tutulduğu klasör. Hunchentoot sayfa yönlendirmelerini <code>*dispatch-table*</code> listesinden yapıyor. Yönlendirme işlemi birkaç farklı dispatcher ile yapılabiliyor ama biz şu anki basit sayfamız için sadece kanal adlarını yönlendirmekle ilgileneceğiz. Bu yüzden kullanacağımız dispatcher <code>prefix-dispatcher</code> olacak.</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> define-url-fn </span>((name) &amp;body body)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> define-url-fn </span>((name) &amp;body body)
   `(<span class="kw">progn</span>
      (<span class="kw">defun</span><span class="fu"> </span>,name ()
        ,@body)
-     (<span class="kw">push</span> (create-prefix-dispatcher ,(<span class="kw">format</span> <span class="kw">nil</span> <span class="st">&quot;/~(~a~).html&quot;</span> name) &#39;,name) *dispatch-table*)))</code></pre>
+     (<span class="kw">push</span> (create-prefix-dispatcher ,(<span class="kw">format</span> <span class="kw">nil</span> <span class="st">&quot;/~(~a~).html&quot;</span> name) &#39;,name) *dispatch-table*)))</code></pre></div>
 <p>Genel olarak sayfa oluşturma yapımız bu. <code>(define-url-fn (sayfa-adi) icerik)</code> şeklinde çağırdığımızda, <code>localhost:4242/sayfa-adi</code> adresinde <code>icerik</code>i gösterek şekilde ayarlıyor. Bu kadar basit. Şimdi sayfa içeriğimizi oluşturmadan önce her sayfada olacak kısımları ayıralım:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> standard-page </span>((&amp;key title) &amp;body body)
-  `(with-html-output-to-string (<span class="kw">*standard-output*</span> <span class="kw">nil</span> :prologue <span class="kw">t</span> :indent <span class="kw">t</span>)
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> standard-page </span>((&amp;key title) &amp;body body)
+  `(with-html-output-to-string (<span class="va">*standard-output*</span> <span class="kw">nil</span> :prologue <span class="kw">t</span> :indent <span class="kw">t</span>)
      (:html
       (:meta :charset <span class="st">&quot;utf-8&quot;</span>)
       (:head
        (:title ,title)
-       (:link <span class="kw">:type</span> <span class="st">&quot;text/css&quot;</span>
+       (:link <span class="bu">:type</span> <span class="st">&quot;text/css&quot;</span>
               :rel <span class="st">&quot;stylesheet&quot;</span>
               :href <span class="st">&quot;/static/reset.css&quot;</span>)
-       (:link <span class="kw">:type</span> <span class="st">&quot;text/css&quot;</span>
+       (:link <span class="bu">:type</span> <span class="st">&quot;text/css&quot;</span>
               :rel <span class="st">&quot;stylesheet&quot;</span>
               :href <span class="st">&quot;/static/main.css&quot;</span>))
       (:body
        (:div :class <span class="st">&quot;main&quot;</span>
-             ,@body)))))</code></pre>
+             ,@body)))))</code></pre></div>
 <p>Bu şekilde sadece bir sayfayı diğer sayfadan ayıracak kısımlarla ilgileneceğiz ve <code>standard-page</code> macrosuna göndereceğiz. Web arayüzümüz tamamen ayrı bir program olduğundan, önce logların tutulduğu klasöre bakıp kanal listesini çıkaralım:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> list-file-names </span>(&amp;optional (folder *log-folder*))
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> list-file-names </span>(&amp;optional (folder *log-folder*))
   (<span class="kw">mapcar</span> (<span class="kw">lambda</span> (<span class="kw">pathname</span>)
             (<span class="kw">let</span> ((filename (<span class="kw">file-namestring</span> <span class="kw">pathname</span>)))
               (<span class="kw">pathname-name</span> filename)))
-          (<span class="kw">directory</span> (<span class="kw">make-pathname</span> <span class="kw">:directory</span> folder <span class="kw">:name</span> :wild <span class="kw">:type</span> <span class="st">&quot;html&quot;</span>))))</code></pre>
+          (<span class="kw">directory</span> (<span class="kw">make-pathname</span> <span class="bu">:directory</span> folder <span class="bu">:name</span> :wild <span class="bu">:type</span> <span class="st">&quot;html&quot;</span>))))</code></pre></div>
 <p>Burda yapılan bariz gibi. Bir klasördeki html dosyalarının adlarını listeliyoruz. Bu kadar. Bu aşamadan sonra ana menü(kanal listesinin bulunduğu) ve kanal loglarının görüntüleneceği sayfaları oluşturmak kalıyor.</p>
 <pre><code>;; ana menu
 (define-url-fn (log-list)
@@ -657,18 +657,18 @@ CL-USER&gt; (compiler osx)
 <pre><code>ctpop(bmp &amp; ((1&lt;&lt;n)-1))</code></pre>
 <p><code>ctpop</code>, population count fonksiyonu, yani bir sayının iki tabanında gösterilişindeki 1 bitleri sayıyor. Bu Java’da <code>Integer.bitCount</code> fonksiyonu(öhm, static methodu) ile bulunabilir.</p>
 <p>Birkaç deneme yaparak nasıl yaptığını anlayabilir ve kendimizi ikna edebiliriz:</p>
-<pre class="sourceCode python"><code class="sourceCode python">In [^<span class="dv">2</span>]: bmp = <span class="dv">0</span>
-In [^<span class="dv">3</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">15</span>
-In [^<span class="dv">4</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">4</span>]: <span class="dv">0</span>
-In [^<span class="dv">5</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">21</span>
-In [^<span class="dv">6</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">10</span>
-In [^<span class="dv">7</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">7</span>]: <span class="dv">0</span>
-In [^<span class="dv">8</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">8</span>]: <span class="dv">1</span>
-In [^<span class="dv">9</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">21</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">9</span>]: <span class="dv">2</span></code></pre>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">In [<span class="op">^</span><span class="dv">2</span>]: bmp <span class="op">=</span> <span class="dv">0</span>
+In [<span class="op">^</span><span class="dv">3</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">15</span>
+In [<span class="op">^</span><span class="dv">4</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))
+Out[<span class="op">^</span><span class="dv">4</span>]: <span class="dv">0</span>
+In [<span class="op">^</span><span class="dv">5</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">21</span>
+In [<span class="op">^</span><span class="dv">6</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">10</span>
+In [<span class="op">^</span><span class="dv">7</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">10</span>)<span class="op">-</span><span class="dv">1</span>))
+Out[<span class="op">^</span><span class="dv">7</span>]: <span class="dv">0</span>
+In [<span class="op">^</span><span class="dv">8</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))
+Out[<span class="op">^</span><span class="dv">8</span>]: <span class="dv">1</span>
+In [<span class="op">^</span><span class="dv">9</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">21</span>)<span class="op">-</span><span class="dv">1</span>))
+Out[<span class="op">^</span><span class="dv">9</span>]: <span class="dv">2</span></code></pre></div>
 <p>Eğer arraydeki n. yere bir eleman ekliyorsak, n’den itibaren arrayi bir kaydırmamız lazım. En büyük index her zaman arrayde de daha sonda oluyor.</p>
 <p>Ne yaptığına bakalım. 25. elemanın arraydeki yerine bakarken, <code>1 &lt;&lt; 25</code>i hesaplıyorum ki bu aslında (2 tabanında) 1 ve yanına 25 tane 0 koymak demek. Daha sonra bu sayıdan 1 çıkararak, en sağdan itibaren(en anlamsız bitten itibaren) tüm 0ları 1 yapıyorum, ilk gördüğüm 1’i 0 yapıyorum, gerisine dokunmuyorum(bu şartlar altında geriye kalan tüm bitler 0 oluyor). Daha sonra bu sayı ile bitmap’i logical and(bazı yerlerde bitwise and diyor, aynı şeyler sanırım?) işlemine sokup ctpop yaptığımda, bitmap’de (1 &lt;&lt; n)’den itibaren kaç tane 1 olduğunu saymış oluyorum ve bu da bana array’deki indeximi veriyor. Çok mantıklı.</p>
 <p>Bu arada kullandığınız dile göre bu işlemi daha kolay bir şekilde yapabilirsiniz. Bazı diller(Java’da <code>Integer.bitcount</code>, Common Lisp’de <code>logcount</code> gibi) direkt olarak <code>bitCount</code> gibi fonksiyonlar sunuyor. Bir de ben Common Lisp’de hiç kaydır 1 çıkart falan demeden direkt “şu bitle şu bit arasında kaç 1 olduğunu say” şeklinde bir fonksiyon yazdım, bitwise trickler yapmadan, şöyle:</p>

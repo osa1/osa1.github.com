@@ -39,7 +39,7 @@
 <p>I will not formally define the type system here, but I think it can be seen as a simple Damas-Hindley-Milner style type system.</p>
 <p>This implementation basically embeds type definitions in Prolog. This is what makes this implementation simple. You can always implement a fully-featured type system in Prolog just like you can do it in any other language. What I’m trying to show here that it’s very simple to do when there is a way to implement types as rules in Prolog.</p>
 <p>Here’s knowledge base of types:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">nat(o)<span class="kw">.</span>
+<div class="sourceCode"><pre class="sourceCode prolog"><code class="sourceCode prolog">nat(o)<span class="kw">.</span>
 nat(s(<span class="dt">N</span>)) <span class="kw">:-</span> nat(<span class="dt">N</span>)<span class="kw">.</span>
 
 bool(<span class="kw">true</span>)<span class="kw">.</span>
@@ -50,12 +50,12 @@ type(<span class="dt">A</span><span class="kw">,</span> bool) <span class="kw">:
 type(id<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">A</span>)) <span class="kw">:-</span> <span class="kw">!.</span>
 type(add<span class="kw">,</span> arrow(nat<span class="kw">,</span> arrow(nat<span class="kw">,</span> nat))) <span class="kw">:-</span> <span class="kw">!.</span>
 type(not<span class="kw">,</span> arrow(bool<span class="kw">,</span> bool)) <span class="kw">:-</span> <span class="kw">!.</span>
-type(const<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> arrow(<span class="dt">_</span><span class="kw">,</span> <span class="dt">A</span>)))<span class="kw">.</span></code></pre>
+type(const<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> arrow(<span class="dt">_</span><span class="kw">,</span> <span class="dt">A</span>)))<span class="kw">.</span></code></pre></div>
 <p>Implementing type definitions as rules in a Prolog system is what makes this implementation simple. Here <code>id</code> is a function with type <code>forall a. a -&gt; a</code>, <code>add</code> is <code>nat -&gt; nat</code>, <code>not</code> is <code>bool -&gt; bool</code>, and <code>const</code> is <code>forall a b. a -&gt; b -&gt; a</code>.</p>
 <p>Type checking of function applications is also simple:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
+<div class="sourceCode"><pre class="sourceCode prolog"><code class="sourceCode prolog">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
     type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">R</span>))<span class="kw">,</span>
-    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span></code></pre>
+    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span></code></pre></div>
 <p>And we’re done. This much code is enough for type checking polymorphic functions. Here are some examples:</p>
 <pre><code>?- type(app(id, false), T).
 T = bool.
@@ -79,7 +79,7 @@ T = bool.
 T = bool.</code></pre>
 <p>One major limitation of this implementation is that there is no way to implement monomorphic functions. To do this, we should somehow have two different kinds of Prolog variables, one for polymorphic variables and one for monomorphic ones.</p>
 <p>Since there’s no way to directly express this in Prolog, I had to extend this code with a typing environment. In the implementation above, if parameter of a function is an atom and not a variable, then it’s looked in a global environment.</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
+<div class="sourceCode"><pre class="sourceCode prolog"><code class="sourceCode prolog">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
     type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span>
     <span class="dt">var</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% polymorphic parameter</span>
     type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">,</span>
@@ -103,12 +103,12 @@ type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</
     type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span>
     add_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span>
     type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span>
-    <span class="kw">!.</span></code></pre>
+    <span class="kw">!.</span></code></pre></div>
 <p>First rule is for polymorphic parameters, only difference from the first code is <code>var(A)</code>, which ensures the parameter type is a variable.</p>
 <p>Second rule does a similar check, but this time to ensure the parameter is an atom and not a variable. After that, type of this parameter is looked from an environment and checked against it. The third rule is when a type is not found in the environment. In that case, a new type is added to the environment.</p>
 <p>Note that first cut is required in second rule. Because otherwise, when a type checking fails, third rule would be executed and a new type would be added to the environment.</p>
 <p>Here are environment operations:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">init_state(<span class="dt">Name</span>) <span class="kw">:-</span>
+<div class="sourceCode"><pre class="sourceCode prolog"><code class="sourceCode prolog">init_state(<span class="dt">Name</span>) <span class="kw">:-</span>
     empty_assoc(<span class="dt">A</span>)<span class="kw">,</span>
     nb_setval(<span class="dt">Name</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span>
 
@@ -119,13 +119,13 @@ add_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt"
 
 get_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span>
     nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span>
-    get_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span>)<span class="kw">.</span></code></pre>
+    get_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span>)<span class="kw">.</span></code></pre></div>
 <p>Environment operations get a environment name to keep the state local. ie. you can be sure your state is local if name of the state is not used somewhere else :-)</p>
 <p>This helper is used to get type of a term when term is an atom, and it’s type is available in environment. Otherwise it returns the term itself.</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>) <span class="kw">:-</span> get_type(types<span class="kw">,</span> <span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>)<span class="kw">.</span>
-type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T</span>)<span class="kw">.</span></code></pre>
+<div class="sourceCode"><pre class="sourceCode prolog"><code class="sourceCode prolog">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>) <span class="kw">:-</span> get_type(types<span class="kw">,</span> <span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>)<span class="kw">.</span>
+type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T</span>)<span class="kw">.</span></code></pre></div>
 <p>An example monomorphic function rule:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type(mono_id<span class="kw">,</span> arrow(mono_id__a<span class="kw">,</span> mono_id__a)) <span class="kw">:-</span> <span class="kw">!.</span></code></pre>
+<div class="sourceCode"><pre class="sourceCode prolog"><code class="sourceCode prolog">type(mono_id<span class="kw">,</span> arrow(mono_id__a<span class="kw">,</span> mono_id__a)) <span class="kw">:-</span> <span class="kw">!.</span></code></pre></div>
 <p>It should be guaranteed by the programmer that <code>mono_id__a</code> atom is only used for <code>mono_id</code> function.</p>
 <p>Here are some examples for checking monomorphic functions(others work as before):</p>
 <pre><code>?- init_state(types).
