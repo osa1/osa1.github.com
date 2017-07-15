@@ -153,23 +153,23 @@
 <pre><code>10 - 9 - 9 - 9 -- toplamda 4 para.</code></pre>
 <p>Aç gözlü algoritmanın bu problem için çalışmadığını gözlemlemiş olduk. Dinamik programlamaya geçmeden önce ikinci adım olarak bu problemin optimal çözümünü(yani en az miktarda bozuk para ile çözecek çözüm) bulan özyineli bir algoritma yazalım.</p>
 <p>N değerinde para üstü tamamlamaya çalışıyor olalım ve A, B, C, … diye isimlendirdiğimiz bozuk paralarımız olsun. Bu durumda optimal çözüm için ya A değerinde bir bozuk para verip, N - A para üstünü tamamlamaya çalışırız(özyineleme), veya B değerinde bir bozuk para verip, N - B para üstünü tamamlamaya çalışırız(özyineleme) … ta ki tüm paraları deneyene kadar. Bu çözümün C++ programı şeklinde ifade edilmiş hali şöyle:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(<span class="at">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(<span class="dt">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
 {
-  <span class="cf">if</span> (amount == <span class="dv">0</span>)
-    <span class="cf">return</span> <span class="dv">0</span>;
+  <span class="kw">if</span> (amount == <span class="dv">0</span>)
+    <span class="kw">return</span> <span class="dv">0</span>;
 
   <span class="dt">int</span> result = <span class="dv">-1</span>;
 
-  <span class="cf">for</span> (<span class="dt">unsigned</span> coin : coins) {
-    <span class="cf">if</span> (amount &gt;= coin) {
+  <span class="kw">for</span> (<span class="dt">unsigned</span> coin : coins) {
+    <span class="kw">if</span> (amount &gt;= coin) {
       <span class="dt">int</span> r = findMinCoin(coins, amount - coin) + <span class="dv">1</span>;
-      <span class="cf">if</span> (result == <span class="dv">-1</span> || r &lt; result)
+      <span class="kw">if</span> (result == <span class="dv">-1</span> || r &lt; result)
         result = r;
     }
   }
 
-  <span class="cf">return</span> result;
-}</code></pre></div>
+  <span class="kw">return</span> result;
+}</code></pre>
 <p>Bu özyineli çözüm bize dinamik programlama yapabilmek için aradığımız iki şarttan birini sağladığımızı söylüyor.</p>
 <p><code>findMinCoin</code>in optimal çözümü bulduğunu varsayalım. <code>amount - coin</code> kısmı bize alt problemlerin çözümünü aradığımızı gösteriyor, ve bu çözümü yine <code>findMinCoin</code> aradığımızdan ve <code>findMinCoin</code> optimal çözümü bulduğundan, dinamik programlama yapabilmemiz için gereken ilk şartı sağlamış oluyoruz.</p>
 <p>Diyelim ki varsayımımız yanlıştı ve <code>findMinCoin</code> optimal çözümü bulmuyordu. Bu durumda zaten çözümümüz yanlış oluyor, çünkü <code>findMinCoin</code>i asıl problemimizin optimal çözümünü bulmak için çağırıyoruz.</p>
@@ -185,32 +185,32 @@
 <p>M para üstümüz olsun ve N tane bozuk paramız olsun. Bu durumda M için N tane özyineli çağrı yapılacak. Kabaca, elimizdeki en küçük paranın 1 olduğunu düşündüğümüzde, bu özyineli çağrılar M kere yapılacak. Her seviyede N özyineli çağrı bize O(M ^ N) kompleksliğinde bir algoritma verecektir.</p>
 <p>Her bir alt problemi memozation yardımıyla bir kere çözdüğümüz durumda ise, tamamlamak istediğimiz para üstümüz M olduğundan ve M - 1 alt probleme sahip olduğumuzdan O(M*N) bir komplekslik elde edeceğiz.</p>
 <p>Örnek implementasyon şöyle:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(vector&lt;<span class="dt">int</span>&gt; table, <span class="at">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(vector&lt;<span class="dt">int</span>&gt; table, <span class="dt">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
 {
-  <span class="cf">if</span> (table[amount] != <span class="dv">-1</span>)
+  <span class="kw">if</span> (table[amount] != <span class="dv">-1</span>)
     <span class="co">// problem daha onceden cozulmus, cevaba tablodan bak</span>
-    <span class="cf">return</span> table[amount];
+    <span class="kw">return</span> table[amount];
 
   <span class="co">// problem henuz cozulmemis, coz</span>
-  <span class="cf">for</span> (<span class="dt">unsigned</span> coin : coins) {
-    <span class="cf">if</span> (amount &gt;= coin) {
+  <span class="kw">for</span> (<span class="dt">unsigned</span> coin : coins) {
+    <span class="kw">if</span> (amount &gt;= coin) {
       <span class="dt">int</span> r = <span class="dv">1</span> + findMinCoin(table, coins, amount - coin);
-      <span class="cf">if</span> (table[amount] == <span class="dv">-1</span> || r &lt; table[amount])
+      <span class="kw">if</span> (table[amount] == <span class="dv">-1</span> || r &lt; table[amount])
         table[amount] = r;
     }
   }
 
-  <span class="cf">return</span> table[amount];
-}</code></pre></div>
+  <span class="kw">return</span> table[amount];
+}</code></pre>
 <p>Bu noktada özyineli çağrı yapmadan yapılabilecek alternatif bir çözüm için şunu farketmek gerekir: 0 para üstü için cevap zaten belli. 1 para üstü için cevabımızı sadece 1 değerinde bozuk para verip, 0 alt problemi için tabloya bakarak çözebiliriz. Diyelim ki 10 için çözüyoruz, 1 para verip 9 için cevaba tablodan bakmak isteriz, veya 9 para verip 1 için tabloya bakmak isteriz, veya 10 para verip 0 için tabloya bakmak isteriz vs. Yani aslında tabloda bir M değerinden önceki tüm değerler için cevap belliyse, kolayca o değerler arasından gerekli değerlere bakarak tabloda M’i doldurabiliriz. Bu da bizi 0. elemandan başlayarak tüm tabloyu adımlayarak doldurmayı içeren şu çözüme götürür:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> fillMinCoin(<span class="at">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, vector&lt;<span class="dt">int</span>&gt; &amp;tbl, <span class="dt">unsigned</span> amount)
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> fillMinCoin(<span class="dt">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, vector&lt;<span class="dt">int</span>&gt; &amp;tbl, <span class="dt">unsigned</span> amount)
 {
-  <span class="cf">for</span> (<span class="dt">unsigned</span> coin : coins)
-    <span class="cf">if</span> (amount &gt;= coin &amp;&amp;
+  <span class="kw">for</span> (<span class="dt">unsigned</span> coin : coins)
+    <span class="kw">if</span> (amount &gt;= coin &amp;&amp;
         (tbl[amount - coin] + <span class="dv">1</span> &lt; tbl[amount]
          || tbl[amount] == <span class="dv">-1</span>))
       tbl[amount] = tbl[amount - coin] + <span class="dv">1</span>;
-}</code></pre></div>
+}</code></pre>
 <p>Daha sonra bu tablodan gerekli elemana bakarak cevabı öğrenmiş oluruz. Bu şekilde bir çözüm dinamik programlamanın doğasını bize daha iyi gösteriyor. Dinamik programlama temelde tablolamaya dayanıyor.</p>
 <h2 id="örnek-2-en-uzun-artan-altdizi-problemi">Örnek 2: En uzun artan altdizi problemi</h2>
 <p>İki harf dizisi(string) düşünelim. En uzun artan altdizi, şu şekilde tanımlanmıştır:</p>
@@ -230,7 +230,7 @@ Cevap: ceb</code></pre>
 <li>Eğer harfler farklı ise, iki ayrı alt problem elde ederiz: ya S1 stringinin tamamı ve S2’nin son harfi hariç olan kısmı bize en uzun cevabı verecektir, veya S1 stringinin en son harfi hariç kısmı ile S2’nin tamamı en uzun cevabı verecektir. İkisini de çözeriz ve daha uzun olan cevap çözümümüz olur.</li>
 </ul>
 <p>Bu çözümün Haskell implementasyonu şu şekilde: (sadelik açısından bu kısım C++ ile yazılmadı, dinamik programlama hali C++ ile verilecek)</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">solve ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">solve ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
 solve s1 s2
   <span class="fu">|</span> null s1 <span class="fu">||</span> null s2 <span class="fu">=</span> <span class="st">&quot;&quot;</span>
 solve s1 s2 <span class="fu">=</span>
@@ -243,41 +243,41 @@ solve s1 s2 <span class="fu">=</span>
                 result2  <span class="fu">=</span> solve s1 h2
              <span class="kw">in</span> <span class="kw">if</span> length result1 <span class="fu">&gt;</span> length result2
                   <span class="kw">then</span> result1
-                  <span class="kw">else</span> result2</code></pre></div>
+                  <span class="kw">else</span> result2</code></pre>
 <p>Çözümün kompleksliğini düşünelim: Birbirine eşit olmayan M ve N uzunluğunda iki string düşünelim, M ve N - 1 uzunluğunda, M - 1 ve N uzunluğunda ve M - 1, N - 1 uzunluğunda stringler için özyineli çağrılar yapılacak. Her birinden yine 3 farklı özyineli çağrı ve toplamda M + N seviyede her seviyede 3 çağrı yapılacağından O((M + N) ^ 3) kompleksliğinde bir algoritmamız olur.</p>
 <p>Dinamik programlamanın mümkün olduğunu görmek için fonksiyonun iki string girdimizin ilk kaç harfi üzerinden çağırıldığını bir ağaç üzerinden takip etmek yeterli olacaktır.</p>
 <p>Bu durumda stringlerin ilk kaç harfi için çözümü bulduğumuzu iki boyutlu bir tabloda tutabiliriz. Örneğin tablodaki (3, 5) elemanı bize ilk stringin ilk 3 elemanı, ikinci stringin ilk 5 elemanı için bulduğumuz çözümü verecektir.</p>
 <p>Yazıyı kısa tutmak adına bu noktadan sonra direkt olarak adımlayarak tablo doldurma şeklinde düşünelim. Problemin M ve N harflik hali için (M - 1, N), (M - 1, N - 1) ve (M, N - 1) lik hallerini çözmemiz gerekecek. Tablo üzerinde düşündüğümüzde, eğer tabloyu satır satır doldurursak, her bir sonraki adımda gerekli önceki adımları zaten elde etmiş olduğumuz görülebilir.</p>
 <p>Burada tabloda tutacağımız her bir değer iki şeyi göstermeli, 1) string uzunluğu cinsinden cevap 2) o adıma geldiğimizde eğer iki stringin de son harflerini cevaba katıyorsak, bu stringin hangi harf olduğu.</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> solve(table &amp;tbl,
-    <span class="at">const</span> string &amp;str1, <span class="at">const</span> string &amp;str2)
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> solve(table &amp;tbl,
+    <span class="dt">const</span> string &amp;str1, <span class="dt">const</span> string &amp;str2)
 {
-  <span class="cf">for</span> (us i = <span class="dv">0</span>; i &lt; str1.size(); i++)
-    <span class="cf">if</span> (str2[<span class="dv">0</span>] == str1[i])
+  <span class="kw">for</span> (us i = <span class="dv">0</span>; i &lt; str1.size(); i++)
+    <span class="kw">if</span> (str2[<span class="dv">0</span>] == str1[i])
       tbl(i, <span class="dv">0</span>) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">&#39; &#39;</span>, <span class="dv">1</span>);
-    <span class="cf">else</span>
+    <span class="kw">else</span>
       tbl(i, <span class="dv">0</span>) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">&#39; &#39;</span>, <span class="dv">0</span>);
 
-  <span class="cf">for</span> (us i = <span class="dv">0</span>; i &lt; str2.size(); i++)
-    <span class="cf">if</span> (str1[<span class="dv">0</span>] == str2[i])
+  <span class="kw">for</span> (us i = <span class="dv">0</span>; i &lt; str2.size(); i++)
+    <span class="kw">if</span> (str1[<span class="dv">0</span>] == str2[i])
       tbl(<span class="dv">0</span>, i) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">&#39; &#39;</span>, <span class="dv">1</span>);
-    <span class="cf">else</span>
+    <span class="kw">else</span>
       tbl(<span class="dv">0</span>, i) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">&#39; &#39;</span>, <span class="dv">0</span>);
 
-  <span class="cf">for</span> (us i = <span class="dv">1</span>; i &lt; str1.size(); i++)
-    <span class="cf">for</span> (us j = <span class="dv">1</span>; j &lt; str2.size(); j++)
-      <span class="cf">if</span> (str1[i] == str2[j])
+  <span class="kw">for</span> (us i = <span class="dv">1</span>; i &lt; str1.size(); i++)
+    <span class="kw">for</span> (us j = <span class="dv">1</span>; j &lt; str2.size(); j++)
+      <span class="kw">if</span> (str1[i] == str2[j])
         tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(str1[i], tbl(i - <span class="dv">1</span>, j - <span class="dv">1</span>)-&gt;second + <span class="dv">1</span>);
-      <span class="cf">else</span> {
+      <span class="kw">else</span> {
         us s1 = tbl(i - <span class="dv">1</span>, j)-&gt;second;
         us s2 = tbl(i, j - <span class="dv">1</span>)-&gt;second;
 
-        <span class="cf">if</span> (s1 &gt; s2)
+        <span class="kw">if</span> (s1 &gt; s2)
           tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">&#39; &#39;</span>, s1);
-        <span class="cf">else</span>
+        <span class="kw">else</span>
           tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">&#39; &#39;</span>, s2);
       }
-}</code></pre></div>
+}</code></pre>
 <p>Bu çözümdeki iç içe iki for döngüsü tablonun tamamını bir turda ve her bir adım için 3 işlemde doldurduğumuzu gösteriyor ve çözümümüz dolayısıyla O(M*N).</p>
 <p>Bu problemin alıştırması <a href="http://www.spoj.com/SPOJ/problems/TLCS/" class="uri">http://www.spoj.com/SPOJ/problems/TLCS/</a> adresinden yapılabilir.</p>
 <h2 id="aşağıdan-yukarıya-ve-yukarıdan-aşağıya-çözümler">Aşağıdan-yukarıya ve yukarıdan-aşağıya çözümler</h2>
@@ -292,47 +292,47 @@ solve s1 s2 <span class="fu">=</span>
 <p>Burada farkedilmesi gereken şen, N - X. kolonun siyah olması aslında bir alt problem, ve en doğal ifade edilme şeklide bir özyineli fonksiyon ile olur.</p>
 <p>Peki alt problemler paylaşılıyor mu? Şöyle düşünelim, en az 5, en fazla 10 genişliğinde kolonlar istiyor olalım ve şu anda 15. kolonu boyuyor olalım. Bu durumda 10, 9, 8, 7, … 6. kolona kadar olan kısımlar için aynı problemi yeniden çözeceğiz. 16. kolon için ise 19, 9, … 7. kolona kadar olan kısımları bir yeniden çözmemiz gerekecek. Ciddi miktarda alt problem paylaşılıyor.</p>
 <p>Herhangi bir kolon için sadece o kolondan önceki kolonların cevabına ihtiyaç duyuyor olmamız tek boyutlu bir tabloda dinamik programlama yapabileceğimizi gösteriyor. Bu durumda şöyle bir cevap elde ediyoruz:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">unsigned</span> us;
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">unsigned</span> us;
 ...
 <span class="dt">void</span> solveDP(vector&lt;<span class="dt">int</span>&gt; &amp;tblWhites, vector&lt;<span class="dt">int</span>&gt; &amp;tblBlacks,
-             <span class="at">const</span> vector&lt;us&gt; &amp;colWhites, <span class="at">const</span> vector&lt;us&gt; &amp;colBlacks,
-             us idx, <span class="at">const</span> us min, <span class="at">const</span> us max)
+             <span class="dt">const</span> vector&lt;us&gt; &amp;colWhites, <span class="dt">const</span> vector&lt;us&gt; &amp;colBlacks,
+             us idx, <span class="dt">const</span> us min, <span class="dt">const</span> us max)
 {
-  <span class="cf">if</span> (idx &lt; max) {
+  <span class="kw">if</span> (idx &lt; max) {
     tblWhites[idx] = sumInclusive(colBlacks, <span class="dv">0</span>, idx);
     tblBlacks[idx] = sumInclusive(colWhites, <span class="dv">0</span>, idx);
   }
 
-  <span class="at">const</span> us startIdx = idx &lt; max ? <span class="dv">0</span> : idx - max;
-  <span class="at">const</span> us endIdx   = idx - min;
+  <span class="dt">const</span> us startIdx = idx &lt; max ? <span class="dv">0</span> : idx - max;
+  <span class="dt">const</span> us endIdx   = idx - min;
 
-  <span class="cf">for</span> (us i = startIdx; i &lt;= endIdx; i++) {
-    <span class="cf">if</span> (tblBlacks[i] != <span class="dv">-1</span>) {
+  <span class="kw">for</span> (us i = startIdx; i &lt;= endIdx; i++) {
+    <span class="kw">if</span> (tblBlacks[i] != <span class="dv">-1</span>) {
       us cost = tblBlacks[i] + sumInclusive(colBlacks, i + <span class="dv">1</span>, idx);
-      <span class="cf">if</span> (tblWhites[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblWhites[idx]))
+      <span class="kw">if</span> (tblWhites[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblWhites[idx]))
         tblWhites[idx] = cost;
     }
 
-    <span class="cf">if</span> (tblWhites[i] != <span class="dv">-1</span>) {
+    <span class="kw">if</span> (tblWhites[i] != <span class="dv">-1</span>) {
       us cost = tblWhites[i] + sumInclusive(colWhites, i + <span class="dv">1</span>, idx);
-      <span class="cf">if</span> (tblBlacks[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblBlacks[idx]))
+      <span class="kw">if</span> (tblBlacks[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblBlacks[idx]))
         tblBlacks[idx] = cost;
     }
   }
-}</code></pre></div>
+}</code></pre>
 <h2 id="bir-soru-two-out-of-three">Bir soru: “Two out of three”</h2>
 <p>Bu soru önceki sorudan daha ilginç olmamakla beraber, memoization/tablolama yapma şekli biraz değişik olduğundan anlatmak istedim: <a href="http://codeforces.com/problemset/problem/82/D" class="uri">http://codeforces.com/problemset/problem/82/D</a> .</p>
 <p>Sıradaki son 3 elemandan 2 elemanın sürekli azalacağını biliyoruz, ve alt problem bu iki eleman hariç elemanlar için çözülecek. Fakat bu 3 elemandan seçilmeyen elemanı memoization işleminde nasıl kullanabiliriz? Sıradan ayrılan iki insan alt problemin sıradaki ilk 2 eleman hariç olan kısmı olduğunu gösteriyor. 3 kişiden seçilmeyen bir kişi de algoritmaya ekstra bir parametre olarak verildiğinde karşımıza şöyle bir sonuç çıkıyor:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> solve(<span class="dt">int</span> lastElem, <span class="dt">int</span> offset, <span class="at">const</span> vector&lt;<span class="dt">int</span>&gt; &amp;ppl,
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> solve(<span class="dt">int</span> lastElem, <span class="dt">int</span> offset, <span class="dt">const</span> vector&lt;<span class="dt">int</span>&gt; &amp;ppl,
     matrix&lt;<span class="dt">int</span>&gt; &amp;tbl, matrix&lt;<span class="dt">int</span>&gt; &amp;steps)
 {
-  <span class="cf">if</span> (lastElem &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
-    <span class="cf">return</span> <span class="dv">0</span>;
-  <span class="cf">if</span> (offset &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
-    <span class="cf">return</span> ppl[lastElem];
+  <span class="kw">if</span> (lastElem &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
+    <span class="kw">return</span> <span class="dv">0</span>;
+  <span class="kw">if</span> (offset &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
+    <span class="kw">return</span> ppl[lastElem];
 
-  <span class="cf">if</span> (tbl(lastElem, offset) != <span class="dv">-1</span>)
-    <span class="cf">return</span> tbl(lastElem, offset);
+  <span class="kw">if</span> (tbl(lastElem, offset) != <span class="dv">-1</span>)
+    <span class="kw">return</span> tbl(lastElem, offset);
 
   <span class="dt">int</span> tmp[<span class="dv">3</span>];
   tmp[<span class="dv">0</span>] = max(ppl[lastElem], ppl[offset]) + solve(offset + <span class="dv">1</span>, offset + <span class="dv">2</span>, ppl, tbl, steps);
@@ -342,8 +342,8 @@ solve s1 s2 <span class="fu">=</span>
   <span class="dt">int</span> idmin = min_element(tmp, tmp + <span class="dv">3</span>) - tmp;
   steps(lastElem, offset) = idmin;
 
-  <span class="cf">return</span> tbl(lastElem, offset) = tmp[idmin];
-}</code></pre></div>
+  <span class="kw">return</span> tbl(lastElem, offset) = tmp[idmin];
+}</code></pre>
 <p>Alt problemlerin nasıl paylaşıldığı daha önceden anlatıldığı gibi görülebilir.</p>]]></summary>
 </entry>
 <entry>
@@ -365,22 +365,22 @@ solve s1 s2 <span class="fu">=</span>
 <p><a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Compiler/Exp.hs#L21"><code>compileExp</code></a> fonksiyonu, <a href="http://hackage.haskell.org/packages/archive/haskell-src-exts/1.13.5/doc/html/Language-Haskell-Exts-Syntax.html#g:8"><code>Exp</code></a> ağacı üzerinde gezinir çıktı olarak <a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Types.hs#L242"><code>JsExp</code></a> (yine başka bir ağaç) üretir. Bu bir ağaç üzerinde gezinip farklı işlemler yapıp farklı bir ağaçlar üreten fonksiyonlara bir örnek.</p>
 <p><a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Compiler/Optimizer.hs"><code>Optimizer</code></a> modulü çeşitli ağaçlar üzerinde gezinip başka ağaçlar üreten 13 tane fonksiyondan oluşur ve bunların 5-6 tanesi <a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Types.hs#L227"><code>JsStmt</code></a> ağacını dolaşır. Bu da aynı ağaç üzerinde gezinip farklı işlemler yapan fonksiyonlara örnek.</p>
 <p>Algebraic data typelara ve pattern matchinge sahip olan fonksiyonel dillerde(yani belki de tüm statically typed fonksiyonel dillerde) bunu yapmanın bir yolunu göstermek için hemen hiçbir işlevi olmayan çok basit bir aritmetik ifade dili oluşturalım:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Exp</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Exp</span>
     <span class="fu">=</span> <span class="dt">Add</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
     <span class="fu">|</span> <span class="dt">Mul</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
-    <span class="fu">|</span> <span class="dt">Number</span> <span class="dt">Float</span></code></pre></div>
+    <span class="fu">|</span> <span class="dt">Number</span> <span class="dt">Float</span></code></pre>
 <p>Bu kadar işlevsiz bir dil olamaz. Şimdi bu ağaç üzerinde iki farklı işlem yapan iki fonksiyon:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">run ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">Float</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">run ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">Float</span>
 run (<span class="dt">Add</span> e1 e2) <span class="fu">=</span> run e1 <span class="fu">+</span> run e2
 run (<span class="dt">Mul</span> e1 e2) <span class="fu">=</span> run e1 <span class="fu">*</span> run e2
-run (<span class="dt">Number</span> f)  <span class="fu">=</span> f</code></pre></div>
+run (<span class="dt">Number</span> f)  <span class="fu">=</span> f</code></pre>
 <p><code>run</code> programı çalıştırıp sonucu dönüyor.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">stringOfExp ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">stringOfExp ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
 stringOfExp (<span class="dt">Add</span> e1 e2) <span class="fu">=</span>
     concat [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; + &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
 stringOfExp (<span class="dt">Mul</span> e1 e2) <span class="fu">=</span>
     concat [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; * &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
-stringOfExp (<span class="dt">Number</span> f) <span class="fu">=</span> show f</code></pre></div>
+stringOfExp (<span class="dt">Number</span> f) <span class="fu">=</span> show f</code></pre>
 <p><code>stringOfExp</code> ise programın string halini dönüyor. Örnek:</p>
 <pre><code>ghci&gt; let prog1 = Add (Number 10) (Mul (Number 20) (Add (Number 30) (Number 40)))
 ghci&gt; run prog1
@@ -389,48 +389,48 @@ ghci&gt; stringOfExp prog1
 &quot;(10.0 + (20.0 * (30.0 + 40.0)))&quot;</code></pre>
 <p>Yarın ağaca yeni bir node eklediğimde ağaç üzerinde çalışan tüm fonksiyonları güncellemem gerekecek.</p>
 <p>Herkes için son derece basittir sanıyorum. Şimdi aynısını ADT’lara sahip olmayan, OO bir dil ile yazalım.</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
 <span class="kw">public</span>:
   <span class="kw">virtual</span> ~Exp() {}
 };
 
 <span class="kw">class</span> AddExp : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> Exp * <span class="at">const</span> e1, * <span class="at">const</span> e2;
-  AddExp(<span class="at">const</span> Exp * <span class="at">const</span> e1, <span class="at">const</span> Exp * <span class="at">const</span> e2)
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  AddExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
     : e1(e1), e2(e2) {}
 };
 
 <span class="kw">class</span> MulExp : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> Exp * <span class="at">const</span> e1, * <span class="at">const</span> e2;
-  MulExp(<span class="at">const</span> Exp * <span class="at">const</span> e1, <span class="at">const</span> Exp * <span class="at">const</span> e2)
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  MulExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
     : e1(e1), e2(e2) {}
 };
 
 <span class="kw">class</span> Number : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> <span class="dt">float</span> f;
-  Number(<span class="at">const</span> <span class="dt">float</span> f) : f(f) {}
-};</code></pre></div>
+  <span class="dt">const</span> <span class="dt">float</span> f;
+  Number(<span class="dt">const</span> <span class="dt">float</span> f) : f(f) {}
+};</code></pre>
 <p>Örnek programımız da şu şekilde yazılabilir:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Exp *prog1 = <span class="kw">new</span> AddExp(
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Exp *prog1 = <span class="kw">new</span> AddExp(
     <span class="kw">new</span> Number(<span class="dv">10</span>), <span class="kw">new</span> MulExp(
       <span class="kw">new</span> Number(<span class="dv">20</span>), <span class="kw">new</span> AddExp(
-        <span class="kw">new</span> Number(<span class="dv">30</span>), <span class="kw">new</span> Number(<span class="dv">40</span>))));</code></pre></div>
+        <span class="kw">new</span> Number(<span class="dv">30</span>), <span class="kw">new</span> Number(<span class="dv">40</span>))));</code></pre>
 <p>Peki bu ağaç üzerinde gezinmek nasıl mümkün olabilir ? Bir kere, tüm nodelar alt node olarak <code>Exp</code> tipinde bir nesne tutuyor, kesin tip bilgisine sahip değiliz ve bu tip bilgisine sahip olmadan da yorumlamak mümkün değil mi, yorumladığımız node <code>Number</code> mı, <code>MulExp</code> mi vs. bilmemiz gerekir.</p>
 <p>Bunu yapmanın çeşitli yolları var, ama güzel bir çözümü yok. Örneğin <code>Exp</code> sınıfında nodeların tipini tutan bir enum tutabiliriz ve <code>Exp *</code>leri gerekli tiplere cast ederiz. Veya Java gibi bir dilde <code>instanceof</code> kontrolü yapılıp cast edilebilir. Başka çözümler de bulunabilir.</p>
 <p>Bu gibi durumlarda kabul edilen en yaygın çözüm visitor design patternı. Biraz aradığınızda onlarca tutorial bulabilirsiniz ki tutoriala ihtiyaç duyması bile aslında fonksiyonel dildeki çözümümüzden ne kadar kötü olduğunun bir göstergesi sayılabilir(8 satır son derece basit ve açık bir Haskell koduna denk bir iş yapmaya çalışıyoruz şu anda)</p>
 <p>Bu probleme <em>double dispatch</em> problemi de deniyor. Sebebi yapacağımız işleme hem yorumlayıcıya, hem de ağaca göre karar vermek istiyoruz fakat bir yandan da ağaçlara ve yorumlayıcılara aynı muameleyi yapabilmeliyiz. C++ örneğinde her bir node’un bir ağaç oluşturduğuna dikkat.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> AddExp;
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> AddExp;
 <span class="kw">class</span> MulExp;
 <span class="kw">class</span> Number;
 
 <span class="kw">class</span> ExpVisitor {
 <span class="kw">public</span>:
-  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="at">const</span> AddExp * <span class="at">const</span> exp) = <span class="dv">0</span>;
-  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="at">const</span> MulExp * <span class="at">const</span> exp) = <span class="dv">0</span>;
-  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="at">const</span> Number * <span class="at">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) = <span class="dv">0</span>;
 
   <span class="kw">virtual</span> ~ExpVisitor() {};
 };
@@ -438,38 +438,38 @@ ghci&gt; stringOfExp prog1
 <span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
 <span class="kw">public</span>:
   <span class="kw">virtual</span> ~Exp() {}
-  <span class="kw">virtual</span> <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="at">const</span> = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> = <span class="dv">0</span>;
 };
 
 <span class="kw">class</span> AddExp : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> Exp * <span class="at">const</span> e1, * <span class="at">const</span> e2;
-  AddExp(<span class="at">const</span> Exp * <span class="at">const</span> e1, <span class="at">const</span> Exp * <span class="at">const</span> e2)
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  AddExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
     : e1(e1), e2(e2) {}
-  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="at">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
 };
 
 <span class="kw">class</span> MulExp : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> Exp * <span class="at">const</span> e1, * <span class="at">const</span> e2;
-  MulExp(<span class="at">const</span> Exp * <span class="at">const</span> e1, <span class="at">const</span> Exp * <span class="at">const</span> e2)
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  MulExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
     : e1(e1), e2(e2) {}
-  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="at">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
 };
 
 <span class="kw">class</span> Number : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> <span class="dt">float</span> f;
-  Number(<span class="at">const</span> <span class="dt">float</span> f) : f(f) {}
-  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="at">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
-};</code></pre></div>
+  <span class="dt">const</span> <span class="dt">float</span> f;
+  Number(<span class="dt">const</span> <span class="dt">float</span> f) : f(f) {}
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+};</code></pre>
 <p>Detaylara çok fazla girmek istemiyorum, kısaca, virtual methodların yardımıyla artık bir nesneyi <code>Exp</code> tipine cast etsek de doğru <code>visit</code> methodları çağırılacak. Buna göre ilk yorumlayıcımızı şu şekilde yazabiliyoruz:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Run : <span class="kw">public</span> ExpVisitor {
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Run : <span class="kw">public</span> ExpVisitor {
 <span class="kw">public</span>:
   <span class="dt">float</span> result;
   Run() : result(<span class="dv">0</span>) {}
 
-  <span class="dt">void</span> visit(<span class="at">const</span> AddExp * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) {
     Run v1;
     exp-&gt;e1-&gt;accept(&amp;v1);
 
@@ -479,7 +479,7 @@ ghci&gt; stringOfExp prog1
     result = v1.result + v2.result;
   }
 
-  <span class="dt">void</span> visit(<span class="at">const</span> MulExp * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) {
     Run v1;
     exp-&gt;e1-&gt;accept(&amp;v1);
 
@@ -489,18 +489,18 @@ ghci&gt; stringOfExp prog1
     result = v1.result * v2.result;
   }
 
-  <span class="dt">void</span> visit(<span class="at">const</span> Number * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) {
     result = exp-&gt;f;
   }
-};</code></pre></div>
+};</code></pre>
 <p>Bu arada nesnesel çözümümüzün fonksiyonel çözümümüzden bir başka farkı da burda belli oluyor. Visitorlar arası değer dönmenin bir yolu yok ve bu yüzden buradaki <code>result</code> member değişkeni gibi bir mutable değişken kullanmak zorunda kalıyoruz.</p>
 <p>İkinci yorumlayıcımız:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> StringOfExp : <span class="kw">public</span> ExpVisitor {
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> StringOfExp : <span class="kw">public</span> ExpVisitor {
 <span class="kw">public</span>:
-  <span class="bu">std::</span>string result;
-  StringOfExp() : result(<span class="kw">new</span> <span class="bu">std::</span>string()) {}
+  std::string result;
+  StringOfExp() : result(<span class="kw">new</span> std::string()) {}
 
-  <span class="dt">void</span> visit(<span class="at">const</span> AddExp * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) {
     StringOfExp v1;
     exp-&gt;e1-&gt;accept(&amp;v1);
 
@@ -510,7 +510,7 @@ ghci&gt; stringOfExp prog1
     result = <span class="st">&quot;(&quot;</span> + v1.result + <span class="st">&quot; + &quot;</span> +  v2.result + <span class="st">&quot;)&quot;</span>;
   }
 
-  <span class="dt">void</span> visit(<span class="at">const</span> MulExp * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) {
     StringOfExp v1;
     exp-&gt;e1-&gt;accept(&amp;v1);
 
@@ -520,21 +520,21 @@ ghci&gt; stringOfExp prog1
     result = <span class="st">&quot;(&quot;</span> + v1.result + <span class="st">&quot; * &quot;</span> +  v2.result + <span class="st">&quot;)&quot;</span>;
   }
 
-  <span class="dt">void</span> visit(<span class="at">const</span> Number * <span class="at">const</span> exp) {
-    <span class="bu">std::</span>ostringstream ss;
+  <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) {
+    std::ostringstream ss;
     ss &lt;&lt; exp-&gt;f;
     result = ss.str();
   }
-};</code></pre></div>
+};</code></pre>
 <p><code>result</code> member değişkeninin tipinin farklı olduğuna dikkat. Buradaki farklılık Haskell fonksiyonlarındaki dönüş tiplerinin farklılığı ile aynı.</p>
 <p>Son olarak programı şu şekilde çalıştırabiliyoruz:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Run r;
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Run r;
 prog1-&gt;accept(&amp;r);
-<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;return value Run: &quot;</span> &lt;&lt; r.result &lt;&lt; <span class="bu">std::</span>endl;
+std::cout &lt;&lt; <span class="st">&quot;return value Run: &quot;</span> &lt;&lt; r.result &lt;&lt; std::endl;
 
 StringOfExp s;
 prog1-&gt;accept(&amp;s);
-<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;return value of StringOfExp: &quot;</span> &lt;&lt; s.result &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+std::cout &lt;&lt; <span class="st">&quot;return value of StringOfExp: &quot;</span> &lt;&lt; s.result &lt;&lt; std::endl;</code></pre>
 <p>Çıktı:</p>
 <pre><code>➜  cpp  clang++ arith.cpp -g
 ➜  cpp  ./a.out
@@ -570,19 +570,19 @@ return value of StringOfExp: (10 + (20 * (30 + 40)))</code></pre>
     <summary type="html"><![CDATA[<p>Bu yazı birkaç gün önce attığım bir mail aslında. Acele ile yazılmış bir yazı olmasına rağmen epey uzun oldu ve maili yazmaya başlamadan önce kafamda karmaşık bir şekilde duran bazı fikirleri toparlamamda yardımcı oldu. Pek kimsenin işine yarayacağını tahmin etmesem de, yine de buraya koyuyorum. Küçük bazı düzenlemeler yaptım. Eklemeler ise yazının en altına yazıldı. Kodlar OCaml dilinde yazıldı.</p>
 <hr />
 <p>Üzerinde çalıştığım dilin tip sistemi hakkında<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
-<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> ty =
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> ty =
   | ...
-  | TRow <span class="kw">of</span> tyrow
+  | <span class="dt">TRow</span> <span class="kw">of</span> tyrow
   | ...
 
 <span class="kw">type</span> fieldty =
-  | Pre ty
-  | Btm <span class="co">(* Abs ismi lambda abstractionlarda kullanildi *)</span>
+  | <span class="dt">Pre</span> ty
+  | <span class="dt">Btm</span> <span class="co">(* Abs ismi lambda abstractionlarda kullanildi *)</span>
 
 <span class="kw">type</span> tyrow =
-  | EmptyRow
-  | Row (id * ty * ..<span class="dv">1</span>..)
-  | ..<span class="dv">2</span>..</code></pre></div>
+  | <span class="dt">EmptyRow</span>
+  | <span class="dt">Row</span> (id * ty * ..<span class="fl">1.</span>.)
+  | ..<span class="fl">2.</span>.</code></pre>
 <p>1 ve 2 boşluklarını doldurmamız gerekiyor. Sorunlar şunlar:</p>
 <p>1 kısmına yazdığımız tip, sadece yine kendi tipiyle(yani <code>TRow</code> ile) unify etmek zorunda(ilk bakışta <code>tyrow</code> yazmak mantıklı gibi geliyor ama bu yüzden değil).</p>
 <p>2 kısmına yazdığımız constructor polymorphic row’u temsil edecek. Burada ben ilk başta aslında row değişkenlerini tamamen yok sayıp, recordlar extensible mı değil mi diye bir boolean flag tutayım demiştim. Fakat sorun, recordlar rowları paylaşabiliyorlar, örneğin şöyle bir fonksiyonda <code>\r -&gt; r.x = 10</code> tip <code>{r/x} -&gt; {x:int|r/x}</code> oluyor, başka bir yerde bu <code>r</code> kullanılabilir(parametre olarak verilen record başka yerlerde kullanıldığında fonksiyonun dönüş değeri olan recordın row değişkeni ile aynı row değişkenine sahip birden fazla record oluyor). Dolayısıyla bir değişken olmak zorunda.</p>
@@ -596,44 +596,44 @@ return value of StringOfExp: (10 + (20 * (30 + 40)))</code></pre>
 <p>Bu sayede farklı kindlarda type variablelar için aynı fonksiyonları kullanabilirim, sürekli kind bilgisini de taşırım. En son substitution veya unification yaparken, kindların korunup korunmadığını kontrol ederim ve normal type değişkeni yerine row type yazılmamasını sağlarım veya unification sırasında hata alırım.</p>
 <p>–</p>
 <p>Kindlarla beraber tipleri şu şekilde tanımlayabiliyoruz(yaklaşık olarak, henüz programı yazmadım)</p>
-<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> kind =
-  | KStar                 <span class="co">(* kind of term types *)</span>
-  | KRow                  <span class="co">(* kind of row types *)</span>
-  | KArr <span class="kw">of</span> (kind * kind) <span class="co">(* kind of type constructors *)</span>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> kind =
+  | <span class="dt">KStar</span>                 <span class="co">(* kind of term types *)</span>
+  | <span class="dt">KRow</span>                  <span class="co">(* kind of row types *)</span>
+  | <span class="dt">KArr</span> <span class="kw">of</span> (kind * kind) <span class="co">(* kind of type constructors *)</span>
 
 <span class="kw">type</span> ty =
-  | TCon <span class="kw">of</span> tycon     <span class="co">(* constant *)</span>
-  | TVar <span class="kw">of</span> tyvar     <span class="co">(* type variable *)</span>
-  | TApp <span class="kw">of</span> (ty * ty)
+  | <span class="dt">TCon</span> <span class="kw">of</span> tycon     <span class="co">(* constant *)</span>
+  | <span class="dt">TVar</span> <span class="kw">of</span> tyvar     <span class="co">(* type variable *)</span>
+  | <span class="dt">TApp</span> <span class="kw">of</span> (ty * ty)
       <span class="co">(* type application, to be well-typed</span>
 <span class="co">         kind of first ty should be KArr (k2, k)</span>
 <span class="co">         and second ty should be k2 *)</span>
 <span class="kw">and</span> tyvar = (tyvarlink <span class="dt">ref</span> * kind)
 <span class="kw">and</span> tyvarlink =
-  | NoLink <span class="kw">of</span> id <span class="co">(* just a type variable *)</span>
-  | LinkTo <span class="kw">of</span> ty <span class="co">(* equated to a ty *)</span>
+  | <span class="dt">NoLink</span> <span class="kw">of</span> id <span class="co">(* just a type variable *)</span>
+  | <span class="dt">LinkTo</span> <span class="kw">of</span> ty <span class="co">(* equated to a ty *)</span>
 <span class="kw">and</span> tycon = (id * kind) <span class="co">(* kind should be always KStar *)</span>
 
-<span class="kw">let</span> t_int        = TCon (<span class="st">&quot;int&quot;</span>,  KStar)
-<span class="kw">let</span> t_bool       = TCon (<span class="st">&quot;bool&quot;</span>, KStar)
-<span class="kw">let</span> t_unit       = TCon (<span class="st">&quot;unit&quot;</span>, KStar)
-<span class="kw">let</span> t_list       = TCon (<span class="st">&quot;[]&quot;</span>,   KArr (KStar, KStar))
-<span class="kw">let</span> t_ref        = TCon (<span class="st">&quot;ref&quot;</span>,  KArr (KStar, KStar))
-<span class="kw">let</span> t_arr        = TCon (<span class="st">&quot;-&gt;&quot;</span>,   KArr (KStar, KArr (KStar, KStar)))
-<span class="kw">let</span> t_empty_row  = TCon (<span class="st">&quot;&lt;|&gt;&quot;</span>,  KRow)
-<span class="kw">let</span> t_row_ext    = TCon (<span class="st">&quot;&lt;+&gt;&quot;</span>,  KArr (KStar, KArr (KRow, KRow)))
-<span class="kw">let</span> t_rec_const  = TCon (<span class="st">&quot;{_}&quot;</span>,  KArr (KRow, KStar))
+<span class="kw">let</span> t_int        = <span class="dt">TCon</span> (<span class="st">&quot;int&quot;</span>,  <span class="dt">KStar</span>)
+<span class="kw">let</span> t_bool       = <span class="dt">TCon</span> (<span class="st">&quot;bool&quot;</span>, <span class="dt">KStar</span>)
+<span class="kw">let</span> t_unit       = <span class="dt">TCon</span> (<span class="st">&quot;unit&quot;</span>, <span class="dt">KStar</span>)
+<span class="kw">let</span> t_list       = <span class="dt">TCon</span> (<span class="st">&quot;[]&quot;</span>,   <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KStar</span>))
+<span class="kw">let</span> t_ref        = <span class="dt">TCon</span> (<span class="st">&quot;ref&quot;</span>,  <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KStar</span>))
+<span class="kw">let</span> t_arr        = <span class="dt">TCon</span> (<span class="st">&quot;-&gt;&quot;</span>,   <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KStar</span>)))
+<span class="kw">let</span> t_empty_row  = <span class="dt">TCon</span> (<span class="st">&quot;&lt;|&gt;&quot;</span>,  <span class="dt">KRow</span>)
+<span class="kw">let</span> t_row_ext    = <span class="dt">TCon</span> (<span class="st">&quot;&lt;+&gt;&quot;</span>,  <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KArr</span> (<span class="dt">KRow</span>, <span class="dt">KRow</span>)))
+<span class="kw">let</span> t_rec_const  = <span class="dt">TCon</span> (<span class="st">&quot;{_}&quot;</span>,  <span class="dt">KArr</span> (<span class="dt">KRow</span>, <span class="dt">KStar</span>))
 
 <span class="co">(* type of {r1} *)</span>
-<span class="kw">let</span> rp1 = TApp (t_rec_const, TVar (<span class="dt">ref</span> (NoLink <span class="st">&quot;r1&quot;</span>), KRow))
+<span class="kw">let</span> rp1 = <span class="dt">TApp</span> (t_rec_const, <span class="dt">TVar</span> (<span class="dt">ref</span> (<span class="dt">NoLink</span> <span class="st">&quot;r1&quot;</span>), <span class="dt">KRow</span>))
 
 <span class="co">(* type of {r1} -&gt; {_:int|r1} *)</span>
-<span class="kw">let</span> f   = TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), rp1))</code></pre></div>
+<span class="kw">let</span> f   = <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_arr, rp1), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_row_ext, t_int), rp1))</code></pre>
 <p>En sonraki iki tanım örnek olsun diyeydi.</p>
 <p>Karmaşık olduğunun farkındayım ama 1) bu tip sistemi implementasyonları için standard yol gibi geldi bana(çok fazla makalede kind sistemlerinden bahsediliyor) 2) diğer türlü de daha az karmaşık değil gibi.<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a></p>
 <p>Burda mesela <code>TApp</code> oluşturan bir yardımcı fonksiyon oluştururuz ve kindları kontrol eder, uyumlu mu diye, bir miktar daha kolaylaşır. Yardımcı fonksiyonlarla işi kolaylaştırabiliriz diye düşünüyorum yani.</p>
 <p>Bu örnekde <code>rp1</code> yerine mesela <code>{a:bool}</code> (yani <code>TApp (TApp (t_rec_ext, bool_ty), t_empty_row)</code>) yazarsak:</p>
-<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), TApp (TApp (t_rec_ext, bool_ty), t_empty_row)))</code></pre></div>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="dt">TApp</span> (<span class="dt">TApp</span> (t_arr, rp1), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_row_ext, t_int), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_rec_ext, bool_ty), t_empty_row)))</code></pre>
 <p>Bana gayet temiz bir şekilde <code>{x:int, a:bool}</code> elde ettik gibi geliyor ve tek yaptığımız yerine yazmak oldu. ( bu sunumda labelların atlandığının farkındayım, tam olarak labelları nasıl bu sisteme entegre ederim düşünmedim )</p>
 <p>Diğer türlü yapılamaz mı, tabii ki yapılabilir ve ben zaten çok yaklaşmıştım. Fakat çirkin olmayan bir yolu yok. Kod içerisinde şöyle kısımlar olmak <em>zorunda</em> gibi: “implementasyonum doğru olduğuna göre bu type variable record ile unify edilmiş olacak, exhaustive olmayan pattern matching yap”. Mesela tüm row değişkenler bir record’a unify edilimş olacak, ben pattern matching ile fieldları alacağım kendi recordıma ekleyeceğim vs.<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a></p>
 <p>Ama kindler ile yaptığımda bu gibi durumlar olmayacak, ben <code>TApp</code>’lar ile typelar oluşturacağım, kind preserving substitutionlar, generalizationlar, instantiationlar yapılacağından, her zaman row tiplerim well-formed olmuş olacak ben hiçbir kontrol yapmadan <code>TApp</code>’ler oluşturmaya başlayacağım.</p>

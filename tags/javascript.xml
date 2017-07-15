@@ -16,7 +16,7 @@
     <published>2013-05-06T00:00:00Z</published>
     <updated>2013-05-06T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I wrote a simple Haskell program to convert some data encoded as Lua tables to JavaScript objects/arrays to be used in another project of mine:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span>
 <span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
 <span class="kw">import           </span><span class="dt">Language.Lua.Parser</span>
@@ -64,7 +64,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
     contents <span class="ot">&lt;-</span> readFile (head args)
     <span class="kw">case</span> parseText exp contents <span class="kw">of</span>
       <span class="dt">Left</span> err <span class="ot">-&gt;</span> print err
-      <span class="dt">Right</span> result <span class="ot">-&gt;</span> putStrLn <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre></div>
+      <span class="dt">Right</span> result <span class="ot">-&gt;</span> putStrLn <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre>
 <p>It uses <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>, a Lua parser and pretty-printer which I wrote to use in some other project of mine(a static analysis tool for Lua, I have big plans about it) and <a href="http://hackage.haskell.org/package/language-ecmascript">language-ecmascript</a>, JavaScript parser and pretty-printer.</p>]]></summary>
 </entry>
 <entry>
@@ -75,35 +75,35 @@ main <span class="fu">=</span> <span class="kw">do</span>
     <updated>2013-04-24T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
-<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
-    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
-    <span class="va">callbacks</span>.<span class="at">push</span>(<span class="kw">function</span> () <span class="op">{</span>
-        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
-    <span class="op">}</span>)<span class="op">;</span>
-<span class="op">}</span>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>(<span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+    });
+}
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
-    callbacks[idx]()<span class="op">;</span>
-<span class="op">}</span></code></pre></div>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
 <p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
 <p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
 <p>Python also has this problem<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
 
-<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
     <span class="kw">def</span> callback():
-        <span class="bu">print</span> say
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
-<span class="cf">for</span> c <span class="kw">in</span> callbacks:
-    c()</code></pre></div>
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
 <p>This prints same wrong output as with JavaScript.</p>
 <p>Lua, my favorite dynamic language, does great:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
+<pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
     <span class="kw">local</span> say <span class="ot">=</span> <span class="st">&quot;say &quot;</span> <span class="ot">..</span> v
@@ -112,55 +112,55 @@ main <span class="fu">=</span> <span class="kw">do</span>
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>callbacks<span class="ot">)</span> <span class="kw">do</span>
     v<span class="ot">()</span>
-<span class="kw">end</span></code></pre></div>
+<span class="kw">end</span></code></pre>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
 main <span class="fu">=</span> sequence_ callbacks
-  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre></div>
+  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
 <p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
 <p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
 <p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="op">&gt;</span> <span class="cf">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> ]) <span class="op">{</span> <span class="va">console</span>.<span class="at">log</span>(v)<span class="op">;</span> <span class="op">}</span>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">&gt; <span class="kw">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> ]) { <span class="ot">console</span>.<span class="fu">log</span>(v); }
 <span class="dv">0</span>
 <span class="dv">1</span>
 <span class="dv">2</span>
-<span class="op">&gt;</span> v
-<span class="st">&quot;2&quot;</span></code></pre></div>
+&gt; v
+<span class="st">&quot;2&quot;</span></code></pre>
 <p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
 <h1 id="fixing-it">Fixing it</h1>
 <p>Let’s fix that in JavaScript and Python.</p>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
-<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
-    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
-    <span class="va">callbacks</span>.<span class="at">push</span>((<span class="kw">function</span> (say) <span class="op">{</span>
-      <span class="cf">return</span> <span class="kw">function</span> () <span class="op">{</span>
-        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
-      <span class="op">}</span>
-    <span class="op">}</span>)(say))<span class="op">;</span>
-<span class="op">}</span>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>((<span class="kw">function</span> (say) {
+      <span class="kw">return</span> <span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+      }
+    })(say));
+}
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
-    callbacks[idx]()<span class="op">;</span>
-<span class="op">}</span></code></pre></div>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
 <p>Here we’re creating a new scope with function(remember the JavaScript module pattern?), and then passing <code>say</code> variable to it. This guarantees that we have <code>say</code> variable local to the function. Then in callback returned by wrapper function, we have a reference just like before, but it’s not shared with any other functions.</p>
 <p>In Python, there’s a cleaner way to do same thing:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
 
-<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
-    <span class="kw">def</span> callback(say<span class="op">=</span>say):
-        <span class="bu">print</span> say
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
+    <span class="kw">def</span> callback(say=say):
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
-<span class="cf">for</span> c <span class="kw">in</span> callbacks:
-    c()</code></pre></div>
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
 <p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
 <h1 id="breaking-it">Breaking it</h1>
 <p>Let’s have JavaScript’s behavior in Haskell:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
 <span class="kw">import </span><span class="dt">Data.IORef</span>
 
@@ -178,7 +178,7 @@ mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class
 
 main <span class="fu">=</span> <span class="kw">do</span>
   callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
-  sequence_ callbacks</code></pre></div>
+  sequence_ callbacks</code></pre>
 <p>The reason this code is that long is because we need to create and pass references explicitly.</p>
 <hr />
 <div class="footnotes">
@@ -197,25 +197,25 @@ main <span class="fu">=</span> <span class="kw">do</span>
     <summary type="html"><![CDATA[<p>Life.js, Javascript ile yazılmış basit bir Conway’s Game of Life oyunu(ya da adı her neyse işte).</p>
 <p>Geçen hafta kurcalamaya başladığım Javascript ile dün yazdım. Amacım basit birkaç şey yazarak Javascript’i az da olsa anlayabilmekti. Grid’i çizdirmek ve hareketler için DOM ile, bir tablo çizdiriyorum ve tablodaki alanların arkaplan renklerini değiştiriyorum.</p>
 <p>Aşağıdaki gibi, sayfanızın istediğiniz herine Game of Life gridi koyup, istediğiniz hücreleri canlandırabilirsiniz,</p>
-<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;lifegrid&quot;</span><span class="ot"> style=</span><span class="st">&quot;height: 300px;&quot;</span><span class="kw">&gt;&lt;/div&gt;</span>
+<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;lifegrid&quot;</span><span class="ot"> style=</span><span class="st">&quot;height: 300px;&quot;</span><span class="kw">&gt;&lt;/div&gt;</span>
 <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;life.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span>
 <span class="kw">&lt;script&gt;</span>
-    <span class="kw">var</span> opts <span class="op">=</span> <span class="op">{</span><span class="st">&#39;height&#39;</span><span class="op">:</span> <span class="dv">9</span><span class="op">,</span>
-                <span class="st">&#39;width&#39;</span><span class="op">:</span> <span class="dv">22</span><span class="op">};</span>
-    <span class="kw">var</span> life <span class="op">=</span> <span class="kw">new</span> <span class="at">Life</span>(opts)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">3</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">4</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">5</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">6</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">7</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">8</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">9</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">10</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">11</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">revive</span>(<span class="va">life</span>.<span class="at">grid</span><span class="op">,</span> <span class="dv">12</span><span class="op">,</span> <span class="dv">4</span>)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">drawTable</span>(<span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;lifegrid&quot;</span>))<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">run</span>()<span class="op">;</span>
-<span class="op">&lt;</span><span class="ss">/script&gt;</span></code></pre></div>
+    <span class="kw">var</span> opts = {<span class="st">&#39;height&#39;</span>: <span class="dv">9</span>,
+                <span class="st">&#39;width&#39;</span>: <span class="dv">22</span>};
+    <span class="kw">var</span> life = <span class="kw">new</span> <span class="fu">Life</span>(opts);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">3</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">4</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">5</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">6</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">7</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">8</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">9</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">10</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">11</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">revive</span>(<span class="ot">life</span>.<span class="fu">grid</span>, <span class="dv">12</span>, <span class="dv">4</span>);
+    <span class="ot">life</span>.<span class="fu">drawTable</span>(<span class="ot">document</span>.<span class="fu">getElementById</span>(<span class="st">&quot;lifegrid&quot;</span>));
+    <span class="ot">life</span>.<span class="fu">run</span>();
+&lt;<span class="ot">/script&gt;</span></code></pre>
 <p>Ya da rastgele oluşturulmuş bir oyun(yeniden oluşturmak için üstüne tıklayın):</p>
 <script src="http://osa1.net/media/javascript/life.js"></script>
 <div id="lifegrid2" style="height: 300px;">
@@ -229,15 +229,15 @@ main <span class="fu">=</span> <span class="kw">do</span>
     life.drawTable(document.getElementById("lifegrid2"));
     life.run();
 </script>
-<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;lifegrid&quot;</span><span class="kw">&gt;&lt;/div&gt;</span>
+<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;lifegrid&quot;</span><span class="kw">&gt;&lt;/div&gt;</span>
 <span class="kw">&lt;script&gt;</span>
-    <span class="kw">var</span> opts <span class="op">=</span> <span class="op">{</span><span class="st">&#39;height&#39;</span><span class="op">:</span> <span class="dv">30</span><span class="op">,</span>
-                <span class="st">&#39;width&#39;</span><span class="op">:</span> <span class="dv">30</span><span class="op">};</span>
-    <span class="kw">var</span> life <span class="op">=</span> <span class="kw">new</span> <span class="at">Life</span>(opts)<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">fillRandom</span>()<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">drawTable</span>(<span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;lifegrid&quot;</span>))<span class="op">;</span>
-    <span class="va">life</span>.<span class="at">run</span>()<span class="op">;</span>
-<span class="op">&lt;</span><span class="ss">/script&gt;</span></code></pre></div>
+    <span class="kw">var</span> opts = {<span class="st">&#39;height&#39;</span>: <span class="dv">30</span>,
+                <span class="st">&#39;width&#39;</span>: <span class="dv">30</span>};
+    <span class="kw">var</span> life = <span class="kw">new</span> <span class="fu">Life</span>(opts);
+    <span class="ot">life</span>.<span class="fu">fillRandom</span>();
+    <span class="ot">life</span>.<span class="fu">drawTable</span>(<span class="ot">document</span>.<span class="fu">getElementById</span>(<span class="st">&quot;lifegrid&quot;</span>));
+    <span class="ot">life</span>.<span class="fu">run</span>();
+&lt;<span class="ot">/script&gt;</span></code></pre>
 <p>Henüz Javascript konusunda bir karara varamadım. Bir süre daha kurcalamaya devam edeceğim sanırım. Web programlama/tasarım olaylarından hiç hoşlanmayan biri olarak, Javascript’e başlama sebebim, neden sürekli farkı dillerden Javascript’e derleyicilerin yazıldığını(CoffeeScript, ClojureScript, Pyjamas, HaXe) ve <a href="http://bellard.org/jslinux/">Javascript içerisinde Linux</a> veya <a href="http://hell.student.utwente.nl/paratrooper/">Javascript PC emulator</a> gibi uygulamaların nasıl ve neden yapıldığını, V8, Node.js tarayıcı eklentileri ve DOM gibi şeyleri az da olsa anlayabilmekti. DOM kısmı hariç henüz amacıma yaklaşamadım diyebilirim.</p>
 <p>DOM kısmı işin en kolayı diyebilirim(ya da en azından başlangıç seviyesinde öyle gözüküyor). Daha önceden XML parse etmekle vs. uğraştıysanız muhtemelen yabancılık çekmeyeceksiniz. DOM öğrenmenin en eğlenceli yolu, bence, rastgele sayfaları açıp, resimler veya içeriği başka şeylerle değiştirmek, butonlar vb. şeyler eklemek. HTML konusunda iyi olmadığımdan çok fazla birşey yapamadım ama en azından Google logosu yerine lolcat veya osa1 logosu koymak güzel oluyor(<code>$('hplogo').style.cssText += &quot;background-image: url(http://osa1.net/media/logo.png)&quot;</code> :)</p>
 <p><a href="http://osa1.net/media/javascript/life.js">Şurdan</a> indirebilirsiniz. Javascript ile yazdığım ilk uygulamam olmasından ve öğrenmem + uygulamayı yazmamın toplam 4-5 akşam sürmesinden dolayı, kod iyi bir Javascript kodu sayılmaz muhtemelen. Tüm tarayıcılarda da çalışmayabilir(hatta içimden bir ses IE’de çalışmayacağını söylüyor nedense, test etme şansım yok), Firefox ve Chromium ile çalışıyor en azından. Onun dışında Javascript’de OOP konusunu hala tam olarak çözebilmiş değilim(prototype’lar hakkında kafama yatmayan birkaç şey, private methodların nasıl uygulanabileceği vs.). Onun dışında JSLint’de bir sürü uyarı veriyor ama henüz neden JSLint’i dinlemem gerektiğini bilmediğimden pek bir çaba sarfetmedim açıkçası.</p>

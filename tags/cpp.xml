@@ -21,7 +21,7 @@
 <p>I think this is also the reason why we can’t instantiate generics in Java with primitive types.</p>
 <p>Here’s an explanation:</p>
 <p>Let’s think this C++ code:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
 {
   <span class="dt">int</span> a, b;
   test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}
@@ -39,7 +39,7 @@
 T f3(T t)
 {
   t.a = <span class="dv">20</span>;
-  <span class="cf">return</span> t;
+  <span class="kw">return</span> t;
 }
 
 <span class="dt">int</span> main()
@@ -48,8 +48,8 @@ T f3(T t)
   test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);
   f3&lt;test2&gt;(t2);
   f3&lt;test3&gt;(t3);
-  <span class="cf">return</span> <span class="dv">0</span>;
-}</code></pre></div>
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
 <p>The key thing to realize here is that I’m passing parameter by value, ie. values are copied to function stack frame. But this function is still polymorphic on parameter type. This is possible in C++ because for each distinct instance of <code>f3</code>, a specialized code will be generated. To observe this, I put a breakpoint to that <code>f3</code> function and looked to disassembly output.</p>
 <pre><code>        18	T f3(T t)
 0x400af6  &lt;+0x0000&gt;         push   rbp
@@ -85,21 +85,21 @@ T f3(T t)
 0x400b37  &lt;+0x002c&gt;         pop    rbp
 0x400b38  &lt;+0x002d&gt;         ret</code></pre>
 <p>So what happened here is two new functions is generated from the definition, one with type <code>test2 f3(test2)</code> and one with type <code>test3 f3(test3)</code>. This gives a great opportunity, for instance, we can have this function:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
 
 <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
 T someFun(T arg1, T arg2)
 {
-  <span class="cf">return</span> arg1 + arg2;
+  <span class="kw">return</span> arg1 + arg2;
 }
 
-<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="at">const</span> <span class="dt">char</span> *argv[])
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> *argv[])
 {
-  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;
-  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;
+  std::cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
+  std::cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.</span><span class="dv">4</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
 
-  <span class="cf">return</span> <span class="dv">0</span>;
-}</code></pre></div>
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
 <p>..which is impossible to have in Java, without manually overloading the method definition.</p>
 <p>(An off-topic but interesting note: I was expecting <code>SP</code> to be set here, but here it’s not set. I think the reason is that the compiler is clever enough to see there is no recursive calls, so no need to set <code>SP</code>, when I added a dummy function call in the middle of <code>f3</code>, <code>SP</code> is got set)</p>
 <p>So in a way, C++ generics are gives us the most general way for parametric polymorphism. For any type you instantiated the template with, it generates a specialized definition. And if that definition is accepted by type checker, you’re fine.</p>
@@ -128,13 +128,13 @@ T someFun(T arg1, T arg2)
     <published>2013-05-25T00:00:00Z</published>
     <updated>2013-05-25T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I wrote a C++ code like this:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> max_number_of_something = <span class="dv">-1</span>;
-set&lt;<span class="dt">some_type</span>&gt; s;
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> max_number_of_something = <span class="dv">-1</span>;
+set&lt;some_type&gt; s;
 
 ...
 
-<span class="cf">if</span> (s.size() &gt; max_number_of_something)
-    max_number_of_something = s.size();</code></pre></div>
+<span class="kw">if</span> (s.size() &gt; max_number_of_something)
+    max_number_of_something = s.size();</code></pre>
 <p>The problem with this code is that this conditional will never be taken, and no errors will be raised either. This is because type of <code>s.size()</code> is unsigned and in the expression <code>s.size() &gt; max_number_of_something</code>, <code>max_number_of_something</code> will be casted to unsigned, implicitly. So <code>-1</code> is now <code>4294967295</code> and no other 32bit unsigned integer is bigger than that number.</p>
 <p>Another reason to not to like weak typing and implicit type casts.</p>]]></summary>
 </entry>

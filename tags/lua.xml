@@ -23,7 +23,7 @@
 pypy example5.py   bench.b   15.57s user 0.01s system 99% cpu 15.597 total
 python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</code></pre>
 <p>The Lua implementation started with this:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> mainloop<span class="ot">(</span>program<span class="ot">,</span> bracket_map<span class="ot">,</span> dispatch_fn<span class="ot">)</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> mainloop<span class="ot">(</span>program<span class="ot">,</span> bracket_map<span class="ot">,</span> dispatch_fn<span class="ot">)</span>
     <span class="kw">local</span> pc <span class="ot">=</span> <span class="dv">1</span>
     <span class="kw">local</span> tape <span class="ot">=</span> <span class="ot">{</span><span class="dv">0</span><span class="ot">}</span>
     <span class="kw">local</span> tape_pos <span class="ot">=</span> <span class="dv">1</span>
@@ -51,13 +51,13 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
         <span class="kw">end</span>
         pc <span class="ot">=</span> pc <span class="ot">+</span> <span class="dv">1</span>
     <span class="kw">end</span>
-<span class="kw">end</span></code></pre></div>
+<span class="kw">end</span></code></pre>
 <p>I’m not sure how many reasonable different implementations one can come up with, given that the language is this small. Still, there are some optimizations that we can do and I’ve tried some of them. Here are some things I tried:</p>
 <ul>
 <li>I tried replacing one character strings with ASCII code equivalents. Since Lua doesn’t have character constants, I thought this may give us a few instructions per branch. But results were just the same.</li>
 <li>I tried replacing table getters and setters with <code>rawget</code> and <code>rawset</code>s. Nothing changed. Apparently it’s not worth the effort unless you have a metatable for your table.</li>
 <li><p>I tried generating a huge “if-then-else” statement for <code>bracket_map</code>, and used it as a jump table kind of thing. Here’s the code:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> gen_dispatch_fn<span class="ot">(</span>bracket_map<span class="ot">,</span> fun_name<span class="ot">)</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> gen_dispatch_fn<span class="ot">(</span>bracket_map<span class="ot">,</span> fun_name<span class="ot">)</span>
     <span class="kw">local</span> first <span class="ot">=</span> <span class="kw">true</span>
     <span class="kw">local</span> acc <span class="ot">=</span> <span class="ot">{}</span>
     <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;function &quot;</span> <span class="ot">..</span> fun_name <span class="ot">..</span> <span class="st">&quot;(arg)</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
@@ -75,7 +75,7 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
     <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
     <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
     <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>acc<span class="ot">)</span>
-<span class="kw">end</span></code></pre></div>
+<span class="kw">end</span></code></pre>
 <p>I loaded this code using standard <code>load()</code> function. This also didn’t work. The reason is that, even if this is faster(which is probably not always the case), profiling showed that interpreter spents only 4% of the time for <code>bracket_map</code> lookups. So if this implementation only slightly faster, it just can’t make a big difference.</p></li>
 </ul>
 <p>Profiling output revealed that, 85% of the time spent on fetching the next instruction:</p>
@@ -98,7 +98,7 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
 <pre><code>luajit example_lua.lua bench.b  34.41s user 0.00s system 99% cpu 34.442 total</code></pre>
 <p>The fact that PyPy did better job than LuaJIT here is surprising and impressive. It seems like RPython and PyPy is doing a very good job here.</p>
 <p>Since I already started gradually compiling things, I thought why not go further and compile everything. Here’s a simple BF to Lua compiler:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> compile<span class="ot">(</span>str<span class="ot">)</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> compile<span class="ot">(</span>str<span class="ot">)</span>
     <span class="kw">local</span> pgm <span class="ot">=</span> <span class="ot">{}</span>
     <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">[[</span>
 <span class="st">function pgm()</span>
@@ -116,11 +116,11 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
     <span class="kw">local</span> <span class="kw">function</span> inc<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] + &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
     <span class="kw">local</span> <span class="kw">function</span> dec<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] - &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
     <span class="kw">local</span> out  <span class="ot">=</span> <span class="st">&quot;    io.write(string.char(tape[tape_pos]))</span><span class="ot">\n</span><span class="st">&quot;</span>
-    <span class="kw">local</span> inp  <span class="ot">=</span> <span class="st">&quot;&quot;</span> <span class="do">-- no need for this</span>
+    <span class="kw">local</span> inp  <span class="ot">=</span> <span class="st">&quot;&quot;</span> <span class="co">-- no need for this</span>
     <span class="kw">local</span> jmpF <span class="ot">=</span> <span class="st">&quot;    while tape[tape_pos] ~= 0 do</span><span class="ot">\n</span><span class="st">&quot;</span>
     <span class="kw">local</span> jmpB <span class="ot">=</span> <span class="st">&quot;    if tape[tape_pos] == 0 then break end end</span><span class="ot">\n</span><span class="st">&quot;</span>
 
-    <span class="do">-- these are used to combine consecutive same instructions</span>
+    <span class="co">-- these are used to combine consecutive same instructions</span>
     <span class="kw">local</span> devs <span class="ot">=</span> <span class="dv">0</span>
     <span class="kw">local</span> incs <span class="ot">=</span> <span class="dv">0</span>
     <span class="kw">local</span> decs <span class="ot">=</span> <span class="dv">0</span>
@@ -141,22 +141,22 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
             decs <span class="ot">=</span> <span class="dv">0</span>
         <span class="kw">end</span>
 
-        <span class="kw">if</span> char <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span> <span class="do">-- 62</span>
+        <span class="kw">if</span> char <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span> <span class="co">-- 62</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> adv<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span> <span class="do">-- 60</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span> <span class="co">-- 60</span>
             devs <span class="ot">=</span> devs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span> <span class="do">-- 43</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span> <span class="co">-- 43</span>
             incs <span class="ot">=</span> incs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span> <span class="do">-- 45</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span> <span class="co">-- 45</span>
             decs <span class="ot">=</span> decs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span> <span class="do">-- 46</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span> <span class="co">-- 46</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> out<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;,&quot;</span> <span class="kw">then</span> <span class="do">-- 44</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;,&quot;</span> <span class="kw">then</span> <span class="co">-- 44</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> inp<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">then</span> <span class="do">-- 91</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">then</span> <span class="co">-- 91</span>
             indent <span class="ot">=</span> indent <span class="ot">+</span> <span class="dv">4</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpF<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">then</span> <span class="do">-- 93</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">then</span> <span class="co">-- 93</span>
             indent <span class="ot">=</span> indent <span class="ot">-</span> <span class="dv">4</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpB<span class="ot">))</span>
         <span class="kw">end</span>
@@ -164,7 +164,7 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
 
     <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">&quot;end&quot;</span><span class="ot">)</span>
     <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>pgm<span class="ot">)</span>
-<span class="kw">end</span></code></pre></div>
+<span class="kw">end</span></code></pre>
 <p>One thing to note here is that loops in BF programs correspond to loops in generated Lua. There’s another way to implement this compiler and it might turn out to be more efficient, but I didn’t try it. (see BF-to-C compiler below) Also, I’m merging some instructions together. This has significant performance impact, but it’s also necessary because if the generated code is too big, both PUC-Lua and LuaJIT is rejecting to load it. (this is documented, but the limit is not specified)</p>
 <p>Results:</p>
 <pre><code>luajit example_lua.lua bench.b  0.53s user 0.00s system 99% cpu 0.532 total</code></pre>
@@ -211,7 +211,7 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
 <p>Let’s start.</p>
 <h1 id="defining-lua-function-in-haskell">Defining Lua function in Haskell</h1>
 <p>This is exactly the same as before: We just define a function with type: <code>LuaState -&gt; IO Int</code>. To keep the code simple, we don’t do error handling at all.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span>
 
 <span class="kw">import </span><span class="dt">Data.Maybe</span>
 <span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="co">-- this one from hslua</span>
@@ -225,7 +225,7 @@ add l <span class="fu">=</span> <span class="kw">do</span>
   i2 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">2</span>
   pop l <span class="dv">2</span>
   push l (i1 <span class="fu">+</span><span class="ot"> i2 ::</span> <span class="dt">Int</span>)
-  return <span class="dv">1</span></code></pre></div>
+  return <span class="dv">1</span></code></pre>
 <h1 id="implementing-intermediate-c">Implementing intermediate C</h1>
 <p>In our C glue code, we do two things:</p>
 <ol style="list-style-type: decimal">
@@ -233,19 +233,19 @@ add l <span class="fu">=</span> <span class="kw">do</span>
 <li>Implement Lua C module interface in which we register our functions to Lua. (see <a href="http://www.lua.org/manual/5.1/manual.html#pdf-package.loaders">related docs</a> for details)</li>
 </ol>
 <p>Here’s the code:</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;LibArith_stub.h&quot;</span>
-<span class="pp">#include </span><span class="im">&quot;lua.h&quot;</span>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#include &quot;LibArith_stub.h&quot;</span>
+<span class="ot">#include &quot;lua.h&quot;</span>
 
 <span class="dt">int</span> hs_init_lua(lua_State *L)
 {
   hs_init(NULL, NULL);
-  <span class="cf">return</span> <span class="dv">0</span>;
+  <span class="kw">return</span> <span class="dv">0</span>;
 }
 
 <span class="dt">int</span> hs_exit_lua(lua_State *L)
 {
   hs_exit();
-  <span class="cf">return</span> <span class="dv">0</span>;
+  <span class="kw">return</span> <span class="dv">0</span>;
 }
 
 <span class="dt">int</span> luaopen_lualibhelper(lua_State *L)
@@ -256,8 +256,8 @@ add l <span class="fu">=</span> <span class="kw">do</span>
   lua_setglobal(L, <span class="st">&quot;hs_init&quot;</span>);
   lua_pushcfunction(L, hs_exit_lua);
   lua_setglobal(L, <span class="st">&quot;hs_exit&quot;</span>);
-  <span class="cf">return</span> <span class="dv">0</span>;
-}</code></pre></div>
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
 <p>Some things to note:</p>
 <ul>
 <li><code>LibArith_stub.h</code> is generated by GHC. I’ll explain how to compile and link next.</li>
@@ -318,10 +318,10 @@ newBoundTask: RTS is not initialised; call hs_init() first</code></pre>
 <p>While first method gives you a nice, abstracted way of writing Lua functions in Haskell, <em>raw</em> function method gives you the maximum amount of flexibility that Lua can provide. First method has lots of limitations when compared with <em>raw</em> method.</p>
 <h1 id="higher-level-haskell-functions-in-lua">Higher-level Haskell functions in Lua</h1>
 <p>In first method all you have to do is to write a Haskell function with it’s type is an instance of <code>LuaImport</code>. So let’s see what types are instances:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> (<span class="dt">StackValue</span> a) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (<span class="dt">IO</span> a) <span class="kw">where</span>
-<span class="kw">instance</span> (<span class="dt">StackValue</span> a, <span class="dt">LuaImport</span> b) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (a <span class="ot">-&gt;</span> b)</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> (<span class="dt">StackValue</span> a) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (<span class="dt">IO</span> a) <span class="kw">where</span>
+<span class="kw">instance</span> (<span class="dt">StackValue</span> a, <span class="dt">LuaImport</span> b) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (a <span class="ot">-&gt;</span> b)</code></pre>
 <p>So basically every function type where it’s argument types are instances of <code>StackValue</code> and return type is <code>IO a</code> where <code>a</code> is also an instance of <code>StackValue</code> is an instance of <code>LuaImport</code> and thus can be used in this higher-level method of writing Lua functions in Haskell. Let’s see which types are <code>StackValue</code>s:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaInteger</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaInteger</span>
 <span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaNumber</span>
 <span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Int</span>
 <span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Double</span>
@@ -330,16 +330,16 @@ newBoundTask: RTS is not initialised; call hs_init() first</code></pre>
 <span class="kw">instance</span> <span class="dt">StackValue</span> (<span class="dt">FunPtr</span> <span class="dt">LuaCFunction</span>)
 <span class="kw">instance</span> <span class="dt">StackValue</span> (<span class="dt">Ptr</span> a)
 <span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaState</span>
-<span class="kw">instance</span> <span class="dt">StackValue</span> ()</code></pre></div>
+<span class="kw">instance</span> <span class="dt">StackValue</span> ()</code></pre>
 <p>We have basic Haskell types <code>Int</code>, <code>Double</code>, <code>String</code>, and <code>Bool</code> as instances. Other types are for more advanced use, for example, <code>Ptr a</code> is used for <code>userdata</code>(basically any binary data that you want to pass to Lua stack and later get back, see <a href="http://www.lua.org/manual/5.1/manual.html#2.2">reference manual</a> for more details).</p>
 <p>This two functions are instances of <code>LuaImport</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">concat&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">concat&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
 concat&#39; s1 s2 <span class="fu">=</span> return <span class="fu">$</span> s1 <span class="fu">++</span> s2
 
 <span class="ot">pow ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Double</span>
-pow d1 d2 <span class="fu">=</span> return <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre></div>
+pow d1 d2 <span class="fu">=</span> return <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre>
 <p>And we can push this functions to Lua stack using <code>pushhsfunction</code> or directly assign them to a global variable using <code>registerhsfunction</code>. In this post I’ll use register functions:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="kw">as</span> <span class="dt">Lua</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="kw">as</span> <span class="dt">Lua</span>
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
@@ -349,7 +349,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
     registerhsfunction l <span class="st">&quot;pow&quot;</span> pow
     loadfile l <span class="st">&quot;haskellfun.lua&quot;</span>
     call l <span class="dv">0</span> <span class="dv">0</span>
-    close l</code></pre></div>
+    close l</code></pre>
 <p>With 11 lines of code, we can create a Lua state and map this Haskell functions to some names and call them from Lua. This program runs Lua file <code>haskellfun.lua</code>, which you can see in examples folder of <a href="https://github.com/osa1/hslua/tree/master/examples/haskellfun"><code>hslua</code> repository</a>.</p>
 <p>Apart from the simplicity, another good thing about this method is that it handles type checking of Lua values automatically. Internally, this functions are wrapped with another function which gets <code>LuaState</code> as parameter and collects Lua values from stack, checks their types(and throws error in case of a type mismatch), and push return value of the function to the Lua stack again. Here’s an example call with wrong type of values:</p>
 <pre><code>print(pow(&quot;wrong&quot;))
@@ -362,7 +362,7 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
 <p>We can do this writing <em>raw</em> Haskell functions. Raw functions have type <code>LuaState -&gt; IO CInt</code> and <code>LuaState</code> allows us to run any C API function. <em>raw</em> functions are pushed to Lua stack using <code>pushrawhsfunction</code> and registered as global variable using <code>registerrawhsfunction</code>.</p>
 <p><a href="https://github.com/osa1/hslua/tree/master/examples/callbacks"><code>callbacks</code> example</a> in the <code>hslua</code> repository takes Lua callbacks in Haskell functions and later call them in FIFO order and return their return values as a Lua array(table with int keys). You can see the complete program in the repository and here I’ll give only the tricky parts.</p>
 <p><em>Raw</em> Haskell functions should return number of values left on the Lua stack as return values. As an example, <code>addLuaCallbacks</code> function uses this for simple error reporting, it puts the error string to the Lua stack and return <code>1</code> in case of an error, and return <code>0</code> otherwise:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">addLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <span class="fu">...</span>
     <span class="kw">case</span> as <span class="kw">of</span>
       <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
@@ -374,9 +374,9 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
         <span class="co">-- error: argument at `errArg` is not a function, return error</span>
         <span class="co">-- string</span>
         pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> show errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
-        return <span class="dv">1</span></code></pre></div>
+        return <span class="dv">1</span></code></pre>
 <p>This example program keeps track of passed Lua callbacks in an <code>IORef</code>. Here’s the part that handles getting Lua callbacks from Lua stack:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n max
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n max
   <span class="fu">|</span> n <span class="fu">&gt;</span> max <span class="fu">=</span> return ()
   <span class="fu">|</span> otherwise <span class="fu">=</span> <span class="kw">do</span>
       <span class="co">-- move nth argument to top of the stack</span>
@@ -386,9 +386,9 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
       <span class="co">-- add registry index to IORef</span>
       modifyIORef cs (<span class="fu">++</span> [refId])
       <span class="co">-- continue adding other arguments</span>
-      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) max</code></pre></div>
+      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) max</code></pre>
 <p>Note how we’re adding the function to the <em>registry</em> and getting it’s index at the <em>registry</em> in Haskell. We can now refer to this functions(e.g. push this function to Lua stack) using this index. Here’s the relevant code:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Call Lua callbacks collected with `addLuaCallbacks`.</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Call Lua callbacks collected with `addLuaCallbacks`.</span>
 <span class="ot">callLuaCallbacks ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">CInt</span>
 callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <span class="fu">...</span>
@@ -401,7 +401,7 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
       <span class="co">-- call the callback</span>
       call l <span class="dv">0</span> <span class="dv">1</span>
       <span class="fu">...</span>
-      iter rest</code></pre></div>
+      iter rest</code></pre>
 <p>We’re pushing the index to the Lua stack, and calling <code>gettable</code> to push actual function to the stack using the index. Complete program is longish, so I’m omitting it here, you can see it in <a href="https://github.com/osa1/hslua/tree/master/examples/callbacks"><code>hslua</code>s Github repository</a> with an example Lua program that uses defined Haskell functions to pass Lua callbacks to Haskell.</p>
 <h1 id="a-note-about-safety">A note about safety</h1>
 <p>Lua tolerates some incorrect stack operations and if you do that while writing <em>raw</em> Haskell functions, you can have hard times debugging your programs. Fortunately, Lua also provides a compile time flag to enable checking API usage for safety. If you install <code>hslua</code> using <code>-fapicheck</code> Cabal flag, it compiled Lua with API checking enabled and Lua gives you errors instead of silently doing something not intended. For example, if you refer to a Lua value at stack index <code>-4</code> while your stack has only <code>3</code> elements, you get something like:</p>
@@ -409,7 +409,7 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 <p>This helps making sure that your API usage is correct.</p>
 <h1 id="using-hslua-for-reading-configuration-files-written-in-lua">Using hslua for reading configuration files written in Lua</h1>
 <p>hslua also provides a module for reading configuration files. As an example, using <code>Scripting.Lua.ConfigFile.getNestedAssocLists</code>, you can execute the Lua file given below and get resulting nested table as Haskell <code>[(String, [(String, String)])]</code>:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua"> someVal <span class="ot">=</span> <span class="ot">{</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"> someVal <span class="ot">=</span> <span class="ot">{</span>
     something <span class="ot">=</span> <span class="ot">{</span>
        foo <span class="ot">=</span> <span class="st">&quot;aaa&quot;</span><span class="ot">,</span>
        bar <span class="ot">=</span> <span class="st">&quot;bbb&quot;</span><span class="ot">,</span>
@@ -418,7 +418,7 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     somethingElse <span class="ot">=</span> <span class="ot">{</span>
        <span class="ot">...</span>
     <span class="ot">}</span>
- <span class="ot">}</span></code></pre></div>
+ <span class="ot">}</span></code></pre>
 <h1 id="running-lua-programs-using-lua-interpreters">Running Lua programs using Lua interpreters</h1>
 <p>In all hslua examples, we needed to create Lua state in Haskell, register Haskell functions inside Haskell and then run Lua files using Lua C API again in Haskell. I think in theory it is also possible to run Lua programs using standard Lua interpreter executables(instead of running the interpreter using Lua C API inside Haskell) and load Haskell functions compiled to <code>*.so</code> shared library files.</p>
 <p>About one year ago, I did something similar using C instead of Haskell. You can see the code <a href="https://github.com/osa1/lcl">here</a>. The library compiled to a <code>.so</code> file and by using Lua’s <code>package.loadlib</code>, you can load functions defined in the <code>.so</code>.</p>
@@ -475,7 +475,7 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <published>2013-05-06T00:00:00Z</published>
     <updated>2013-05-06T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I wrote a simple Haskell program to convert some data encoded as Lua tables to JavaScript objects/arrays to be used in another project of mine:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span>
 <span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
 <span class="kw">import           </span><span class="dt">Language.Lua.Parser</span>
@@ -523,7 +523,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
     contents <span class="ot">&lt;-</span> readFile (head args)
     <span class="kw">case</span> parseText exp contents <span class="kw">of</span>
       <span class="dt">Left</span> err <span class="ot">-&gt;</span> print err
-      <span class="dt">Right</span> result <span class="ot">-&gt;</span> putStrLn <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre></div>
+      <span class="dt">Right</span> result <span class="ot">-&gt;</span> putStrLn <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre>
 <p>It uses <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>, a Lua parser and pretty-printer which I wrote to use in some other project of mine(a static analysis tool for Lua, I have big plans about it) and <a href="http://hackage.haskell.org/package/language-ecmascript">language-ecmascript</a>, JavaScript parser and pretty-printer.</p>]]></summary>
 </entry>
 <entry>
@@ -534,35 +534,35 @@ main <span class="fu">=</span> <span class="kw">do</span>
     <updated>2013-04-24T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
-<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
-    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
-    <span class="va">callbacks</span>.<span class="at">push</span>(<span class="kw">function</span> () <span class="op">{</span>
-        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
-    <span class="op">}</span>)<span class="op">;</span>
-<span class="op">}</span>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>(<span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+    });
+}
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
-    callbacks[idx]()<span class="op">;</span>
-<span class="op">}</span></code></pre></div>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
 <p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
 <p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
 <p>Python also has this problem<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
 
-<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
     <span class="kw">def</span> callback():
-        <span class="bu">print</span> say
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
-<span class="cf">for</span> c <span class="kw">in</span> callbacks:
-    c()</code></pre></div>
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
 <p>This prints same wrong output as with JavaScript.</p>
 <p>Lua, my favorite dynamic language, does great:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
+<pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
     <span class="kw">local</span> say <span class="ot">=</span> <span class="st">&quot;say &quot;</span> <span class="ot">..</span> v
@@ -571,55 +571,55 @@ main <span class="fu">=</span> <span class="kw">do</span>
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>callbacks<span class="ot">)</span> <span class="kw">do</span>
     v<span class="ot">()</span>
-<span class="kw">end</span></code></pre></div>
+<span class="kw">end</span></code></pre>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
 main <span class="fu">=</span> sequence_ callbacks
-  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre></div>
+  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
 <p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
 <p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
 <p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="op">&gt;</span> <span class="cf">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> ]) <span class="op">{</span> <span class="va">console</span>.<span class="at">log</span>(v)<span class="op">;</span> <span class="op">}</span>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">&gt; <span class="kw">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> ]) { <span class="ot">console</span>.<span class="fu">log</span>(v); }
 <span class="dv">0</span>
 <span class="dv">1</span>
 <span class="dv">2</span>
-<span class="op">&gt;</span> v
-<span class="st">&quot;2&quot;</span></code></pre></div>
+&gt; v
+<span class="st">&quot;2&quot;</span></code></pre>
 <p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
 <h1 id="fixing-it">Fixing it</h1>
 <p>Let’s fix that in JavaScript and Python.</p>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
-<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
-    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
-    <span class="va">callbacks</span>.<span class="at">push</span>((<span class="kw">function</span> (say) <span class="op">{</span>
-      <span class="cf">return</span> <span class="kw">function</span> () <span class="op">{</span>
-        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
-      <span class="op">}</span>
-    <span class="op">}</span>)(say))<span class="op">;</span>
-<span class="op">}</span>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>((<span class="kw">function</span> (say) {
+      <span class="kw">return</span> <span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+      }
+    })(say));
+}
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
-    callbacks[idx]()<span class="op">;</span>
-<span class="op">}</span></code></pre></div>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
 <p>Here we’re creating a new scope with function(remember the JavaScript module pattern?), and then passing <code>say</code> variable to it. This guarantees that we have <code>say</code> variable local to the function. Then in callback returned by wrapper function, we have a reference just like before, but it’s not shared with any other functions.</p>
 <p>In Python, there’s a cleaner way to do same thing:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
 
-<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
-    <span class="kw">def</span> callback(say<span class="op">=</span>say):
-        <span class="bu">print</span> say
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
+    <span class="kw">def</span> callback(say=say):
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
-<span class="cf">for</span> c <span class="kw">in</span> callbacks:
-    c()</code></pre></div>
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
 <p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
 <h1 id="breaking-it">Breaking it</h1>
 <p>Let’s have JavaScript’s behavior in Haskell:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
 <span class="kw">import </span><span class="dt">Data.IORef</span>
 
@@ -637,7 +637,7 @@ mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class
 
 main <span class="fu">=</span> <span class="kw">do</span>
   callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
-  sequence_ callbacks</code></pre></div>
+  sequence_ callbacks</code></pre>
 <p>The reason this code is that long is because we need to create and pass references explicitly.</p>
 <hr />
 <div class="footnotes">
@@ -681,13 +681,13 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <p>It’s written in Lua’s manual(link is given above) that it’s statistical properties cannot be guaranteed. It still works fine for my purposes as a uniformly distributed number generator.</p>
 <p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
 <p>I also read some discussions on why one shouldn’t use that, and instead move to other methods like <a href="http://en.wikipedia.org/wiki/Ziggurat_algorithm">Ziggurat algorithm</a>(and some other I can’t remember now), but I think Box-Muller method is easy to implement and works fine for my purposes, so I’m using it now:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> box_muller<span class="ot">()</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> box_muller<span class="ot">()</span>
     <span class="kw">return</span> math<span class="ot">.</span>sqrt<span class="ot">(-</span><span class="dv">2</span> <span class="ot">*</span> <span class="fu">math.log</span><span class="ot">(</span><span class="fu">math.random</span><span class="ot">()))</span> <span class="ot">*</span> <span class="fu">math.cos</span><span class="ot">(</span><span class="dv">2</span> <span class="ot">*</span> math<span class="ot">.</span>pi <span class="ot">*</span> <span class="fu">math.random</span><span class="ot">())</span> <span class="ot">/</span> <span class="dv">2</span>
-<span class="kw">end</span></code></pre></div>
+<span class="kw">end</span></code></pre>
 <p>This function returns numbers in range [-1,1]. I’m using it with some code like that:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> dev <span class="ot">=</span> <span class="dv">100</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> dev <span class="ot">=</span> <span class="dv">100</span>
 <span class="kw">local</span> rand <span class="ot">=</span> box_muller<span class="ot">()</span>
-<span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span>rand <span class="ot">*</span> dev <span class="ot">+</span> myLimit<span class="ot">/</span><span class="dv">2</span><span class="ot">)</span></code></pre></div>
+<span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span>rand <span class="ot">*</span> dev <span class="ot">+</span> myLimit<span class="ot">/</span><span class="dv">2</span><span class="ot">)</span></code></pre>
 <p>Here the variable <code>dev</code> stands for <a href="http://en.wikipedia.org/wiki/Standard_deviation">standard deviation</a>, though note that it’s value is not <em>standard deviation</em>, but just a value to play with to set standard deviation. I don’t know how can I set standard deviation with Box-Muller method. By playing this value you can get distributions with different standard deviations.</p>
 <div class="figure">
 <img src="/images/distroyazi/normaldistro.png" />
@@ -699,7 +699,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
 
 </div>
 <p>I think this is a very useful one, this means that if I give some <em>actions</em> in my game different numbers depending on their <em>priority</em> and use this random number generator, I get numbers of actions with more priority more than the ones with less priority. Here’s the code:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
     <span class="kw">while</span> <span class="kw">true</span> <span class="kw">do</span>
         <span class="kw">local</span> r1 <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span>range<span class="ot">)</span>
         <span class="kw">local</span> r2 <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span>range<span class="ot">)</span>
@@ -707,18 +707,18 @@ main <span class="fu">=</span> <span class="kw">do</span>
             <span class="kw">return</span> r1
         <span class="kw">end</span>
     <span class="kw">end</span>
-<span class="kw">end</span></code></pre></div>
+<span class="kw">end</span></code></pre>
 <p>Last one is similar:</p>
 <div class="figure">
 <img src="/images/distroyazi/customdistro2.png" />
 
 </div>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="ot">()</span>
     <span class="kw">local</span> rate <span class="ot">=</span> <span class="dv">3</span>
     <span class="kw">local</span> r <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">500</span><span class="ot">^</span>rate<span class="ot">)</span>
     <span class="fu">print</span><span class="ot">(</span>r<span class="ot">)</span>
     <span class="kw">return</span> <span class="fu">math.floor</span><span class="ot">(</span>r<span class="ot">^(</span><span class="dv">1</span><span class="ot">/</span>rate<span class="ot">))</span>
-<span class="kw">end</span></code></pre></div>
+<span class="kw">end</span></code></pre>
 <p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
 <hr />
 <div class="footnotes">

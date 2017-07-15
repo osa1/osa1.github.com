@@ -17,35 +17,35 @@
     <updated>2013-04-24T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
-<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
-    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
-    <span class="va">callbacks</span>.<span class="at">push</span>(<span class="kw">function</span> () <span class="op">{</span>
-        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
-    <span class="op">}</span>)<span class="op">;</span>
-<span class="op">}</span>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>(<span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+    });
+}
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
-    callbacks[idx]()<span class="op">;</span>
-<span class="op">}</span></code></pre></div>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
 <p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
 <p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
 <p>Python also has this problem<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
 
-<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
     <span class="kw">def</span> callback():
-        <span class="bu">print</span> say
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
-<span class="cf">for</span> c <span class="kw">in</span> callbacks:
-    c()</code></pre></div>
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
 <p>This prints same wrong output as with JavaScript.</p>
 <p>Lua, my favorite dynamic language, does great:</p>
-<div class="sourceCode"><pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
+<pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
     <span class="kw">local</span> say <span class="ot">=</span> <span class="st">&quot;say &quot;</span> <span class="ot">..</span> v
@@ -54,55 +54,55 @@
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>callbacks<span class="ot">)</span> <span class="kw">do</span>
     v<span class="ot">()</span>
-<span class="kw">end</span></code></pre></div>
+<span class="kw">end</span></code></pre>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
 main <span class="fu">=</span> sequence_ callbacks
-  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre></div>
+  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
 <p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
 <p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
 <p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="op">&gt;</span> <span class="cf">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> ]) <span class="op">{</span> <span class="va">console</span>.<span class="at">log</span>(v)<span class="op">;</span> <span class="op">}</span>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">&gt; <span class="kw">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> ]) { <span class="ot">console</span>.<span class="fu">log</span>(v); }
 <span class="dv">0</span>
 <span class="dv">1</span>
 <span class="dv">2</span>
-<span class="op">&gt;</span> v
-<span class="st">&quot;2&quot;</span></code></pre></div>
+&gt; v
+<span class="st">&quot;2&quot;</span></code></pre>
 <p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
 <h1 id="fixing-it">Fixing it</h1>
 <p>Let’s fix that in JavaScript and Python.</p>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
-<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
+<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
-    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
-    <span class="va">callbacks</span>.<span class="at">push</span>((<span class="kw">function</span> (say) <span class="op">{</span>
-      <span class="cf">return</span> <span class="kw">function</span> () <span class="op">{</span>
-        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
-      <span class="op">}</span>
-    <span class="op">}</span>)(say))<span class="op">;</span>
-<span class="op">}</span>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
+    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
+    <span class="ot">callbacks</span>.<span class="fu">push</span>((<span class="kw">function</span> (say) {
+      <span class="kw">return</span> <span class="kw">function</span> () {
+        <span class="ot">console</span>.<span class="fu">log</span>(say);
+      }
+    })(say));
+}
 
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
-    callbacks[idx]()<span class="op">;</span>
-<span class="op">}</span></code></pre></div>
+<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
+    callbacks[idx]();
+}</code></pre>
 <p>Here we’re creating a new scope with function(remember the JavaScript module pattern?), and then passing <code>say</code> variable to it. This guarantees that we have <code>say</code> variable local to the function. Then in callback returned by wrapper function, we have a reference just like before, but it’s not shared with any other functions.</p>
 <p>In Python, there’s a cleaner way to do same thing:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
+<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
 
-<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
-    <span class="kw">def</span> callback(say<span class="op">=</span>say):
-        <span class="bu">print</span> say
+<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say = <span class="st">&quot;say &quot;</span> + i
+    <span class="kw">def</span> callback(say=say):
+        <span class="dt">print</span> say
     callbacks.append(callback)
 
-<span class="cf">for</span> c <span class="kw">in</span> callbacks:
-    c()</code></pre></div>
+<span class="kw">for</span> c in callbacks:
+    c()</code></pre>
 <p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
 <h1 id="breaking-it">Breaking it</h1>
 <p>Let’s have JavaScript’s behavior in Haskell:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
 <span class="kw">import </span><span class="dt">Data.IORef</span>
 
@@ -120,7 +120,7 @@ mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class
 
 main <span class="fu">=</span> <span class="kw">do</span>
   callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
-  sequence_ callbacks</code></pre></div>
+  sequence_ callbacks</code></pre>
 <p>The reason this code is that long is because we need to create and pass references explicitly.</p>
 <hr />
 <div class="footnotes">
@@ -141,97 +141,97 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <p>In the rest of the post, when I use <code>Lisp</code>, I’ll be mentioning the Lisp in micro-manual, not the modern dialects.</p>
 <p>Lisp programs are formed by symbolic expressions(s-exps, sexps, sexprs), and a sexp is either a <code>list</code> or an <code>atom</code>. Before interpreting our Lisp, we should read sexps and convert them into a form that we can work on with our host language(in my case, it’s Python).</p>
 <p>I’ll convert Lisp lists into ordinary Python lists, and atoms into Python strings. My reader has two parts, the first part is getting the input and parsing tokens:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Reader:
-    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, form):
-        <span class="va">self</span>.form <span class="op">=</span> form
-        <span class="va">self</span>.index <span class="op">=</span> <span class="dv">0</span>
-    <span class="kw">def</span> seek_char(<span class="va">self</span>):
-        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):
-            <span class="cf">return</span> <span class="va">None</span>
-        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index]
-    <span class="kw">def</span> unread_char(<span class="va">self</span>):
-        <span class="va">self</span>.index <span class="op">-=</span> <span class="dv">1</span>
-    <span class="kw">def</span> read_char(<span class="va">self</span>):
-        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):
-            <span class="cf">return</span> <span class="va">None</span>
-        <span class="va">self</span>.index <span class="op">+=</span> <span class="dv">1</span>
-        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index<span class="dv">-1</span>]
-    <span class="kw">def</span> read_token(<span class="va">self</span>):
-        ch <span class="op">=</span> <span class="va">self</span>.read_char()
-        <span class="cf">if</span> ch <span class="op">==</span> <span class="st">&#39;(&#39;</span>:
-            <span class="cf">return</span> <span class="st">&#39;(&#39;</span>
-        <span class="cf">elif</span> ch <span class="op">==</span> <span class="st">&#39;)&#39;</span>:
-            <span class="cf">if</span> <span class="va">self</span>.seek_char() <span class="op">==</span> <span class="st">&#39; &#39;</span>:
-                <span class="va">self</span>.read_char()
-            <span class="cf">return</span> <span class="st">&#39;)&#39;</span>
-        <span class="cf">else</span>:
-            buf <span class="op">=</span> <span class="st">&#39;&#39;</span>
-            <span class="cf">while</span> ch <span class="op">!=</span> <span class="st">&#39; &#39;</span> <span class="kw">and</span> ch <span class="op">!=</span> <span class="va">None</span>:
-                <span class="cf">if</span> ch <span class="op">==</span> <span class="st">&#39;)&#39;</span>:
-                    <span class="va">self</span>.unread_char()
-                    <span class="cf">return</span> buf
-                <span class="cf">else</span>:
-                    buf <span class="op">+=</span> ch
-                    ch <span class="op">=</span> <span class="va">self</span>.read_char()
-            <span class="cf">return</span> buf</code></pre></div>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Reader:
+    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, form):
+        <span class="ot">self</span>.form = form
+        <span class="ot">self</span>.index = <span class="dv">0</span>
+    <span class="kw">def</span> seek_char(<span class="ot">self</span>):
+        <span class="kw">if</span> <span class="ot">self</span>.index &gt;= <span class="dt">len</span>(<span class="ot">self</span>.form):
+            <span class="kw">return</span> <span class="ot">None</span>
+        <span class="kw">return</span> <span class="ot">self</span>.form[<span class="ot">self</span>.index]
+    <span class="kw">def</span> unread_char(<span class="ot">self</span>):
+        <span class="ot">self</span>.index -= <span class="dv">1</span>
+    <span class="kw">def</span> read_char(<span class="ot">self</span>):
+        <span class="kw">if</span> <span class="ot">self</span>.index &gt;= <span class="dt">len</span>(<span class="ot">self</span>.form):
+            <span class="kw">return</span> <span class="ot">None</span>
+        <span class="ot">self</span>.index += <span class="dv">1</span>
+        <span class="kw">return</span> <span class="ot">self</span>.form[<span class="ot">self</span>.index<span class="dv">-1</span>]
+    <span class="kw">def</span> read_token(<span class="ot">self</span>):
+        ch = <span class="ot">self</span>.read_char()
+        <span class="kw">if</span> ch == <span class="st">&#39;(&#39;</span>:
+            <span class="kw">return</span> <span class="st">&#39;(&#39;</span>
+        <span class="kw">elif</span> ch == <span class="st">&#39;)&#39;</span>:
+            <span class="kw">if</span> <span class="ot">self</span>.seek_char() == <span class="st">&#39; &#39;</span>:
+                <span class="ot">self</span>.read_char()
+            <span class="kw">return</span> <span class="st">&#39;)&#39;</span>
+        <span class="kw">else</span>:
+            buf = <span class="st">&#39;&#39;</span>
+            <span class="kw">while</span> ch != <span class="st">&#39; &#39;</span> and ch != <span class="ot">None</span>:
+                <span class="kw">if</span> ch == <span class="st">&#39;)&#39;</span>:
+                    <span class="ot">self</span>.unread_char()
+                    <span class="kw">return</span> buf
+                <span class="kw">else</span>:
+                    buf += ch
+                    ch = <span class="ot">self</span>.read_char()
+            <span class="kw">return</span> buf</code></pre>
 <p>Well, it may not be the best way to parse an input to tokens, but it works great. It return a <code>(</code>, <code>)</code>, or a string each time you call <code>read_token</code>. When we read <code>(</code>, we start collecting a list, until reading a <code>)</code>(we should also consider lists into lists):</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_list(reader):
-    result <span class="op">=</span> []
-    token <span class="op">=</span> reader.read_token()
-    <span class="cf">while</span> token:
-        <span class="cf">if</span> token <span class="op">==</span> <span class="st">&#39;(&#39;</span>:
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_list(reader):
+    result = []
+    token = reader.read_token()
+    <span class="kw">while</span> token:
+        <span class="kw">if</span> token == <span class="st">&#39;(&#39;</span>:
             result.append(read_list(reader))
-        <span class="cf">elif</span> token <span class="op">==</span> <span class="st">&#39;)&#39;</span>:
-            <span class="cf">return</span> result
-        <span class="cf">else</span>:
+        <span class="kw">elif</span> token == <span class="st">&#39;)&#39;</span>:
+            <span class="kw">return</span> result
+        <span class="kw">else</span>:
             result.append(token)
-        token <span class="op">=</span> reader.read_token()
-    <span class="cf">return</span> result</code></pre></div>
+        token = reader.read_token()
+    <span class="kw">return</span> result</code></pre>
 <p><code>read_atom</code> functions is easier, since each each atom is also a token:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_atom(reader):
-    <span class="cf">return</span> reader.read_token()</code></pre></div>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_atom(reader):
+    <span class="kw">return</span> reader.read_token()</code></pre>
 <p>At this point, we have a Lisp reader that reading s-expressions, converting lists to Python lists and atoms to Python strings. Now we can define our 9 primitive procedures(<code>quote</code>, <code>car</code>, <code>cdr</code>, <code>cons</code>, <code>equal</code>, <code>atom</code>, <code>cond</code>, <code>lambda</code>, <code>label</code>):</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> quote(e):
-    <span class="cf">return</span> e
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> quote(e):
+    <span class="kw">return</span> e
 <span class="kw">def</span> car(e):
-    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)
-    <span class="cf">return</span> e[<span class="op">^</span><span class="dv">0</span>]<span class="kw">def</span> cdr(e):
-    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)
-    <span class="cf">return</span> e[<span class="dv">1</span>:]
+    <span class="kw">assert</span> <span class="dt">isinstance</span>(e, <span class="dt">list</span>)
+    <span class="kw">return</span> e[^<span class="dv">0</span>]<span class="kw">def</span> cdr(e):
+    <span class="kw">assert</span> <span class="dt">isinstance</span>(e, <span class="dt">list</span>)
+    <span class="kw">return</span> e[<span class="dv">1</span>:]
 <span class="kw">def</span> cons(e1, e2):
-    <span class="cf">if</span> <span class="bu">isinstance</span>(e2, <span class="bu">list</span>):
-        <span class="cf">return</span> [e1] <span class="op">+</span> e2
-    <span class="cf">return</span> [e1, e2]
+    <span class="kw">if</span> <span class="dt">isinstance</span>(e2, <span class="dt">list</span>):
+        <span class="kw">return</span> [e1] + e2
+    <span class="kw">return</span> [e1, e2]
 <span class="kw">def</span> equal(e1, e2):
-    <span class="cf">return</span> e1 <span class="op">==</span> e2
+    <span class="kw">return</span> e1 == e2
 <span class="kw">def</span> atom(e):
-    <span class="cf">return</span> <span class="kw">not</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)</code></pre></div>
+    <span class="kw">return</span> not <span class="dt">isinstance</span>(e, <span class="dt">list</span>)</code></pre>
 <p>These are obvious. Since I’ve already converted sexp lists into Python lists, all I need to do is to call some Python list methods.</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> cond(<span class="op">*</span>cases):
-    <span class="cf">for</span> case <span class="kw">in</span> cases:
-        <span class="cf">if</span> eval_(case[<span class="op">^</span><span class="dv">0</span>] <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:
-            <span class="cf">for</span> expr <span class="kw">in</span> cdr(case)[:<span class="op">-</span><span class="dv">1</span>]:
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> cond(*cases):
+    <span class="kw">for</span> case in cases:
+        <span class="kw">if</span> eval_(case[^<span class="dv">0</span>] is not <span class="ot">None</span>:
+            <span class="kw">for</span> expr in cdr(case)[:-<span class="dv">1</span>]:
                 eval_(expr)
-            <span class="cf">return</span> eval_(case[<span class="op">-</span><span class="dv">1</span>])
-    <span class="cf">return</span> <span class="va">None</span></code></pre></div>
+            <span class="kw">return</span> eval_(case[-<span class="dv">1</span>])
+    <span class="kw">return</span> <span class="ot">None</span></code></pre>
 <p>An important point here is that in <code>cond</code>, I’m not evaluating all expressions, but I’m evaluating the test forms until I find a form that evaluates something that’s not <code>nil</code>, and then evaluating it’s form.</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> lambda_(args, <span class="op">*</span>exprs):
-    <span class="kw">def</span> fn(<span class="op">*</span>arg_vals):
-        fn_env <span class="op">=</span> {k:v <span class="cf">for</span> (k, v) <span class="kw">in</span> <span class="bu">zip</span>(args, arg_vals)}
-        fn_env[<span class="st">&#39;parent_env&#39;</span>] <span class="op">=</span> env
-        <span class="cf">for</span> expr <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> lambda_(args, *exprs):
+    <span class="kw">def</span> fn(*arg_vals):
+        fn_env = {k:v <span class="kw">for</span> (k, v) in <span class="dt">zip</span>(args, arg_vals)}
+        fn_env[<span class="st">&#39;parent_env&#39;</span>] = env
+        <span class="kw">for</span> expr in exprs[:-<span class="dv">1</span>]:
             eval_(expr, fn_env)
-        <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], fn_env)
-    <span class="cf">return</span> fn
-<span class="kw">def</span> label(name, lambda_exp, <span class="op">*</span>exprs):
-    func <span class="op">=</span> eval_(lambda_exp)
-    label_env <span class="op">=</span> env.copy()
-    label_env[name] <span class="op">=</span> func
-    <span class="cf">for</span> exp <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:
+        <span class="kw">return</span> eval_(exprs[-<span class="dv">1</span>], fn_env)
+    <span class="kw">return</span> fn
+<span class="kw">def</span> label(name, lambda_exp, *exprs):
+    func = eval_(lambda_exp)
+    label_env = env.copy()
+    label_env[name] = func
+    <span class="kw">for</span> exp in exprs[:-<span class="dv">1</span>]:
         eval_(exp, label_env)
-    <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], label_env)</code></pre></div>
+    <span class="kw">return</span> eval_(exprs[-<span class="dv">1</span>], label_env)</code></pre>
 <p><code>label</code> is a way to name lambdas, so you can create recursive functions. I’m creating a new environment for each label, and connecting it to the parent environment.</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">env <span class="op">=</span> {<span class="st">&#39;quote&#39;</span>: quote,
+<pre class="sourceCode python"><code class="sourceCode python">env = {<span class="st">&#39;quote&#39;</span>: quote,
        <span class="co">&#39;car&#39;</span>: car,
        <span class="co">&#39;cdr&#39;</span>: cdr,
        <span class="co">&#39;cons&#39;</span>: cons,
@@ -240,46 +240,46 @@ main <span class="fu">=</span> <span class="kw">do</span>
        <span class="co">&#39;cond&#39;</span>: cond,
        <span class="co">&#39;lambda&#39;</span>: Lambda,
        <span class="co">&#39;label&#39;</span>: label,
-       <span class="co">&#39;defun&#39;</span>: defun}</code></pre></div>
+       <span class="co">&#39;defun&#39;</span>: defun}</code></pre>
 <p>The global environment. When an atom is evaluated, it’s value is searched in here, with this function:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> search_in_env(env, key):
-    val <span class="op">=</span> env.get(key)
-    <span class="cf">if</span> val:
-        <span class="cf">return</span> val
-    <span class="cf">if</span> env.has_key(<span class="st">&#39;parent_env&#39;</span>):
-        <span class="cf">return</span> search_in_env(env[<span class="st">&#39;parent_env&#39;</span>], key)
-    <span class="cf">raise</span> <span class="pp">KeyError</span>(key)</code></pre></div>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> search_in_env(env, key):
+    val = env.get(key)
+    <span class="kw">if</span> val:
+        <span class="kw">return</span> val
+    <span class="kw">if</span> env.has_key(<span class="st">&#39;parent_env&#39;</span>):
+        <span class="kw">return</span> search_in_env(env[<span class="st">&#39;parent_env&#39;</span>], key)
+    <span class="kw">raise</span> <span class="ot">KeyError</span>(key)</code></pre>
 <p>Since each environment may be connected to a parent environment(the case of <code>label</code>), we should search all the chain of environments.</p>
 <p>So now we have the Lisp described in the micro-manual, we only need the eval:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_(exp, env<span class="op">=</span>env):
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_(exp, env=env):
     <span class="co"># print &quot;evaluating: %s&quot; % str(exp)</span>
-    <span class="cf">if</span> <span class="bu">isinstance</span>(exp, <span class="bu">list</span>):
-        <span class="cf">if</span> <span class="bu">isinstance</span>(exp[<span class="op">^</span><span class="dv">0</span>] <span class="bu">list</span>):
-            op <span class="op">=</span> eval_(exp[<span class="op">^</span><span class="dv">0</span>]
-        <span class="cf">else</span>:
-            op <span class="op">=</span> search_in_env(env, exp[<span class="op">^</span><span class="dv">0</span>]
-        <span class="cf">if</span> op <span class="kw">in</span> [quote, cond, lambda_, label, defun]:
-            <span class="cf">return</span> <span class="bu">apply</span>(op, exp[<span class="dv">1</span>:])
-        <span class="cf">return</span> <span class="bu">apply</span>(op, [eval_(e, env) <span class="cf">for</span> e <span class="kw">in</span> exp[<span class="dv">1</span>:]])
-    <span class="cf">return</span> search_in_env(env, exp)</code></pre></div>
+    <span class="kw">if</span> <span class="dt">isinstance</span>(exp, <span class="dt">list</span>):
+        <span class="kw">if</span> <span class="dt">isinstance</span>(exp[^<span class="dv">0</span>] <span class="dt">list</span>):
+            op = eval_(exp[^<span class="dv">0</span>]
+        <span class="kw">else</span>:
+            op = search_in_env(env, exp[^<span class="dv">0</span>]
+        <span class="kw">if</span> op in [quote, cond, lambda_, label, defun]:
+            <span class="kw">return</span> <span class="dt">apply</span>(op, exp[<span class="dv">1</span>:])
+        <span class="kw">return</span> <span class="dt">apply</span>(op, [eval_(e, env) <span class="kw">for</span> e in exp[<span class="dv">1</span>:]])
+    <span class="kw">return</span> search_in_env(env, exp)</code></pre>
 <p>And some helpers for REPL:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_from_string(string):
-    <span class="cf">return</span> eval_(read(Reader(string)))
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_from_string(string):
+    <span class="kw">return</span> eval_(read(Reader(string)))
 <span class="kw">def</span> expr_repr(expr):
-    <span class="cf">if</span> <span class="bu">isinstance</span>(expr, <span class="bu">list</span>):
-        <span class="cf">return</span> <span class="st">&#39;(&#39;</span> <span class="op">+</span> <span class="st">&#39; &#39;</span>.join([expr_repr(e) <span class="cf">for</span> e <span class="kw">in</span> expr]) <span class="op">+</span> <span class="st">&#39;)&#39;</span>
-    <span class="cf">elif</span> <span class="bu">isinstance</span>(expr, <span class="bu">bool</span>):
-        <span class="cf">if</span> expr:
-            <span class="cf">return</span> <span class="st">&#39;T&#39;</span>
-        <span class="cf">return</span> <span class="st">&#39;nil&#39;</span>
-    <span class="cf">return</span> <span class="bu">str</span>(expr)
+    <span class="kw">if</span> <span class="dt">isinstance</span>(expr, <span class="dt">list</span>):
+        <span class="kw">return</span> <span class="st">&#39;(&#39;</span> + <span class="st">&#39; &#39;</span>.join([expr_repr(e) <span class="kw">for</span> e in expr]) + <span class="st">&#39;)&#39;</span>
+    <span class="kw">elif</span> <span class="dt">isinstance</span>(expr, <span class="dt">bool</span>):
+        <span class="kw">if</span> expr:
+            <span class="kw">return</span> <span class="st">&#39;T&#39;</span>
+        <span class="kw">return</span> <span class="st">&#39;nil&#39;</span>
+    <span class="kw">return</span> <span class="dt">str</span>(expr)
 <span class="kw">def</span> repl():
-    <span class="cf">while</span> <span class="va">True</span>:
-        <span class="cf">try</span>:
-            <span class="bu">input</span> <span class="op">=</span> <span class="bu">raw_input</span>(<span class="st">&quot;&gt; &quot;</span>)
-            <span class="bu">print</span> expr_repr(eval_(read(Reader(<span class="bu">input</span>))))
-        <span class="cf">except</span> (<span class="pp">KeyboardInterrupt</span>, <span class="pp">EOFError</span>):
-            <span class="cf">return</span></code></pre></div>
+    <span class="kw">while</span> <span class="ot">True</span>:
+        <span class="kw">try</span>:
+            <span class="dt">input</span> = <span class="dt">raw_input</span>(<span class="st">&quot;&gt; &quot;</span>)
+            <span class="dt">print</span> expr_repr(eval_(read(Reader(<span class="dt">input</span>))))
+        <span class="kw">except</span> (<span class="ot">KeyboardInterrupt</span>, <span class="ot">EOFError</span>):
+            <span class="kw">return</span></code></pre>
 <p>I also wrote some unit-tests based on examples in the paper. You can read the implementation and tests from <a href="https://gist.github.com/2147404">the gist</a>. To run the interpreter, just save the code and run <code>python lisp.py</code>.</p>]]></summary>
 </entry>
 <entry>
@@ -296,18 +296,18 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <pre><code>ctpop(bmp &amp; ((1&lt;&lt;n)-1))</code></pre>
 <p><code>ctpop</code>, population count fonksiyonu, yani bir sayının iki tabanında gösterilişindeki 1 bitleri sayıyor. Bu Java’da <code>Integer.bitCount</code> fonksiyonu(öhm, static methodu) ile bulunabilir.</p>
 <p>Birkaç deneme yaparak nasıl yaptığını anlayabilir ve kendimizi ikna edebiliriz:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">In [<span class="op">^</span><span class="dv">2</span>]: bmp <span class="op">=</span> <span class="dv">0</span>
-In [<span class="op">^</span><span class="dv">3</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">15</span>
-In [<span class="op">^</span><span class="dv">4</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))
-Out[<span class="op">^</span><span class="dv">4</span>]: <span class="dv">0</span>
-In [<span class="op">^</span><span class="dv">5</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">21</span>
-In [<span class="op">^</span><span class="dv">6</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">10</span>
-In [<span class="op">^</span><span class="dv">7</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">10</span>)<span class="op">-</span><span class="dv">1</span>))
-Out[<span class="op">^</span><span class="dv">7</span>]: <span class="dv">0</span>
-In [<span class="op">^</span><span class="dv">8</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))
-Out[<span class="op">^</span><span class="dv">8</span>]: <span class="dv">1</span>
-In [<span class="op">^</span><span class="dv">9</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">21</span>)<span class="op">-</span><span class="dv">1</span>))
-Out[<span class="op">^</span><span class="dv">9</span>]: <span class="dv">2</span></code></pre></div>
+<pre class="sourceCode python"><code class="sourceCode python">In [^<span class="dv">2</span>]: bmp = <span class="dv">0</span>
+In [^<span class="dv">3</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">15</span>
+In [^<span class="dv">4</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
+Out[^<span class="dv">4</span>]: <span class="dv">0</span>
+In [^<span class="dv">5</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">21</span>
+In [^<span class="dv">6</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">10</span>
+In [^<span class="dv">7</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>)-<span class="dv">1</span>))
+Out[^<span class="dv">7</span>]: <span class="dv">0</span>
+In [^<span class="dv">8</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
+Out[^<span class="dv">8</span>]: <span class="dv">1</span>
+In [^<span class="dv">9</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">21</span>)-<span class="dv">1</span>))
+Out[^<span class="dv">9</span>]: <span class="dv">2</span></code></pre>
 <p>Eğer arraydeki n. yere bir eleman ekliyorsak, n’den itibaren arrayi bir kaydırmamız lazım. En büyük index her zaman arrayde de daha sonda oluyor.</p>
 <p>Ne yaptığına bakalım. 25. elemanın arraydeki yerine bakarken, <code>1 &lt;&lt; 25</code>i hesaplıyorum ki bu aslında (2 tabanında) 1 ve yanına 25 tane 0 koymak demek. Daha sonra bu sayıdan 1 çıkararak, en sağdan itibaren(en anlamsız bitten itibaren) tüm 0ları 1 yapıyorum, ilk gördüğüm 1’i 0 yapıyorum, gerisine dokunmuyorum(bu şartlar altında geriye kalan tüm bitler 0 oluyor). Daha sonra bu sayı ile bitmap’i logical and(bazı yerlerde bitwise and diyor, aynı şeyler sanırım?) işlemine sokup ctpop yaptığımda, bitmap’de (1 &lt;&lt; n)’den itibaren kaç tane 1 olduğunu saymış oluyorum ve bu da bana array’deki indeximi veriyor. Çok mantıklı.</p>
 <p>Bu arada kullandığınız dile göre bu işlemi daha kolay bir şekilde yapabilirsiniz. Bazı diller(Java’da <code>Integer.bitcount</code>, Common Lisp’de <code>logcount</code> gibi) direkt olarak <code>bitCount</code> gibi fonksiyonlar sunuyor. Bir de ben Common Lisp’de hiç kaydır 1 çıkart falan demeden direkt “şu bitle şu bit arasında kaç 1 olduğunu say” şeklinde bir fonksiyon yazdım, bitwise trickler yapmadan, şöyle:</p>
@@ -338,83 +338,83 @@ Out[<span class="op">^</span><span class="dv">9</span>]: <span class="dv">2</spa
     <summary type="html"><![CDATA[<p>Clojure(ve genel olarak Lisp dilleri) ile bir süredir ilgileniyorum, canım sıkıldıkça <a href="http://4clojure.com/">4clojure</a>’daki problemleri çözüyordum(bu arada Clojure’a başalyan herkese tavsiye ederim, sitenin en güzel yanı, problemi çözdükten sonra başkalarının çözümlerini görebiliyorsunuz, ve çoğu zaman problemi çözmüş birkaç Clojure geliştirici/katkıcısı bulabiliyorsunuz). Bir süre sonra, artık temellerini kavradığımı düşündüğümde, şu ana kadar en az çözülen probleme, <a href="http://4clojure.com/problem/117">‘For Science!’</a>a bir bakayım dedim. Problem tanıdık geldi. Bu problemin bir benzeriyle ilk kez <a href="http://osa1.net/finaldeyiz/">şurda bahsettiğim</a> programlama yarışmasında karşılaşmış, ve o zaman soruya saf saf bakmaktan başka birşey yapamamıştık. Daha sonra, ilk başta alakasız gibi gözüksede, aslında çok benzeyen bir halini, üzerinde çalıştığım bir oyunun yapım aşamasını kolaylaştırmak için çözmüştüm, ilgili yazı <a href="http://osa1.net/pygame-ve-duzensiz-sprite-sheetlerle-calismak/">şurda</a>.</p>
 <p>Alternatif bir yöntem düşünmeden hemen daha önceden çözdüğüm gibi çözmeye başladım. Çözen Python kodunu birkaç dakika içerisinde yazdım. Algoritmam şu şekilde: gezilebilir olup birbirlerine komşu olan tüm alanları grupluyorum, daha sonra eğer başlangıç ve hedef aynı grupdaysa, birbirlerine erişebilirler demektir.</p>
 <p>Python koduyla açıklamak daha kolay:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">pos_m <span class="op">=</span> <span class="va">None</span>
-pos_c <span class="op">=</span> <span class="va">None</span>
-groups <span class="op">=</span> []</code></pre></div>
+<pre class="sourceCode python"><code class="sourceCode python">pos_m = <span class="ot">None</span>
+pos_c = <span class="ot">None</span>
+groups = []</code></pre>
 <p>Burda <code>pos_m</code>, problemdeki fare(mouse - M)nin başlangıç noktasını temsil ediyor. Alanı gezerken fareyle karşılaştığımızda bunu atayacağız. Aynı şekilde <code>pos_c</code> de peynir(cheese)in yeri.</p>
 <p><code>groups</code> da birbirlerine komşu olan tüm noktaların oluşturduğu grupları tutacak.</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> check_adjacency(pos, x, y):
-    difx <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">0</span>]x)
-    dify <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">1</span>]y)
-    <span class="cf">return</span> (difx <span class="op">==</span> <span class="dv">1</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">0</span>) <span class="kw">or</span> (difx <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">1</span>)</code></pre></div>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> check_adjacency(pos, x, y):
+    difx = <span class="dt">abs</span>(pos[^<span class="dv">0</span>]x)
+    dify = <span class="dt">abs</span>(pos[^<span class="dv">1</span>]y)
+    <span class="kw">return</span> (difx == <span class="dv">1</span> and dify == <span class="dv">0</span>) or (difx == <span class="dv">0</span> and dify == <span class="dv">1</span>)</code></pre>
 <p>Bu fonksiyonun yaptığı, bir (X, Y) ikilisinden oluşan noktanın, (x, y) noktasına komşu olup olmadığını dönmek. Burda komşu olma şartı, iki noktanın üst üste veya yan yana bulunmaları(haritada çarpraz ilerleme olmadığından, çarprazdakiler komşu sayılmıyor).</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> find_groups(x, y):
-    r <span class="op">=</span> []
-    <span class="cf">for</span> group <span class="kw">in</span> groups:
-        <span class="cf">for</span> pos <span class="kw">in</span> group:
-            <span class="cf">if</span> check_adjacency(pos, x, y):
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> find_groups(x, y):
+    r = []
+    <span class="kw">for</span> group in groups:
+        <span class="kw">for</span> pos in group:
+            <span class="kw">if</span> check_adjacency(pos, x, y):
                 r.append(group)
-                <span class="cf">break</span>
-    <span class="cf">return</span> r</code></pre></div>
+                <span class="kw">break</span>
+    <span class="kw">return</span> r</code></pre>
 <p><code>find_groups</code>, (x, y) noktasının komşu olduğu grupların bir listesini dönüyor. Örneğin bir aşamada elimizde [(1, 1), (2, 2)] ve [(2, 4)] grupları varsa ve biz (2, 3) noktasının komşu olduğu grupları arıyorsak, bu iki grupu bize döndürecek. Bu durumda bu iki grupu birleştirmemiz gerekcek çükü artık bu ikisi birbirine (2, 3) ile bağlı.</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> merge_groups(grps):
-    <span class="cf">for</span> group <span class="kw">in</span> grps[<span class="dv">1</span>:]:
-        grps[<span class="op">^</span><span class="dv">0</span>]<span class="op">+=</span> group
-        groups.remove(group)</code></pre></div>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> merge_groups(grps):
+    <span class="kw">for</span> group in grps[<span class="dv">1</span>:]:
+        grps[^<span class="dv">0</span>]+= group
+        groups.remove(group)</code></pre>
 <p>Birleştirme işlemini de bu yapıyor işte.</p>
 <p>Bundan sonrası basit zaten, teker teker gez, grupları bul, grup yoksa yeni oluştur, varsa onu genişlet, birden fazlaysa birleştir. Kodu takip etmek için kullandığım print statement’larını silmeden koyuyorum:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="cf">for</span> y <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid)):
-    <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid[<span class="op">^</span><span class="dv">0</span>]):
-        char <span class="op">=</span> test_grid[y][x]
-        <span class="bu">print</span> x, y, char,
-        <span class="cf">if</span> char <span class="op">==</span> <span class="st">&#39;#&#39;</span>:
-            <span class="bu">print</span> <span class="st">&quot;block&quot;</span>
-        <span class="cf">else</span>:
-            <span class="cf">if</span> char <span class="op">==</span> <span class="st">&#39;M&#39;</span>:
-                pos_m <span class="op">=</span> (x, y)
-            <span class="cf">elif</span> char <span class="op">==</span> <span class="st">&#39;C&#39;</span>:
-                pos_c <span class="op">=</span> (x, y)
-            grps <span class="op">=</span> find_groups(x, y)
-            <span class="cf">if</span> <span class="bu">len</span>(grps) <span class="op">&gt;</span> <span class="dv">1</span>:
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">for</span> y in <span class="dt">xrange</span>(<span class="dt">len</span>(test_grid)):
+    <span class="kw">for</span> x in <span class="dt">xrange</span>(<span class="dt">len</span>(test_grid[^<span class="dv">0</span>]):
+        char = test_grid[y][x]
+        <span class="dt">print</span> x, y, char,
+        <span class="kw">if</span> char == <span class="st">&#39;#&#39;</span>:
+            <span class="dt">print</span> <span class="st">&quot;block&quot;</span>
+        <span class="kw">else</span>:
+            <span class="kw">if</span> char == <span class="st">&#39;M&#39;</span>:
+                pos_m = (x, y)
+            <span class="kw">elif</span> char == <span class="st">&#39;C&#39;</span>:
+                pos_c = (x, y)
+            grps = find_groups(x, y)
+            <span class="kw">if</span> <span class="dt">len</span>(grps) &gt; <span class="dv">1</span>:
                 merge_groups(grps)
-                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))
-                <span class="bu">print</span> <span class="st">&quot;merge&quot;</span>
-            <span class="cf">elif</span> <span class="bu">len</span>(grps) <span class="op">==</span> <span class="dv">0</span>:
+                grps[^<span class="dv">0</span>]append((x, y))
+                <span class="dt">print</span> <span class="st">&quot;merge&quot;</span>
+            <span class="kw">elif</span> <span class="dt">len</span>(grps) == <span class="dv">0</span>:
                 groups.append([(x, y)])
-                <span class="bu">print</span> <span class="st">&quot;new group&quot;</span>
-            <span class="cf">else</span>:
-                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))
-                <span class="bu">print</span> <span class="st">&quot;append&quot;</span>
-<span class="bu">print</span> pos_m, pos_c
-<span class="cf">for</span> group <span class="kw">in</span> groups:
-    <span class="cf">if</span> pos_m <span class="kw">in</span> group <span class="kw">and</span> pos_c <span class="kw">in</span> group:
-        <span class="bu">print</span> <span class="st">&quot;M can reach C&quot;</span></code></pre></div>
+                <span class="dt">print</span> <span class="st">&quot;new group&quot;</span>
+            <span class="kw">else</span>:
+                grps[^<span class="dv">0</span>]append((x, y))
+                <span class="dt">print</span> <span class="st">&quot;append&quot;</span>
+<span class="dt">print</span> pos_m, pos_c
+<span class="kw">for</span> group in groups:
+    <span class="kw">if</span> pos_m in group and pos_c in group:
+        <span class="dt">print</span> <span class="st">&quot;M can reach C&quot;</span></code></pre>
 <p>Çok da güzel bir kod olmayabilir(örneğin liste içinde listelerde lineer arama yerine, <code>set</code> kullanılabilir, Clojure kodumda yaptığım gibi) ama problemi hızlıca çözmek için işimi gördü.</p>
 <p>Fonksiyonel programlama yolunu henüz çözebilmiş değilim. Hala daha çoğu zaman yaptığım, bir algoritmadaki değişen durumları(<code>state</code>) bir <code>loop</code> içine alıp, tail-call yapmak(Clojure’da <code>recur</code> yani, bu arada <code>recur</code>’un tail-call optimization olmadığının farkındayım).</p>
 <p>Yukarıdaki Python fonksiyonlarının Clojure karşılıklarını şu şekilde yazdım:</p>
-<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">defn</span><span class="fu"> abs</span>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defn</span><span class="fu"> abs</span>
   <span class="st">&quot;Absolute value of n&quot;</span>
   [n]
   (<span class="kw">if</span> (<span class="kw">neg?</span> n)
     (<span class="kw">-</span> n)
     n))
-(<span class="bu">defn</span><span class="fu"> check-adjacency</span>
+(<span class="kw">defn</span><span class="fu"> check-adjacency</span>
   [[posx posy] x y]
   (<span class="kw">let</span> [difx (abs (<span class="kw">-</span> posx x))
         dify (abs (<span class="kw">-</span> posy y))]
     (<span class="kw">or</span> (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">1</span>) (<span class="kw">=</span> dify <span class="dv">0</span>)) (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">0</span>) (<span class="kw">=</span> dify <span class="dv">1</span>)))))
-(<span class="bu">defn</span><span class="fu"> find-adjacent-sets</span>
+(<span class="kw">defn</span><span class="fu"> find-adjacent-sets</span>
   [sets [x y]]
   (<span class="kw">set</span> (<span class="kw">filter</span> (<span class="kw">fn</span> [<span class="kw">set</span>]
                  (<span class="kw">some</span> (<span class="kw">fn</span> [p]
                          (check-adjacency p x y))
                        <span class="kw">set</span>))
                sets)))
-(<span class="bu">defn</span><span class="fu"> get-char</span>
+(<span class="kw">defn</span><span class="fu"> get-char</span>
   [grid [x y]]
-  (<span class="kw">get</span> (grid y) x))</code></pre></div>
+  (<span class="kw">get</span> (grid y) x))</code></pre>
 <p>Daha sonra bunları kullanarak problemin çözümü:</p>
-<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">defn</span><span class="fu"> can-reach</span>?
+<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defn</span><span class="fu"> can-reach</span>?
   [grid]
   (<span class="kw">let</span> [rang (<span class="kw">for</span> [y (<span class="kw">range</span> (<span class="kw">count</span> grid)) 
                    x (<span class="kw">range</span> (<span class="kw">count</span> (<span class="kw">first</span> grid)))] [x y])]
@@ -438,7 +438,7 @@ groups <span class="op">=</span> []</code></pre></div>
             (<span class="kw">recur</span> (<span class="kw">next</span> positions)
                    sets
                    posm
-                   posc)))))))</code></pre></div>
+                   posc)))))))</code></pre>
 <p>4clojure çözümlerde birden fazla fonksiyon kabul etmediğinden, tüm yardımcı fonksiyon tanımlarımı ana fonksiyonumun içine almam gerekti. 4clojure’a yolladığım çözüm <a href="https://gist.github.com/1240517">şurda</a>.</p>
 <hr />
 <p>Clojure hakkında karmaşık duygular içerisindeyim(eheh, bir programlama dili hakkında böyle bir cümle kurmak). Pek çok ileri-seviye özelliklerini henüz bilmiyorum. Fonksiyonel programlamayı da, yukarıda bahsettiğim gibi, henüz çözebilmiş değilim. Macroları şu ana kadar hiç kullanmadım. Bu dönem sonuna kadar SICP’in ilk 3 bölümünü bitirip, tüm alıştırma çözümlerini yayınlamayı planlıyorum(ilk bölüm bitti, ikincisi bitmek üzere, birkaç alıştırmayı çözemedim gerçi). Daha sonra McCarthy’nin ilk Lispini bir dilde(büyük ihtimalle C olacak) implement ettikten sonra muhtemelen <a href="http://en.wikipedia.org/wiki/Type_theory">type theory</a>ye dalmak için Haskell(veya daha uygun başka bir Lisp dili) ile uğraşacağım(sonunda muhtemelen bu dediklerimin yarısını falan yapmış olacağım ama olsun eheh).</p>
@@ -484,9 +484,9 @@ groups <span class="op">=</span> []</code></pre></div>
 <iframe width="425" height="349" src="http://www.youtube.com/embed/e1MC7re1r0s" frameborder="0" allowfullscreen>
 </iframe>
 <p>Arduino’nun yaptığı, serial port’u dinleyip, gelen verinin 0’dan büyük bir takam olduğunu varsayarak(<code>val -= '0'</code>), bu veriye göre ledleri yakıp söndürmek.</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#define ledPin1 13</span>
-<span class="pp">#define ledPin2 12</span>
-<span class="pp">#define ledPin3 11</span>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define ledPin1 13</span>
+<span class="ot">#define ledPin2 12</span>
+<span class="ot">#define ledPin3 11</span>
 
 <span class="dt">int</span> val = <span class="dv">0</span>;
 
@@ -498,53 +498,53 @@ groups <span class="op">=</span> []</code></pre></div>
 }
 
 <span class="dt">void</span> loop () {
-    <span class="cf">if</span> (Serial.available()) {
+    <span class="kw">if</span> (Serial.available()) {
         val = Serial.read();
         val -= &#39;<span class="dv">0</span>&#39;;
 
-        <span class="cf">if</span> (val == <span class="dv">1</span>) {
+        <span class="kw">if</span> (val == <span class="dv">1</span>) {
             digitalWrite(ledPin1, HIGH);
-        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">2</span>) {
+        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">2</span>) {
             digitalWrite(ledPin2, HIGH);
-        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">3</span>) {
+        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">3</span>) {
             digitalWrite(ledPin3, HIGH);
-        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">4</span>) {
+        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">4</span>) {
             digitalWrite(ledPin1, LOW);
-        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">5</span>) {
+        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">5</span>) {
             digitalWrite(ledPin2, LOW);
-        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">6</span>) {
+        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">6</span>) {
             digitalWrite(ledPin3, LOW);
         }
     }
-}</code></pre></div>
+}</code></pre>
 <p>Python ve Pygame ile de klavyeyi izleyip, tuşların basılması veya bırakılması durumlarında serial port’a gerekli verileri gönderdim:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="im">import</span> serial
-<span class="im">import</span> pygame
+<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> serial
+<span class="ch">import</span> pygame
 
-s <span class="op">=</span> serial.Serial(<span class="st">&#39;/dev/ttyACM2&#39;</span>, <span class="dv">9600</span>)
-screen <span class="op">=</span> pygame.display.set_mode((<span class="dv">100</span>, <span class="dv">100</span>))
-clock <span class="op">=</span> pygame.time.Clock()
+s = serial.Serial(<span class="st">&#39;/dev/ttyACM2&#39;</span>, <span class="dv">9600</span>)
+screen = pygame.display.set_mode((<span class="dv">100</span>, <span class="dv">100</span>))
+clock = pygame.time.Clock()
 
-keydwn <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;1&quot;</span>,
+keydwn = {pygame.K_LEFT : <span class="st">&quot;1&quot;</span>,
           pygame.K_RIGHT: <span class="st">&quot;2&quot;</span>,
           pygame.K_DOWN : <span class="st">&quot;3&quot;</span>}
 
-keyup  <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;4&quot;</span>,
+keyup  = {pygame.K_LEFT : <span class="st">&quot;4&quot;</span>,
           pygame.K_RIGHT: <span class="st">&quot;5&quot;</span>,
           pygame.K_DOWN : <span class="st">&quot;6&quot;</span>}
 
-running <span class="op">=</span> <span class="dv">1</span>
-<span class="cf">while</span> running:
+running = <span class="dv">1</span>
+<span class="kw">while</span> running:
     screen.fill((<span class="dv">00</span>, <span class="dv">00</span>, <span class="dv">00</span>))
-    <span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():
-        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.QUIT:
-            running <span class="op">=</span> <span class="va">False</span>
-        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYDOWN:
+    <span class="kw">for</span> event in pygame.event.get():
+        <span class="kw">if</span> event.<span class="dt">type</span> == pygame.QUIT:
+            running = <span class="ot">False</span>
+        <span class="kw">elif</span> event.<span class="dt">type</span> == pygame.KEYDOWN:
             s.write(keydwn.get(event.key, <span class="st">&quot;&quot;</span>))
-        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYUP:
+        <span class="kw">elif</span> event.<span class="dt">type</span> == pygame.KEYUP:
             s.write(keyup.get(event.key, <span class="st">&quot;&quot;</span>))
 
-    time <span class="op">=</span> clock.tick(<span class="dv">30</span>)</code></pre></div>
+    time = clock.tick(<span class="dv">30</span>)</code></pre>
 <p>İlk deneme için gayet basit ve güzel :) . Aslında amacım, Python ve Pygame ile yaptığım şeyleri Clojure ile(Pygame kısmı için AWT gerekecekti sanırım) yapmaktı ama sırt ağrım bir yerden sonra dayanılmaz hale geldi(zaten çalışma ortamım rahat değil, bir de Arduino için masaya eğilince) ve bir an önce bitirmeye çalıştım. Bundan sonraki denemelerimi Clojure ile yapmaya çalışacağım.</p>
 <p>Onun dışında, Arduino kodunu Pardus ortamında bir türlü derleyemedim, gerekli kütüphaneler/bağımlılıklar yüzünden. Bir ara onunla uğraşacağım.</p>]]></summary>
 </entry>
@@ -583,15 +583,15 @@ running <span class="op">=</span> <span class="dv">1</span>
 
 </div>
 <p>Ama yok, örneğin PyDev daha aşağıdaki kodda çakılıyor:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">cls <span class="op">=</span> Class1()
-cls.</code></pre></div>
+<pre class="sourceCode python"><code class="sourceCode python">cls = Class1()
+cls.</code></pre>
 <p>Daha burda bile, Class1’in methodlarını gösteremiyor. Direkt olarak <code>Class1.</code> şeklinde yazıp, autocomplete çalıştırırsak, methodları gösteriyor, bu iyi, fakat bu sefer de bound-unbound method farkını anlayamıyor ve bound methodları da gösteriyor. Ki bound methodlar bu şekilde çağırılamaz. Fail.</p>
 <p>WingIDE diyenler için, personal sürümü, sanki “öyle gerekli özellikler çıkaralım ki, kimse almasın” diye düşünülerek hazırlanmış. O kısıtlı özellikleri çıkardığımızda, Vim ile de yapıyorum zaten geri kalanları. <a href="https://wingware.com/wingide/features/personal">Burdan bakın</a>. Professional sürümü de çok pahalı.</p>
 <p>PyCharm diyenler için, Open Source lisansı ücretsiz, fakat <a href="http://www.opensource.org/docs/osd">Open Source Definition</a>’a uyan bir projeniz olmalı. Benim yok.</p>
 <p>Eclipse, Java’nın verdiği acıyı inanılmaz derecede hafifletiyor. Yoksa sınıflar arasındaki saçma derecede karmaşık ilişkiler başka türlü çözülemez. Python’da ise, benzer karışıklıkta tasarlanmış(muhtemelen başka bir dilde, örneğin QT için C++) bir kütüphane ile çalışıyorsanız, acınızı hafifletecek hiçbir şey yok.</p>
 <p>Konudan biraz sapacağım ama, Python hakkında beni sinirlendiren bir başka konu da, threading ve socket olayları. Ne zaman socket veya threading kullansam, mutlaka bir problemle karşılaşıyorum ve bunu ne zaman IRC’de sorsam, mutlaka birileri Twisted kullanmamı söylüyor. Kötü alışkanlıklardan, yanlış programlamadan vs bahsedip duruyorlar. Sanki Freenode #python kanalında, içinde şöyle bir kod olan bir sürü bot varmış gibi:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="cf">if</span> <span class="st">&quot;socket&quot;</span> <span class="kw">in</span> msg <span class="kw">or</span> <span class="st">&quot;thread&quot;</span> <span class="kw">in</span> msg:
-    <span class="va">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</code></pre></div>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> <span class="st">&quot;socket&quot;</span> in msg or <span class="st">&quot;thread&quot;</span> in msg:
+    <span class="ot">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</code></pre>
 <p>Java’da yaklaşık bir hafta kadar önce kullanılabilr bir hale getirdiğimiz chat istemci/sunucusu, dilin kendi thread ve socketlerini kullanıyor. Thread ve socket kullanımı ile alakalı dökümantasyon hariç hiçbir yere baktığımı hatırlamıyorum. Python’dan gelen birisi olarak şaşırtıcı derecede kolay ve stabil oldu.</p>
 <hr />
 <p>Bir süredir kafamda kendi IRC istemcimi yazma fikri var. Şu anda yazabilmek için gerekli herşeyi biliyorum. Dün oturdum, Java ve Python’da IRC sunucusuna bağlanabilmek için gerekli en küçük kodu yazmaya karar verdim(arayüz ile beraber). Java’da, kendi socket ve thread sınıfları ve Swing ile kolayca yazdım(bu arada Swing’in ne kadar kötü gözüktüğüne dikkat, platform bağımsız olarak iğrenç gözüken bir arayüz kütüphanesi kendisi, ehehe):</p>

@@ -299,19 +299,19 @@
 <h1 id="self-borrows-all-of-its-fields"><code>self</code> borrows all of its fields</h1>
 <p>This is a problem that happened in pretty much every single Rust program I’ve ever written. In a method, you can’t borrow some fields, and call another <code>&amp;mut self</code> method. This is because methods borrow the whole <code>self</code>, so you get an error saying that you can’t borrow <code>self</code> twice.</p>
 <p>As an example, imagine writing a compiler. For some reason you want to collect all the variables defined in a scope, and then generate fresh variables for those. You may do something like this:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> FreshGen { <span class="co">/* abstract */</span> }
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> FreshGen { <span class="co">/* abstract */</span> }
 
 <span class="kw">struct</span> Var { <span class="co">/* abstract */</span> }
 
 <span class="kw">impl</span> FreshGen {
     <span class="kw">fn</span> fresh(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; Var {
-        <span class="pp">unimplemented!</span>()
+        <span class="ot">unimplemented!</span>()
     }
 }
 
 <span class="kw">struct</span> Compiler {
     fresh_gen: FreshGen,
-    vars_in_scope: <span class="dt">Vec</span>&lt;Var&gt;,
+    vars_in_scope: Vec&lt;Var&gt;,
 }
 
 <span class="kw">impl</span> Compiler {
@@ -320,13 +320,13 @@
     }
 
     <span class="kw">fn</span> gen_locals(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {
-        <span class="kw">let</span> <span class="kw">mut</span> fresh_vars = <span class="pp">vec!</span>[];
-        <span class="kw">for</span> var <span class="kw">in</span> <span class="kw">self</span>.vars_in_scope.iter() {
+        <span class="kw">let</span> <span class="kw">mut</span> fresh_vars = <span class="ot">vec!</span>[];
+        <span class="kw">for</span> var in <span class="kw">self</span>.vars_in_scope.iter() {
             fresh_vars.push(<span class="kw">self</span>.fresh());
         }
         <span class="co">// use fresh_vars</span>
     }
-}</code></pre></div>
+}</code></pre>
 <p>Can you see any problems here? When I compile this with nightly 11/9/2016, I get this annoying error message:</p>
 <pre><code>error[E0502]: cannot borrow `*self` as mutable because `self.vars_in_scope` is also borrowed as immutable
   --&gt; &lt;anon&gt;:24:29
@@ -426,10 +426,10 @@ newtype IORef a
         -- Defined in ‘GHC.IORef’
 instance Eq (IORef a) -- Defined in ‘GHC.IORef’</code></pre>
 <p><code>GHC.IORef</code> is defined in <code>libraries/base/GHC/IORef.hs</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A mutable variable in the &#39;IO&#39; monad</span>
-<span class="kw">newtype</span> <span class="dt">IORef</span> a <span class="fu">=</span> <span class="dt">IORef</span> (<span class="dt">STRef</span> <span class="dt">RealWorld</span> a)</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A mutable variable in the &#39;IO&#39; monad</span>
+<span class="kw">newtype</span> <span class="dt">IORef</span> a <span class="fu">=</span> <span class="dt">IORef</span> (<span class="dt">STRef</span> <span class="dt">RealWorld</span> a)</code></pre>
 <p>We’ll look at 3 operations: read, write, and atomic modify.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Read the value of an &#39;IORef&#39;</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Read the value of an &#39;IORef&#39;</span>
 <span class="ot">readIORef   ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
 readIORef  (<span class="dt">IORef</span> var) <span class="fu">=</span> stToIO (readSTRef var)
 
@@ -438,21 +438,21 @@ readIORef  (<span class="dt">IORef</span> var) <span class="fu">=</span> stToIO 
 writeIORef (<span class="dt">IORef</span> var) v <span class="fu">=</span> stToIO (writeSTRef var v)
 
 <span class="ot">atomicModifyIORef ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> (a,b)) <span class="ot">-&gt;</span> <span class="dt">IO</span> b
-atomicModifyIORef (<span class="dt">IORef</span> (<span class="dt">STRef</span> r<span class="fu">#</span>)) f <span class="fu">=</span> <span class="dt">IO</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> atomicModifyMutVar<span class="fu">#</span> r<span class="fu">#</span> f s</code></pre></div>
+atomicModifyIORef (<span class="dt">IORef</span> (<span class="dt">STRef</span> r<span class="st">#)) f = IO $ \s -&gt; atomicModifyMutVar# r# f s</span></code></pre>
 <p><code>STRef</code> is defined in <code>libraries/base/GHC/STRef.hs</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A value of type `STRef s a` is a mutable variable in state thread `s`,</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A value of type `STRef s a` is a mutable variable in state thread `s`,</span>
 <span class="co">-- containing a value of type `a`</span>
-<span class="kw">data</span> <span class="dt">STRef</span> s a <span class="fu">=</span> <span class="dt">STRef</span> (<span class="dt">MutVar</span><span class="fu">#</span> s a)
+<span class="kw">data</span> <span class="dt">STRef</span> s a <span class="fu">=</span> <span class="dt">STRef</span> (<span class="dt">MutVar</span><span class="st"># s a)</span>
 
 <span class="co">-- | Read the value of an &#39;STRef&#39;</span>
 <span class="ot">readSTRef ::</span> <span class="dt">STRef</span> s a <span class="ot">-&gt;</span> <span class="dt">ST</span> s a
-readSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) <span class="fu">=</span> <span class="dt">ST</span> <span class="fu">$</span> \s1<span class="fu">#</span> <span class="ot">-&gt;</span> readMutVar<span class="fu">#</span> var<span class="fu">#</span> s1<span class="fu">#</span>
+readSTRef (<span class="dt">STRef</span> var<span class="st">#) = ST $ \s1# -&gt; readMutVar# var# s1#</span>
 
 <span class="co">-- | Write a new value into an &#39;STRef&#39;</span>
 <span class="ot">writeSTRef ::</span> <span class="dt">STRef</span> s a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">ST</span> s ()
-writeSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) val <span class="fu">=</span> <span class="dt">ST</span> <span class="fu">$</span> \s1<span class="fu">#</span> <span class="ot">-&gt;</span>
-    <span class="kw">case</span> writeMutVar<span class="fu">#</span> var<span class="fu">#</span> val s1<span class="fu">#</span> <span class="kw">of</span>
-      s2<span class="fu">#</span> <span class="ot">-&gt;</span> (<span class="fu">#</span> s2<span class="fu">#</span>, () <span class="fu">#</span>)</code></pre></div>
+writeSTRef (<span class="dt">STRef</span> var<span class="st">#) val = ST $ \s1# -&gt;</span>
+    <span class="kw">case</span> writeMutVar<span class="st"># var# val s1# of</span>
+      s2<span class="st"># -&gt; (# s2#, () #)</span></code></pre>
 <p>Note that there’s no <code>atomicModifySTRef</code>, because that only makes sense in IO context. So <code>atomicModifyIORef</code> directly calls the primop.</p>
 <p>In summary:</p>
 <ul>
@@ -470,7 +470,7 @@ writeSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) val <spa
    has_side_effects = True
    can_fail         = True</code></pre>
 <p>Code generation is handled by <code>StgCmmPrim.emitPrimOp</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">emitPrimOp ::</span> <span class="dt">DynFlags</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">emitPrimOp ::</span> <span class="dt">DynFlags</span>
            <span class="ot">-&gt;</span> [<span class="dt">LocalReg</span>]        <span class="co">-- where to put the results</span>
            <span class="ot">-&gt;</span> <span class="dt">PrimOp</span>            <span class="co">-- the op</span>
            <span class="ot">-&gt;</span> [<span class="dt">CmmExpr</span>]         <span class="co">-- arguments</span>
@@ -479,7 +479,7 @@ writeSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) val <spa
 <span class="fu">...</span>
 
 emitPrimOp dflags [res] <span class="dt">ReadMutVarOp</span> [mutv]
-   <span class="fu">=</span> emitAssign (<span class="dt">CmmLocal</span> res) (cmmLoadIndexW dflags mutv (fixedHdrSizeW dflags) (gcWord dflags))</code></pre></div>
+   <span class="fu">=</span> emitAssign (<span class="dt">CmmLocal</span> res) (cmmLoadIndexW dflags mutv (fixedHdrSizeW dflags) (gcWord dflags))</code></pre>
 <p>This is just relative addressing, base is the <code>MutVar#</code> we’re reading, and we skip the closure header to read the contents.</p>
 <h1 id="writemutvar">writeMutVar#</h1>
 <p>Primop definition:</p>
@@ -492,13 +492,13 @@ emitPrimOp dflags [res] <span class="dt">ReadMutVarOp</span> [mutv]
                          -- for the write barrier
    can_fail         = True</code></pre>
 <p>Code generation is again implemented in <code>emitPrimOp</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">emitPrimOp dflags [] <span class="dt">WriteMutVarOp</span> [mutv,var]
+<pre class="sourceCode haskell"><code class="sourceCode haskell">emitPrimOp dflags [] <span class="dt">WriteMutVarOp</span> [mutv,var]
    <span class="fu">=</span> <span class="kw">do</span> emitStore (cmmOffsetW dflags mutv (fixedHdrSizeW dflags)) var
         emitCCall [<span class="co">{-no results-}</span>]
                   (<span class="dt">CmmLit</span> (<span class="dt">CmmLabel</span> mkDirty_MUT_VAR_Label))
-                  [(<span class="dt">CmmReg</span> (<span class="dt">CmmGlobal</span> <span class="dt">BaseReg</span>), <span class="dt">AddrHint</span>), (mutv,<span class="dt">AddrHint</span>)]</code></pre></div>
+                  [(<span class="dt">CmmReg</span> (<span class="dt">CmmGlobal</span> <span class="dt">BaseReg</span>), <span class="dt">AddrHint</span>), (mutv,<span class="dt">AddrHint</span>)]</code></pre>
 <p>This is more involved than <code>readMutVar#</code>. First, we write the variable to the <code>MutVar#</code> in the first line (<code>emitStore</code>). Then, we call a function, specified by the variable <code>mkDirty_MUT_VAR_Label</code>, passing two arguments: a global called <code>BaseReg</code>, and the <code>MutVar#</code>. <code>mkDirty_MUT_VAR_Label</code> just holds the name of this function: (defined in <code>rts/sm/Storage.c</code>)</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="co">/*</span>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="co">/*</span>
 <span class="co">   This is the write barrier for MUT_VARs, a.k.a. IORefs.  A</span>
 <span class="co">   MUT_VAR_CLEAN object is not on the mutable list; a MUT_VAR_DIRTY</span>
 <span class="co">   is.  When written to, a MUT_VAR_CLEAN turns into a MUT_VAR_DIRTY</span>
@@ -507,55 +507,55 @@ emitPrimOp dflags [res] <span class="dt">ReadMutVarOp</span> [mutv]
 <span class="dt">void</span> dirty_MUT_VAR(StgRegTable *reg, StgClosure *p)
 {
     Capability *cap = regTableToCapability(reg);
-    <span class="cf">if</span> (p-&gt;header.info == &amp;stg_MUT_VAR_CLEAN_info) {
+    <span class="kw">if</span> (p-&gt;header.info == &amp;stg_MUT_VAR_CLEAN_info) {
         p-&gt;header.info = &amp;stg_MUT_VAR_DIRTY_info;
         recordClosureMutated(cap,p);
     }
-}</code></pre></div>
+}</code></pre>
 <p>Remember that for the first argument we passed something called <code>BaseReg</code>, and for the second argument we passed the <code>MutVar#</code>.</p>
 <p>This function gets a <code>Capability</code> from the register table, and if the <code>MutVar#</code> is “clean”, it marks it as “dirty” and records in the capability that it’s now mutated.</p>
 <p><code>Capability</code> lacks documentation, but it’s not too important, so we just skip that and look at <code>recordClsoureMutated</code>.</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordClosureMutated(Capability *cap, StgClosure *p)
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordClosureMutated(Capability *cap, StgClosure *p)
 {
     bdescr *bd = Bdescr((StgPtr)p);
-    <span class="cf">if</span> (bd-&gt;gen_no != <span class="dv">0</span>) recordMutableCap(p,cap,bd-&gt;gen_no);
-}</code></pre></div>
+    <span class="kw">if</span> (bd-&gt;gen_no != <span class="dv">0</span>) recordMutableCap(p,cap,bd-&gt;gen_no);
+}</code></pre>
 <p><code>p</code> is our <code>MutVar#</code> here. <code>bdescr</code> stands for “block descriptor”. GHC RTS allocates memory in blocks, and every block belongs to a generation. First generation is special in that if a <code>MutVar#</code> is in the first generation, it can’t point to a younger generation, as the first generation is already the youngest generation. This is from <code>includes/rts/storage/GC.h</code>:</p>
 <pre><code>- generation 0 is the allocation area.  It is given a fixed set of blocks
   during initialisation, and these blocks normally stay in G0S0.  In parallel
   execution, each Capability has its own nursery.</code></pre>
 <p>This code basically checks if the <code>MutVar#</code> belongs to first generation (generation 0). If that’s not the case, we record the <code>MutVar#</code> in the generation’s “mut list”:</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordMutableCap(<span class="dt">const</span> StgClosure *p, Capability *cap, <span class="dt">uint32_t</span> gen)
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordMutableCap(<span class="dt">const</span> StgClosure *p, Capability *cap, <span class="dt">uint32_t</span> gen)
 {
     bdescr* bd = cap-&gt;mut_lists[gen];
-    <span class="cf">if</span> (bd-&gt;free &gt;= bd-&gt;start + BLOCK_SIZE_W) {
+    <span class="kw">if</span> (bd-&gt;free &gt;= bd-&gt;start + BLOCK_SIZE_W) {
         bdescr *new_bd = allocBlockOnNode_lock(cap-&gt;node);
         new_bd-&gt;link = bd;
         bd = new_bd;
         cap-&gt;mut_lists[gen] = bd;
     }
     *bd-&gt;free++ = (StgWord)p;
-}</code></pre></div>
+}</code></pre>
 <p>Garbage collector then checks that list when collecting younger generations, to avoid collecting young objects kept alive by older generations (i.e. pointers from older generations to younger generations, see <code>scavenge_capability_mut_lists</code> in <code>rts/sm/Scav.c</code>).</p>
 <p>We saw in <code>dirty_MUT_VAR</code> that the <code>MutVar#</code> is marked as “dirty” when it’s mutated. When is it marked as “clean” again?</p>
 <p>When a <code>MutVar#</code> is copied during GC, the object pointed by it is also copied to the same generation, and then the <code>MutVar#</code> becomes clean again, because it no longer points to a younger generation. This is the related code:</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">static</span> <span class="dt">void</span>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">static</span> <span class="dt">void</span>
 scavenge_block(bdescr *bd)
 {
     ...
-    <span class="cf">case</span> MUT_VAR_DIRTY:
+    <span class="kw">case</span> MUT_VAR_DIRTY:
         gct-&gt;eager_promotion = rtsFalse;
         evacuate(&amp;((StgMutVar *)p)-&gt;var);
         gct-&gt;eager_promotion = saved_eager_promotion;
-        <span class="cf">if</span> (gct-&gt;failed_to_evac) {
+        <span class="kw">if</span> (gct-&gt;failed_to_evac) {
             ((StgClosure *)q)-&gt;header.info = &amp;stg_MUT_VAR_DIRTY_info;
-        } <span class="cf">else</span> {
+        } <span class="kw">else</span> {
             ((StgClosure *)q)-&gt;header.info = &amp;stg_MUT_VAR_CLEAN_info;
         }
         p += sizeofW(StgMutVar);
-        <span class="cf">break</span>;
+        <span class="kw">break</span>;
     ...
-}</code></pre></div>
+}</code></pre>
 <h1 id="atomicmodifymutvar">atomicModifyMutVar#</h1>
 <p>Primop definition:</p>
 <pre><code>primop  AtomicModifyMutVarOp &quot;atomicModifyMutVar#&quot; GenPrimOp
@@ -565,7 +565,7 @@ scavenge_block(bdescr *bd)
    has_side_effects = True
    can_fail         = True</code></pre>
 <p><code>out_of_line = True</code> basically tells code generator that this primop is implemented as a function. Code generator then just generates a function call:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cgOpApp ::</span> <span class="dt">StgOp</span>        <span class="co">-- The op</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cgOpApp ::</span> <span class="dt">StgOp</span>        <span class="co">-- The op</span>
         <span class="ot">-&gt;</span> [<span class="dt">StgArg</span>]     <span class="co">-- Arguments</span>
         <span class="ot">-&gt;</span> <span class="dt">Type</span>         <span class="co">-- Result type (always an unboxed tuple)</span>
         <span class="ot">-&gt;</span> <span class="dt">FCode</span> <span class="dt">ReturnKind</span>
@@ -579,27 +579,27 @@ cgOpApp (<span class="dt">StgPrimOp</span> primop) args res_ty <span class="fu">
         <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>  <span class="co">-- out-of-line</span>
           <span class="kw">let</span> fun <span class="fu">=</span> <span class="dt">CmmLit</span> (<span class="dt">CmmLabel</span> (mkRtsPrimOpLabel primop))
           emitCall (<span class="dt">NativeNodeCall</span>, <span class="dt">NativeReturn</span>) fun cmm_args
-        <span class="fu">...</span></code></pre></div>
+        <span class="fu">...</span></code></pre>
 <p>The primop is implemented in Cmm, in <code>rts/PrimOps.cmm</code>. The code is a mess, but here’s the important part:</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">stg_atomicModifyMutVarzh ( gcptr mv, gcptr f )
+<pre class="sourceCode c"><code class="sourceCode c">stg_atomicModifyMutVarzh ( gcptr mv, gcptr f )
 {
   ...
   retry:
     x = StgMutVar_var(mv);
     StgThunk_payload(z,<span class="dv">1</span>) = x;
-<span class="pp">#ifdef THREADED_RTS</span>
+<span class="ot">#ifdef THREADED_RTS</span>
     (h) = ccall cas(mv + SIZEOF_StgHeader + OFFSET_StgMutVar_var, x, y);
-    <span class="cf">if</span> (h != x) { <span class="cf">goto</span> retry; }
-<span class="pp">#else</span>
+    <span class="kw">if</span> (h != x) { <span class="kw">goto</span> retry; }
+<span class="ot">#else</span>
     StgMutVar_var(mv) = y;
-<span class="pp">#endif</span>
+<span class="ot">#endif</span>
 
-    <span class="cf">if</span> (GET_INFO(mv) == stg_MUT_VAR_CLEAN_info) {
+    <span class="kw">if</span> (GET_INFO(mv) == stg_MUT_VAR_CLEAN_info) {
         ccall dirty_MUT_VAR(BaseReg <span class="st">&quot;ptr&quot;</span>, mv <span class="st">&quot;ptr&quot;</span>);
     }
 
-    <span class="cf">return</span> (r);
-}</code></pre></div>
+    <span class="kw">return</span> (r);
+}</code></pre>
 <p>It’s basically a compare-and-swap loop, and in the end it marks the <code>MutVar#</code> as “dirty”, using the same <code>dirty_MUT_VAR</code> function used by the code generated for <code>writeMutVar#</code>.</p>
 <h1 id="the-mutvar-struct">The <code>MutVar#</code> struct</h1>
 <p>As the last thing, we look at the definition of <code>MutVar#</code>: (in <code>includes/rts/storage/Closures.h</code>)</p>
@@ -615,7 +615,7 @@ cgOpApp (<span class="dt">StgPrimOp</span> primop) args res_ty <span class="fu">
 <li><p>Unpacking an <code>IORef</code> in a data constructor field does not really make the constructor mutable. Instead, it inlines the <code>MutVar#</code>, which has a mutable pointer field.</p></li>
 </ol>
 <p>If you think about it a little bit, you may realize that optimizing (2) is actually quite tricky. Imagine having something like this:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">D</span> <span class="fu">=</span> <span class="dt">D</span> {<span class="ot"> f1 ::</span> <span class="ot">{-# UNPACK #-}</span> <span class="fu">!</span>(<span class="dt">IORef</span> <span class="dt">Int</span>)
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">D</span> <span class="fu">=</span> <span class="dt">D</span> {<span class="ot"> f1 ::</span> <span class="ot">{-# UNPACK #-}</span> <span class="fu">!</span>(<span class="dt">IORef</span> <span class="dt">Int</span>)
            ,<span class="ot"> f2 ::</span> <span class="dt">Int</span>
            }
 
@@ -623,15 +623,15 @@ cgOpApp (<span class="dt">StgPrimOp</span> primop) args res_ty <span class="fu">
 bumpf1 (<span class="dt">D</span> f1 _) <span class="fu">=</span> modifyIORef f1 (<span class="fu">+</span> <span class="dv">1</span>)
 
 <span class="ot">bumpf2 ::</span> <span class="dt">D</span> <span class="ot">-&gt;</span> <span class="dt">D</span>
-bumpf2 (<span class="dt">D</span> f1 f2) <span class="fu">=</span> <span class="dt">D</span> f1 (f2 <span class="fu">+</span> <span class="dv">1</span>)</code></pre></div>
+bumpf2 (<span class="dt">D</span> f1 f2) <span class="fu">=</span> <span class="dt">D</span> f1 (f2 <span class="fu">+</span> <span class="dv">1</span>)</code></pre>
 <p>You’d expect this to print <code>True</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> ref <span class="ot">&lt;-</span> newIORef <span class="dv">0</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> ref <span class="ot">&lt;-</span> newIORef <span class="dv">0</span>
    <span class="kw">let</span> d1 <span class="fu">=</span> <span class="dt">D</span> ref <span class="dv">0</span>
        d2 <span class="fu">=</span> bumpD2 d1
    bumpf1 d1
    rv1 <span class="ot">&lt;-</span> readIORef (f1 d1)
    rv2 <span class="ot">&lt;-</span> readIORef (f1 d2)
-   print (rv1 <span class="fu">==</span> rv2)</code></pre></div>
+   print (rv1 <span class="fu">==</span> rv2)</code></pre>
 <p>If <code>D</code> becomes mutable after the <code>UNPACK</code>, this code doesn’t work anymore, because we lose sharing after the functional update in line <code>bumpD2 d1</code>.</p>
 <p>See also <a href="https://ghc.haskell.org/trac/ghc/ticket/7662#comment:3">this discussion</a> for how other compilers improve this.</p>]]></summary>
 </entry>
@@ -675,30 +675,30 @@ bumpf2 (<span class="dt">D</span> f1 f2) <span class="fu">=</span> <span class="
     <published>2016-06-27T00:00:00Z</published>
     <updated>2016-06-27T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I thought a bang pattern is all about <code>seq</code>. That may actually be true, but when that <code>seq</code> is happening may not be obvious. Even after ~5 years of Haskell I was initially very confused by this, and in fact at first I thought it was a bug:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T</span> <span class="fu">=</span> <span class="dt">A</span> <span class="fu">|</span> <span class="dt">B</span> <span class="fu">|</span> <span class="dt">C</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T</span> <span class="fu">=</span> <span class="dt">A</span> <span class="fu">|</span> <span class="dt">B</span> <span class="fu">|</span> <span class="dt">C</span>
 
 <span class="ot">fn5 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">T</span>] <span class="ot">-&gt;</span> <span class="dt">Int</span>
 fn5  i []       <span class="fu">=</span> i
 fn5  i (<span class="dt">A</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 (i <span class="fu">+</span> <span class="dv">1</span>) ts
 fn5 <span class="fu">!</span>i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts
-fn5  i (<span class="dt">C</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 <span class="dv">0</span> ts</code></pre></div>
+fn5  i (<span class="dt">C</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 <span class="dv">0</span> ts</code></pre>
 <p>The question is, given these definitions, what does this evaluate to, and why:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 undefined [<span class="dt">C</span>]</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 undefined [<span class="dt">C</span>]</code></pre>
 <p>This question is basically a <code>BangPatterns</code> question. The key point is that a bang pattern <em>first evaluates the value</em> to match, then looks at the pattern. This is from GHC 8.0.1 user manual, <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#bang-patterns-informal">section 9.28.1</a>:</p>
 <blockquote>
 <p>Matching an expression e against a pattern !p is done by first evaluating e (to WHNF) and then matching the result against p.</p>
 </blockquote>
 <p>My initial thought was that this example would not crash because the pattern <code>i</code> always matches, and since second argument is only matched by last case of this definition, which doesn’t evaluate <code>i</code>, <code>i</code> would not get evaluated.</p>
 <p>Or in other words, I thought all this bang pattern does is to add a <code>seq</code>, <em>to the RHS</em>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> i <span class="ot">`seq`</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> i <span class="ot">`seq`</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts</code></pre>
 <p>which is not what it really does!</p>
 <hr />
 <p>Before bang patterns, I think this pattern was considered as the standard way of forcing a function argument (mostly used for accumulator arguments):</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f acc _ <span class="fu">|</span> acc <span class="ot">`seq`</span> <span class="dt">False</span> <span class="fu">=</span> undefined
-f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">f acc _ <span class="fu">|</span> acc <span class="ot">`seq`</span> <span class="dt">False</span> <span class="fu">=</span> undefined
+f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre>
 <p>The guard in first equation always fails, but it forces the <code>acc</code> by the time it fails. While this looks bad<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, it compiles to nice code after a case-of-case transformation, and it evaluates <code>acc</code> as first thing to do whenever it’s applied to two arguments.</p>
 <p>Now, with <code>BangPatterns</code>, we get to do this:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">!</span>acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">!</span>acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre>
 <p>Which is good when we have one equation only, but when we have multiple equations like in <code>fn5</code> above, we need add bang patterns to every equation, or we risk having bugs<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
 <p>So in short, we don’t have a good solution for saying a function is strict on some arguments, without risking bugs (by trying to add minimum number of bangs) or adding a lot of them.</p>
 <hr />
@@ -755,26 +755,26 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 [6067] Ret [] -- end of function at 6027 --   return;
                                          -- }</code></pre>
 <p>I added next to each instruction how they would look like in a C-like language. It’s hard to understand what’s going on. So to experiment with it I implement it in Rust. Since registers are shared in each call, I use shared state in my initial implementation:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="at">#[</span>inline<span class="at">]</span>
-<span class="kw">fn</span> add(i1 : <span class="dt">u16</span>, i2 : <span class="dt">u16</span>) -&gt; <span class="dt">u16</span> {
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="ot">#[</span>inline<span class="ot">]</span>
+<span class="kw">fn</span> add(i1 : <span class="kw">u16</span>, i2 : <span class="kw">u16</span>) -&gt; <span class="kw">u16</span> {
     (i1 + i2) % <span class="dv">32768</span>
 }
 
-<span class="at">#[</span>derive<span class="at">(</span><span class="bu">Debug</span><span class="at">)]</span>
+<span class="ot">#[</span>derive<span class="ot">(</span>Debug<span class="ot">)]</span>
 <span class="kw">struct</span> FnState {
-    reg0  : <span class="dt">u16</span>,
-    reg1  : <span class="dt">u16</span>,
-    reg7  : <span class="dt">u16</span>,
-    stack : <span class="dt">Vec</span>&lt;<span class="dt">u16</span>&gt;,
+    reg0  : <span class="kw">u16</span>,
+    reg1  : <span class="kw">u16</span>,
+    reg7  : <span class="kw">u16</span>,
+    stack : Vec&lt;<span class="kw">u16</span>&gt;,
 }
 
 <span class="kw">impl</span> FnState {
-    <span class="kw">fn</span> init(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; FnState {
+    <span class="kw">fn</span> init(reg0 : <span class="kw">u16</span>, reg1 : <span class="kw">u16</span>, reg7 : <span class="kw">u16</span>) -&gt; FnState {
         FnState {
             reg0: reg0,
             reg1: reg1,
             reg7: reg7,
-            stack: <span class="dt">Vec</span>::new(),
+            stack: Vec::new(),
         }
     }
 
@@ -801,10 +801,10 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
         <span class="kw">self</span>.f();
         <span class="kw">return</span>;
     }
-}</code></pre></div>
+}</code></pre>
 <p>Now, this function grows really fast. Even for very small inputs it takes minutes to compute. I try to think some well-known functions that grow very fast. Ackermann comes to my mind and I check the Wiki page. Indeed, this looks quite similar, but the third argument makes it different than Ackermann. In any case, it doesn’t really matter for the solution.</p>
 <p>So the problem is coming up with a <code>reg7</code> in this code so that <code>f(4, 1, reg7)</code> returns <code>6</code>. For that I need to implement a search but this is basically impossible with this slow function. I start simplifying the function a little bit. My first attempt:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> FnState {
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> FnState {
     <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {
         <span class="co">// When reg0 hits zero, restart it from reg1 + 1</span>
         <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> {
@@ -832,10 +832,10 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
         <span class="kw">self</span>.f();
         <span class="kw">return</span>;
     }
-}</code></pre></div>
+}</code></pre>
 <p>This version doesn’t use an explicit stack, instead uses a temporary in the call frame. This works because in the original version each push corresponds to a pop done in the same call frame.</p>
 <p>It’s still too complicated. I keep simplifying.</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(<span class="kw">mut</span> reg0 : <span class="dt">u16</span>, <span class="kw">mut</span> reg1 : <span class="dt">u16</span>, <span class="kw">mut</span> reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) {
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(<span class="kw">mut</span> reg0 : <span class="kw">u16</span>, <span class="kw">mut</span> reg1 : <span class="kw">u16</span>, <span class="kw">mut</span> reg7 : <span class="kw">u16</span>) -&gt; (<span class="kw">u16</span>, <span class="kw">u16</span>) {
     <span class="kw">if</span> reg0 == <span class="dv">0</span> {
         reg0 = add(reg1, <span class="dv">1</span>);
         <span class="kw">return</span> (reg0, reg1);
@@ -860,9 +860,9 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
     reg0 -= <span class="dv">1</span>;
 
     <span class="kw">return</span> f(reg0, reg1, reg7);
-}</code></pre></div>
+}</code></pre>
 <p>This version doesn’t have any shared mutable state. At this point I realize that it may be possible to remove internal mutable state too:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) {
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(reg0 : <span class="kw">u16</span>, reg1 : <span class="kw">u16</span>, reg7 : <span class="kw">u16</span>) -&gt; (<span class="kw">u16</span>, <span class="kw">u16</span>) {
     <span class="kw">if</span> reg0 == <span class="dv">0</span> {
         <span class="kw">return</span> (add(reg1, <span class="dv">1</span>), reg1);
     }
@@ -874,10 +874,10 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
     <span class="kw">let</span> (reg1, _) = f(reg0, reg1 - <span class="dv">1</span>, reg7);
 
     <span class="kw">return</span> f(reg0 - <span class="dv">1</span>, reg1, reg7);
-}</code></pre></div>
+}</code></pre>
 <p>Now, this is a function I can read and understand. One advantage of this version is that this could be easily memoized:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f_memo(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>, memo : &amp;<span class="kw">mut</span> HashMap&lt;(<span class="dt">u16</span>, <span class="dt">u16</span>), (<span class="dt">u16</span>, <span class="dt">u16</span>)&gt;) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) {
-    <span class="kw">if</span> <span class="kw">let</span> <span class="cn">Some</span>(ret) = memo.get(&amp;(reg0, reg1)) {
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f_memo(reg0 : <span class="kw">u16</span>, reg1 : <span class="kw">u16</span>, reg7 : <span class="kw">u16</span>, memo : &amp;<span class="kw">mut</span> HashMap&lt;(<span class="kw">u16</span>, <span class="kw">u16</span>), (<span class="kw">u16</span>, <span class="kw">u16</span>)&gt;) -&gt; (<span class="kw">u16</span>, <span class="kw">u16</span>) {
+    <span class="kw">if</span> <span class="kw">let</span> <span class="kw">Some</span>(ret) = memo.get(&amp;(reg0, reg1)) {
         <span class="kw">return</span> *ret;
     }
 
@@ -899,42 +899,42 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
     <span class="kw">let</span> ret = f_memo(reg0 - <span class="dv">1</span>, reg1_new, reg7, memo);
     memo.insert((reg0, reg1), ret);
     <span class="kw">return</span> ret;
-}</code></pre></div>
+}</code></pre>
 <p>This version is super fast when compared to the original version. I feel like I can just search the whole space in a few hours. I start the search and as it searches through the search space I start wondering about how to further improve it. I think, why not split search space into pieces and search in parallel?</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> search(start_range : <span class="dt">u16</span>, end_range : <span class="dt">u16</span>) -&gt; <span class="dt">Option</span>&lt;<span class="dt">u16</span>&gt; {
-    <span class="kw">for</span> i <span class="kw">in</span> start_range .. end_range {
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> search(start_range : <span class="kw">u16</span>, end_range : <span class="kw">u16</span>) -&gt; <span class="kw">Option</span>&lt;<span class="kw">u16</span>&gt; {
+    <span class="kw">for</span> i in start_range .. end_range {
         <span class="co">// println!(&quot;i = {}&quot;, i);</span>
         <span class="kw">let</span> <span class="kw">mut</span> tbl = HashMap::new();
         <span class="kw">let</span> ret = f_memo(<span class="dv">4</span>, <span class="dv">1</span>, i, &amp;<span class="kw">mut</span> tbl);
         <span class="kw">if</span> ret.<span class="dv">0</span> == <span class="dv">6</span> {
-            <span class="pp">println!</span>(<span class="st">&quot;Found an answer: {:?} {}&quot;</span>, ret, i);
-            <span class="kw">return</span> <span class="cn">Some</span>(i);
+            <span class="ot">println!</span>(<span class="st">&quot;Found an answer: {:?} {}&quot;</span>, ret, i);
+            <span class="kw">return</span> <span class="kw">Some</span>(i);
         }
     }
 
-    <span class="cn">None</span>
+    <span class="kw">None</span>
 }
 
-<span class="kw">fn</span> search_in_parallel(n : <span class="dt">i32</span>) {
-    <span class="kw">let</span> increment = <span class="dt">u16</span>::MAX / (n <span class="kw">as</span> <span class="dt">u16</span>);
-    <span class="kw">let</span> <span class="kw">mut</span> threads = <span class="dt">Vec</span>::with_capacity(n <span class="kw">as</span> <span class="dt">usize</span>);
+<span class="kw">fn</span> search_in_parallel(n : <span class="kw">i32</span>) {
+    <span class="kw">let</span> increment = <span class="kw">u16</span>::MAX / (n <span class="kw">as</span> <span class="kw">u16</span>);
+    <span class="kw">let</span> <span class="kw">mut</span> threads = Vec::with_capacity(n <span class="kw">as</span> usize);
 
-    <span class="kw">for</span> i <span class="kw">in</span> <span class="dv">0</span> .. n {
-        <span class="kw">let</span> range_start = increment * (i <span class="kw">as</span> <span class="dt">u16</span>);
-        <span class="kw">let</span> range_end   = increment * ((i <span class="kw">as</span> <span class="dt">u16</span>) + <span class="dv">1</span>) + <span class="dv">1</span>;
-        threads.push(thread::Builder::new().stack_size(<span class="dv">1000000000</span>).spawn(<span class="kw">move</span> || {
+    <span class="kw">for</span> i in <span class="dv">0</span> .. n {
+        <span class="kw">let</span> range_start = increment * (i <span class="kw">as</span> <span class="kw">u16</span>);
+        <span class="kw">let</span> range_end   = increment * ((i <span class="kw">as</span> <span class="kw">u16</span>) + <span class="dv">1</span>) + <span class="dv">1</span>;
+        threads.push(thread::Builder::new().stack_size(<span class="dv">1000000000</span>).spawn(move || {
             search(range_start, range_end)
         }).unwrap());
     }
 
-    <span class="kw">for</span> thread <span class="kw">in</span> threads {
+    <span class="kw">for</span> thread in threads {
         thread.join();
     }
 }
 
 <span class="kw">fn</span> main() {
     search_in_parallel(<span class="dv">8</span>);
-}</code></pre></div>
+}</code></pre>
 <p>This parallel search takes a couple of seconds until it prints:</p>
 <pre><code>Found an answer: (6, 5) 25734</code></pre>
 <p>So <code>25734</code> returns 6! This is the R8 value we were looking for.</p>
@@ -957,12 +957,12 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 <p>It’s types that borrow, not values, and that makes sense. If you have an <code>Option&lt;&amp;'a T&gt;</code> where <code>'a</code> is coming from some other variable <code>x</code>, 1) <code>x</code> needs to live longer than this <code>Option</code> value 2) you can’t borrow <code>x</code> mutably while keeping the <code>Option</code> in scope (or the other way around, you can’t borrow <code>Option</code> mutably while keeping <code>x</code> in scope).</p>
 <p>This makes sense because in compile time, given an <code>Option&lt;&amp;'a T&gt;</code>, you can’t make any assumptions on <code>Option</code>’s actual value. Since <code>Some</code> constructor of the <code>Option</code> type will borrow the <code>T</code> here, you just have to assume that values of this type always borrow <code>T</code> (and that’s why we have <code>&amp;'a</code> in the type).</p>
 <p>The problem is that it’s sometimes possible to do some local reasoning, and not doing that is too restrictive. Suppose you have this:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> ListOfThings {
-    list : <span class="dt">Vec</span>&lt;Thing&gt;,
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> ListOfThings {
+    list : Vec&lt;Thing&gt;,
 }
 
 <span class="kw">struct</span> Thing {
-    name : <span class="dt">String</span>,
+    name : String,
     <span class="co">// other fields here -- this is expensive to copy!</span>
 }
 
@@ -971,36 +971,36 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 }
 
 <span class="kw">impl</span> ListOfThings {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
         <span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) {
-            <span class="cn">None</span> =&gt; {
+            <span class="kw">None</span> =&gt; {
                 <span class="kw">self</span>.init_thing(name.to_owned());
                 <span class="kw">self</span>.do_something(name)
             },
-            <span class="cn">Some</span>(t) =&gt; {
+            <span class="kw">Some</span>(t) =&gt; {
                 t.do_something()
             },
         }
     }
 
-    <span class="kw">fn</span> find_thing_mut&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) -&gt; <span class="dt">Option</span>&lt;&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> Thing&gt; {
+    <span class="kw">fn</span> find_thing_mut&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) -&gt; <span class="kw">Option</span>&lt;&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> Thing&gt; {
         <span class="kw">self</span>.list.iter_mut().find(|t| t.name.as_str() == name)
     }
 
-    <span class="kw">fn</span> init_thing(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : <span class="dt">String</span>) {
+    <span class="kw">fn</span> init_thing(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : String) {
         <span class="kw">self</span>.list.push(Thing { name: name })
     }
-}</code></pre></div>
+}</code></pre>
 <p>The important part is this expression:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) {
-    <span class="cn">None</span> =&gt; {
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) {
+    <span class="kw">None</span> =&gt; {
         <span class="kw">self</span>.init_thing(name.to_owned());
         <span class="kw">self</span>.do_something(name)
     },
-    <span class="cn">Some</span>(t) =&gt; {
+    <span class="kw">Some</span>(t) =&gt; {
         t.do_something()
     },
-}</code></pre></div>
+}</code></pre>
 <p>The error we get is:</p>
 <pre><code>&lt;anon&gt;:18:17: 18:21 error: cannot borrow `*self` as mutable more than once at a time [E0499]
 &lt;anon&gt;:18                 self.init_thing(name.to_owned());
@@ -1032,14 +1032,14 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
                   ^</code></pre>
 <p><code>find_thing_mut()</code> really needs to return a ref, because <code>Thing</code> is expensive to copy. The problem is since <code>None</code> has type <code>Option&lt;&amp;'a mut Thing&gt;</code> where <code>a</code> is the lifetime of <code>self</code>, we can’t call a <code>&amp;mut self</code> when that <code>None</code> is in scope. This is annoying and could be improved by doing some local reasoning. In our case, since we know that <code>None</code> can’t borrow anything (it doesn’t have any references), we could refine our information about currently borrwed values, and let this compile.</p>
 <p>There are a couple of solutions. One half-solution is to use something like standard <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry"><code>HashMap</code>’s <code>entry()</code></a>. Imagine doing something like:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::HashMap;
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::HashMap;
 
 <span class="kw">struct</span> ListOfThings {
-    list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,
+    list : HashMap&lt;String, Thing&gt;,
 }
 
 <span class="kw">struct</span> Thing {
-    field1 : <span class="dt">i32</span>,
+    field1 : <span class="kw">i32</span>,
     <span class="co">// other fields here -- this is expensive to copy!</span>
 }
 
@@ -1048,17 +1048,17 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 }
 
 <span class="kw">impl</span> ListOfThings {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
         <span class="kw">match</span> <span class="kw">self</span>.list.get_mut(name) {
-            <span class="cn">None</span> =&gt; {
+            <span class="kw">None</span> =&gt; {
                 <span class="kw">self</span>.list.insert(name.to_owned(), Thing { field1: <span class="dv">123</span> });
             },
-            <span class="cn">Some</span>(t) =&gt; {
+            <span class="kw">Some</span>(t) =&gt; {
                 t.do_something();
             }
         }
     }
-}</code></pre></div>
+}</code></pre>
 <p>The error we get:</p>
 <pre><code>&lt;anon&gt;:20:17: 20:26 error: cannot borrow `self.list` as mutable more than once at a time [E0499]
 &lt;anon&gt;:20                 self.list.insert(name.to_owned(), Thing { field1: 123 });
@@ -1075,14 +1075,14 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 &lt;anon&gt;:25         }
                   ^</code></pre>
 <p>This is exactly the same error we got before. The solution is to use <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry">the <code>Entry</code> API</a>:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::{HashMap, Entry};
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::{HashMap, Entry};
 
 <span class="kw">struct</span> ListOfThings {
-    list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,
+    list : HashMap&lt;String, Thing&gt;,
 }
 
 <span class="kw">struct</span> Thing {
-    field1 : <span class="dt">i32</span>,
+    field1 : <span class="kw">i32</span>,
     <span class="co">// other fields here -- this is expensive to copy!</span>
 }
 
@@ -1091,7 +1091,7 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 }
 
 <span class="kw">impl</span> ListOfThings {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
         <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
             Entry::Vacant(ve) =&gt; {
                 ve.insert(Thing { field1: <span class="dv">123</span> });
@@ -1101,47 +1101,47 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
             }
         }
     }
-}</code></pre></div>
+}</code></pre>
 <p>Some things to note here:</p>
 <ol style="list-style-type: decimal">
 <li><p>We had to give ownership of the key to the lookup function (<code>HashMap::entry()</code>). This potentially means copying a value just to lookup. Ideally we’d only need to do this when inserting to the map. <code>HashMap::get()</code> doesn’t have this problem.</p></li>
 <li><p>I said “half-solution” because this doesn’t really make the original code working. See how I removed a line in the first case in my <code>HashMap</code>-based implementation. If I change the first case to this:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
+<pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
             Entry::Vacant(ve) =&gt; {
                 ve.insert(Thing { field1: <span class="dv">123</span> });
                 <span class="kw">self</span>.do_something(name)
-            },</code></pre></div>
+            },</code></pre>
 <p>It’d still fail as <code>Entry</code> keeps a reference to <code>self</code>. Of course you could always do things like:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
+<pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
             Entry::Vacant(ve) =&gt; {
                 <span class="kw">let</span> <span class="kw">mut</span> thing = Thing { field1 : <span class="dv">123</span> };
                 thing.do_something();
                 ve.insert(thing);
-            },</code></pre></div>
+            },</code></pre>
 <p>Which works, but that’s quite different from our original program. Note that if we still had a method like <code>init_thing()</code> and has to pass <code>Entry</code> to that, it’d still fail with same error message. So yeah, not quite a solution.</p></li>
 </ol>
 <p>The solution I use is this:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> ListOfThings {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) {
-        <span class="kw">let</span> thing : <span class="dt">Option</span>&lt;*<span class="kw">mut</span> Thing&gt; = <span class="kw">self</span>.find_thing_mut(name).map(|t| (t <span class="kw">as</span> *<span class="kw">mut</span> _));
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> ListOfThings {
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
+        <span class="kw">let</span> thing : <span class="kw">Option</span>&lt;*<span class="kw">mut</span> Thing&gt; = <span class="kw">self</span>.find_thing_mut(name).map(|t| (t <span class="kw">as</span> *<span class="kw">mut</span> _));
         <span class="kw">match</span> thing {
-            <span class="cn">None</span> =&gt; {
+            <span class="kw">None</span> =&gt; {
                 <span class="kw">self</span>.init_thing(name.to_owned());
                 <span class="kw">self</span>.do_something(name)
             },
-            <span class="cn">Some</span>(t) =&gt; {
+            <span class="kw">Some</span>(t) =&gt; {
                 <span class="kw">unsafe</span> { (*t).do_something() }
             },
         }
     }
-}</code></pre></div>
+}</code></pre>
 <p>(missing parts are the same as the original code),</p>
 <p>I basically work around the borrow checker by using a raw pointer and an <code>unsafe</code> block, and hope that my <code>.map()</code> will be compiled as a no-op.</p>
 <h1 id="references-to-self-in-method-values">2. References to self in method values</h1>
 <p>A code like this fails if the method is mutable in self: <code>self.f(self.x)</code>. As a running example:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> Widget {
-    pos_x : <span class="dt">i32</span>,
-    pos_y : <span class="dt">i32</span>,
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> Widget {
+    pos_x : <span class="kw">i32</span>,
+    pos_y : <span class="kw">i32</span>,
 }
 
 <span class="kw">impl</span> Widget {
@@ -1149,8 +1149,8 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
         <span class="kw">self</span>.draw_at(<span class="kw">self</span>.pos_x, <span class="kw">self</span>.pos_y);
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> draw_at(&amp;<span class="kw">mut</span> <span class="kw">self</span>, pos_x : <span class="dt">i32</span>, pos_y : <span class="dt">i32</span>) {}
-}</code></pre></div>
+    <span class="kw">pub</span> <span class="kw">fn</span> draw_at(&amp;<span class="kw">mut</span> <span class="kw">self</span>, pos_x : <span class="kw">i32</span>, pos_y : <span class="kw">i32</span>) {}
+}</code></pre>
 <p>These are the errors:</p>
 <pre><code>&lt;anon&gt;:8:22: 8:32 error: cannot use `self.pos_x` because it was mutably borrowed [E0503]
 &lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
@@ -1165,19 +1165,19 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 &lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
                  ^~~~</code></pre>
 <p>Basically the method itself (<code>self.draw_at</code>) borrows <code>self</code> mutably, and since arguments are evaluated <em>after</em> the function in a function application, we get this borrow checker error. The solution is simple in this case:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">let</span> pos_x = <span class="kw">self</span>.pos_x;
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">let</span> pos_x = <span class="kw">self</span>.pos_x;
 <span class="kw">let</span> pos_y = <span class="kw">self</span>.pos_y;
-<span class="kw">self</span>.draw_at(pos_x, pos_y);</code></pre></div>
+<span class="kw">self</span>.draw_at(pos_x, pos_y);</code></pre>
 <h1 id="variables-that-live-across-loops">3. Variables that live across loops</h1>
 <p>Suppose you have a loop that internally calls some <code>&amp;mut self</code> methods, and when it returns, it returns something with a reference to <code>&amp;self</code>. Something like:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">pub</span> <span class="kw">struct</span> TUI {
-    field1: <span class="dt">i32</span>,
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">pub</span> <span class="kw">struct</span> TUI {
+    field1: <span class="kw">i32</span>,
 }
 
 <span class="kw">pub</span> <span class="kw">enum</span> TUIRet&lt;<span class="ot">&#39;a</span>&gt; {
     Abort,
     KeyHandled,
-    Input(&amp;<span class="ot">&#39;a</span> <span class="dt">str</span>),
+    Input(&amp;<span class="ot">&#39;a</span> <span class="kw">str</span>),
 }
 
 <span class="kw">impl</span> TUI {
@@ -1194,11 +1194,11 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> keypressed(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet {
-        <span class="pp">panic!</span>()
+        <span class="ot">panic!</span>()
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">self</span>) {}
-}</code></pre></div>
+}</code></pre>
 <p>Can you see what could go wrong here? Here’s the error:</p>
 <pre><code>&lt;anon&gt;:18:13: 18:17 error: cannot borrow `*self` as immutable because it is also borrowed as mutable [E0502]
 &lt;anon&gt;:18             self.draw();
@@ -1228,12 +1228,12 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 &lt;anon&gt;:26     }
               ^</code></pre>
 <p>This is probably the worst of all. The weird part is that this works:</p>
-<div class="sourceCode"><pre class="sourceCode rust"><code class="sourceCode rust">    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">&#39;a</span>&gt; {
+<pre class="sourceCode rust"><code class="sourceCode rust">    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">&#39;a</span>&gt; {
         <span class="kw">loop</span> {
             <span class="kw">self</span>.draw();
             <span class="kw">return</span> <span class="kw">self</span>.keypressed();
         }
-    }</code></pre></div>
+    }</code></pre>
 <p>Only solution I could find here was to remove the references to <code>self</code>, by just copying the value to <code>Input</code>. This unfortunately means more redundant copying.</p>]]></summary>
 </entry>
 

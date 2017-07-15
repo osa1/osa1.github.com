@@ -24,10 +24,10 @@ newtype IORef a
         -- Defined in ‘GHC.IORef’
 instance Eq (IORef a) -- Defined in ‘GHC.IORef’</code></pre>
 <p><code>GHC.IORef</code> is defined in <code>libraries/base/GHC/IORef.hs</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A mutable variable in the &#39;IO&#39; monad</span>
-<span class="kw">newtype</span> <span class="dt">IORef</span> a <span class="fu">=</span> <span class="dt">IORef</span> (<span class="dt">STRef</span> <span class="dt">RealWorld</span> a)</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A mutable variable in the &#39;IO&#39; monad</span>
+<span class="kw">newtype</span> <span class="dt">IORef</span> a <span class="fu">=</span> <span class="dt">IORef</span> (<span class="dt">STRef</span> <span class="dt">RealWorld</span> a)</code></pre>
 <p>We’ll look at 3 operations: read, write, and atomic modify.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Read the value of an &#39;IORef&#39;</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Read the value of an &#39;IORef&#39;</span>
 <span class="ot">readIORef   ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
 readIORef  (<span class="dt">IORef</span> var) <span class="fu">=</span> stToIO (readSTRef var)
 
@@ -36,21 +36,21 @@ readIORef  (<span class="dt">IORef</span> var) <span class="fu">=</span> stToIO 
 writeIORef (<span class="dt">IORef</span> var) v <span class="fu">=</span> stToIO (writeSTRef var v)
 
 <span class="ot">atomicModifyIORef ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> (a,b)) <span class="ot">-&gt;</span> <span class="dt">IO</span> b
-atomicModifyIORef (<span class="dt">IORef</span> (<span class="dt">STRef</span> r<span class="fu">#</span>)) f <span class="fu">=</span> <span class="dt">IO</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> atomicModifyMutVar<span class="fu">#</span> r<span class="fu">#</span> f s</code></pre></div>
+atomicModifyIORef (<span class="dt">IORef</span> (<span class="dt">STRef</span> r<span class="st">#)) f = IO $ \s -&gt; atomicModifyMutVar# r# f s</span></code></pre>
 <p><code>STRef</code> is defined in <code>libraries/base/GHC/STRef.hs</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A value of type `STRef s a` is a mutable variable in state thread `s`,</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A value of type `STRef s a` is a mutable variable in state thread `s`,</span>
 <span class="co">-- containing a value of type `a`</span>
-<span class="kw">data</span> <span class="dt">STRef</span> s a <span class="fu">=</span> <span class="dt">STRef</span> (<span class="dt">MutVar</span><span class="fu">#</span> s a)
+<span class="kw">data</span> <span class="dt">STRef</span> s a <span class="fu">=</span> <span class="dt">STRef</span> (<span class="dt">MutVar</span><span class="st"># s a)</span>
 
 <span class="co">-- | Read the value of an &#39;STRef&#39;</span>
 <span class="ot">readSTRef ::</span> <span class="dt">STRef</span> s a <span class="ot">-&gt;</span> <span class="dt">ST</span> s a
-readSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) <span class="fu">=</span> <span class="dt">ST</span> <span class="fu">$</span> \s1<span class="fu">#</span> <span class="ot">-&gt;</span> readMutVar<span class="fu">#</span> var<span class="fu">#</span> s1<span class="fu">#</span>
+readSTRef (<span class="dt">STRef</span> var<span class="st">#) = ST $ \s1# -&gt; readMutVar# var# s1#</span>
 
 <span class="co">-- | Write a new value into an &#39;STRef&#39;</span>
 <span class="ot">writeSTRef ::</span> <span class="dt">STRef</span> s a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">ST</span> s ()
-writeSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) val <span class="fu">=</span> <span class="dt">ST</span> <span class="fu">$</span> \s1<span class="fu">#</span> <span class="ot">-&gt;</span>
-    <span class="kw">case</span> writeMutVar<span class="fu">#</span> var<span class="fu">#</span> val s1<span class="fu">#</span> <span class="kw">of</span>
-      s2<span class="fu">#</span> <span class="ot">-&gt;</span> (<span class="fu">#</span> s2<span class="fu">#</span>, () <span class="fu">#</span>)</code></pre></div>
+writeSTRef (<span class="dt">STRef</span> var<span class="st">#) val = ST $ \s1# -&gt;</span>
+    <span class="kw">case</span> writeMutVar<span class="st"># var# val s1# of</span>
+      s2<span class="st"># -&gt; (# s2#, () #)</span></code></pre>
 <p>Note that there’s no <code>atomicModifySTRef</code>, because that only makes sense in IO context. So <code>atomicModifyIORef</code> directly calls the primop.</p>
 <p>In summary:</p>
 <ul>
@@ -68,7 +68,7 @@ writeSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) val <spa
    has_side_effects = True
    can_fail         = True</code></pre>
 <p>Code generation is handled by <code>StgCmmPrim.emitPrimOp</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">emitPrimOp ::</span> <span class="dt">DynFlags</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">emitPrimOp ::</span> <span class="dt">DynFlags</span>
            <span class="ot">-&gt;</span> [<span class="dt">LocalReg</span>]        <span class="co">-- where to put the results</span>
            <span class="ot">-&gt;</span> <span class="dt">PrimOp</span>            <span class="co">-- the op</span>
            <span class="ot">-&gt;</span> [<span class="dt">CmmExpr</span>]         <span class="co">-- arguments</span>
@@ -77,7 +77,7 @@ writeSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) val <spa
 <span class="fu">...</span>
 
 emitPrimOp dflags [res] <span class="dt">ReadMutVarOp</span> [mutv]
-   <span class="fu">=</span> emitAssign (<span class="dt">CmmLocal</span> res) (cmmLoadIndexW dflags mutv (fixedHdrSizeW dflags) (gcWord dflags))</code></pre></div>
+   <span class="fu">=</span> emitAssign (<span class="dt">CmmLocal</span> res) (cmmLoadIndexW dflags mutv (fixedHdrSizeW dflags) (gcWord dflags))</code></pre>
 <p>This is just relative addressing, base is the <code>MutVar#</code> we’re reading, and we skip the closure header to read the contents.</p>
 <h1 id="writemutvar">writeMutVar#</h1>
 <p>Primop definition:</p>
@@ -90,13 +90,13 @@ emitPrimOp dflags [res] <span class="dt">ReadMutVarOp</span> [mutv]
                          -- for the write barrier
    can_fail         = True</code></pre>
 <p>Code generation is again implemented in <code>emitPrimOp</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">emitPrimOp dflags [] <span class="dt">WriteMutVarOp</span> [mutv,var]
+<pre class="sourceCode haskell"><code class="sourceCode haskell">emitPrimOp dflags [] <span class="dt">WriteMutVarOp</span> [mutv,var]
    <span class="fu">=</span> <span class="kw">do</span> emitStore (cmmOffsetW dflags mutv (fixedHdrSizeW dflags)) var
         emitCCall [<span class="co">{-no results-}</span>]
                   (<span class="dt">CmmLit</span> (<span class="dt">CmmLabel</span> mkDirty_MUT_VAR_Label))
-                  [(<span class="dt">CmmReg</span> (<span class="dt">CmmGlobal</span> <span class="dt">BaseReg</span>), <span class="dt">AddrHint</span>), (mutv,<span class="dt">AddrHint</span>)]</code></pre></div>
+                  [(<span class="dt">CmmReg</span> (<span class="dt">CmmGlobal</span> <span class="dt">BaseReg</span>), <span class="dt">AddrHint</span>), (mutv,<span class="dt">AddrHint</span>)]</code></pre>
 <p>This is more involved than <code>readMutVar#</code>. First, we write the variable to the <code>MutVar#</code> in the first line (<code>emitStore</code>). Then, we call a function, specified by the variable <code>mkDirty_MUT_VAR_Label</code>, passing two arguments: a global called <code>BaseReg</code>, and the <code>MutVar#</code>. <code>mkDirty_MUT_VAR_Label</code> just holds the name of this function: (defined in <code>rts/sm/Storage.c</code>)</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="co">/*</span>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="co">/*</span>
 <span class="co">   This is the write barrier for MUT_VARs, a.k.a. IORefs.  A</span>
 <span class="co">   MUT_VAR_CLEAN object is not on the mutable list; a MUT_VAR_DIRTY</span>
 <span class="co">   is.  When written to, a MUT_VAR_CLEAN turns into a MUT_VAR_DIRTY</span>
@@ -105,55 +105,55 @@ emitPrimOp dflags [res] <span class="dt">ReadMutVarOp</span> [mutv]
 <span class="dt">void</span> dirty_MUT_VAR(StgRegTable *reg, StgClosure *p)
 {
     Capability *cap = regTableToCapability(reg);
-    <span class="cf">if</span> (p-&gt;header.info == &amp;stg_MUT_VAR_CLEAN_info) {
+    <span class="kw">if</span> (p-&gt;header.info == &amp;stg_MUT_VAR_CLEAN_info) {
         p-&gt;header.info = &amp;stg_MUT_VAR_DIRTY_info;
         recordClosureMutated(cap,p);
     }
-}</code></pre></div>
+}</code></pre>
 <p>Remember that for the first argument we passed something called <code>BaseReg</code>, and for the second argument we passed the <code>MutVar#</code>.</p>
 <p>This function gets a <code>Capability</code> from the register table, and if the <code>MutVar#</code> is “clean”, it marks it as “dirty” and records in the capability that it’s now mutated.</p>
 <p><code>Capability</code> lacks documentation, but it’s not too important, so we just skip that and look at <code>recordClsoureMutated</code>.</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordClosureMutated(Capability *cap, StgClosure *p)
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordClosureMutated(Capability *cap, StgClosure *p)
 {
     bdescr *bd = Bdescr((StgPtr)p);
-    <span class="cf">if</span> (bd-&gt;gen_no != <span class="dv">0</span>) recordMutableCap(p,cap,bd-&gt;gen_no);
-}</code></pre></div>
+    <span class="kw">if</span> (bd-&gt;gen_no != <span class="dv">0</span>) recordMutableCap(p,cap,bd-&gt;gen_no);
+}</code></pre>
 <p><code>p</code> is our <code>MutVar#</code> here. <code>bdescr</code> stands for “block descriptor”. GHC RTS allocates memory in blocks, and every block belongs to a generation. First generation is special in that if a <code>MutVar#</code> is in the first generation, it can’t point to a younger generation, as the first generation is already the youngest generation. This is from <code>includes/rts/storage/GC.h</code>:</p>
 <pre><code>- generation 0 is the allocation area.  It is given a fixed set of blocks
   during initialisation, and these blocks normally stay in G0S0.  In parallel
   execution, each Capability has its own nursery.</code></pre>
 <p>This code basically checks if the <code>MutVar#</code> belongs to first generation (generation 0). If that’s not the case, we record the <code>MutVar#</code> in the generation’s “mut list”:</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordMutableCap(<span class="dt">const</span> StgClosure *p, Capability *cap, <span class="dt">uint32_t</span> gen)
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordMutableCap(<span class="dt">const</span> StgClosure *p, Capability *cap, <span class="dt">uint32_t</span> gen)
 {
     bdescr* bd = cap-&gt;mut_lists[gen];
-    <span class="cf">if</span> (bd-&gt;free &gt;= bd-&gt;start + BLOCK_SIZE_W) {
+    <span class="kw">if</span> (bd-&gt;free &gt;= bd-&gt;start + BLOCK_SIZE_W) {
         bdescr *new_bd = allocBlockOnNode_lock(cap-&gt;node);
         new_bd-&gt;link = bd;
         bd = new_bd;
         cap-&gt;mut_lists[gen] = bd;
     }
     *bd-&gt;free++ = (StgWord)p;
-}</code></pre></div>
+}</code></pre>
 <p>Garbage collector then checks that list when collecting younger generations, to avoid collecting young objects kept alive by older generations (i.e. pointers from older generations to younger generations, see <code>scavenge_capability_mut_lists</code> in <code>rts/sm/Scav.c</code>).</p>
 <p>We saw in <code>dirty_MUT_VAR</code> that the <code>MutVar#</code> is marked as “dirty” when it’s mutated. When is it marked as “clean” again?</p>
 <p>When a <code>MutVar#</code> is copied during GC, the object pointed by it is also copied to the same generation, and then the <code>MutVar#</code> becomes clean again, because it no longer points to a younger generation. This is the related code:</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">static</span> <span class="dt">void</span>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">static</span> <span class="dt">void</span>
 scavenge_block(bdescr *bd)
 {
     ...
-    <span class="cf">case</span> MUT_VAR_DIRTY:
+    <span class="kw">case</span> MUT_VAR_DIRTY:
         gct-&gt;eager_promotion = rtsFalse;
         evacuate(&amp;((StgMutVar *)p)-&gt;var);
         gct-&gt;eager_promotion = saved_eager_promotion;
-        <span class="cf">if</span> (gct-&gt;failed_to_evac) {
+        <span class="kw">if</span> (gct-&gt;failed_to_evac) {
             ((StgClosure *)q)-&gt;header.info = &amp;stg_MUT_VAR_DIRTY_info;
-        } <span class="cf">else</span> {
+        } <span class="kw">else</span> {
             ((StgClosure *)q)-&gt;header.info = &amp;stg_MUT_VAR_CLEAN_info;
         }
         p += sizeofW(StgMutVar);
-        <span class="cf">break</span>;
+        <span class="kw">break</span>;
     ...
-}</code></pre></div>
+}</code></pre>
 <h1 id="atomicmodifymutvar">atomicModifyMutVar#</h1>
 <p>Primop definition:</p>
 <pre><code>primop  AtomicModifyMutVarOp &quot;atomicModifyMutVar#&quot; GenPrimOp
@@ -163,7 +163,7 @@ scavenge_block(bdescr *bd)
    has_side_effects = True
    can_fail         = True</code></pre>
 <p><code>out_of_line = True</code> basically tells code generator that this primop is implemented as a function. Code generator then just generates a function call:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cgOpApp ::</span> <span class="dt">StgOp</span>        <span class="co">-- The op</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cgOpApp ::</span> <span class="dt">StgOp</span>        <span class="co">-- The op</span>
         <span class="ot">-&gt;</span> [<span class="dt">StgArg</span>]     <span class="co">-- Arguments</span>
         <span class="ot">-&gt;</span> <span class="dt">Type</span>         <span class="co">-- Result type (always an unboxed tuple)</span>
         <span class="ot">-&gt;</span> <span class="dt">FCode</span> <span class="dt">ReturnKind</span>
@@ -177,27 +177,27 @@ cgOpApp (<span class="dt">StgPrimOp</span> primop) args res_ty <span class="fu">
         <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>  <span class="co">-- out-of-line</span>
           <span class="kw">let</span> fun <span class="fu">=</span> <span class="dt">CmmLit</span> (<span class="dt">CmmLabel</span> (mkRtsPrimOpLabel primop))
           emitCall (<span class="dt">NativeNodeCall</span>, <span class="dt">NativeReturn</span>) fun cmm_args
-        <span class="fu">...</span></code></pre></div>
+        <span class="fu">...</span></code></pre>
 <p>The primop is implemented in Cmm, in <code>rts/PrimOps.cmm</code>. The code is a mess, but here’s the important part:</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">stg_atomicModifyMutVarzh ( gcptr mv, gcptr f )
+<pre class="sourceCode c"><code class="sourceCode c">stg_atomicModifyMutVarzh ( gcptr mv, gcptr f )
 {
   ...
   retry:
     x = StgMutVar_var(mv);
     StgThunk_payload(z,<span class="dv">1</span>) = x;
-<span class="pp">#ifdef THREADED_RTS</span>
+<span class="ot">#ifdef THREADED_RTS</span>
     (h) = ccall cas(mv + SIZEOF_StgHeader + OFFSET_StgMutVar_var, x, y);
-    <span class="cf">if</span> (h != x) { <span class="cf">goto</span> retry; }
-<span class="pp">#else</span>
+    <span class="kw">if</span> (h != x) { <span class="kw">goto</span> retry; }
+<span class="ot">#else</span>
     StgMutVar_var(mv) = y;
-<span class="pp">#endif</span>
+<span class="ot">#endif</span>
 
-    <span class="cf">if</span> (GET_INFO(mv) == stg_MUT_VAR_CLEAN_info) {
+    <span class="kw">if</span> (GET_INFO(mv) == stg_MUT_VAR_CLEAN_info) {
         ccall dirty_MUT_VAR(BaseReg <span class="st">&quot;ptr&quot;</span>, mv <span class="st">&quot;ptr&quot;</span>);
     }
 
-    <span class="cf">return</span> (r);
-}</code></pre></div>
+    <span class="kw">return</span> (r);
+}</code></pre>
 <p>It’s basically a compare-and-swap loop, and in the end it marks the <code>MutVar#</code> as “dirty”, using the same <code>dirty_MUT_VAR</code> function used by the code generated for <code>writeMutVar#</code>.</p>
 <h1 id="the-mutvar-struct">The <code>MutVar#</code> struct</h1>
 <p>As the last thing, we look at the definition of <code>MutVar#</code>: (in <code>includes/rts/storage/Closures.h</code>)</p>
@@ -213,7 +213,7 @@ cgOpApp (<span class="dt">StgPrimOp</span> primop) args res_ty <span class="fu">
 <li><p>Unpacking an <code>IORef</code> in a data constructor field does not really make the constructor mutable. Instead, it inlines the <code>MutVar#</code>, which has a mutable pointer field.</p></li>
 </ol>
 <p>If you think about it a little bit, you may realize that optimizing (2) is actually quite tricky. Imagine having something like this:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">D</span> <span class="fu">=</span> <span class="dt">D</span> {<span class="ot"> f1 ::</span> <span class="ot">{-# UNPACK #-}</span> <span class="fu">!</span>(<span class="dt">IORef</span> <span class="dt">Int</span>)
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">D</span> <span class="fu">=</span> <span class="dt">D</span> {<span class="ot"> f1 ::</span> <span class="ot">{-# UNPACK #-}</span> <span class="fu">!</span>(<span class="dt">IORef</span> <span class="dt">Int</span>)
            ,<span class="ot"> f2 ::</span> <span class="dt">Int</span>
            }
 
@@ -221,15 +221,15 @@ cgOpApp (<span class="dt">StgPrimOp</span> primop) args res_ty <span class="fu">
 bumpf1 (<span class="dt">D</span> f1 _) <span class="fu">=</span> modifyIORef f1 (<span class="fu">+</span> <span class="dv">1</span>)
 
 <span class="ot">bumpf2 ::</span> <span class="dt">D</span> <span class="ot">-&gt;</span> <span class="dt">D</span>
-bumpf2 (<span class="dt">D</span> f1 f2) <span class="fu">=</span> <span class="dt">D</span> f1 (f2 <span class="fu">+</span> <span class="dv">1</span>)</code></pre></div>
+bumpf2 (<span class="dt">D</span> f1 f2) <span class="fu">=</span> <span class="dt">D</span> f1 (f2 <span class="fu">+</span> <span class="dv">1</span>)</code></pre>
 <p>You’d expect this to print <code>True</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> ref <span class="ot">&lt;-</span> newIORef <span class="dv">0</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> ref <span class="ot">&lt;-</span> newIORef <span class="dv">0</span>
    <span class="kw">let</span> d1 <span class="fu">=</span> <span class="dt">D</span> ref <span class="dv">0</span>
        d2 <span class="fu">=</span> bumpD2 d1
    bumpf1 d1
    rv1 <span class="ot">&lt;-</span> readIORef (f1 d1)
    rv2 <span class="ot">&lt;-</span> readIORef (f1 d2)
-   print (rv1 <span class="fu">==</span> rv2)</code></pre></div>
+   print (rv1 <span class="fu">==</span> rv2)</code></pre>
 <p>If <code>D</code> becomes mutable after the <code>UNPACK</code>, this code doesn’t work anymore, because we lose sharing after the functional update in line <code>bumpD2 d1</code>.</p>
 <p>See also <a href="https://ghc.haskell.org/trac/ghc/ticket/7662#comment:3">this discussion</a> for how other compilers improve this.</p>]]></summary>
 </entry>
@@ -273,30 +273,30 @@ bumpf2 (<span class="dt">D</span> f1 f2) <span class="fu">=</span> <span class="
     <published>2016-06-27T00:00:00Z</published>
     <updated>2016-06-27T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I thought a bang pattern is all about <code>seq</code>. That may actually be true, but when that <code>seq</code> is happening may not be obvious. Even after ~5 years of Haskell I was initially very confused by this, and in fact at first I thought it was a bug:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T</span> <span class="fu">=</span> <span class="dt">A</span> <span class="fu">|</span> <span class="dt">B</span> <span class="fu">|</span> <span class="dt">C</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T</span> <span class="fu">=</span> <span class="dt">A</span> <span class="fu">|</span> <span class="dt">B</span> <span class="fu">|</span> <span class="dt">C</span>
 
 <span class="ot">fn5 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">T</span>] <span class="ot">-&gt;</span> <span class="dt">Int</span>
 fn5  i []       <span class="fu">=</span> i
 fn5  i (<span class="dt">A</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 (i <span class="fu">+</span> <span class="dv">1</span>) ts
 fn5 <span class="fu">!</span>i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts
-fn5  i (<span class="dt">C</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 <span class="dv">0</span> ts</code></pre></div>
+fn5  i (<span class="dt">C</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 <span class="dv">0</span> ts</code></pre>
 <p>The question is, given these definitions, what does this evaluate to, and why:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 undefined [<span class="dt">C</span>]</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 undefined [<span class="dt">C</span>]</code></pre>
 <p>This question is basically a <code>BangPatterns</code> question. The key point is that a bang pattern <em>first evaluates the value</em> to match, then looks at the pattern. This is from GHC 8.0.1 user manual, <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#bang-patterns-informal">section 9.28.1</a>:</p>
 <blockquote>
 <p>Matching an expression e against a pattern !p is done by first evaluating e (to WHNF) and then matching the result against p.</p>
 </blockquote>
 <p>My initial thought was that this example would not crash because the pattern <code>i</code> always matches, and since second argument is only matched by last case of this definition, which doesn’t evaluate <code>i</code>, <code>i</code> would not get evaluated.</p>
 <p>Or in other words, I thought all this bang pattern does is to add a <code>seq</code>, <em>to the RHS</em>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> i <span class="ot">`seq`</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> i <span class="ot">`seq`</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts</code></pre>
 <p>which is not what it really does!</p>
 <hr />
 <p>Before bang patterns, I think this pattern was considered as the standard way of forcing a function argument (mostly used for accumulator arguments):</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f acc _ <span class="fu">|</span> acc <span class="ot">`seq`</span> <span class="dt">False</span> <span class="fu">=</span> undefined
-f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">f acc _ <span class="fu">|</span> acc <span class="ot">`seq`</span> <span class="dt">False</span> <span class="fu">=</span> undefined
+f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre>
 <p>The guard in first equation always fails, but it forces the <code>acc</code> by the time it fails. While this looks bad<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, it compiles to nice code after a case-of-case transformation, and it evaluates <code>acc</code> as first thing to do whenever it’s applied to two arguments.</p>
 <p>Now, with <code>BangPatterns</code>, we get to do this:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">!</span>acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">!</span>acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre>
 <p>Which is good when we have one equation only, but when we have multiple equations like in <code>fn5</code> above, we need add bang patterns to every equation, or we risk having bugs<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
 <p>So in short, we don’t have a good solution for saying a function is strict on some arguments, without risking bugs (by trying to add minimum number of bangs) or adding a lot of them.</p>
 <hr />
@@ -327,17 +327,17 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 <p>Now, with <code>-XStrict</code>, we have a bang pattern in every binder. This means that:</p>
 <ol style="list-style-type: decimal">
 <li><p>Let-bindings are now strict. E.g. if we have something like:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span> <span class="fu">...</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span> <span class="fu">...</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
 <p><code>a</code> is now evaluated before <code>&lt;body&gt;</code>, and so we can be sure that it won’t be bottom in <code>&lt;body&gt;</code>. Note however that this isn’t to say that <code>a</code> can’t <em>contain</em> bottoms. Here I’m just saying that <code>a</code> can’t be bottom in <code>&lt;body&gt;</code>.</p></li>
 <li><p>Function arguments are now strict. In a function like this:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f a b <span class="fu">=</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">f a b <span class="fu">=</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
 <p><code>a</code> and <code>b</code> can’t be bottom in <code>&lt;body&gt;</code>.</p></li>
 <li><p>Data constructor arguments(fields) are now strict. If we have this:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="dt">Nil</span> <span class="fu">|</span> <span class="dt">Cons</span> a (<span class="dt">List</span> a)</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="dt">Nil</span> <span class="fu">|</span> <span class="dt">Cons</span> a (<span class="dt">List</span> a)</code></pre>
 <p>The two fields of <code>Cons</code> are now strict. Now, this case may look a bit tricky at first. What we really say here is that once a <code>List</code> is constructed, it can’t contain bottoms. We can still do something like <code>undefined :: List Int</code>, but the program immediately fails, instead of running until you try to pattern match on that <code>undefined</code> value like in the lazy case. This follows from the first two rules. Keep reading for more details.</p></li>
 </ol>
 <p>When all these combined, it means that our programs are evaluated just like how they would be in a call-by-value language. For example, if we have:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span> <span class="fu">...</span>  <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span> <span class="fu">...</span>  <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
 <p>We can be sure that <code>a</code> won’t be bottom in <code>&lt;body&gt;</code>, and it can’t contain bottoms too! This follows from all the rules above. The first rule only says that <code>a</code> can’t be bottom itself. It doesn’t say anything about the fields(subexpressions) of <code>a</code>. Third rule says that it can’t contain bottom fields.</p>
 <p>When we make all the binders and fields strict, including all the modules in all the dependencies(<code>base</code> etc.), we guarantee that we our programs evaluate like in a call-by-value language.</p>
 <p>Now, call-by-value, call-by-name(and it’s efficient implementation call-by-need) etc. are really about how to evaluate a function application. In our case since we have a strictness annotation in all the function arguments, arguments will be evaluated before being passed to the function. Which really means evaluating the function application in call-by-value semantics.</p>
@@ -347,35 +347,35 @@ f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></di
 <p>Unless we compile modules that define those using <code>-XStrict</code>, they’ll stay non-strict. For the standard types, we need <code>base</code> compiled with <code>-XStrict</code>. In practice this will probably never happen. But I think we can have another base, say, <code>base-strict</code>, which is the same <code>base</code>, except compiled with <code>-XStrict</code>. In this case depending on which one we’re using our lists, tuples etc. become strict or lazy.</p>
 <h2 id="what-about-monadic-code">What about monadic code?</h2>
 <p>Monadic code is really not special in any sense. When talking about the semantics we should see through the syntactic sugar. Say we have this:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> a <span class="ot">&lt;-</span> m1
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> a <span class="ot">&lt;-</span> m1
    b <span class="ot">&lt;-</span> m2 a
-   return (a <span class="fu">+</span> b)</code></pre></div>
+   return (a <span class="fu">+</span> b)</code></pre>
 <p>This is really just a syntactic sugar for:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">m1 <span class="fu">&gt;&gt;=</span> (\a <span class="ot">-&gt;</span> m2 a <span class="fu">&gt;&gt;=</span> (\b <span class="ot">-&gt;</span> return (a <span class="fu">+</span> b)))</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">m1 <span class="fu">&gt;&gt;=</span> (\a <span class="ot">-&gt;</span> m2 a <span class="fu">&gt;&gt;=</span> (\b <span class="ot">-&gt;</span> return (a <span class="fu">+</span> b)))</code></pre>
 <p>With <code>-XStrict</code>, function arguments <code>a</code> and <code>b</code> and all the arguments of <code>&gt;&gt;=</code> and <code>return</code> will be strict. This makes the whole code strict. In this code this means that <code>m1</code> will be evaluated before <code>m2 a</code> is evaluated, and <code>return</code>s return value will be strict etc.</p>
 <h2 id="what-about-list-comprehensions-and-infinite-listsstreams">What about list comprehensions and infinite lists(streams)?</h2>
 <p>A list comprehension like <code>[1..]</code> is again a syntactic sugar. It’s expanded form is <code>enumFrom 1</code>. <code>enumFrom</code>’s type is <code>Enum a =&gt; a -&gt; [a]</code>. Let’s say we’re using <code>Enum Int</code> here. Since the instance is defined in <code>base</code>, and lists are also defined in <code>base</code>, this code will still work. However, if we compile <code>base</code> with <code>-XStrict</code>, this code loops because the standard list type will become strict.</p>
 <p>In practice we would probably define strict and lazy lists separately to have the laziness when we need.</p>
 <h2 id="what-about-higher-order-functions">What about higher-order functions?</h2>
 <p>Since we don’t distinguish strict and lazy functions in type level, when we have a higher-order functions it may seem like we’d loose the guarantees. But this is not the case, at least not in general. Suppose we have this:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">map<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
+<pre class="sourceCode haskell"><code class="sourceCode haskell">map<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
 map _ []       <span class="fu">=</span> []
-map f (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class="fu">:</span> map f xs</code></pre></div>
+map f (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class="fu">:</span> map f xs</code></pre>
 <p>This is compiled with <code>-XStrict</code>. Now suppose we pass a function <code>f</code> which is lazy in it’s argument. Since <code>(:)</code> is strict in this code, we’ll still evaluate the <code>f x</code> before returning. Our guarantee that the list won’t be bottom and won’t have bottom still holds.</p>
 <p>See also the paper <a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/strict-core/tacc-hs09.pdf">“Types are calling conventions”</a>.</p>
 <h2 id="haskells-denotational-semantics-says-that-lifted-types-have-bottoms">Haskell’s denotational semantics says that lifted types have bottoms</h2>
 <p>This is true. Even if we have this strict type:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="dt">Nil</span> <span class="fu">|</span> <span class="dt">Cons</span> <span class="fu">!</span>a <span class="fu">!</span>(<span class="dt">List</span> a)</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="dt">Nil</span> <span class="fu">|</span> <span class="dt">Cons</span> <span class="fu">!</span>a <span class="fu">!</span>(<span class="dt">List</span> a)</code></pre>
 <p>We can construct bottom values of this type, using, for example, <code>undefined :: List Int</code> or <code>(let x = x in x) :: Blah</code>.</p>
 <p>However, if you think about how this value will be evaluated you’ll realize that this is exactly like how it would be evaluated in a call-by-value language. For example, if we try to bind it to a value:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span><span class="ot"> undefined ::</span> <span class="dt">List</span> <span class="dt">Int</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span><span class="ot"> undefined ::</span> <span class="dt">List</span> <span class="dt">Int</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
 <p>This code will fail before <code>&lt;body&gt;</code> is run. In <code>&lt;body&gt;</code> <code>a</code> can’t be bottom and can’t contain bottoms.</p>
 <p>(See also <a href="https://mail.haskell.org/pipermail/ghc-devs/2015-September/009799.html">this ghc-devs thread</a> about adding user defined unlifted data types to GHC. With this we could eliminate all the bottoms in some user-defined types.)</p>
 <h2 id="but-haskell-will-still-generate-thunks-in-the-rts-level">But Haskell will still generate thunks in the RTS level?</h2>
 <p>This is exactly right. <code>-XStrict</code> is really a very simple compiler pass that adds strictness annotations to every binder and field. We don’t have any changes in the GHC RTS to take advantage of additional strictness.</p>
 <p>In other words, operational semantics of the language and implementation of this operational semantics in GHC RTS is still the same. We just do a program transformation to generate a program that evaluates like it would in a call-by-value language.</p>
 <p>This means that if we have this program:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span><span class="ot"> undefined ::</span> <span class="dt">List</span> <span class="dt">Int</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a <span class="fu">=</span><span class="ot"> undefined ::</span> <span class="dt">List</span> <span class="dt">Int</span> <span class="kw">in</span> <span class="fu">&lt;</span>body<span class="fu">&gt;</span></code></pre>
 <p>A thunk is still constructed in the runtime, but it’s evaluated <em>before</em> the <code>&lt;body&gt;</code> is evaluated. So this code fails before <code>&lt;body&gt;</code> is evaluated, and if we evaluate <code>&lt;body&gt;</code> it means that <code>a</code> is not bottom and doesn’t have bottoms.</p>
 <p>This is another potential improvement over the <code>-XStrict</code>. For more details and some optimizations see <a href="https://mail.haskell.org/pipermail/ghc-devs/2015-October/010175.html">this ghc-devs thread</a>.</p>]]></summary>
 </entry>
@@ -395,35 +395,35 @@ map f (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class
 <p>At this point garbage collector helps to eliminate one level of indirection, and updates the field to point to the data directly. But this waits until the next garbage collection.</p>
 <p>GHC has some support for “unpacking” fields of ADTs and records. When a field is “unpacked”, it means that 1) the field is strict 2) the value is not allocated separately and pointed to by a pointer, it’s part of the data constructor/record<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>.</p>
 <p>To illustrate how important unpacking is, I implemented two benchmarks. This is the data types I use in the benchmarks:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">GL</span> a <span class="fu">=</span> <span class="dt">GLNil</span> <span class="fu">|</span> <span class="dt">GLCons</span> a (<span class="dt">GL</span> a)
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">GL</span> a <span class="fu">=</span> <span class="dt">GLNil</span> <span class="fu">|</span> <span class="dt">GLCons</span> a (<span class="dt">GL</span> a)
 
 <span class="kw">data</span> <span class="dt">SGL</span> a <span class="fu">=</span> <span class="dt">SGLNil</span> <span class="fu">|</span> <span class="dt">SGLCons</span> <span class="fu">!</span>a (<span class="dt">SGL</span> a)
 
-<span class="kw">data</span> <span class="dt">IntList</span> <span class="fu">=</span> <span class="dt">ILNil</span> <span class="fu">|</span> <span class="dt">ILCons</span> <span class="ot">{-# UNPACK #-}</span> <span class="fu">!</span><span class="dt">Int</span> <span class="dt">IntList</span></code></pre></div>
+<span class="kw">data</span> <span class="dt">IntList</span> <span class="fu">=</span> <span class="dt">ILNil</span> <span class="fu">|</span> <span class="dt">ILCons</span> <span class="ot">{-# UNPACK #-}</span> <span class="fu">!</span><span class="dt">Int</span> <span class="dt">IntList</span></code></pre>
 <p>The first type, <code>GL</code>, is the exactly the same as GHC’s standard list type. Second one is mostly the same, only difference is I have a strictness annotation(a <a href="https://downloads.haskell.org/~ghc/7.10.2/docs/html/users_guide/bang-patterns.html"><code>BangPattern</code></a>) before in the head(or <code>car</code>) part of the list. Third one is similar to second one, except I also unpack the <code>car</code>.</p>
 <p>Note that if you look at the types, first two of these types are parametric on the list elements, while the third one is specialized to integers. This is essentially monomorphization, and some compilers can do that automatically in some cases(<a href="http://mlton.org/Monomorphise">1</a>, <a href="http://www.impredicative.com/ur/">2</a>, if you know other compilers that do this, please write a comment), but in the presence of higher-order functions(and probably some other features), it’s in general not possible to monomorphise everything<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>. GHC has some limited support for this with the <a href="https://downloads.haskell.org/~ghc/7.10.2/docs/html/users_guide/pragmas.html#specialize-pragma"><code>SPECIALIZE</code> pragma</a>, but it only works on functions and it doesn’t specialize data types(and maybe it can’t do this even in theory).</p>
 <p>Now, I’m going to implement two functions on these data types. First function is for summing up all the elements:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">glSum ::</span> <span class="dt">GL</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">glSum ::</span> <span class="dt">GL</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
 glSum <span class="fu">=</span> glSumAcc <span class="dv">0</span>
 
 <span class="ot">glSumAcc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">GL</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
 glSumAcc <span class="fu">!</span>acc <span class="dt">GLNil</span>        <span class="fu">=</span> acc
-glSumAcc <span class="fu">!</span>acc (<span class="dt">GLCons</span> h t) <span class="fu">=</span> glSumAcc (acc <span class="fu">+</span> h) t</code></pre></div>
+glSumAcc <span class="fu">!</span>acc (<span class="dt">GLCons</span> h t) <span class="fu">=</span> glSumAcc (acc <span class="fu">+</span> h) t</code></pre>
 <p>I implement exactly the same function for other types too.</p>
 <p>Second function is the length function:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">glLength ::</span> <span class="dt">GL</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">glLength ::</span> <span class="dt">GL</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span>
 glLength <span class="fu">=</span> glLengthAcc <span class="dv">0</span>
 
 <span class="ot">glLengthAcc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">GL</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span>
 glLengthAcc <span class="fu">!</span>acc <span class="dt">GLNil</span>        <span class="fu">=</span> acc
-glLengthAcc <span class="fu">!</span>acc (<span class="dt">GLCons</span> _ l) <span class="fu">=</span> glLengthAcc (acc <span class="fu">+</span> <span class="dv">1</span>) l</code></pre></div>
+glLengthAcc <span class="fu">!</span>acc (<span class="dt">GLCons</span> _ l) <span class="fu">=</span> glLengthAcc (acc <span class="fu">+</span> <span class="dv">1</span>) l</code></pre>
 <p>(Similarly for other two types..)</p>
 <p>Now I’m going to benchmark these two function for all three variants, but let’s just speculate about what would be the expected results.</p>
 <p>Clearly the third one should be faster for <code>sum</code>, because we don’t need to follow pointers for reading the integer. But should the second type(parametric but strict) be any faster? I’d say yes. The reason is because the field is strict, and so when we do pattern matching on <code>Int</code> to add integers, we don’t need to enter any thunks, we know that <code>Int</code> is already in WHNF. We should be able to just read the field.</p>
 <p>Here’s the result: (click on it to maximize)</p>
 <p><a href="/images/data_repr_1/plot_sum.png"><img src="/images/data_repr_1/plot_sum_small.png" /></a></p>
 <p>As you can see I have an extra line in this plot: I added GHC’s standard lists and used <a href="http://hackage.haskell.org/package/base-4.8.1.0/docs/Data-List.html#v:sum">standard <code>sum</code> function</a>. It’s ridiculously slow, it’s almost two orders of magnitude slower on a list with length 10^7. Before moving on and interpreting rest of the lines let’s just talk a bit about why this is slower. We only need to look at the type of <code>sum</code> function:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">sum<span class="ot"> ::</span> (<span class="dt">Foldable</span> t, <span class="dt">Num</span> a) <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> a</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">sum<span class="ot"> ::</span> (<span class="dt">Foldable</span> t, <span class="dt">Num</span> a) <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> a</code></pre>
 <p>This function is very, very general. There’s no way for this function to run fast, unless GHC is smart enough to generate a specialized version of this for <code>[Int]</code>. It turns out GHC is not smart enough, and in our case this is causing trouble. Note that we need two specializations here. First is to eliminate <code>Foldable t</code> part(we statically know that <code>t</code> is <code>[]</code>), and second is to eliminate <code>Num a</code> part(we statically know that <code>a</code> is <code>Int</code>).</p>
 <p>Now that we have this out of the way, let’s look at the other 3 lines. We can see that unboxed version is really faster(0.039 seconds other lists vs. 0.018 seconds unboxed list), which was expected. The interesting part is strict version is exactly the same as lazy version. Now, I don’t have a good explanation for this. The generated Core and STG for these two variants of <code>sum</code> are exactly the same. The Cmm or assembly code should be different. The problem is, I really can’t make any sense of generated Cmm code. I should study Cmm more for this.</p>
 <p>But I have an idea: Pattern matching means entering the thunk to reveal the WHNF structure. Since our integers are boxed, we need to pattern match on them to read the primitive <code>Int#</code>s. This means entering the thunks, even if the field is strict.</p>
@@ -447,7 +447,7 @@ Took 0.035886157 seconds.</code></pre>
 <p>OK, I hope this explains the story with <code>sum</code>. The second part of the benchmark is even more interesting. It runs <code>length</code>. Here’s the plot:</p>
 <p><a href="/images/data_repr_1/plot_len.png"><img src="/images/data_repr_1/plot_len_small.png" /></a></p>
 <p>We again have a line for standard Haskell list here. Good news is that even though standard <a href="http://hackage.haskell.org/package/base-4.8.1.0/docs/Data-List.html#v:length">length</a>’s type is again very general, this time GHC was able to optimize:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">length<span class="ot"> ::</span> <span class="dt">Foldable</span> t <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> <span class="dt">Int</span></code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">length<span class="ot"> ::</span> <span class="dt">Foldable</span> t <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> <span class="dt">Int</span></code></pre>
 <p>Interesting part is that unboxed list is again faster! But why? We’re not using head fields, whether it’s a pointer or not should not matter, right?</p>
 <p>Here I again have an idea: Even though we never use head parts, the garbage collector has to traverse all the data, and copy them from one generation to other.</p>
 <p>(We also allocate more, but I’m not measuring that in the benchmarks)</p>
@@ -544,11 +544,11 @@ Productivity  23.9% of total user, 19.4% of total elapsed</code></pre>
     <updated>2015-08-13T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I’d expect more work sharing to be always more beneficial. But apparently this is not the case, as pointed out in (Chitil, 1997)<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>.</p>
 <p>Here’s an example from the paper: (slightly changed)</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">sum [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>] <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">sum [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>] <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]</code></pre>
 <p>We can evaluate this expression to WHNF using heap space enough for a single list(to be more specific, we only need a single cons cell at any time). After evaluating a subexpression, we can deallocate and allocate for the next list etc.</p>
 <p>However, if we eliminate common subexpressions, and generate this code:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> v <span class="fu">=</span> [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]
- <span class="kw">in</span> sum v <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod v</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> v <span class="fu">=</span> [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]
+ <span class="kw">in</span> sum v <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod v</code></pre>
 <p>Now <code>v</code> has to live until the let body is evaluated to a value. We win in allocation/deallocation side, but we lose in residency side. In paper’s words: “Whereas the transformation always decreases total heap usage, it may considerably influence heap residency.”</p>
 <p>In general, we can’t do this transformation, without risking increased residency:</p>
 <p>\[ e’[e,e] \leadsto \texttt{let}\; x = e\; \texttt{in}\; e’[x,x] \]</p>
@@ -563,7 +563,7 @@ Productivity  23.9% of total user, 19.4% of total elapsed</code></pre>
 <p>Also, I’m wondering how is CSE is handled in current GHC.</p>
 <hr />
 <p>In supercompilation, we want to avoid evaluating same expressions in a loop forever, so we keep some kind of “history”, and when we come across a term that we evaluated before, we fold the process tree and avoid evaluating same term again.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">(fib <span class="dv">1000</span>, fib <span class="dv">1000</span>)</code></pre></div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">(fib <span class="dv">1000</span>, fib <span class="dv">1000</span>)</code></pre>
 <p>Unless we make sure to split it in a way that branches of the process tree are unaware of each other, we may end up eliminating common subexpressions. However, since there are lots of cases where we may want CSE, a splitter that always prevents it is not always desirable. We should instead allow CSE in a controlled way.</p>
 <hr />
 <div class="footnotes">
@@ -582,32 +582,32 @@ Productivity  23.9% of total user, 19.4% of total elapsed</code></pre>
     <summary type="html"><![CDATA[<p>(I’m starting publishing my long list of unpublished blog posts with this post)</p>
 <p>(Examples are from <a href="http://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-835.html">Bolingbroke’s PhD thesis</a>)</p>
 <p><em>Example 1:</em></p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a  <span class="fu">=</span> id y
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a  <span class="fu">=</span> id y
     id <span class="fu">=</span> \x <span class="ot">-&gt;</span> x
- <span class="kw">in</span> <span class="dt">Just</span> a</code></pre></div>
+ <span class="kw">in</span> <span class="dt">Just</span> a</code></pre>
 <p><em>Problem:</em> The compiler should know about <code>id</code> while compiling <code>a</code>. This is easy to do, just tell the compiler about every binding when compiling RHSs. However, it causes some other problems:</p>
 <p><em>Example 2:</em></p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> n <span class="fu">=</span> fib <span class="dv">100</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> n <span class="fu">=</span> fib <span class="dv">100</span>
     b <span class="fu">=</span> n <span class="fu">+</span> <span class="dv">1</span>
     c <span class="fu">=</span> n <span class="fu">+</span> <span class="dv">2</span>
- <span class="kw">in</span> (b, c)</code></pre></div>
+ <span class="kw">in</span> (b, c)</code></pre>
 <p><em>Problem:</em> If we tell about <code>n</code> to the compiler when it’s compiling <code>b</code> and <code>c</code>, we’re taking the risk of work duplication. It may seem like <code>fib 100</code> will be evaluated in compile time and so duplication is not a huge deal, but this is not necessarily the case. First, we can’t know if it’s going to be evaluated to a value in compile time. Second, even if it’s a closed term and we somehow know it’s going to be terminated, termination checker of the evaluator may want to stop it before it’s evaluated to a value. Third, most of the time it’ll be an open term that’ll get stuck in the middle of supercompilation.</p>
 <p>And when that happens we will generate a let-binding in residual code. In our case, we’ll be generating two let-bindings, one is for <code>b</code> and one is for <code>c</code>, and those let bindings will be doing same work.</p>
 <hr />
 <p><em>Question:</em> Can we rely on a post-processsing pass to eliminate common subexpressions? I.e. if we generate a code like this:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> b <span class="fu">=</span> <span class="kw">let</span> n_supercompiled <span class="fu">=</span> <span class="fu">&lt;</span>supercompiled fib <span class="dv">100</span><span class="fu">&gt;</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> b <span class="fu">=</span> <span class="kw">let</span> n_supercompiled <span class="fu">=</span> <span class="fu">&lt;</span>supercompiled fib <span class="dv">100</span><span class="fu">&gt;</span>
          <span class="kw">in</span> n_supercompiled <span class="fu">+</span> <span class="dv">1</span>
     c <span class="fu">=</span> <span class="kw">let</span> n_supercompiled <span class="fu">=</span> <span class="fu">&lt;</span>supercompiled fib <span class="dv">100</span><span class="fu">&gt;</span>
          <span class="kw">in</span> n_supercompiled <span class="fu">+</span> <span class="dv">2</span>
- <span class="kw">in</span> (b, c)</code></pre></div>
+ <span class="kw">in</span> (b, c)</code></pre>
 <p>It would transform it to obvious residual code that has single <code>n_supercompiled</code> which is in scope of <code>b</code> and <code>c</code>.</p>
 <p>What are trade-offs?</p>
 <hr />
 <p>Finding a good heuristic is hard. Let’s say we try to estimate costs of expressions and decide whether to tell the compiler about them or not. If we decide that <code>ys</code> and <code>xs</code> are expensive in this case:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> map <span class="fu">=</span> <span class="fu">...</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> map <span class="fu">=</span> <span class="fu">...</span>
     ys <span class="fu">=</span> map f zs
     xs <span class="fu">=</span> map g ys
- <span class="kw">in</span> <span class="dt">Just</span> xs</code></pre></div>
+ <span class="kw">in</span> <span class="dt">Just</span> xs</code></pre>
 <p>We miss a deforestation opportunity, because the compiler won’t know about <code>ys</code> while compiling <code>xs</code>.</p>]]></summary>
 </entry>
 <entry>
@@ -723,7 +723,7 @@ Productivity  23.9% of total user, 19.4% of total elapsed</code></pre>
 <p>Let’s start.</p>
 <h1 id="defining-lua-function-in-haskell">Defining Lua function in Haskell</h1>
 <p>This is exactly the same as before: We just define a function with type: <code>LuaState -&gt; IO Int</code>. To keep the code simple, we don’t do error handling at all.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span>
 
 <span class="kw">import </span><span class="dt">Data.Maybe</span>
 <span class="kw">import </span><span class="dt">Scripting.Lua</span> <span class="co">-- this one from hslua</span>
@@ -737,7 +737,7 @@ add l <span class="fu">=</span> <span class="kw">do</span>
   i2 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">2</span>
   pop l <span class="dv">2</span>
   push l (i1 <span class="fu">+</span><span class="ot"> i2 ::</span> <span class="dt">Int</span>)
-  return <span class="dv">1</span></code></pre></div>
+  return <span class="dv">1</span></code></pre>
 <h1 id="implementing-intermediate-c">Implementing intermediate C</h1>
 <p>In our C glue code, we do two things:</p>
 <ol style="list-style-type: decimal">
@@ -745,19 +745,19 @@ add l <span class="fu">=</span> <span class="kw">do</span>
 <li>Implement Lua C module interface in which we register our functions to Lua. (see <a href="http://www.lua.org/manual/5.1/manual.html#pdf-package.loaders">related docs</a> for details)</li>
 </ol>
 <p>Here’s the code:</p>
-<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;LibArith_stub.h&quot;</span>
-<span class="pp">#include </span><span class="im">&quot;lua.h&quot;</span>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#include &quot;LibArith_stub.h&quot;</span>
+<span class="ot">#include &quot;lua.h&quot;</span>
 
 <span class="dt">int</span> hs_init_lua(lua_State *L)
 {
   hs_init(NULL, NULL);
-  <span class="cf">return</span> <span class="dv">0</span>;
+  <span class="kw">return</span> <span class="dv">0</span>;
 }
 
 <span class="dt">int</span> hs_exit_lua(lua_State *L)
 {
   hs_exit();
-  <span class="cf">return</span> <span class="dv">0</span>;
+  <span class="kw">return</span> <span class="dv">0</span>;
 }
 
 <span class="dt">int</span> luaopen_lualibhelper(lua_State *L)
@@ -768,8 +768,8 @@ add l <span class="fu">=</span> <span class="kw">do</span>
   lua_setglobal(L, <span class="st">&quot;hs_init&quot;</span>);
   lua_pushcfunction(L, hs_exit_lua);
   lua_setglobal(L, <span class="st">&quot;hs_exit&quot;</span>);
-  <span class="cf">return</span> <span class="dv">0</span>;
-}</code></pre></div>
+  <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
 <p>Some things to note:</p>
 <ul>
 <li><code>LibArith_stub.h</code> is generated by GHC. I’ll explain how to compile and link next.</li>

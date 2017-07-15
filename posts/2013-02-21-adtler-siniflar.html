@@ -34,22 +34,22 @@
 <p><a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Compiler/Exp.hs#L21"><code>compileExp</code></a> fonksiyonu, <a href="http://hackage.haskell.org/packages/archive/haskell-src-exts/1.13.5/doc/html/Language-Haskell-Exts-Syntax.html#g:8"><code>Exp</code></a> ağacı üzerinde gezinir çıktı olarak <a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Types.hs#L242"><code>JsExp</code></a> (yine başka bir ağaç) üretir. Bu bir ağaç üzerinde gezinip farklı işlemler yapıp farklı bir ağaçlar üreten fonksiyonlara bir örnek.</p>
 <p><a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Compiler/Optimizer.hs"><code>Optimizer</code></a> modulü çeşitli ağaçlar üzerinde gezinip başka ağaçlar üreten 13 tane fonksiyondan oluşur ve bunların 5-6 tanesi <a href="https://github.com/faylang/fay/blob/9725f4ff8f23297b4efb34e2f241c31a63ff9fef/src/Fay/Types.hs#L227"><code>JsStmt</code></a> ağacını dolaşır. Bu da aynı ağaç üzerinde gezinip farklı işlemler yapan fonksiyonlara örnek.</p>
 <p>Algebraic data typelara ve pattern matchinge sahip olan fonksiyonel dillerde(yani belki de tüm statically typed fonksiyonel dillerde) bunu yapmanın bir yolunu göstermek için hemen hiçbir işlevi olmayan çok basit bir aritmetik ifade dili oluşturalım:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Exp</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Exp</span>
     <span class="fu">=</span> <span class="dt">Add</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
     <span class="fu">|</span> <span class="dt">Mul</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
-    <span class="fu">|</span> <span class="dt">Number</span> <span class="dt">Float</span></code></pre></div>
+    <span class="fu">|</span> <span class="dt">Number</span> <span class="dt">Float</span></code></pre>
 <p>Bu kadar işlevsiz bir dil olamaz. Şimdi bu ağaç üzerinde iki farklı işlem yapan iki fonksiyon:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">run ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">Float</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">run ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">Float</span>
 run (<span class="dt">Add</span> e1 e2) <span class="fu">=</span> run e1 <span class="fu">+</span> run e2
 run (<span class="dt">Mul</span> e1 e2) <span class="fu">=</span> run e1 <span class="fu">*</span> run e2
-run (<span class="dt">Number</span> f)  <span class="fu">=</span> f</code></pre></div>
+run (<span class="dt">Number</span> f)  <span class="fu">=</span> f</code></pre>
 <p><code>run</code> programı çalıştırıp sonucu dönüyor.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">stringOfExp ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">stringOfExp ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
 stringOfExp (<span class="dt">Add</span> e1 e2) <span class="fu">=</span>
     concat [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; + &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
 stringOfExp (<span class="dt">Mul</span> e1 e2) <span class="fu">=</span>
     concat [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; * &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
-stringOfExp (<span class="dt">Number</span> f) <span class="fu">=</span> show f</code></pre></div>
+stringOfExp (<span class="dt">Number</span> f) <span class="fu">=</span> show f</code></pre>
 <p><code>stringOfExp</code> ise programın string halini dönüyor. Örnek:</p>
 <pre><code>ghci&gt; let prog1 = Add (Number 10) (Mul (Number 20) (Add (Number 30) (Number 40)))
 ghci&gt; run prog1
@@ -58,48 +58,48 @@ ghci&gt; stringOfExp prog1
 &quot;(10.0 + (20.0 * (30.0 + 40.0)))&quot;</code></pre>
 <p>Yarın ağaca yeni bir node eklediğimde ağaç üzerinde çalışan tüm fonksiyonları güncellemem gerekecek.</p>
 <p>Herkes için son derece basittir sanıyorum. Şimdi aynısını ADT’lara sahip olmayan, OO bir dil ile yazalım.</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
 <span class="kw">public</span>:
   <span class="kw">virtual</span> ~Exp() {}
 };
 
 <span class="kw">class</span> AddExp : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> Exp * <span class="at">const</span> e1, * <span class="at">const</span> e2;
-  AddExp(<span class="at">const</span> Exp * <span class="at">const</span> e1, <span class="at">const</span> Exp * <span class="at">const</span> e2)
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  AddExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
     : e1(e1), e2(e2) {}
 };
 
 <span class="kw">class</span> MulExp : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> Exp * <span class="at">const</span> e1, * <span class="at">const</span> e2;
-  MulExp(<span class="at">const</span> Exp * <span class="at">const</span> e1, <span class="at">const</span> Exp * <span class="at">const</span> e2)
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  MulExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
     : e1(e1), e2(e2) {}
 };
 
 <span class="kw">class</span> Number : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> <span class="dt">float</span> f;
-  Number(<span class="at">const</span> <span class="dt">float</span> f) : f(f) {}
-};</code></pre></div>
+  <span class="dt">const</span> <span class="dt">float</span> f;
+  Number(<span class="dt">const</span> <span class="dt">float</span> f) : f(f) {}
+};</code></pre>
 <p>Örnek programımız da şu şekilde yazılabilir:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Exp *prog1 = <span class="kw">new</span> AddExp(
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Exp *prog1 = <span class="kw">new</span> AddExp(
     <span class="kw">new</span> Number(<span class="dv">10</span>), <span class="kw">new</span> MulExp(
       <span class="kw">new</span> Number(<span class="dv">20</span>), <span class="kw">new</span> AddExp(
-        <span class="kw">new</span> Number(<span class="dv">30</span>), <span class="kw">new</span> Number(<span class="dv">40</span>))));</code></pre></div>
+        <span class="kw">new</span> Number(<span class="dv">30</span>), <span class="kw">new</span> Number(<span class="dv">40</span>))));</code></pre>
 <p>Peki bu ağaç üzerinde gezinmek nasıl mümkün olabilir ? Bir kere, tüm nodelar alt node olarak <code>Exp</code> tipinde bir nesne tutuyor, kesin tip bilgisine sahip değiliz ve bu tip bilgisine sahip olmadan da yorumlamak mümkün değil mi, yorumladığımız node <code>Number</code> mı, <code>MulExp</code> mi vs. bilmemiz gerekir.</p>
 <p>Bunu yapmanın çeşitli yolları var, ama güzel bir çözümü yok. Örneğin <code>Exp</code> sınıfında nodeların tipini tutan bir enum tutabiliriz ve <code>Exp *</code>leri gerekli tiplere cast ederiz. Veya Java gibi bir dilde <code>instanceof</code> kontrolü yapılıp cast edilebilir. Başka çözümler de bulunabilir.</p>
 <p>Bu gibi durumlarda kabul edilen en yaygın çözüm visitor design patternı. Biraz aradığınızda onlarca tutorial bulabilirsiniz ki tutoriala ihtiyaç duyması bile aslında fonksiyonel dildeki çözümümüzden ne kadar kötü olduğunun bir göstergesi sayılabilir(8 satır son derece basit ve açık bir Haskell koduna denk bir iş yapmaya çalışıyoruz şu anda)</p>
 <p>Bu probleme <em>double dispatch</em> problemi de deniyor. Sebebi yapacağımız işleme hem yorumlayıcıya, hem de ağaca göre karar vermek istiyoruz fakat bir yandan da ağaçlara ve yorumlayıcılara aynı muameleyi yapabilmeliyiz. C++ örneğinde her bir node’un bir ağaç oluşturduğuna dikkat.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> AddExp;
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> AddExp;
 <span class="kw">class</span> MulExp;
 <span class="kw">class</span> Number;
 
 <span class="kw">class</span> ExpVisitor {
 <span class="kw">public</span>:
-  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="at">const</span> AddExp * <span class="at">const</span> exp) = <span class="dv">0</span>;
-  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="at">const</span> MulExp * <span class="at">const</span> exp) = <span class="dv">0</span>;
-  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="at">const</span> Number * <span class="at">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) = <span class="dv">0</span>;
 
   <span class="kw">virtual</span> ~ExpVisitor() {};
 };
@@ -107,38 +107,38 @@ ghci&gt; stringOfExp prog1
 <span class="kw">class</span> Exp { <span class="co">// base class for expressions</span>
 <span class="kw">public</span>:
   <span class="kw">virtual</span> ~Exp() {}
-  <span class="kw">virtual</span> <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="at">const</span> = <span class="dv">0</span>;
+  <span class="kw">virtual</span> <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> = <span class="dv">0</span>;
 };
 
 <span class="kw">class</span> AddExp : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> Exp * <span class="at">const</span> e1, * <span class="at">const</span> e2;
-  AddExp(<span class="at">const</span> Exp * <span class="at">const</span> e1, <span class="at">const</span> Exp * <span class="at">const</span> e2)
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  AddExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
     : e1(e1), e2(e2) {}
-  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="at">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
 };
 
 <span class="kw">class</span> MulExp : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> Exp * <span class="at">const</span> e1, * <span class="at">const</span> e2;
-  MulExp(<span class="at">const</span> Exp * <span class="at">const</span> e1, <span class="at">const</span> Exp * <span class="at">const</span> e2)
+  <span class="dt">const</span> Exp * <span class="dt">const</span> e1, * <span class="dt">const</span> e2;
+  MulExp(<span class="dt">const</span> Exp * <span class="dt">const</span> e1, <span class="dt">const</span> Exp * <span class="dt">const</span> e2)
     : e1(e1), e2(e2) {}
-  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="at">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
 };
 
 <span class="kw">class</span> Number : <span class="kw">public</span> Exp {
 <span class="kw">public</span>:
-  <span class="at">const</span> <span class="dt">float</span> f;
-  Number(<span class="at">const</span> <span class="dt">float</span> f) : f(f) {}
-  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="at">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
-};</code></pre></div>
+  <span class="dt">const</span> <span class="dt">float</span> f;
+  Number(<span class="dt">const</span> <span class="dt">float</span> f) : f(f) {}
+  <span class="dt">void</span> accept(ExpVisitor *visitor) <span class="dt">const</span> { visitor-&gt;visit(<span class="kw">this</span>); }
+};</code></pre>
 <p>Detaylara çok fazla girmek istemiyorum, kısaca, virtual methodların yardımıyla artık bir nesneyi <code>Exp</code> tipine cast etsek de doğru <code>visit</code> methodları çağırılacak. Buna göre ilk yorumlayıcımızı şu şekilde yazabiliyoruz:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Run : <span class="kw">public</span> ExpVisitor {
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Run : <span class="kw">public</span> ExpVisitor {
 <span class="kw">public</span>:
   <span class="dt">float</span> result;
   Run() : result(<span class="dv">0</span>) {}
 
-  <span class="dt">void</span> visit(<span class="at">const</span> AddExp * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) {
     Run v1;
     exp-&gt;e1-&gt;accept(&amp;v1);
 
@@ -148,7 +148,7 @@ ghci&gt; stringOfExp prog1
     result = v1.result + v2.result;
   }
 
-  <span class="dt">void</span> visit(<span class="at">const</span> MulExp * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) {
     Run v1;
     exp-&gt;e1-&gt;accept(&amp;v1);
 
@@ -158,18 +158,18 @@ ghci&gt; stringOfExp prog1
     result = v1.result * v2.result;
   }
 
-  <span class="dt">void</span> visit(<span class="at">const</span> Number * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) {
     result = exp-&gt;f;
   }
-};</code></pre></div>
+};</code></pre>
 <p>Bu arada nesnesel çözümümüzün fonksiyonel çözümümüzden bir başka farkı da burda belli oluyor. Visitorlar arası değer dönmenin bir yolu yok ve bu yüzden buradaki <code>result</code> member değişkeni gibi bir mutable değişken kullanmak zorunda kalıyoruz.</p>
 <p>İkinci yorumlayıcımız:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> StringOfExp : <span class="kw">public</span> ExpVisitor {
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> StringOfExp : <span class="kw">public</span> ExpVisitor {
 <span class="kw">public</span>:
-  <span class="bu">std::</span>string result;
-  StringOfExp() : result(<span class="kw">new</span> <span class="bu">std::</span>string()) {}
+  std::string result;
+  StringOfExp() : result(<span class="kw">new</span> std::string()) {}
 
-  <span class="dt">void</span> visit(<span class="at">const</span> AddExp * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> AddExp * <span class="dt">const</span> exp) {
     StringOfExp v1;
     exp-&gt;e1-&gt;accept(&amp;v1);
 
@@ -179,7 +179,7 @@ ghci&gt; stringOfExp prog1
     result = <span class="st">&quot;(&quot;</span> + v1.result + <span class="st">&quot; + &quot;</span> +  v2.result + <span class="st">&quot;)&quot;</span>;
   }
 
-  <span class="dt">void</span> visit(<span class="at">const</span> MulExp * <span class="at">const</span> exp) {
+  <span class="dt">void</span> visit(<span class="dt">const</span> MulExp * <span class="dt">const</span> exp) {
     StringOfExp v1;
     exp-&gt;e1-&gt;accept(&amp;v1);
 
@@ -189,21 +189,21 @@ ghci&gt; stringOfExp prog1
     result = <span class="st">&quot;(&quot;</span> + v1.result + <span class="st">&quot; * &quot;</span> +  v2.result + <span class="st">&quot;)&quot;</span>;
   }
 
-  <span class="dt">void</span> visit(<span class="at">const</span> Number * <span class="at">const</span> exp) {
-    <span class="bu">std::</span>ostringstream ss;
+  <span class="dt">void</span> visit(<span class="dt">const</span> Number * <span class="dt">const</span> exp) {
+    std::ostringstream ss;
     ss &lt;&lt; exp-&gt;f;
     result = ss.str();
   }
-};</code></pre></div>
+};</code></pre>
 <p><code>result</code> member değişkeninin tipinin farklı olduğuna dikkat. Buradaki farklılık Haskell fonksiyonlarındaki dönüş tiplerinin farklılığı ile aynı.</p>
 <p>Son olarak programı şu şekilde çalıştırabiliyoruz:</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Run r;
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Run r;
 prog1-&gt;accept(&amp;r);
-<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;return value Run: &quot;</span> &lt;&lt; r.result &lt;&lt; <span class="bu">std::</span>endl;
+std::cout &lt;&lt; <span class="st">&quot;return value Run: &quot;</span> &lt;&lt; r.result &lt;&lt; std::endl;
 
 StringOfExp s;
 prog1-&gt;accept(&amp;s);
-<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;return value of StringOfExp: &quot;</span> &lt;&lt; s.result &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+std::cout &lt;&lt; <span class="st">&quot;return value of StringOfExp: &quot;</span> &lt;&lt; s.result &lt;&lt; std::endl;</code></pre>
 <p>Çıktı:</p>
 <pre><code>➜  cpp  clang++ arith.cpp -g
 ➜  cpp  ./a.out
