@@ -8,8 +8,76 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2016-09-11T00:00:00Z</updated>
+    <updated>2017-10-08T00:00:00Z</updated>
     <entry>
+    <title>More Rust woes</title>
+    <link href="http://osa1.net/posts/2017-10-08-more-rust-woes.html" />
+    <id>http://osa1.net/posts/2017-10-08-more-rust-woes.html</id>
+    <published>2017-10-08T00:00:00Z</published>
+    <updated>2017-10-08T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>In the third part of the series (<a href="http://osa1.net/posts/2016-03-28-rust-brwchk-woes.html">1</a>, <a href="http://osa1.net/posts/2016-09-11-more-rust-problems.html">2</a>) we’re going to look at two curious cases, first one related with “drop checker” and the second one with “borrow checker”.</p>
+<p>(examples below are tested with <code>rustc 1.22.0-nightly (05f8ddc46 2017-10-07)</code>)</p>
+<h1 id="redundant-semicolon-fixes-borrow-or-drop-checker">1. Redundant semicolon fixes borrow (or drop) checker</h1>
+<p>It turns out if you’re getting a weird borrow checker error about something not living long enough to be dropped you can sometimes fix it by adding more semicolons.</p>
+<p>The error message itself is weird because intuitively you’d think that for something to be dropped it should first become dead, but the error message says something like “<code>x</code> dropped here while still borrowed”. Because the variable is not dropped explicitly by the user, this error message is actually complaining about compiler’s behavior not being consistent in itself.</p>
+<p>Here’s an example:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::sync::Arc;
+<span class="kw">use</span> std::sync::Mutex;
+
+<span class="kw">fn</span> main() {
+    <span class="kw">let</span> s: Arc&lt;Mutex&lt;<span class="kw">i32</span>&gt;&gt; = Arc::new(Mutex::new(<span class="dv">0</span>));
+    <span class="kw">match</span> s.lock().unwrap() {
+        _ =&gt; {}
+    }
+}</code></pre>
+<p>This fails to compile with:</p>
+<pre><code>error[E0597]: `s` does not live long enough
+ --&gt; src/main.rs:9:1
+  |
+6 |     match s.lock().unwrap() {
+  |           - borrow occurs here
+...
+9 | }
+  | ^ `s` dropped here while still borrowed
+  |
+  = note: values in a scope are dropped in the opposite order they are created</code></pre>
+<p>Solution? Add more semicolons! In this example, just put a semicolon after the match expression and it compiles fine.</p>
+<p>Here’s <a href="https://github.com/rust-lang/rust/issues/21114#issuecomment-312447832">one more example</a>. It turns out questions about this error message are regularly asked on the IRC channel.</p>
+<p><a href="https://github.com/rust-lang/rust/issues/21114">#21114</a> reported this issue on Jan 14, 2015, but no progress has been made towards a solution so far. It’s not clear if non-lexical lifetimes will help solving this.</p>
+<h1 id="match-expression-keeps-values-alive-longer-than-necessary">2. <code>match</code> expression keeps values alive longer than necessary</h1>
+<p>This problem is kind of special. All other problems mentioned in this series were about borrow checker being too strict. This one is different: it causes runtime bugs.</p>
+<p><code>match</code> expression keeps the value to be examined (sometimes called <code>scrutinee</code> in Haskell land) alive longer than necessary. Because alive values are not dropped, if you rely on dynamic borrow checks in the scrutinee and in the branches, your checks fail. Here’s an example:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::sync::Arc;
+<span class="kw">use</span> std::sync::Mutex;
+
+<span class="kw">struct</span> S(<span class="kw">i32</span>);
+
+<span class="kw">impl</span> S {
+    <span class="kw">pub</span> <span class="kw">fn</span> get_int(&amp;<span class="kw">self</span>) -&gt; <span class="kw">i32</span> {
+        <span class="kw">self</span>.<span class="dv">0</span>
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> set_int(&amp;<span class="kw">mut</span> <span class="kw">self</span>, i: <span class="kw">i32</span>) {
+        <span class="kw">self</span>.<span class="dv">0</span> = i;
+    }
+}
+
+<span class="kw">fn</span> main() {
+    <span class="kw">let</span> s = Arc::new(Mutex::new(S(<span class="dv">0</span>)));
+    <span class="kw">match</span> s.lock().unwrap().get_int() {
+        i =&gt; {
+            s.lock().unwrap().set_int(i);
+        }
+    };
+}</code></pre>
+<p>(notice how I use a redundant semicolon after the match expression, to fix #1)</p>
+<p>Even though <code>get_int()</code> returns in <code>i32</code> as a value, not a reference, the <code>MutexGuard</code> returned by <code>Mutex::lock()</code> is kept alive in the branches of this <code>match</code> expression, so the second <code>Mutex::lock()</code> call causes a deadlock. Solution? Use a <code>let</code> expression:</p>
+<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">let</span> x = s.lock().unwrap().get_x();
+<span class="kw">match</span> x { ... }</code></pre>
+<p>This problem makes <code>match &lt;expr&gt; { ... }</code> less useful than <code>let x = &lt;expr&gt;; match x { ... }</code>.</p>
+<p><a href="https://github.com/rust-lang/rust/issues/38355">#38355</a> reported this issue on Dec 14, 2016, but no progress towards a solution has been made so far.</p>]]></summary>
+</entry>
+<entry>
     <title>More Rust problems (and a sketch of a solution)</title>
     <link href="http://osa1.net/posts/2016-09-11-more-rust-problems.html" />
     <id>http://osa1.net/posts/2016-09-11-more-rust-problems.html</id>
