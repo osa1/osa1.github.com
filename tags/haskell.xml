@@ -8,8 +8,127 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2017-07-15T00:00:00Z</updated>
+    <updated>2017-10-16T00:00:00Z</updated>
     <entry>
+    <title>A parallel scheduler in 50 lines of Haskell</title>
+    <link href="http://osa1.net/posts/2017-10-16-a-parallel-scheduler.html" />
+    <id>http://osa1.net/posts/2017-10-16-a-parallel-scheduler.html</id>
+    <published>2017-10-16T00:00:00Z</published>
+    <updated>2017-10-16T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Here’s a problem:</p>
+<ul>
+<li>You have N resources.</li>
+<li>You have M tasks.</li>
+<li>Each task requires exclusive access to a subset of the resources.</li>
+<li>Tasks can be run in parallel.</li>
+</ul>
+<p>Implement a scheduler that runs these tasks in parallel, utilizing available resources as much as possible.</p>
+<p>The code I’ll show here piggybacks on GHC RTS for scheduling. But for that we first have to implement our resources and tasks in a way that exposes necessary information to GHC’s scheduler. The idea is simple and fun to implement, but I can’t recommended using it in production :-) Scheduling is a hard problem, with many variations, and I’ve only recently started reading about it. This solution is a fun one than anything else.</p>
+<hr />
+<p>The idea is simple; we implement resources as <code>MVar</code>s and tasks as threads. Threads (tasks) take the <code>MVar</code>s before performing the operation. Because threads are scheduled by GHC RTS, GHC handles scheduling of our tasks. Because of fairness properties of <code>MVar</code>s, our threads are scheduled “fairly”, e.g. all tasks eventually finish even when we have infinitely many tasks.</p>
+<p>A resource is an abstract object with a lock and unique identifier:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Resource</span> <span class="fu">=</span> <span class="dt">Resource</span>
+  { _<span class="ot">resourceName ::</span> <span class="dt">T.Text</span>
+  , _<span class="ot">resourceId   ::</span> <span class="dt">Unique</span>
+  , _<span class="ot">resourceLock ::</span> <span class="dt">MVar</span> ()
+  }
+
+<span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Resource</span> <span class="kw">where</span>
+  show <span class="fu">=</span> T.unpack <span class="fu">.</span> _resourceName</code></pre>
+<p><code>_resourceName</code> is just a string to be used for tracing program execution.</p>
+<p>A <code>Unique</code> is an integer that can be used in at most one resource:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Unique</span> <span class="fu">=</span> <span class="dt">Unique</span> <span class="dt">Int</span>
+  <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Ord</span>)</code></pre>
+<p>Using <code>Unique</code> we can define a total order for <code>Resource</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Resource</span> <span class="kw">where</span>
+  (<span class="fu">==</span>) <span class="fu">=</span> (<span class="fu">==</span>) <span class="ot">`on`</span> _resourceId
+
+<span class="kw">instance</span> <span class="dt">Ord</span> <span class="dt">Resource</span> <span class="kw">where</span>
+  compare <span class="fu">=</span> comparing _resourceId</code></pre>
+<p>A task that requires exclusive access to a subset of all resources can be implemented using <code>withResources</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">withResources ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> m () <span class="ot">-&gt;</span> m ()
+withResources locks a <span class="fu">=</span> acquire_locks (S.toList locks)
+  <span class="kw">where</span>
+    acquire_locks ls <span class="fu">=</span> <span class="kw">case</span> ls <span class="kw">of</span>
+      [] <span class="ot">-&gt;</span>
+        a
+      l <span class="fu">:</span> ls&#39; <span class="ot">-&gt;</span> <span class="kw">do</span>
+        logDebug (<span class="st">&quot;taking lock &quot;</span> <span class="fu">&lt;&gt;</span> (_resourceName l))
+        withMVar (_resourceLock l) <span class="fu">$</span> \() <span class="ot">-&gt;</span>
+          acquire_locks ls&#39;</code></pre>
+<p>Note that when all tasks are implemented using this function a deadlock won’t occur: resources are ordered, and <code>S.toList</code> generates a sorted list, which in turn causes <code>acquire_locks</code> to take locks in order, effectively implementing <a href="https://en.wikipedia.org/wiki/Dining_philosophers_problem">Dijkstra’s resource hierarchy solution to the dining philosophers problem</a>.</p>
+<p>Here are three task generators:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Task</span> <span class="fu">=</span> <span class="dt">Task</span>
+  {<span class="ot"> runTask ::</span> forall m <span class="fu">.</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> m () }
+
+<span class="ot">mkFastTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
+mkFastTask i res <span class="fu">=</span>
+    <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
+      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i))
+      threadDelay (<span class="dv">500</span><span class="ot"> ::</span> <span class="dt">Milliseconds</span>)
+      logDebug (<span class="st">&quot;Fast task done (&quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i) <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)
+
+<span class="ot">mkSlowTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
+mkSlowTask i res <span class="fu">=</span>
+    <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
+      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i))
+      threadDelay (<span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Seconds</span>)
+      logDebug (<span class="st">&quot;Slow task done (&quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i) <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)
+
+<span class="ot">mkCrashingTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
+mkCrashingTask i res <span class="fu">=</span>
+    <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
+      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i))
+      error <span class="st">&quot;task failed&quot;</span></code></pre>
+<p>Integer arguments are just for tracing task execution in program output. <code>mkFastTask</code> generates a task that takes 500 milliseconds to run. <code>mkSlowTask</code> generates a task that takes 3 seconds. <code>mkCrashingTask</code> makes a task that throws an exception, demonstrating that we release resources properly on exceptions.</p>
+<p>Finally, the scheduler just spawns tasks using <code>forkIO</code> or <code>async</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">schedule ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m, <span class="dt">Forall</span> (<span class="dt">Pure</span> m)) <span class="ot">=&gt;</span> [<span class="dt">Task</span>] <span class="ot">-&gt;</span> m ()
+schedule tasks <span class="fu">=</span> <span class="kw">do</span>
+    thrs <span class="ot">&lt;-</span> forM tasks <span class="fu">$</span> \(<span class="dt">Task</span> task) <span class="ot">-&gt;</span>
+              async (task <span class="ot">`catch`</span> (\(<span class="ot">e ::</span> <span class="dt">SomeException</span>) <span class="ot">-&gt;</span> logDebug <span class="st">&quot;Task failed&quot;</span>))
+    forM_ thrs wait</code></pre>
+<p>Here’s an example run</p>
+<pre><code>taking lock resource5
+Performing 0
+taking lock resource0
+Performing 1
+taking lock resource2
+taking lock resource6
+taking lock resource7
+Performing 2
+Task failed
+taking lock resource6
+Performing 3
+taking lock resource8
+Performing 4
+taking lock resource1
+taking lock resource2
+Performing 5
+Task failed
+taking lock resource2
+taking lock resource3
+taking lock resource8
+taking lock resource0
+taking lock resource3
+taking lock resource4
+Performing 9
+Fast task done (3)
+Fast task done (9)
+Fast task done (0)
+Slow task done (1)
+taking lock resource4
+taking lock resource8
+Slow task done (4)
+Performing 6
+Fast task done (6)
+taking lock resource7
+Performing 8
+Task failed
+Performing 7
+Slow task done (7)</code></pre>
+<p>The whole code that randomly generates resources and tasks and then runs them is <a href="https://gist.github.com/osa1/e7416f6a0f299f88f275bb8d56a31da3">here</a>. It uses quite a lot of dependencies because it was extracted from a larger program, and I’m too lazy to make it smaller and simpler. I provided a <code>stack.yaml</code> so hopefully it’s still not too hard to run.</p>]]></summary>
+</entry>
+<entry>
     <title>Enable these two flags in GHC 8.2</title>
     <link href="http://osa1.net/posts/2017-07-15-two-flags.html" />
     <id>http://osa1.net/posts/2017-07-15-two-flags.html</id>
@@ -792,21 +911,6 @@ Productivity  23.9% of total user, 19.4% of total elapsed</code></pre>
 <li id="fn11"><p><a href="http://terralang.org/">Terra</a> comes quite close, but I have some confusions about it and I’m hoping to write about those in the future.<a href="#fnref11">↩</a></p></li>
 </ol>
 </div>]]></summary>
-</entry>
-<entry>
-    <title>Top-down expression parsing is easy</title>
-    <link href="http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html" />
-    <id>http://osa1.net/posts/2015-01-29-top-down-expr-parsing-easy.html</id>
-    <published>2015-01-29T00:00:00Z</published>
-    <updated>2015-01-29T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I recently fixed <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>’s 2-years-old expression parsing bug. Previously it was using <a href="http://hackage.haskell.org/package/parsec-3.1.8/docs/Text-Parsec-Expr.html">Parsec’s expression parser</a>, which is actually horrible because it can’t handle chained unary operators.</p>
-<p>Two weeks ago I decided to take a look into Lua’s original implementation, and in about an hour or so the algorithm was crystal clear to me. I immediately <a href="https://github.com/osa1/language-lua/commit/b4bebe36e927dcc671dbe6dd19572b83073dc556#diff-630bbd2d118baf109da6ad79d3f168bfR257">implemented it</a> and closed the <a href="https://github.com/osa1/language-lua/issues/2">2-years-old bug report</a>.</p>
-<p>This implementation is essentially a port of Lua’s expression parser. Recently I thought about the algorithm and I was wondering if this has a name – the algorithm looked pretty obvious to me once I understand and given how much we know about parsing I thought this should have a name.</p>
-<p>I found <a href="http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing">this algorithm named “precedence climbing”</a>. This is almost the same algorithm, only difference is that instead of using <code>lookahead</code> I’m just consuming the binary operator and returning it to the caller(which is parsing an expression with lower precedence than current parser) if precedence is lower. Associativity handling is also different(I use different left and right precedences to handle associativity) but the idea is really the same.</p>
-<p>Now, there is also another algorithm called Pratt, and I can’t read the original paper(paywall), but according to <a href="http://lambda-the-ultimate.org/node/3682">this LtU discussion</a> it should also be similar. Indeed, <a href="http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/">this explanation of it</a> looks pretty similar, and <a href="http://stackoverflow.com/a/13637731/691032">this StackOverflow answer</a> says that Lua’s implementation is “Pratt style parsing”.</p>
-<p>So it seems like we have two, or maybe one since they’re actually very similar, solution(s) to solve top-down expression parsing problem and Haskell implementation using Parsec is possible in only 12 lines of code.</p>
-<h1 id="a-challenge">A challenge</h1>
-<p>One challenge might be to modify Parsec’s expression parser so that internally it generates a Pratt/precedence climbing parser. I’m hoping to spare some time to work on this.</p>]]></summary>
 </entry>
 
 </feed>
