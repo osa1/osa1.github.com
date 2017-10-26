@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Fuzzy module loading in GHCi</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Fuzzy module loading in GHCi</h1>
+
+<p><strong>October 26, 2017</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+
+<p><a href="https://downloads.haskell.org/~ghc/8.2.1/docs/html/users_guide/ghci.html#ghci-cmd-:def">A GHCi macro</a> is just a function of type <code>String -&gt; IO String</code>. The argument is parameter of the macro, and return value is evaluated by GHCi as a command.</p>
+<p>Using this and the <a href="http://hackage.haskell.org/package/process"><code>process</code></a> library we can implement a fuzzy module loader that works inside ghci:</p>
+<div class="figure">
+<img src="../images/fuzzy_ghci_load.gif" />
+
+</div>
+<p>(sorry for the gif quality)</p>
+<p>Here I’m using <a href="https://github.com/junegunn/fzf">fzf</a> as the fuzzy file finder. Code for defining the macro:</p>
+<pre><code>import System.IO (withFile, IOMode (WriteMode))
+import System.Process (runProcess, waitForProcess)
+
+:{
+let loadFuzzy _ = do
+      let f = &quot;/tmp/fzf_out&quot;
+      withFile f WriteMode $ \h -&gt; do
+        p &lt;- runProcess &quot;fzf&quot; [] Nothing Nothing Nothing (Just h) Nothing
+        _ &lt;- waitForProcess p
+        out &lt;- readFile f
+        return (&quot;:load &quot; ++ init out)
+:}
+
+:def l loadFuzzy</code></pre>
+<p>Add this code to your global ghci config file (<code>~/.ghci</code>) or your project-wide <code>.ghci</code> (at the project root).</p>
+<p>Only problem here is the <code>process</code> dependency: when you use <code>stack repl</code> or <code>cabal repl</code>, <code>process</code> won’t be importable in GHCi unless the project you’re loading into GHCi already has it as a dependency. One solution is to pass <code>-package process</code> to <code>cabal repl</code> or <code>--ghci-options=&quot;-package process&quot;</code> to <code>stack repl</code>. Because <code>process</code> is distributed with GHC this will always work.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'osa1';
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
