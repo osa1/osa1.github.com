@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Three runtime optimizations done by GHC's GC</title>
+        <link href="http://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Monda" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span id="feed"><a href="../rss.xml">feed</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Three runtime optimizations done by GHC's GC</h1>
+
+<p><strong>March 16, 2018</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+
+<p>While working on GHC’s GC code I realized that it does some runtime optimizations. One of those I already knew from another language, but the other two were quite interesting to me because they’re related with laziness. I wouldn’t think consequences of laziness reach this far into the runtime system. It turns out it does; disabling those optimizations make programs run significantly slower.</p>
+<p>Because I almost read the whole code line by line, I believe this list is exhaustive. The code is taken from the source code but significantly simplified.</p>
+<p>If you’re not familiar with GHC’s heap object layout and info tables etc., I suggest reading <a href="https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/Storage/HeapObjects">the wiki page</a> before moving on the rest of the post.</p>
+<h2 id="replacing-small-int-and-char-closures-with-statically-initialized-shared-closures">1. Replacing small Int and Char closures with statically initialized, shared closures</h2>
+<p><code>Int</code> and <code>Char</code> closures have one non-pointer field for the actual integer and character values, as can be seen in GHCi:</p>
+<pre><code>λ&gt; :info Int
+data Int = GHC.Types.I# GHC.Prim.Int#     -- Defined in ‘GHC.Types’
+λ&gt; :info Char
+data Char = GHC.Types.C# GHC.Prim.Char#   -- Defined in ‘GHC.Types’</code></pre>
+<p>The corresponding closure type for closures with one non-pointer and no pointers is <a href="https://github.com/ghc/ghc/blob/cb6d8589c83247ec96d5faa82df3e93f419bbfe0/includes/rts/storage/ClosureTypes.h#L25"><code>CONSTR_0_1</code></a>. The garbage collector <a href="https://github.com/ghc/ghc/blob/cb6d8589c83247ec96d5faa82df3e93f419bbfe0/rts/sm/Evac.c#L656">needs to check closure type before copying an object</a> to decide how many bytes to copy (and also to decide what pointers to follow and copy the pointed object, but this happens in a later stage). When it finds a <code>CONSTR_0_1</code> it checks if it’s actually an <code>Int</code> or <code>Char</code> closure, if it is, it checks if the payload (the actual <code>Int</code> and <code>Char</code> values) is within a range. If it is then we know that we have statically-allocated <code>Int</code> or <code>Char</code> closure what is identical to the one we’re copying, so we return address to the statically allocated one rather than copying the closure and returning the new address of the copied closure. This way we avoid having multiple closures for <code>1 :: Int</code>, for example. The code (simplified, some comments by me):</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">case</span> CONSTR_0_1:
+{
+    <span class="co">// Constructor with one non-pointer field. Read the field.</span>
+    StgWord w = (StgWord)q-&gt;payload[<span class="dv">0</span>];
+
+    <span class="kw">if</span> (<span class="co">// is it a Char?</span>
+        info == Czh_con_info &amp;&amp;
+        <span class="co">// is the value in range?</span>
+        (StgChar)w &lt;= MAX_CHARLIKE)
+    {
+        <span class="co">// return address to statically allocated Char closure</span>
+        *p =  TAG_CLOSURE(tag, (StgClosure *)CHARLIKE_CLOSURE((StgChar)w));
+    }
+    <span class="kw">else</span> <span class="kw">if</span> (<span class="co">// is it an Int?</span>
+             info == Izh_con_info &amp;&amp;
+             <span class="co">// is the value in range?</span>
+             (StgInt)w &gt;= MIN_INTLIKE &amp;&amp; (StgInt)w &lt;= MAX_INTLIKE)
+    {
+        <span class="co">// return address to statically allocated Int closure</span>
+        *p = TAG_CLOSURE(tag, (StgClosure *)INTLIKE_CLOSURE((StgInt)w));
+    }
+    <span class="co">// otherwise copy the object</span>
+    <span class="kw">else</span>
+    {
+        copy_tag_nolock(p,info,q,sizeofW(StgHeader)+<span class="dv">1</span>,gen_no,tag);
+    }
+    <span class="kw">return</span>;
+}</code></pre>
+<p>What are the ranges here? Looking at the <a href="https://github.com/ghc/ghc/blob/cb6d8589c83247ec96d5faa82df3e93f419bbfe0/rts/StgMiscClosures.cmm#L679-L974">definition</a>, we see that integers in range [-16, 16] and the whole ASCII character set is covered.</p>
+<p>Here’s a small program that shows the effect of this optimization:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import </span><span class="dt">GHC.Stats</span>
+<span class="kw">import </span><span class="dt">System.Mem</span> (performMajorGC)
+
+<span class="ot">seqIntList ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
+seqIntList []       a <span class="fu">=</span> a
+seqIntList (i <span class="fu">:</span> is) a <span class="fu">=</span> i <span class="ot">`seq`</span> is <span class="ot">`seqIntList`</span> a
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+    <span class="kw">let</span> lst <span class="fu">=</span> [ <span class="dv">0</span> <span class="fu">..</span> <span class="dv">15</span> ]
+    <span class="co">-- let lst = [ 17 .. 32 ] -- enable this on the second run</span>
+
+    <span class="co">-- evaluate the list</span>
+    lst <span class="ot">`seqIntList`</span> return ()
+
+    <span class="co">-- collect any thunks, do the optimization if possible, update stats</span>
+    performMajorGC
+
+    rts_stats <span class="ot">&lt;-</span> getRTSStats
+    putStrLn (<span class="st">&quot;Live data: &quot;</span> <span class="fu">++</span> show (gcdetails_live_bytes (gc rts_stats)) <span class="fu">++</span> <span class="st">&quot; bytes&quot;</span>)
+
+    <span class="co">-- to make sure our list won't be collected</span>
+    lst <span class="ot">`seqIntList`</span> return ()</code></pre>
+<p>Run it with:</p>
+<pre><code>ghc eq.hs -rtsopts -O0 &amp;&amp; ./eq +RTS -T</code></pre>
+<p>On the second run, disable the first list and enable the second one. You’ll see this output:</p>
+<pre><code>$ ghc eq.hs -rtsopts -O0 &amp;&amp; ./eq +RTS -T
+[1 of 1] Compiling Main             ( eq.hs, eq.o )
+Linking eq ...
+Live data: 2224 bytes
+
+$ ghc eq.hs -rtsopts -O0 &amp;&amp; ./eq +RTS -T
+[1 of 1] Compiling Main             ( eq.hs, eq.o )
+Linking eq ...
+Live data: 2480 bytes</code></pre>
+<p>So second program has 256 bytes more live data. Let’s check if that makes sense. The first program doesn’t have any heap-allocated <code>Int</code> closures, because all of the <code>Int</code> in the program are within the range of statically allocated <code>Int</code> closures. Second one has 16 <code>Int</code> closures. An <code>Int</code> closure is two words: a pointer to the <code>I#</code> info table, and an actual integer value in the payload, so that’s 16 bytes. 16 (number of <code>Int</code> closures) * 16 (<code>Int</code> closure size) = 256.</p>
+<p>I know at least one another language, Python, does this as well:</p>
+<pre><code>Python 3.5.2 (default, Nov 23 2017, 16:37:01)
+[GCC 5.4.0 20160609] on linux
+Type &quot;help&quot;, &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.
+&gt;&gt;&gt; x = 1
+&gt;&gt;&gt; y = 1
+&gt;&gt;&gt; x is y
+True
+&gt;&gt;&gt; x = 100000000000
+&gt;&gt;&gt; y = 100000000000
+&gt;&gt;&gt; x is y
+False</code></pre>
+<p>Although I’m not sure if it does this during garbage collection.</p>
+<h2 id="shorting-out-indirections">2. Shorting out indirections</h2>
+<p>This is related with how lazy evaluation is implemented so we’ll first take a look at the generated code for a simple thunk update. When we compile the following program: (to keep things simple we disable optimizations)</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+fib <span class="dv">0</span> <span class="fu">=</span> <span class="dv">0</span>
+fib <span class="dv">1</span> <span class="fu">=</span> <span class="dv">1</span>
+fib n <span class="fu">=</span> fib (n<span class="fu">-</span><span class="dv">1</span>) <span class="fu">+</span> fib (n<span class="fu">-</span><span class="dv">2</span>)
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+    i <span class="ot">&lt;-</span> readLn
+    print (fib i)</code></pre>
+<p>in STG level we get this function:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">sat_s31Q <span class="fu">=</span>
+    \r [i_s31O]
+        <span class="kw">let</span> { sat_s31P <span class="fu">=</span> \u [] fib_rqh i_s31O;
+        } <span class="kw">in</span>  print <span class="fu">$</span>fShowInt sat_s31P;</code></pre>
+<p>Here <code>fib_rqh</code> is the <code>fib</code> function, and <code>sat_s31P</code> is the thunk for <code>fib i</code>. First let’s take a look at how this thunk is evaluated in the use site: (Cmm syntax)</p>
+<pre><code>I64[Sp - 16] = stg_upd_frame_info;
+P64[Sp - 8] = _s31P::P64;
+_s31O::P64 = P64[_s31P::P64 + 16];
+R2 = _s31O::P64;
+Sp = Sp - 16;
+call fib_rqh_info(R2) args: 24, res: 0, upd: 24;</code></pre>
+<p>So we push the thunk (<code>_s31P</code>), then <code>stg_upd_frame_info</code> to the stack, and jump to the code for the <code>fib</code> function, passing the argument in <code>R2</code>.</p>
+<p>I won’t show the code (because it’s large and complex), but the code for <code>fib</code> puts the return value in <code>R1</code>, pops the stack, and jump to the code for the popped stack frame, which is <code>stg_upd_frame_info</code>.</p>
+<p>At this point we have the return value of <code>fib</code> in <code>R1</code>, and thunk to update at the bottom of the stack.</p>
+<p>The code for <code>stg_upd_frame_info</code> is as follows: (simplified, see the original version <a href="https://github.com/ghc/ghc/blob/cb6d8589c83247ec96d5faa82df3e93f419bbfe0/rts/Updates.cmm#L28-L38">here</a>)</p>
+<pre><code>INFO_TABLE_RET ( stg_upd_frame, // label
+                 UPDATE_FRAME,  // frame type
+                 w_ info_ptr,   // info ptr
+                 p_ updatee )   // thunk to update at the bottom of the stack
+    return (P_ ret) // in R1 we expect the value to update the thunk with
+{
+    StgInd_indirectee(updatee) = ret;       // (1)
+    SET_INFO(updatee, stg_BLACKHOLE_info);  // (2)
+    ...
+    return (ret);
+}</code></pre>
+<p>This basically replaces the thunk’s (<code>_s31P</code>) info table pointer with <code>stg_BLACKHOLE_info</code> in line (2) (effectively making the thunk an indirection), and writes pointer to the evaluated object to the payload in line (1).</p>
+<p>Now any code that uses this value needs to follow the pointer written to what was originally a thunk in line (1). This is done by the <a href="https://github.com/ghc/ghc/blob/cb6d8589c83247ec96d5faa82df3e93f419bbfe0/rts/StgMiscClosures.cmm#L295">entry code of <code>stg_BLACKHOLE_info</code></a>.</p>
+<p>Now, because the GC copies objects from one heap to another, and updates any references to these moved objects in thread stacks (and in other roots), we can follow any indirections when copying blackhole objects, and replace references in thread stacks to the blackhole object with a reference to the object pointed to by the blackhole object. <a href="https://github.com/ghc/ghc/blob/cb6d8589c83247ec96d5faa82df3e93f419bbfe0/rts/sm/Evac.c#L732-L755">The code</a>:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">case</span> BLACKHOLE:
+{
+    StgClosure *r;
+    <span class="dt">const</span> StgInfoTable *i;
+    r = ((StgInd*)q)-&gt;indirectee;
+    <span class="kw">if</span> (GET_CLOSURE_TAG(r) == <span class="dv">0</span>) {
+        i = r-&gt;header.info;
+        <span class="kw">if</span> (IS_FORWARDING_PTR(i)) {
+            r = (StgClosure *)UN_FORWARDING_PTR(i);
+            i = r-&gt;header.info;
+        }
+        <span class="kw">if</span> (i == &amp;stg_TSO_info
+            || i == &amp;stg_WHITEHOLE_info
+            || i == &amp;stg_BLOCKING_QUEUE_CLEAN_info
+            || i == &amp;stg_BLOCKING_QUEUE_DIRTY_info) {
+            copy(p,info,q,sizeofW(StgInd),gen_no);
+            <span class="kw">return</span>;
+        }
+        ASSERT(i != &amp;stg_IND_info);
+    }
+    q = r;
+    *p = r;
+    <span class="kw">goto</span> loop;
+}</code></pre>
+<p>I don’t understand all the details in this code, but I think the important bits are the <code>q-&gt;indirectee</code> line which follows the pointer written in line (1) above, and <code>goto loop</code> which makes the garbage collector copy and return the object pointed by the blackhole.</p>
+<p>After this we no longer have to follow a pointer to our evaluated thunk. Instead references to the thunk become references to the evaluated object.</p>
+<h2 id="selector-thunk-evaluation">3. Selector thunk evaluation</h2>
+<p>A selector thunk is a thunk of this form: (<a href="https://github.com/ghc/ghc/blob/cb6d8589c83247ec96d5faa82df3e93f419bbfe0/compiler/codeGen/StgCmmBind.hs#L267-L297">code</a>)</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">case</span> x <span class="kw">of</span>
+  <span class="dt">C</span> x1 <span class="fu">...</span> xn <span class="ot">-&gt;</span> xm</code></pre>
+<p>where <code>1 &gt;= m &gt;= n</code>, and <code>x</code> is a variable. The problem with such a thunk is that it keeps all of the fields of <code>x</code> live until the selector thunk is evaluated, even when <code>x</code> is evaluated by some other code. As an example where this happens, suppose we have this record:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">R</span> <span class="fu">=</span> <span class="dt">R</span> { _<span class="ot">i1 ::</span> <span class="dt">Int</span>, _<span class="ot">i2 ::</span> <span class="dt">Int</span>, <span class="fu">...</span> other fields <span class="fu">...</span> }</code></pre>
+<p>then in a function we take <code>R</code> as parameter, and use the fields:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">f ::</span> <span class="dt">R</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+f r <span class="fu">=</span> _i1 r <span class="fu">+</span> _i2 r</code></pre>
+<p>Here <code>_i1 r</code> and <code>_i2 r</code> are selector thunks. Now suppose that the parameter to this function was already evaluated before the function is called. In this case the thunk that holds the this function application will keep all of <code>r</code> live even though only <code>_i1</code> and <code>_i2</code> are needed.</p>
+<p>It turns out this problem was known since around 1985. To my knowledge, Wadler was the first one to suggest solving these kind of “leaks” in the garbage collector <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. The idea is that while the GC copies these thunks it checks if the “selectee” is already evaluated. If so the GC evaluates the selector thunk during copying, and copies the evaluated form. Because selectors thunks are so simple (the exact shape of a selector thunk is well specified and it can’t do anything other than accessing a field) evaluation of these are just a matter of indexing the selectee’s payload. The function that does this is <a href="https://github.com/ghc/ghc/blob/cb6d8589c83247ec96d5faa82df3e93f419bbfe0/rts/sm/Evac.c#L1002">here</a>. The whole story is complicated because of concurrency concerns (e.g. another GC thread can also evaluate the thunk at the same time), but the actual optimization starts around line 1104 by looking at info table at the selectee. If it’s a constructor, then we access to the field and return it. Otherwise it’s a thunk and we copy it as usual.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>In each cycle a copying garbage collector copies live data in a heap to another heap and abandons the old heap. It turns out this kind of garbage collection is really convenient for implementing optimizations described above. The code that traverses all live data, copies it, and updates the roots is already there. Doing updates on objects while copying is just a matter of adding a few more lines in the copying function.</p>
+<p>In a non-copying collector this is much trickier, because the collector doesn’t actually need to update roots or the data. For example, to implement optimizations (2) in a mark-sweep collector we have to somehow keep track of the location where we found the pointer to the object we’re currently marking. Then, if the object became an indirection, we have to update the source location and should not mark the indirection object, because some other object may have a reference to it, and we have to update that reference too. In short, it’s certainly possible, but much trickier. Mark phase gets more complicated.</p>
+<p>In summary,</p>
+<ul>
+<li><p>Generational copying collectors are known to be a good fit for functional languages. It turns out if your language is also lazy they’re even better fit.</p></li>
+<li><p>Laziness have far-reaching consequences. The optimizations (2) and (3) are really essential to get good performance out of lazy programs (try commenting out those lines in the GC!), and they require support from the GC.</p></li>
+</ul>
+<hr />
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>“Fixing some space leaks with a garbage collector”, Wadler, 1987.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'osa1';
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
