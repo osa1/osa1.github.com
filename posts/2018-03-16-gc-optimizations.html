@@ -183,7 +183,7 @@ call fib_rqh_info(R2) args: 24, res: 0, upd: 24;</code></pre>
 <p>A selector thunk is a thunk of this form: (<a href="https://github.com/ghc/ghc/blob/cb6d8589c83247ec96d5faa82df3e93f419bbfe0/compiler/codeGen/StgCmmBind.hs#L267-L297">code</a>)</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">case</span> x <span class="kw">of</span>
   <span class="dt">C</span> x1 <span class="fu">...</span> xn <span class="ot">-&gt;</span> xm</code></pre>
-<p>where <code>1 &gt;= m &gt;= n</code>, and <code>x</code> is a variable. The problem with such a thunk is that it keeps all of the fields of <code>x</code> live until the selector thunk is evaluated, even when <code>x</code> is evaluated by some other code. As an example where this happens, suppose we have this record:</p>
+<p>where <code>1 &lt;= m &lt;= n</code>, and <code>x</code> is a variable. The problem with such a thunk is that it keeps all of the fields of <code>x</code> live until the selector thunk is evaluated, even when <code>x</code> is evaluated by some other code. As an example where this happens, suppose we have this record:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">R</span> <span class="fu">=</span> <span class="dt">R</span> { _<span class="ot">i1 ::</span> <span class="dt">Int</span>, _<span class="ot">i2 ::</span> <span class="dt">Int</span>, <span class="fu">...</span> other fields <span class="fu">...</span> }</code></pre>
 <p>then in a function we take <code>R</code> as parameter, and use the fields:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">f ::</span> <span class="dt">R</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>

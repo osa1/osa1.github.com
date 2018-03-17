@@ -38,9 +38,8 @@ let loadFuzzy _ = do
       withFile f WriteMode $ \h -&gt; do
         p &lt;- runProcess &quot;fzf&quot; [] Nothing Nothing Nothing (Just h) Nothing
         _ &lt;- waitForProcess p
-        return ()
-      out &lt;- readFile f
-      return (&quot;:load &quot; ++ init out)
+        out &lt;- readFile f
+        return (&quot;:load &quot; ++ init out)
 :}
 
 :def l loadFuzzy</code></pre>
