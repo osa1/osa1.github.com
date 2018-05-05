@@ -22,21 +22,21 @@
 <p><strong>October 28, 2011</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
 
 <p>Kendime not: Clojure’da, biraz hacky bir şekilde de olsa reader macroları tanımlanabilir. Örneğin <code>&lt;</code> ile başlayıp <code>&gt;</code> ile biten, arasındaki karakterleri string’e dönüştüren bir reader macrosu şu şekilde tanımlanabiliyor:</p>
-<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defn</span><span class="fu"> reader-macro </span>[ch fun]
+<div class="sourceCode" id="cb1"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">defn</span><span class="fu"> reader-macro </span>[ch fun]
   (<span class="kw">let</span> [dm (.<span class="kw">get</span>
              (<span class="kw">doto</span> (.getDeclaredField clojure.lang.LispReader <span class="st">&quot;macros&quot;</span>)
-               (.setAccessible true))
-             nil)]
+               (.setAccessible <span class="va">true</span>))
+             <span class="va">nil</span>)]
     (<span class="kw">aset</span> dm (<span class="kw">int</span> ch) fun)))
-(<span class="kw">defn</span><span class="fu"> native-string </span>[rdr letter-u]
-  (<span class="kw">loop</span> [s nil
-         p <span class="ch">\s</span>pace
+(<span class="bu">defn</span><span class="fu"> native-string </span>[rdr letter-u]
+  (<span class="kw">loop</span> [s <span class="va">nil</span>
+         p <span class="ch">\space</span>
          c (<span class="kw">char</span> (.<span class="kw">read</span> rdr))]
     (<span class="kw">let</span> [s (<span class="kw">str</span> s p)]
       (<span class="kw">if</span> (<span class="kw">=</span> c <span class="ch">\&gt;</span>)
         s
         (<span class="kw">recur</span> s c (<span class="kw">char</span> (.<span class="kw">read</span> rdr)))))))
-(reader-macro <span class="ch">\&lt;</span> native-string)</code></pre>
+(reader-macro <span class="ch">\&lt;</span> native-string)</code></pre></div>
 <p>Burda <code>reader-macro</code> fonksyionu, <code>clojure.lang.LispReader</code> sınıfının <code>macros</code> fieldını(IFn[^256] erişilebilir hale getirip(reflection), reader macrosunun çağıracak karakterin(bizim durumumuzda <code>&lt;</code>) yerine okuyacak fonksionu ekliyor. Bizim fonksiyonummuz <code>native-string</code>.</p>
 <p>Reader fonksyionunu ilk parametresine <code>clojure.lang.LineNumberingPushbackReader</code> geliyor. <code>read</code>, <code>readLine</code>, <code>unread</code> gibi methodları var. İkinci parametresini çözebilmiş değilim.</p>
 <p>Clojure’da bir de dispatch macroları var, bunların tek farkı(muhtemelen bunların vermek istediği bir mesaj var ama ben çözemedim henüz), dispatch macroları <code>#</code> ile başlıyor. Yukarıdaki kodda, reader macrosunu <code>clojure.lang.LispReader.macros</code>a değil de, <code>clojure.lang.LispReader.dispatchMacros</code>a ekleyerek dispatch macroları genişletilebilir. Kurcalamak isteyen olursa, <a href="https://github.com/clojure/clojure/blob/master/src/jvm/clojure/lang/LispReader.java">LispReader.java</a>.</p>
@@ -48,10 +48,9 @@
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

@@ -43,23 +43,23 @@
 <pre><code>10 - 9 - 9 - 9 -- toplamda 4 para.</code></pre>
 <p>Aç gözlü algoritmanın bu problem için çalışmadığını gözlemlemiş olduk. Dinamik programlamaya geçmeden önce ikinci adım olarak bu problemin optimal çözümünü(yani en az miktarda bozuk para ile çözecek çözüm) bulan özyineli bir algoritma yazalım.</p>
 <p>N değerinde para üstü tamamlamaya çalışıyor olalım ve A, B, C, … diye isimlendirdiğimiz bozuk paralarımız olsun. Bu durumda optimal çözüm için ya A değerinde bir bozuk para verip, N - A para üstünü tamamlamaya çalışırız(özyineleme), veya B değerinde bir bozuk para verip, N - B para üstünü tamamlamaya çalışırız(özyineleme) … ta ki tüm paraları deneyene kadar. Bu çözümün C++ programı şeklinde ifade edilmiş hali şöyle:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(<span class="dt">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(<span class="at">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
 {
-  <span class="kw">if</span> (amount == <span class="dv">0</span>)
-    <span class="kw">return</span> <span class="dv">0</span>;
+  <span class="cf">if</span> (amount == <span class="dv">0</span>)
+    <span class="cf">return</span> <span class="dv">0</span>;
 
   <span class="dt">int</span> result = <span class="dv">-1</span>;
 
-  <span class="kw">for</span> (<span class="dt">unsigned</span> coin : coins) {
-    <span class="kw">if</span> (amount &gt;= coin) {
+  <span class="cf">for</span> (<span class="dt">unsigned</span> coin : coins) {
+    <span class="cf">if</span> (amount &gt;= coin) {
       <span class="dt">int</span> r = findMinCoin(coins, amount - coin) + <span class="dv">1</span>;
-      <span class="kw">if</span> (result == <span class="dv">-1</span> || r &lt; result)
+      <span class="cf">if</span> (result == <span class="dv">-1</span> || r &lt; result)
         result = r;
     }
   }
 
-  <span class="kw">return</span> result;
-}</code></pre>
+  <span class="cf">return</span> result;
+}</code></pre></div>
 <p>Bu özyineli çözüm bize dinamik programlama yapabilmek için aradığımız iki şarttan birini sağladığımızı söylüyor.</p>
 <p><code>findMinCoin</code>in optimal çözümü bulduğunu varsayalım. <code>amount - coin</code> kısmı bize alt problemlerin çözümünü aradığımızı gösteriyor, ve bu çözümü yine <code>findMinCoin</code> aradığımızdan ve <code>findMinCoin</code> optimal çözümü bulduğundan, dinamik programlama yapabilmemiz için gereken ilk şartı sağlamış oluyoruz.</p>
 <p>Diyelim ki varsayımımız yanlıştı ve <code>findMinCoin</code> optimal çözümü bulmuyordu. Bu durumda zaten çözümümüz yanlış oluyor, çünkü <code>findMinCoin</code>i asıl problemimizin optimal çözümünü bulmak için çağırıyoruz.</p>
@@ -75,32 +75,32 @@
 <p>M para üstümüz olsun ve N tane bozuk paramız olsun. Bu durumda M için N tane özyineli çağrı yapılacak. Kabaca, elimizdeki en küçük paranın 1 olduğunu düşündüğümüzde, bu özyineli çağrılar M kere yapılacak. Her seviyede N özyineli çağrı bize O(M ^ N) kompleksliğinde bir algoritma verecektir.</p>
 <p>Her bir alt problemi memozation yardımıyla bir kere çözdüğümüz durumda ise, tamamlamak istediğimiz para üstümüz M olduğundan ve M - 1 alt probleme sahip olduğumuzdan O(M*N) bir komplekslik elde edeceğiz.</p>
 <p>Örnek implementasyon şöyle:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(vector&lt;<span class="dt">int</span>&gt; table, <span class="dt">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(vector&lt;<span class="dt">int</span>&gt; table, <span class="at">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
 {
-  <span class="kw">if</span> (table[amount] != <span class="dv">-1</span>)
+  <span class="cf">if</span> (table[amount] != <span class="dv">-1</span>)
     <span class="co">// problem daha onceden cozulmus, cevaba tablodan bak</span>
-    <span class="kw">return</span> table[amount];
+    <span class="cf">return</span> table[amount];
 
   <span class="co">// problem henuz cozulmemis, coz</span>
-  <span class="kw">for</span> (<span class="dt">unsigned</span> coin : coins) {
-    <span class="kw">if</span> (amount &gt;= coin) {
+  <span class="cf">for</span> (<span class="dt">unsigned</span> coin : coins) {
+    <span class="cf">if</span> (amount &gt;= coin) {
       <span class="dt">int</span> r = <span class="dv">1</span> + findMinCoin(table, coins, amount - coin);
-      <span class="kw">if</span> (table[amount] == <span class="dv">-1</span> || r &lt; table[amount])
+      <span class="cf">if</span> (table[amount] == <span class="dv">-1</span> || r &lt; table[amount])
         table[amount] = r;
     }
   }
 
-  <span class="kw">return</span> table[amount];
-}</code></pre>
+  <span class="cf">return</span> table[amount];
+}</code></pre></div>
 <p>Bu noktada özyineli çağrı yapmadan yapılabilecek alternatif bir çözüm için şunu farketmek gerekir: 0 para üstü için cevap zaten belli. 1 para üstü için cevabımızı sadece 1 değerinde bozuk para verip, 0 alt problemi için tabloya bakarak çözebiliriz. Diyelim ki 10 için çözüyoruz, 1 para verip 9 için cevaba tablodan bakmak isteriz, veya 9 para verip 1 için tabloya bakmak isteriz, veya 10 para verip 0 için tabloya bakmak isteriz vs. Yani aslında tabloda bir M değerinden önceki tüm değerler için cevap belliyse, kolayca o değerler arasından gerekli değerlere bakarak tabloda M’i doldurabiliriz. Bu da bizi 0. elemandan başlayarak tüm tabloyu adımlayarak doldurmayı içeren şu çözüme götürür:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> fillMinCoin(<span class="dt">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, vector&lt;<span class="dt">int</span>&gt; &amp;tbl, <span class="dt">unsigned</span> amount)
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> fillMinCoin(<span class="at">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, vector&lt;<span class="dt">int</span>&gt; &amp;tbl, <span class="dt">unsigned</span> amount)
 {
-  <span class="kw">for</span> (<span class="dt">unsigned</span> coin : coins)
-    <span class="kw">if</span> (amount &gt;= coin &amp;&amp;
+  <span class="cf">for</span> (<span class="dt">unsigned</span> coin : coins)
+    <span class="cf">if</span> (amount &gt;= coin &amp;&amp;
         (tbl[amount - coin] + <span class="dv">1</span> &lt; tbl[amount]
          || tbl[amount] == <span class="dv">-1</span>))
       tbl[amount] = tbl[amount - coin] + <span class="dv">1</span>;
-}</code></pre>
+}</code></pre></div>
 <p>Daha sonra bu tablodan gerekli elemana bakarak cevabı öğrenmiş oluruz. Bu şekilde bir çözüm dinamik programlamanın doğasını bize daha iyi gösteriyor. Dinamik programlama temelde tablolamaya dayanıyor.</p>
 <h3 id="örnek-2-en-uzun-artan-altdizi-problemi">Örnek 2: En uzun artan altdizi problemi</h3>
 <p>İki harf dizisi(string) düşünelim. En uzun artan altdizi, şu şekilde tanımlanmıştır:</p>
@@ -115,12 +115,14 @@ Cevap: ceb</code></pre>
 <p>Bir probleme dinamik programlamanın uygulanabileceğini görmek için önce başta anlatılan iki şart kontrol edilmelidir. Bunun için güzel bir yolun problemin özyineli bir çözümünü yapmak olduğunu daha önceden anlatmıştık. Şimdi bu sorunu özyineli bir şekilde nasıl çözebileceğimize bakalım. Girdilerimiz S1 ve S2 olsun:</p>
 <ul>
 <li>Herhangi birinin boş string olması dorumunda cevabımız boş string olacaktır.</li>
-<li>Diğer durumda, S1 ve S2’nin son harflerini düşünelim:</li>
+<li>Diğer durumda, S1 ve S2’nin son harflerini düşünelim:
+<ul>
 <li>Eğer bu harfler aynı ise, cevabımıza dahil olacak bir harfi bulduk demektir. Problemin geriye kalanı S1 ve S2 stringlerinin son harfleri çıkarılmış halleri için çözülmeli ve bu son harf cevaba eklenmelidir.</li>
 <li>Eğer harfler farklı ise, iki ayrı alt problem elde ederiz: ya S1 stringinin tamamı ve S2’nin son harfi hariç olan kısmı bize en uzun cevabı verecektir, veya S1 stringinin en son harfi hariç kısmı ile S2’nin tamamı en uzun cevabı verecektir. İkisini de çözeriz ve daha uzun olan cevap çözümümüz olur.</li>
+</ul></li>
 </ul>
 <p>Bu çözümün Haskell implementasyonu şu şekilde: (sadelik açısından bu kısım C++ ile yazılmadı, dinamik programlama hali C++ ile verilecek)</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">solve ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">solve ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
 solve s1 s2
   <span class="fu">|</span> null s1 <span class="fu">||</span> null s2 <span class="fu">=</span> <span class="st">&quot;&quot;</span>
 solve s1 s2 <span class="fu">=</span>
@@ -133,41 +135,41 @@ solve s1 s2 <span class="fu">=</span>
                 result2  <span class="fu">=</span> solve s1 h2
              <span class="kw">in</span> <span class="kw">if</span> length result1 <span class="fu">&gt;</span> length result2
                   <span class="kw">then</span> result1
-                  <span class="kw">else</span> result2</code></pre>
+                  <span class="kw">else</span> result2</code></pre></div>
 <p>Çözümün kompleksliğini düşünelim: Birbirine eşit olmayan M ve N uzunluğunda iki string düşünelim, M ve N - 1 uzunluğunda, M - 1 ve N uzunluğunda ve M - 1, N - 1 uzunluğunda stringler için özyineli çağrılar yapılacak. Her birinden yine 3 farklı özyineli çağrı ve toplamda M + N seviyede her seviyede 3 çağrı yapılacağından O((M + N) ^ 3) kompleksliğinde bir algoritmamız olur.</p>
 <p>Dinamik programlamanın mümkün olduğunu görmek için fonksiyonun iki string girdimizin ilk kaç harfi üzerinden çağırıldığını bir ağaç üzerinden takip etmek yeterli olacaktır.</p>
 <p>Bu durumda stringlerin ilk kaç harfi için çözümü bulduğumuzu iki boyutlu bir tabloda tutabiliriz. Örneğin tablodaki (3, 5) elemanı bize ilk stringin ilk 3 elemanı, ikinci stringin ilk 5 elemanı için bulduğumuz çözümü verecektir.</p>
 <p>Yazıyı kısa tutmak adına bu noktadan sonra direkt olarak adımlayarak tablo doldurma şeklinde düşünelim. Problemin M ve N harflik hali için (M - 1, N), (M - 1, N - 1) ve (M, N - 1) lik hallerini çözmemiz gerekecek. Tablo üzerinde düşündüğümüzde, eğer tabloyu satır satır doldurursak, her bir sonraki adımda gerekli önceki adımları zaten elde etmiş olduğumuz görülebilir.</p>
 <p>Burada tabloda tutacağımız her bir değer iki şeyi göstermeli, 1) string uzunluğu cinsinden cevap 2) o adıma geldiğimizde eğer iki stringin de son harflerini cevaba katıyorsak, bu stringin hangi harf olduğu.</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> solve(table &amp;tbl,
-    <span class="dt">const</span> string &amp;str1, <span class="dt">const</span> string &amp;str2)
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> solve(table &amp;tbl,
+    <span class="at">const</span> string &amp;str1, <span class="at">const</span> string &amp;str2)
 {
-  <span class="kw">for</span> (us i = <span class="dv">0</span>; i &lt; str1.size(); i++)
-    <span class="kw">if</span> (str2[<span class="dv">0</span>] == str1[i])
-      tbl(i, <span class="dv">0</span>) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">' '</span>, <span class="dv">1</span>);
-    <span class="kw">else</span>
-      tbl(i, <span class="dv">0</span>) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">' '</span>, <span class="dv">0</span>);
+  <span class="cf">for</span> (us i = <span class="dv">0</span>; i &lt; str1.size(); i++)
+    <span class="cf">if</span> (str2[<span class="dv">0</span>] == str1[i])
+      tbl(i, <span class="dv">0</span>) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="ch">' '</span>, <span class="dv">1</span>);
+    <span class="cf">else</span>
+      tbl(i, <span class="dv">0</span>) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="ch">' '</span>, <span class="dv">0</span>);
 
-  <span class="kw">for</span> (us i = <span class="dv">0</span>; i &lt; str2.size(); i++)
-    <span class="kw">if</span> (str1[<span class="dv">0</span>] == str2[i])
-      tbl(<span class="dv">0</span>, i) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">' '</span>, <span class="dv">1</span>);
-    <span class="kw">else</span>
-      tbl(<span class="dv">0</span>, i) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">' '</span>, <span class="dv">0</span>);
+  <span class="cf">for</span> (us i = <span class="dv">0</span>; i &lt; str2.size(); i++)
+    <span class="cf">if</span> (str1[<span class="dv">0</span>] == str2[i])
+      tbl(<span class="dv">0</span>, i) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="ch">' '</span>, <span class="dv">1</span>);
+    <span class="cf">else</span>
+      tbl(<span class="dv">0</span>, i) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="ch">' '</span>, <span class="dv">0</span>);
 
-  <span class="kw">for</span> (us i = <span class="dv">1</span>; i &lt; str1.size(); i++)
-    <span class="kw">for</span> (us j = <span class="dv">1</span>; j &lt; str2.size(); j++)
-      <span class="kw">if</span> (str1[i] == str2[j])
+  <span class="cf">for</span> (us i = <span class="dv">1</span>; i &lt; str1.size(); i++)
+    <span class="cf">for</span> (us j = <span class="dv">1</span>; j &lt; str2.size(); j++)
+      <span class="cf">if</span> (str1[i] == str2[j])
         tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(str1[i], tbl(i - <span class="dv">1</span>, j - <span class="dv">1</span>)-&gt;second + <span class="dv">1</span>);
-      <span class="kw">else</span> {
+      <span class="cf">else</span> {
         us s1 = tbl(i - <span class="dv">1</span>, j)-&gt;second;
         us s2 = tbl(i, j - <span class="dv">1</span>)-&gt;second;
 
-        <span class="kw">if</span> (s1 &gt; s2)
-          tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">' '</span>, s1);
-        <span class="kw">else</span>
-          tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="st">' '</span>, s2);
+        <span class="cf">if</span> (s1 &gt; s2)
+          tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="ch">' '</span>, s1);
+        <span class="cf">else</span>
+          tbl(i, j) = <span class="kw">new</span> pair&lt;<span class="dt">char</span>, us&gt;(<span class="ch">' '</span>, s2);
       }
-}</code></pre>
+}</code></pre></div>
 <p>Bu çözümdeki iç içe iki for döngüsü tablonun tamamını bir turda ve her bir adım için 3 işlemde doldurduğumuzu gösteriyor ve çözümümüz dolayısıyla O(M*N).</p>
 <p>Bu problemin alıştırması <a href="http://www.spoj.com/SPOJ/problems/TLCS/" class="uri">http://www.spoj.com/SPOJ/problems/TLCS/</a> adresinden yapılabilir.</p>
 <h3 id="aşağıdan-yukarıya-ve-yukarıdan-aşağıya-çözümler">Aşağıdan-yukarıya ve yukarıdan-aşağıya çözümler</h3>
@@ -182,47 +184,47 @@ solve s1 s2 <span class="fu">=</span>
 <p>Burada farkedilmesi gereken şen, N - X. kolonun siyah olması aslında bir alt problem, ve en doğal ifade edilme şeklide bir özyineli fonksiyon ile olur.</p>
 <p>Peki alt problemler paylaşılıyor mu? Şöyle düşünelim, en az 5, en fazla 10 genişliğinde kolonlar istiyor olalım ve şu anda 15. kolonu boyuyor olalım. Bu durumda 10, 9, 8, 7, … 6. kolona kadar olan kısımlar için aynı problemi yeniden çözeceğiz. 16. kolon için ise 19, 9, … 7. kolona kadar olan kısımları bir yeniden çözmemiz gerekecek. Ciddi miktarda alt problem paylaşılıyor.</p>
 <p>Herhangi bir kolon için sadece o kolondan önceki kolonların cevabına ihtiyaç duyuyor olmamız tek boyutlu bir tabloda dinamik programlama yapabileceğimizi gösteriyor. Bu durumda şöyle bir cevap elde ediyoruz:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">unsigned</span> us;
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">unsigned</span> us;
 ...
 <span class="dt">void</span> solveDP(vector&lt;<span class="dt">int</span>&gt; &amp;tblWhites, vector&lt;<span class="dt">int</span>&gt; &amp;tblBlacks,
-             <span class="dt">const</span> vector&lt;us&gt; &amp;colWhites, <span class="dt">const</span> vector&lt;us&gt; &amp;colBlacks,
-             us idx, <span class="dt">const</span> us min, <span class="dt">const</span> us max)
+             <span class="at">const</span> vector&lt;us&gt; &amp;colWhites, <span class="at">const</span> vector&lt;us&gt; &amp;colBlacks,
+             us idx, <span class="at">const</span> us min, <span class="at">const</span> us max)
 {
-  <span class="kw">if</span> (idx &lt; max) {
+  <span class="cf">if</span> (idx &lt; max) {
     tblWhites[idx] = sumInclusive(colBlacks, <span class="dv">0</span>, idx);
     tblBlacks[idx] = sumInclusive(colWhites, <span class="dv">0</span>, idx);
   }
 
-  <span class="dt">const</span> us startIdx = idx &lt; max ? <span class="dv">0</span> : idx - max;
-  <span class="dt">const</span> us endIdx   = idx - min;
+  <span class="at">const</span> us startIdx = idx &lt; max ? <span class="dv">0</span> : idx - max;
+  <span class="at">const</span> us endIdx   = idx - min;
 
-  <span class="kw">for</span> (us i = startIdx; i &lt;= endIdx; i++) {
-    <span class="kw">if</span> (tblBlacks[i] != <span class="dv">-1</span>) {
+  <span class="cf">for</span> (us i = startIdx; i &lt;= endIdx; i++) {
+    <span class="cf">if</span> (tblBlacks[i] != <span class="dv">-1</span>) {
       us cost = tblBlacks[i] + sumInclusive(colBlacks, i + <span class="dv">1</span>, idx);
-      <span class="kw">if</span> (tblWhites[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblWhites[idx]))
+      <span class="cf">if</span> (tblWhites[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblWhites[idx]))
         tblWhites[idx] = cost;
     }
 
-    <span class="kw">if</span> (tblWhites[i] != <span class="dv">-1</span>) {
+    <span class="cf">if</span> (tblWhites[i] != <span class="dv">-1</span>) {
       us cost = tblWhites[i] + sumInclusive(colWhites, i + <span class="dv">1</span>, idx);
-      <span class="kw">if</span> (tblBlacks[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblBlacks[idx]))
+      <span class="cf">if</span> (tblBlacks[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblBlacks[idx]))
         tblBlacks[idx] = cost;
     }
   }
-}</code></pre>
+}</code></pre></div>
 <h3 id="bir-soru-two-out-of-three">Bir soru: “Two out of three”</h3>
 <p>Bu soru önceki sorudan daha ilginç olmamakla beraber, memoization/tablolama yapma şekli biraz değişik olduğundan anlatmak istedim: <a href="http://codeforces.com/problemset/problem/82/D" class="uri">http://codeforces.com/problemset/problem/82/D</a> .</p>
 <p>Sıradaki son 3 elemandan 2 elemanın sürekli azalacağını biliyoruz, ve alt problem bu iki eleman hariç elemanlar için çözülecek. Fakat bu 3 elemandan seçilmeyen elemanı memoization işleminde nasıl kullanabiliriz? Sıradan ayrılan iki insan alt problemin sıradaki ilk 2 eleman hariç olan kısmı olduğunu gösteriyor. 3 kişiden seçilmeyen bir kişi de algoritmaya ekstra bir parametre olarak verildiğinde karşımıza şöyle bir sonuç çıkıyor:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> solve(<span class="dt">int</span> lastElem, <span class="dt">int</span> offset, <span class="dt">const</span> vector&lt;<span class="dt">int</span>&gt; &amp;ppl,
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> solve(<span class="dt">int</span> lastElem, <span class="dt">int</span> offset, <span class="at">const</span> vector&lt;<span class="dt">int</span>&gt; &amp;ppl,
     matrix&lt;<span class="dt">int</span>&gt; &amp;tbl, matrix&lt;<span class="dt">int</span>&gt; &amp;steps)
 {
-  <span class="kw">if</span> (lastElem &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
-    <span class="kw">return</span> <span class="dv">0</span>;
-  <span class="kw">if</span> (offset &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
-    <span class="kw">return</span> ppl[lastElem];
+  <span class="cf">if</span> (lastElem &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
+    <span class="cf">return</span> <span class="dv">0</span>;
+  <span class="cf">if</span> (offset &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
+    <span class="cf">return</span> ppl[lastElem];
 
-  <span class="kw">if</span> (tbl(lastElem, offset) != <span class="dv">-1</span>)
-    <span class="kw">return</span> tbl(lastElem, offset);
+  <span class="cf">if</span> (tbl(lastElem, offset) != <span class="dv">-1</span>)
+    <span class="cf">return</span> tbl(lastElem, offset);
 
   <span class="dt">int</span> tmp[<span class="dv">3</span>];
   tmp[<span class="dv">0</span>] = max(ppl[lastElem], ppl[offset]) + solve(offset + <span class="dv">1</span>, offset + <span class="dv">2</span>, ppl, tbl, steps);
@@ -232,17 +234,16 @@ solve s1 s2 <span class="fu">=</span>
   <span class="dt">int</span> idmin = min_element(tmp, tmp + <span class="dv">3</span>) - tmp;
   steps(lastElem, offset) = idmin;
 
-  <span class="kw">return</span> tbl(lastElem, offset) = tmp[idmin];
-}</code></pre>
+  <span class="cf">return</span> tbl(lastElem, offset) = tmp[idmin];
+}</code></pre></div>
 <p>Alt problemlerin nasıl paylaşıldığı daha önceden anlatıldığı gibi görülebilir.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

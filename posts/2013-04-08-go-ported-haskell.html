@@ -26,10 +26,10 @@
 <p>Any criticism would be appreciated.</p>
 <h3 id="goroutines"><a href="http://tour.golang.org/#62">62 - Goroutines</a></h3>
 <p>This is a very basic example of a program creating two threads and printing some strings.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import </span><span class="dt">Control.Concurrent</span>
-<span class="kw">import </span><span class="dt">Control.Monad</span>
+<span class="kw">import</span> <span class="dt">Control.Concurrent</span>
+<span class="kw">import</span> <span class="dt">Control.Monad</span>
 
 <span class="ot">say ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 say s <span class="fu">=</span> forM_ [<span class="dv">1</span><span class="fu">..</span><span class="dv">5</span>] <span class="fu">$</span> \ _ <span class="ot">-&gt;</span> <span class="kw">do</span>
@@ -39,12 +39,12 @@ say s <span class="fu">=</span> forM_ [<span class="dv">1</span><span class="fu"
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
   forkIO <span class="fu">$</span> say <span class="st">&quot;world&quot;</span>
-  say <span class="st">&quot;hello&quot;</span></code></pre>
+  say <span class="st">&quot;hello&quot;</span></code></pre></div>
 <h3 id="channels"><a href="http://tour.golang.org/#63">63 - Channels</a></h3>
 <p>Simple channels example</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import </span><span class="dt">Control.Concurrent</span>
+<span class="kw">import</span> <span class="dt">Control.Concurrent</span>
 
 <span class="ot">sum' ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Chan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 sum' ints chan <span class="fu">=</span> writeChan chan (sum ints)
@@ -60,13 +60,13 @@ main <span class="fu">=</span> <span class="kw">do</span>
   forkIO <span class="fu">$</span> sum' l2 chan
   x <span class="ot">&lt;-</span> readChan chan
   y <span class="ot">&lt;-</span> readChan chan
-  putStrLn <span class="fu">$</span> unwords [ show x, show y, show <span class="fu">$</span> x <span class="fu">+</span> y ]</code></pre>
+  putStrLn <span class="fu">$</span> unwords [ show x, show y, show <span class="fu">$</span> x <span class="fu">+</span> y ]</code></pre></div>
 <h3 id="buffered-channels"><a href="http://tour.golang.org/#64">64 - Buffered Channels</a></h3>
 <p>This is where porting started getting tricky. Haskell channels are basically linked lists, and do not have length or size. In order to get a similar effect, I created a new channel type:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span>
 <span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import </span><span class="dt">Control.Concurrent</span>
+<span class="kw">import</span> <span class="dt">Control.Concurrent</span>
 
 <span class="co">-- Buffered chan</span>
 <span class="kw">data</span> <span class="dt">BChan</span> a <span class="fu">=</span> <span class="dt">BChan</span> {<span class="ot"> chan ::</span> <span class="dt">Chan</span> a,<span class="ot"> size ::</span> <span class="dt">MVar</span> <span class="dt">Int</span>,<span class="ot"> limit ::</span> <span class="dt">Int</span> }
@@ -104,15 +104,15 @@ main <span class="fu">=</span> <span class="kw">do</span>
   print v1
 
   v2 <span class="ot">&lt;-</span> readBChan chan
-  print v2</code></pre>
+  print v2</code></pre></div>
 <p>Here one difference is that Haskell doesn’t fail with a “deadlock!!” error when an extra <code>writeBChan</code> operation is added(or one of them is removed), but just waits forever(like in a <em>real</em> deadlock :-P ). I wonder whether there is a way to get an exception like that, it’s awesome.</p>
 <h3 id="range-and-close"><a href="http://tour.golang.org/#65">65 - Range and Close</a></h3>
 <p>Same as above, Haskell channels are not working like Go channels. I had to simulate Go channels’ behavior.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns, MultiWayIf #-}</span>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns, MultiWayIf #-}</span>
 <span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import </span><span class="dt">Control.Concurrent</span>
-<span class="kw">import </span><span class="dt">Control.Monad</span> (liftM)
+<span class="kw">import</span> <span class="dt">Control.Concurrent</span>
+<span class="kw">import</span> <span class="dt">Control.Monad</span> (liftM)
 
 <span class="co">-- Closable channel</span>
 <span class="kw">data</span> <span class="dt">CChan</span> a <span class="fu">=</span> <span class="dt">CChan</span> (<span class="dt">MVar</span> ([a], <span class="dt">Int</span>, <span class="dt">Bool</span>))
@@ -165,7 +165,7 @@ fib i chan <span class="fu">=</span> <span class="kw">do</span>
 main <span class="fu">=</span> <span class="kw">do</span>
   chan <span class="ot">&lt;-</span> newCChan
   forkIO <span class="fu">$</span> fib <span class="dv">10</span> chan
-  forChan_ chan print</code></pre>
+  forChan_ chan print</code></pre></div>
 <p>This example still doesn’t quite work like Go code. This is because I used a stack instead of a queue. It should be trivial to fix this code though.</p>
 <h3 id="select-and-67---default-selection"><a href="http://tour.golang.org/#66">66 - Select</a> and <a href="http://tour.golang.org/#67">67 - Default Selection</a></h3>
 <p>Now this is hard. In 66, example program listens multiple channels, and runs some code when any of the channels is ready. If multiple channels are ready at the same time, one of them is chosen randomly. 67 is similar, only difference is when none of the channels are ready, some default action is taken.</p>
@@ -175,10 +175,9 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

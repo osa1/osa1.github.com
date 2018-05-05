@@ -33,7 +33,7 @@
 <li>Our work - extending multi-stage language with subtyping and Wallce: a module type inference system</li>
 </ul>
 <h2 id="introduction-to-type-systems-and-polymorphism">Introduction to type systems and polymorphism</h2>
-<p>As far as software engineering concerned, a type system is a static analysis method that aims to prove a program ‘won’t go wrong’<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, meaning that the program will not crash at runtime. Static type checking can also be used for some compiler optimisations. Also, some languages have mechanisms for dispatching on types.</p>
+<p>As far as software engineering concerned, a type system is a static analysis method that aims to prove a program ‘won’t go wrong’<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, meaning that the program will not crash at runtime. Static type checking can also be used for some compiler optimisations. Also, some languages have mechanisms for dispatching on types.</p>
 <p>Type systems (in this text, this term is used as ‘static type systems’) do that by inspecting program terms and proving some properties and relations among them. This work is done before run-time, and most type information can be deleted so that it won’t cause any runtime costs.</p>
 <p>For most type systems, process of type checking is ‘syntactic’. This means two things; first, the type checker only needs program text and it doesn’t need any information that can only be obtained at run-time. And second, type checking a program term only depends on type checking subterms of that program. These two properties also give us a somewhat simple way to express type checking on terms in a symbolic and formal way.</p>
 <p>Type systems are ‘conservative’, meaning they will reject some ‘correct’ programs. A correct program means a program that won’t crash at runtime. For instance, this program(in OCaml syntax):</p>
@@ -49,7 +49,7 @@
 ...
 add5 10</code></pre>
 <p>Here <code>10</code> has type <code>int</code>, so we can’t apply it to a function that expects a float value. Type systems with subtyping overcome this problem by defining a common supertype of types. In our case, <code>float</code> is already a supertype of <code>int</code>, so this example is well-typed in the presence of subtyping.</p>
-<p>As an example of being able to encode more <em>invariants</em> in the type system, let’s look to the type of a sort function from a dependently-typed programming language:<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
+<p>As an example of being able to encode more <em>invariants</em> in the type system, let’s look to the type of a sort function from a dependently-typed programming language:<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
 <pre><code>sort : List Int -&gt; List Int</code></pre>
 <p>This type can be inhabited with some wrong functions. For instance, a function that takes a list and returns an empty list will have this type, just like <em>reverse</em> and <em>shuffle</em> functions.</p>
 <pre><code>sort : Vect Int n -&gt; Vect Int n</code></pre>
@@ -81,7 +81,7 @@ c := (fun x -&gt; x+1);
 !c true</code></pre>
 <p>Giving <code>c</code> the type <code>forall a. ('a -&gt; 'a) ref</code> (in OCaml syntax) makes this example well-typed, which is wrong. Instead, type system should have given the type <code>( '_a -&gt; '_a) ref</code>, then during the type checking <code>c := (fun x -&gt; x + 1)</code>, <code>_a</code> should be unified with <code>int</code>. Note that since <code>('_a -&gt; '_a) ref</code> doesn’t quantify the variable <code>a</code>, after this point, type of <code>c</code> will be <code>(int -&gt; int_ ref</code>, so applying it a bool value will fail.</p>
 <p>Let-polymorphism has some interesting properties. It’s simple, but it still accepts realistic programs. And even though its worst-case efficiency is exponential on the size of input program, most realistic programs don’t hit the worst case and have linear time complexity. For this reason, let-polymorphism is named as the ‘sweet-spot’ of type systems.</p>
-<p>Another great property of HM type system is that it can be reduced to constraint generation and solving steps. These separate steps lead to a more modular algorithm, with changeable constraint generators and solvers. HM(X)<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> is a formalization of this observation.</p>
+<p>Another great property of HM type system is that it can be reduced to constraint generation and solving steps. These separate steps lead to a more modular algorithm, with changeable constraint generators and solvers. HM(X)<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a> is a formalization of this observation.</p>
 <h2 id="row-polymorphism">Row polymorphism</h2>
 <p>Rows are a way to encode ‘labeled products’. A product type is a type that contains some other types; for example, a pair is a product type of two other types (<code>(int * bool)</code> is a product type with <code>int</code> and <code>bool</code> parts).</p>
 <p>A ‘labeled sum’ is a product type, but with labels. For instance:</p>
@@ -111,15 +111,15 @@ c := (fun x -&gt; x+1);
 <p>Note that code values can be open, but only closed code values can be run. Our <code>pow_body_gen</code> function returns a code value with an unbound variable <code>a</code>, then in <code>power_five</code>, we define <code>a</code> in stage 1, and by unboxing <code>pow_body_gen 5</code>, we actually generate a bigger code value, with <code>a</code> defined. Now our code value is closed, so it can be run.</p>
 <p>There is also a relation between multi-stage programming and partial evaluation, but this is out of this text’s scope.</p>
 <h2 id="our-work">Our work</h2>
-<p>Wallace is a type inference library, supporting subtyping. “Its goal is to serve as a plug-in component in the design of a constraint-based type-checker, regardless of the programming language being analyzed.”<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
-<p>We used Wallace to get subtyping in our language. Wallace comes with an example language, called ‘toy’, which has extensible records built-in. For simplicity, instead of generating constraints for Wallace, we first translated our multi-stage language to record calculus. Translation to record calculus preserves semantics, but eliminates staged computations<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a>. Our record calculus is then translated to ‘toy’. ‘toy’ infers types for us, by generating and passing constraints to Wallace.</p>
-<p>We then compared our type system with<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a>. This expression:</p>
+<p>Wallace is a type inference library, supporting subtyping. “Its goal is to serve as a plug-in component in the design of a constraint-based type-checker, regardless of the programming language being analyzed.”<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a></p>
+<p>We used Wallace to get subtyping in our language. Wallace comes with an example language, called ‘toy’, which has extensible records built-in. For simplicity, instead of generating constraints for Wallace, we first translated our multi-stage language to record calculus. Translation to record calculus preserves semantics, but eliminates staged computations<a href="#fn5" class="footnote-ref" id="fnref5"><sup>5</sup></a>. Our record calculus is then translated to ‘toy’. ‘toy’ infers types for us, by generating and passing constraints to Wallace.</p>
+<p>We then compared our type system with<a href="#fn6" class="footnote-ref" id="fnref6"><sup>6</sup></a>. This expression:</p>
 <pre><code>run((fun c -&gt; &lt;(let x = 1 in ~c, let y = 1 in ~c)&gt;) &lt;1&gt;);;</code></pre>
 <p>is not typeable under polymorphic type system, but is well-typed in our system with subtyping. By mapping the calculated type back to our multi-stage language, we got subtyping in the multi-stage language for free.</p>
 <p>Wallace is used as is, without any modifications. But we changed ‘toy’ language for our purposes. We first added some numerical types with subtyping relations. ‘toy’ had a problem that it was generalizing every let bindings, without value restriction. To overcome this problem, we added an extra lambda wrapper in the translator when value restriction is needed. Since our type system already had value restriction, it was trivial to apply the same test to check if an expression is expansive. Expansive expressions are those that may allocate new memory cells. Expansive expressions are not generalized.</p>
 <p>Another problem with ‘toy’ language is that it doesn’t support toplevel declarations, and adding that wasn’t easy. To overcome this without any serious modifications in ‘toy’s source, we collected all well-typed toplevel expressions and declarations, and then generated a <code>let .. in ..</code> chain of toplevel declarations to give ’toy’ type checker. This means for every new toplevel phrase, ‘toy’ now type checks all old expressions too. This may not be efficient but works fine with our purposes, and it was easy to implement.</p>
-<p>Implementing type inference: Implementing a type inference system is hard to do elegantly. One problem is already discussed in my blog (in Turkish)<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a>. Every non-trivial type system requires types to be separated into kinds. After that, every type variable will also have kind information and it’s a type error to unify a type variable with wrong kinds. Type applications also checked with the help of kinds.</p>
-<p>Kinds are generally checked at run-time. Type systems with kinds usually lead to a simpler type language. For instance, almost all types mentioned in this text can be represented by this simply type language (code taken from <a href="#fn8" class="footnoteRef" id="fnref8"><sup>8</sup></a>) :</p>
+<p>Implementing type inference: Implementing a type inference system is hard to do elegantly. One problem is already discussed in my blog (in Turkish)<a href="#fn7" class="footnote-ref" id="fnref7"><sup>7</sup></a>. Every non-trivial type system requires types to be separated into kinds. After that, every type variable will also have kind information and it’s a type error to unify a type variable with wrong kinds. Type applications also checked with the help of kinds.</p>
+<p>Kinds are generally checked at run-time. Type systems with kinds usually lead to a simpler type language. For instance, almost all types mentioned in this text can be represented by this simply type language (code taken from <a href="#fn8" class="footnote-ref" id="fnref8"><sup>8</sup></a>) :</p>
 <pre><code>type kind =
   | KStar                 (* kind of term types *)
   | KRow                  (* kind of row types *)
@@ -175,28 +175,26 @@ and recvarlink = tyrec link</code></pre>
 <pre><code>printf &quot;@[&lt;hov 2&gt;~(&quot;; print_exp exp; printf &quot;)@]&quot;</code></pre>
 <p>Here <code>@[&lt;hov 2&gt;</code> part creates a new “horizontal or vertical” box. This box has a property that when a line is split to two lines, every other newline pointers will also be split into separate lines. So contents of this box is either displayed as a single line, or separated from every newline pointers. Later, <code>print_exp exp;</code> part prints the expression inside the box. And lastly, `printf “)@]” closes the paren, then closes the box, so that the text comes later will not be bound with this line split rule.</p>
 <p>This gives an easy and concise way to print even most complex structures.</p>
-<hr />
-<div class="footnotes">
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>A Theory of Type Polymorphism in Programming – Robin Milner<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>Code examples taken from <a href="http://vimeo.com/61576198">Dependently Typed Functional Programming with Idris</a> course slides.<a href="#fnref2">↩</a></p></li>
-<li id="fn3"><p><a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.73.3971">Notes on HM(X)</a><a href="#fnref3">↩</a></p></li>
-<li id="fn4"><p><a href="http://gallium.inria.fr/~fpottier/wallace/">Wallace</a><a href="#fnref4">↩</a></p></li>
-<li id="fn5"><p>Choi, Aktemur, Yi, Tatsuta: Static Analysis of Multi-Staged Programs via Unstaging Translation<a href="#fnref5">↩</a></p></li>
-<li id="fn6"><p>Kim, Yi, Calcagno: A Polymorphic Modal Type System for List-Like Multi-Staged Languages<a href="#fnref6">↩</a></p></li>
-<li id="fn7"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref7">↩</a></p></li>
-<li id="fn8"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref8">↩</a></p></li>
+<li id="fn1"><p>A Theory of Type Polymorphism in Programming – Robin Milner<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>Code examples taken from <a href="http://vimeo.com/61576198">Dependently Typed Functional Programming with Idris</a> course slides.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn3"><p><a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.73.3971">Notes on HM(X)</a><a href="#fnref3" class="footnote-back">↩</a></p></li>
+<li id="fn4"><p><a href="http://gallium.inria.fr/~fpottier/wallace/">Wallace</a><a href="#fnref4" class="footnote-back">↩</a></p></li>
+<li id="fn5"><p>Choi, Aktemur, Yi, Tatsuta: Static Analysis of Multi-Staged Programs via Unstaging Translation<a href="#fnref5" class="footnote-back">↩</a></p></li>
+<li id="fn6"><p>Kim, Yi, Calcagno: A Polymorphic Modal Type System for List-Like Multi-Staged Languages<a href="#fnref6" class="footnote-back">↩</a></p></li>
+<li id="fn7"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref7" class="footnote-back">↩</a></p></li>
+<li id="fn8"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref8" class="footnote-back">↩</a></p></li>
 </ol>
-</div>
+</section>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

@@ -26,154 +26,153 @@
 <p>In the rest of the post, when I use <code>Lisp</code>, I’ll be mentioning the Lisp in micro-manual, not the modern dialects.</p>
 <p>Lisp programs are formed by symbolic expressions(s-exps, sexps, sexprs), and a sexp is either a <code>list</code> or an <code>atom</code>. Before interpreting our Lisp, we should read sexps and convert them into a form that we can work on with our host language(in my case, it’s Python).</p>
 <p>I’ll convert Lisp lists into ordinary Python lists, and atoms into Python strings. My reader has two parts, the first part is getting the input and parsing tokens:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Reader:
-    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, form):
-        <span class="ot">self</span>.form = form
-        <span class="ot">self</span>.index = <span class="dv">0</span>
-    <span class="kw">def</span> seek_char(<span class="ot">self</span>):
-        <span class="kw">if</span> <span class="ot">self</span>.index &gt;= <span class="dt">len</span>(<span class="ot">self</span>.form):
-            <span class="kw">return</span> <span class="ot">None</span>
-        <span class="kw">return</span> <span class="ot">self</span>.form[<span class="ot">self</span>.index]
-    <span class="kw">def</span> unread_char(<span class="ot">self</span>):
-        <span class="ot">self</span>.index -= <span class="dv">1</span>
-    <span class="kw">def</span> read_char(<span class="ot">self</span>):
-        <span class="kw">if</span> <span class="ot">self</span>.index &gt;= <span class="dt">len</span>(<span class="ot">self</span>.form):
-            <span class="kw">return</span> <span class="ot">None</span>
-        <span class="ot">self</span>.index += <span class="dv">1</span>
-        <span class="kw">return</span> <span class="ot">self</span>.form[<span class="ot">self</span>.index<span class="dv">-1</span>]
-    <span class="kw">def</span> read_token(<span class="ot">self</span>):
-        ch = <span class="ot">self</span>.read_char()
-        <span class="kw">if</span> ch == <span class="st">'('</span>:
-            <span class="kw">return</span> <span class="st">'('</span>
-        <span class="kw">elif</span> ch == <span class="st">')'</span>:
-            <span class="kw">if</span> <span class="ot">self</span>.seek_char() == <span class="st">' '</span>:
-                <span class="ot">self</span>.read_char()
-            <span class="kw">return</span> <span class="st">')'</span>
-        <span class="kw">else</span>:
-            buf = <span class="st">''</span>
-            <span class="kw">while</span> ch != <span class="st">' '</span> and ch != <span class="ot">None</span>:
-                <span class="kw">if</span> ch == <span class="st">')'</span>:
-                    <span class="ot">self</span>.unread_char()
-                    <span class="kw">return</span> buf
-                <span class="kw">else</span>:
-                    buf += ch
-                    ch = <span class="ot">self</span>.read_char()
-            <span class="kw">return</span> buf</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Reader:
+    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, form):
+        <span class="va">self</span>.form <span class="op">=</span> form
+        <span class="va">self</span>.index <span class="op">=</span> <span class="dv">0</span>
+    <span class="kw">def</span> seek_char(<span class="va">self</span>):
+        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):
+            <span class="cf">return</span> <span class="va">None</span>
+        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index]
+    <span class="kw">def</span> unread_char(<span class="va">self</span>):
+        <span class="va">self</span>.index <span class="op">-=</span> <span class="dv">1</span>
+    <span class="kw">def</span> read_char(<span class="va">self</span>):
+        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):
+            <span class="cf">return</span> <span class="va">None</span>
+        <span class="va">self</span>.index <span class="op">+=</span> <span class="dv">1</span>
+        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index<span class="dv">-1</span>]
+    <span class="kw">def</span> read_token(<span class="va">self</span>):
+        ch <span class="op">=</span> <span class="va">self</span>.read_char()
+        <span class="cf">if</span> ch <span class="op">==</span> <span class="st">'('</span>:
+            <span class="cf">return</span> <span class="st">'('</span>
+        <span class="cf">elif</span> ch <span class="op">==</span> <span class="st">')'</span>:
+            <span class="cf">if</span> <span class="va">self</span>.seek_char() <span class="op">==</span> <span class="st">' '</span>:
+                <span class="va">self</span>.read_char()
+            <span class="cf">return</span> <span class="st">')'</span>
+        <span class="cf">else</span>:
+            buf <span class="op">=</span> <span class="st">''</span>
+            <span class="cf">while</span> ch <span class="op">!=</span> <span class="st">' '</span> <span class="kw">and</span> ch <span class="op">!=</span> <span class="va">None</span>:
+                <span class="cf">if</span> ch <span class="op">==</span> <span class="st">')'</span>:
+                    <span class="va">self</span>.unread_char()
+                    <span class="cf">return</span> buf
+                <span class="cf">else</span>:
+                    buf <span class="op">+=</span> ch
+                    ch <span class="op">=</span> <span class="va">self</span>.read_char()
+            <span class="cf">return</span> buf</code></pre></div>
 <p>Well, it may not be the best way to parse an input to tokens, but it works great. It return a <code>(</code>, <code>)</code>, or a string each time you call <code>read_token</code>. When we read <code>(</code>, we start collecting a list, until reading a <code>)</code>(we should also consider lists into lists):</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_list(reader):
-    result = []
-    token = reader.read_token()
-    <span class="kw">while</span> token:
-        <span class="kw">if</span> token == <span class="st">'('</span>:
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_list(reader):
+    result <span class="op">=</span> []
+    token <span class="op">=</span> reader.read_token()
+    <span class="cf">while</span> token:
+        <span class="cf">if</span> token <span class="op">==</span> <span class="st">'('</span>:
             result.append(read_list(reader))
-        <span class="kw">elif</span> token == <span class="st">')'</span>:
-            <span class="kw">return</span> result
-        <span class="kw">else</span>:
+        <span class="cf">elif</span> token <span class="op">==</span> <span class="st">')'</span>:
+            <span class="cf">return</span> result
+        <span class="cf">else</span>:
             result.append(token)
-        token = reader.read_token()
-    <span class="kw">return</span> result</code></pre>
+        token <span class="op">=</span> reader.read_token()
+    <span class="cf">return</span> result</code></pre></div>
 <p><code>read_atom</code> functions is easier, since each each atom is also a token:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_atom(reader):
-    <span class="kw">return</span> reader.read_token()</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> read_atom(reader):
+    <span class="cf">return</span> reader.read_token()</code></pre></div>
 <p>At this point, we have a Lisp reader that reading s-expressions, converting lists to Python lists and atoms to Python strings. Now we can define our 9 primitive procedures(<code>quote</code>, <code>car</code>, <code>cdr</code>, <code>cons</code>, <code>equal</code>, <code>atom</code>, <code>cond</code>, <code>lambda</code>, <code>label</code>):</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> quote(e):
-    <span class="kw">return</span> e
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> quote(e):
+    <span class="cf">return</span> e
 <span class="kw">def</span> car(e):
-    <span class="kw">assert</span> <span class="dt">isinstance</span>(e, <span class="dt">list</span>)
-    <span class="kw">return</span> e[^<span class="dv">0</span>]<span class="kw">def</span> cdr(e):
-    <span class="kw">assert</span> <span class="dt">isinstance</span>(e, <span class="dt">list</span>)
-    <span class="kw">return</span> e[<span class="dv">1</span>:]
+    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)
+    <span class="cf">return</span> e[<span class="op">^</span><span class="dv">0</span>]<span class="kw">def</span> cdr(e):
+    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)
+    <span class="cf">return</span> e[<span class="dv">1</span>:]
 <span class="kw">def</span> cons(e1, e2):
-    <span class="kw">if</span> <span class="dt">isinstance</span>(e2, <span class="dt">list</span>):
-        <span class="kw">return</span> [e1] + e2
-    <span class="kw">return</span> [e1, e2]
+    <span class="cf">if</span> <span class="bu">isinstance</span>(e2, <span class="bu">list</span>):
+        <span class="cf">return</span> [e1] <span class="op">+</span> e2
+    <span class="cf">return</span> [e1, e2]
 <span class="kw">def</span> equal(e1, e2):
-    <span class="kw">return</span> e1 == e2
+    <span class="cf">return</span> e1 <span class="op">==</span> e2
 <span class="kw">def</span> atom(e):
-    <span class="kw">return</span> not <span class="dt">isinstance</span>(e, <span class="dt">list</span>)</code></pre>
+    <span class="cf">return</span> <span class="kw">not</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)</code></pre></div>
 <p>These are obvious. Since I’ve already converted sexp lists into Python lists, all I need to do is to call some Python list methods.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> cond(*cases):
-    <span class="kw">for</span> case in cases:
-        <span class="kw">if</span> eval_(case[^<span class="dv">0</span>] is not <span class="ot">None</span>:
-            <span class="kw">for</span> expr in cdr(case)[:-<span class="dv">1</span>]:
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> cond(<span class="op">*</span>cases):
+    <span class="cf">for</span> case <span class="kw">in</span> cases:
+        <span class="cf">if</span> eval_(case[<span class="op">^</span><span class="dv">0</span>] <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:
+            <span class="cf">for</span> expr <span class="kw">in</span> cdr(case)[:<span class="op">-</span><span class="dv">1</span>]:
                 eval_(expr)
-            <span class="kw">return</span> eval_(case[-<span class="dv">1</span>])
-    <span class="kw">return</span> <span class="ot">None</span></code></pre>
+            <span class="cf">return</span> eval_(case[<span class="op">-</span><span class="dv">1</span>])
+    <span class="cf">return</span> <span class="va">None</span></code></pre></div>
 <p>An important point here is that in <code>cond</code>, I’m not evaluating all expressions, but I’m evaluating the test forms until I find a form that evaluates something that’s not <code>nil</code>, and then evaluating it’s form.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> lambda_(args, *exprs):
-    <span class="kw">def</span> fn(*arg_vals):
-        fn_env = {k:v <span class="kw">for</span> (k, v) in <span class="dt">zip</span>(args, arg_vals)}
-        fn_env[<span class="st">'parent_env'</span>] = env
-        <span class="kw">for</span> expr in exprs[:-<span class="dv">1</span>]:
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> lambda_(args, <span class="op">*</span>exprs):
+    <span class="kw">def</span> fn(<span class="op">*</span>arg_vals):
+        fn_env <span class="op">=</span> {k:v <span class="cf">for</span> (k, v) <span class="kw">in</span> <span class="bu">zip</span>(args, arg_vals)}
+        fn_env[<span class="st">'parent_env'</span>] <span class="op">=</span> env
+        <span class="cf">for</span> expr <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:
             eval_(expr, fn_env)
-        <span class="kw">return</span> eval_(exprs[-<span class="dv">1</span>], fn_env)
-    <span class="kw">return</span> fn
-<span class="kw">def</span> label(name, lambda_exp, *exprs):
-    func = eval_(lambda_exp)
-    label_env = env.copy()
-    label_env[name] = func
-    <span class="kw">for</span> exp in exprs[:-<span class="dv">1</span>]:
+        <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], fn_env)
+    <span class="cf">return</span> fn
+<span class="kw">def</span> label(name, lambda_exp, <span class="op">*</span>exprs):
+    func <span class="op">=</span> eval_(lambda_exp)
+    label_env <span class="op">=</span> env.copy()
+    label_env[name] <span class="op">=</span> func
+    <span class="cf">for</span> exp <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:
         eval_(exp, label_env)
-    <span class="kw">return</span> eval_(exprs[-<span class="dv">1</span>], label_env)</code></pre>
+    <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], label_env)</code></pre></div>
 <p><code>label</code> is a way to name lambdas, so you can create recursive functions. I’m creating a new environment for each label, and connecting it to the parent environment.</p>
-<pre class="sourceCode python"><code class="sourceCode python">env = {<span class="st">'quote'</span>: quote,
-       <span class="co">'car'</span>: car,
-       <span class="co">'cdr'</span>: cdr,
-       <span class="co">'cons'</span>: cons,
-       <span class="co">'equal'</span>: equal,
-       <span class="co">'atom'</span>: atom,
-       <span class="co">'cond'</span>: cond,
-       <span class="co">'lambda'</span>: Lambda,
-       <span class="co">'label'</span>: label,
-       <span class="co">'defun'</span>: defun}</code></pre>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python">env <span class="op">=</span> {<span class="st">'quote'</span>: quote,
+       <span class="st">'car'</span>: car,
+       <span class="st">'cdr'</span>: cdr,
+       <span class="st">'cons'</span>: cons,
+       <span class="st">'equal'</span>: equal,
+       <span class="st">'atom'</span>: atom,
+       <span class="st">'cond'</span>: cond,
+       <span class="st">'lambda'</span>: Lambda,
+       <span class="st">'label'</span>: label,
+       <span class="st">'defun'</span>: defun}</code></pre></div>
 <p>The global environment. When an atom is evaluated, it’s value is searched in here, with this function:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> search_in_env(env, key):
-    val = env.get(key)
-    <span class="kw">if</span> val:
-        <span class="kw">return</span> val
-    <span class="kw">if</span> env.has_key(<span class="st">'parent_env'</span>):
-        <span class="kw">return</span> search_in_env(env[<span class="st">'parent_env'</span>], key)
-    <span class="kw">raise</span> <span class="ot">KeyError</span>(key)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> search_in_env(env, key):
+    val <span class="op">=</span> env.get(key)
+    <span class="cf">if</span> val:
+        <span class="cf">return</span> val
+    <span class="cf">if</span> env.has_key(<span class="st">'parent_env'</span>):
+        <span class="cf">return</span> search_in_env(env[<span class="st">'parent_env'</span>], key)
+    <span class="cf">raise</span> <span class="pp">KeyError</span>(key)</code></pre></div>
 <p>Since each environment may be connected to a parent environment(the case of <code>label</code>), we should search all the chain of environments.</p>
 <p>So now we have the Lisp described in the micro-manual, we only need the eval:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_(exp, env=env):
+<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_(exp, env<span class="op">=</span>env):
     <span class="co"># print &quot;evaluating: %s&quot; % str(exp)</span>
-    <span class="kw">if</span> <span class="dt">isinstance</span>(exp, <span class="dt">list</span>):
-        <span class="kw">if</span> <span class="dt">isinstance</span>(exp[^<span class="dv">0</span>] <span class="dt">list</span>):
-            op = eval_(exp[^<span class="dv">0</span>]
-        <span class="kw">else</span>:
-            op = search_in_env(env, exp[^<span class="dv">0</span>]
-        <span class="kw">if</span> op in [quote, cond, lambda_, label, defun]:
-            <span class="kw">return</span> <span class="dt">apply</span>(op, exp[<span class="dv">1</span>:])
-        <span class="kw">return</span> <span class="dt">apply</span>(op, [eval_(e, env) <span class="kw">for</span> e in exp[<span class="dv">1</span>:]])
-    <span class="kw">return</span> search_in_env(env, exp)</code></pre>
+    <span class="cf">if</span> <span class="bu">isinstance</span>(exp, <span class="bu">list</span>):
+        <span class="cf">if</span> <span class="bu">isinstance</span>(exp[<span class="op">^</span><span class="dv">0</span>] <span class="bu">list</span>):
+            op <span class="op">=</span> eval_(exp[<span class="op">^</span><span class="dv">0</span>]
+        <span class="cf">else</span>:
+            op <span class="op">=</span> search_in_env(env, exp[<span class="op">^</span><span class="dv">0</span>]
+        <span class="cf">if</span> op <span class="kw">in</span> [quote, cond, lambda_, label, defun]:
+            <span class="cf">return</span> <span class="bu">apply</span>(op, exp[<span class="dv">1</span>:])
+        <span class="cf">return</span> <span class="bu">apply</span>(op, [eval_(e, env) <span class="cf">for</span> e <span class="kw">in</span> exp[<span class="dv">1</span>:]])
+    <span class="cf">return</span> search_in_env(env, exp)</code></pre></div>
 <p>And some helpers for REPL:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_from_string(string):
-    <span class="kw">return</span> eval_(read(Reader(string)))
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> eval_from_string(string):
+    <span class="cf">return</span> eval_(read(Reader(string)))
 <span class="kw">def</span> expr_repr(expr):
-    <span class="kw">if</span> <span class="dt">isinstance</span>(expr, <span class="dt">list</span>):
-        <span class="kw">return</span> <span class="st">'('</span> + <span class="st">' '</span>.join([expr_repr(e) <span class="kw">for</span> e in expr]) + <span class="st">')'</span>
-    <span class="kw">elif</span> <span class="dt">isinstance</span>(expr, <span class="dt">bool</span>):
-        <span class="kw">if</span> expr:
-            <span class="kw">return</span> <span class="st">'T'</span>
-        <span class="kw">return</span> <span class="st">'nil'</span>
-    <span class="kw">return</span> <span class="dt">str</span>(expr)
+    <span class="cf">if</span> <span class="bu">isinstance</span>(expr, <span class="bu">list</span>):
+        <span class="cf">return</span> <span class="st">'('</span> <span class="op">+</span> <span class="st">' '</span>.join([expr_repr(e) <span class="cf">for</span> e <span class="kw">in</span> expr]) <span class="op">+</span> <span class="st">')'</span>
+    <span class="cf">elif</span> <span class="bu">isinstance</span>(expr, <span class="bu">bool</span>):
+        <span class="cf">if</span> expr:
+            <span class="cf">return</span> <span class="st">'T'</span>
+        <span class="cf">return</span> <span class="st">'nil'</span>
+    <span class="cf">return</span> <span class="bu">str</span>(expr)
 <span class="kw">def</span> repl():
-    <span class="kw">while</span> <span class="ot">True</span>:
-        <span class="kw">try</span>:
-            <span class="dt">input</span> = <span class="dt">raw_input</span>(<span class="st">&quot;&gt; &quot;</span>)
-            <span class="dt">print</span> expr_repr(eval_(read(Reader(<span class="dt">input</span>))))
-        <span class="kw">except</span> (<span class="ot">KeyboardInterrupt</span>, <span class="ot">EOFError</span>):
-            <span class="kw">return</span></code></pre>
+    <span class="cf">while</span> <span class="va">True</span>:
+        <span class="cf">try</span>:
+            <span class="bu">input</span> <span class="op">=</span> <span class="bu">raw_input</span>(<span class="st">&quot;&gt; &quot;</span>)
+            <span class="bu">print</span> expr_repr(eval_(read(Reader(<span class="bu">input</span>))))
+        <span class="cf">except</span> (<span class="pp">KeyboardInterrupt</span>, <span class="pp">EOFError</span>):
+            <span class="cf">return</span></code></pre></div>
 <p>I also wrote some unit-tests based on examples in the paper. You can read the implementation and tests from <a href="https://gist.github.com/2147404">the gist</a>. To run the interpreter, just save the code and run <code>python lisp.py</code>.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

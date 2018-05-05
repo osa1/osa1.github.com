@@ -23,10 +23,7 @@
 
 <p><a href="https://downloads.haskell.org/~ghc/8.2.1/docs/html/users_guide/ghci.html#ghci-cmd-:def">A GHCi macro</a> is just a function of type <code>String -&gt; IO String</code>. The argument is parameter of the macro, and return value is evaluated by GHCi as a command.</p>
 <p>Using this and the <a href="http://hackage.haskell.org/package/process"><code>process</code></a> library we can implement a fuzzy module loader that works inside ghci:</p>
-<div class="figure">
-<img src="../images/fuzzy_ghci_load.gif" />
-
-</div>
+<p><img src="../images/fuzzy_ghci_load.gif" /></p>
 <p>(sorry for the gif quality)</p>
 <p>Here I’m using <a href="https://github.com/junegunn/fzf">fzf</a> as the fuzzy file finder. Code for defining the macro:</p>
 <pre><code>import System.IO (withFile, IOMode (WriteMode))
@@ -49,10 +46,9 @@ let loadFuzzy _ = do
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

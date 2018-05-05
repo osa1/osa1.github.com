@@ -27,15 +27,15 @@
 <p>It turns out if you’re getting a weird borrow checker error about something not living long enough to be dropped you can sometimes fix it by adding more semicolons.</p>
 <p>The error message itself is weird because intuitively you’d think that for something to be dropped it should first become dead, but the error message says something like “<code>x</code> dropped here while still borrowed”. Because the variable is not dropped explicitly by the user, this error message is actually complaining about compiler’s behavior not being consistent in itself.</p>
 <p>Here’s an example:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::sync::Arc;
+<div class="sourceCode" id="cb1"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::sync::Arc;
 <span class="kw">use</span> std::sync::Mutex;
 
-<span class="kw">fn</span> main() {
-    <span class="kw">let</span> s: Arc&lt;Mutex&lt;<span class="kw">i32</span>&gt;&gt; = Arc::new(Mutex::new(<span class="dv">0</span>));
-    <span class="kw">match</span> s.lock().unwrap() {
-        _ =&gt; {}
-    }
-}</code></pre>
+<span class="kw">fn</span> main() <span class="op">{</span>
+    <span class="kw">let</span> s: Arc&lt;Mutex&lt;<span class="dt">i32</span>&gt;&gt; = Arc::new(Mutex::new(<span class="dv">0</span>));
+    <span class="kw">match</span> s.lock().unwrap() <span class="op">{</span>
+        _ =&gt; <span class="op">{}</span>
+    <span class="op">}</span>
+<span class="op">}</span></code></pre></div>
 <p>This fails to compile with:</p>
 <pre><code>error[E0597]: `s` does not live long enough
  --&gt; src/main.rs:9:1
@@ -53,43 +53,42 @@
 <h2 id="match-expression-keeps-values-alive-longer-than-necessary">2. <code>match</code> expression keeps values alive longer than necessary</h2>
 <p>This problem is kind of special. All other problems mentioned in this series were about borrow checker being too strict. This one is different: it causes runtime bugs.</p>
 <p><code>match</code> expression keeps the value to be examined (sometimes called <code>scrutinee</code> in Haskell land) alive longer than necessary. Because alive values are not dropped, if you rely on dynamic borrow checks in the scrutinee and in the branches, your checks fail. Here’s an example:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::sync::Arc;
+<div class="sourceCode" id="cb3"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::sync::Arc;
 <span class="kw">use</span> std::sync::Mutex;
 
-<span class="kw">struct</span> S(<span class="kw">i32</span>);
+<span class="kw">struct</span> S(<span class="dt">i32</span>);
 
-<span class="kw">impl</span> S {
-    <span class="kw">pub</span> <span class="kw">fn</span> get_int(&amp;<span class="kw">self</span>) -&gt; <span class="kw">i32</span> {
+<span class="kw">impl</span> S <span class="op">{</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> get_int(&amp;<span class="kw">self</span>) -&gt; <span class="dt">i32</span> <span class="op">{</span>
         <span class="kw">self</span>.<span class="dv">0</span>
-    }
+    <span class="op">}</span>
 
-    <span class="kw">pub</span> <span class="kw">fn</span> set_int(&amp;<span class="kw">mut</span> <span class="kw">self</span>, i: <span class="kw">i32</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> set_int(&amp;<span class="kw">mut</span> <span class="kw">self</span>, i: <span class="dt">i32</span>) <span class="op">{</span>
         <span class="kw">self</span>.<span class="dv">0</span> = i;
-    }
-}
+    <span class="op">}</span>
+<span class="op">}</span>
 
-<span class="kw">fn</span> main() {
+<span class="kw">fn</span> main() <span class="op">{</span>
     <span class="kw">let</span> s = Arc::new(Mutex::new(S(<span class="dv">0</span>)));
-    <span class="kw">match</span> s.lock().unwrap().get_int() {
-        i =&gt; {
+    <span class="kw">match</span> s.lock().unwrap().get_int() <span class="op">{</span>
+        i =&gt; <span class="op">{</span>
             s.lock().unwrap().set_int(i);
-        }
-    };
-}</code></pre>
+        <span class="op">}</span>
+    <span class="op">}</span>;
+<span class="op">}</span></code></pre></div>
 <p>(notice how I use a redundant semicolon after the match expression, to fix #1)</p>
 <p>Even though <code>get_int()</code> returns in <code>i32</code> as a value, not a reference, the <code>MutexGuard</code> returned by <code>Mutex::lock()</code> is kept alive in the branches of this <code>match</code> expression, so the second <code>Mutex::lock()</code> call causes a deadlock. Solution? Use a <code>let</code> expression:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">let</span> x = s.lock().unwrap().get_x();
-<span class="kw">match</span> x { ... }</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">let</span> x = s.lock().unwrap().get_x();
+<span class="kw">match</span> x <span class="op">{</span> ... <span class="op">}</span></code></pre></div>
 <p>This problem makes <code>match &lt;expr&gt; { ... }</code> less useful than <code>let x = &lt;expr&gt;; match x { ... }</code>.</p>
 <p><a href="https://github.com/rust-lang/rust/issues/38355">#38355</a> reported this issue on Dec 14, 2016, but no progress towards a solution has been made so far.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

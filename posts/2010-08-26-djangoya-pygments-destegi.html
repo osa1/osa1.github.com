@@ -24,39 +24,39 @@
 <p>Daha önceden <a href="http://test.osa1.net/djangoya-markdown-destegi/">burada</a> Django’ya <a href="http://daringfireball.net/projects/markdown/">Markdown</a> desteği eklenmesinden bahsetmiştim(Django’nun Markdown eklentisi olduğunu farkettim çok sonradan). Bu sefer de syntax renklendirme için <a href="http://pygments.org/">Pygments</a> desteği ekledim. Pygments’den önce <a href="http://code.google.com/p/syntaxhighlighter/">syntaxhighlighter</a> kullanıyordum benim amacım için biraz fazla gelişmiş ve kompleks kaçıyordu.</p>
 <p>Öncelikle django’ya pygments desteği için 2 tane çok iyi kaynak var(<a href="http://www.saltycrane.com/blog/2008/08/django-blog-project-12-adding-pygments-syntax-highlighting/">1</a>, <a href="http://djangosnippets.org/snippets/360/">2</a>), fakat bu kaynaklardaki yöntemlerden ilki, veritabanına gerekli html tagları eklenmiş bir şekilde yazıyor, dolayısıyla bir daha düzenlemek istediğinizde kodunuz okunmaz bir halde oluyor. Benim yapmak istediğim şey, daha önceden markdown için de yaptığım gibi, bir <a href="http://docs.djangoproject.com/en/dev/howto/custom-template-tags/">template filter</a> oluşturup istediğim yerde kullanabilmek. Hem bu şekilde daha esnek olabilirim. İkinci yöntem ise, açıkçası ne yaptığını anlamaya çalışmadım, markdown ve pygments’i beraber uyguluyor. Bu da benim istediğim şey değil. Benim amacım, istediğim yere markdown, istediğim yere pygments, istediğim yere de ikisini beraber uygulamak.</p>
 <p>Bunun için verdiğim ilk kaynaktaki kodu kullandım aslında. Tek farkı, sonucu veritabanına yazdırmak yerine, fonksiyonu template filter haline getirdim.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="co"># pygmentsf.py</span>
-<span class="ch">from</span> django <span class="ch">import</span> template
-<span class="ch">from</span> BeautifulSoup.BeautifulSoup <span class="ch">import</span> BeautifulSoup <span class="co">#saka gibi</span>
-<span class="ch">from</span> pygments <span class="ch">import</span> lexers, highlight, formatters
-<span class="ch">from</span> django.template.defaultfilters <span class="ch">import</span> stringfilter
-register = template.Library()
-<span class="ot">@register.filter</span>
-<span class="ot">@stringfilter</span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="co"># pygmentsf.py</span>
+<span class="im">from</span> django <span class="im">import</span> template
+<span class="im">from</span> BeautifulSoup.BeautifulSoup <span class="im">import</span> BeautifulSoup <span class="co">#saka gibi</span>
+<span class="im">from</span> pygments <span class="im">import</span> lexers, highlight, formatters
+<span class="im">from</span> django.template.defaultfilters <span class="im">import</span> stringfilter
+register <span class="op">=</span> template.Library()
+<span class="at">@register.filter</span>
+<span class="at">@stringfilter</span>
 <span class="kw">def</span> pygmentsf(html):
     <span class="co">&quot;String'i Pygments'den gecirir. BeautifulSoup ile pre taglarini ayristirir.&quot;</span>
-    soup = BeautifulSoup(html)
-    preblocks = soup.findAll(<span class="st">'pre'</span>)
-    <span class="kw">for</span> pre in preblocks:
-        <span class="kw">if</span> pre.has_key(<span class="st">'class'</span>):
-            <span class="kw">try</span>:
-                code = <span class="st">''</span>.join([<span class="dt">unicode</span>(item) <span class="kw">for</span> item in pre.contents])
-                code = unescape_html(code)
-                preclass = pre[<span class="st">'class'</span>]
+    soup <span class="op">=</span> BeautifulSoup(html)
+    preblocks <span class="op">=</span> soup.findAll(<span class="st">'pre'</span>)
+    <span class="cf">for</span> pre <span class="kw">in</span> preblocks:
+        <span class="cf">if</span> pre.has_key(<span class="st">'class'</span>):
+            <span class="cf">try</span>:
+                code <span class="op">=</span> <span class="st">''</span>.join([<span class="bu">unicode</span>(item) <span class="cf">for</span> item <span class="kw">in</span> pre.contents])
+                code <span class="op">=</span> unescape_html(code)
+                preclass <span class="op">=</span> pre[<span class="st">'class'</span>]
                 <span class="co"># syntaxhighlighter icin yazilmis kodlar icin</span>
-                <span class="kw">if</span> preclass == <span class="st">'brush: python'</span> or preclass == <span class="st">'brush; python'</span>:
-                    preclass = <span class="st">'python'</span>
-                lexer = lexers.get_lexer_by_name(preclass)
-                formatter = formatters.HtmlFormatter()
-                code_hl = highlight(code, lexer, formatter)
+                <span class="cf">if</span> preclass <span class="op">==</span> <span class="st">'brush: python'</span> <span class="kw">or</span> preclass <span class="op">==</span> <span class="st">'brush; python'</span>:
+                    preclass <span class="op">=</span> <span class="st">'python'</span>
+                lexer <span class="op">=</span> lexers.get_lexer_by_name(preclass)
+                formatter <span class="op">=</span> formatters.HtmlFormatter()
+                code_hl <span class="op">=</span> highlight(code, lexer, formatter)
                 pre.replaceWith(BeautifulSoup(code_hl))
-            <span class="kw">except</span>:
-                <span class="kw">pass</span>
-    <span class="kw">return</span> <span class="dt">unicode</span>(soup)
+            <span class="cf">except</span>:
+                <span class="cf">pass</span>
+    <span class="cf">return</span> <span class="bu">unicode</span>(soup)
 <span class="kw">def</span> unescape_html(html):
-    html = html.replace(<span class="st">'&amp;lt;'</span>, <span class="st">'&lt;'</span>)
-    html = html.replace(<span class="st">'&amp;gt;'</span>, <span class="st">'&gt;'</span>)
-    html = html.replace(<span class="st">'&amp;amp;'</span>, <span class="st">'&amp;'</span>)
-    <span class="kw">return</span> html</code></pre>
+    html <span class="op">=</span> html.replace(<span class="st">'&amp;lt;'</span>, <span class="st">'&lt;'</span>)
+    html <span class="op">=</span> html.replace(<span class="st">'&amp;gt;'</span>, <span class="st">'&gt;'</span>)
+    html <span class="op">=</span> html.replace(<span class="st">'&amp;amp;'</span>, <span class="st">'&amp;'</span>)
+    <span class="cf">return</span> html</code></pre></div>
 <p>Ayrıca küçük bir düzenlemeyle daha önceden syntaxhighlighter için yazdığım yazılarla da uyumlu olmasını sağladım. Bu dosyayı uygulamanız altında eğer templatetags klasörüne attıktan sonra template dosyanızdan <code>{% load pygmentsf %}</code> dedikten sonra, istediğiniz değişkene uygulayabilirsiniz. <code>{{ blog.body|pygmentsf|safe|escape }}</code> gibi. Ya da isterseniz markdown yazımdaki template filter ile beraber <code>{{ blog.body|markdown|pygmentsf|safe|escape }}</code> şeklinde kullanabilirsiniz.</p>
 <p>Unutmadan, HTML’i ayrıştırmak için <a href="http://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> kullanılıyor. Mükemmel bir kütüphane.</p>
 <div class="alert">
@@ -66,10 +66,9 @@ Eğer <a href="http://osa1.net/djangoya-markdown-destegi/">markdown</a> ile bera
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

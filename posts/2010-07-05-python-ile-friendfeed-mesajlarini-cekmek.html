@@ -22,34 +22,33 @@
 <p><strong>July  5, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
 
 <p>Blogumda kullanmak için basit bir fonksiyon yazmıştım. Şu anda sağda gördüğünüz gibi, FriendFeed’den yazdığınız mesajlarınızı çekiyor. Fakat sadece kendi feedinize yazdıklarınızı.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> urllib2, datetime
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="im">import</span> urllib2, datetime
 <span class="kw">def</span> FriendFeed():
-    <span class="kw">try</span>:
-        friendfeed = urllib2.urlopen(<span class="st">&quot;http://friendfeed-api.com/v2/feed/hesap_adiniz&quot;</span>).read()
-    <span class="kw">except</span>:
-        friendfeed = <span class="dt">open</span>(<span class="st">&quot;/home/kullanici/Desktop/friendfeed.txt&quot;</span>).read()
+    <span class="cf">try</span>:
+        friendfeed <span class="op">=</span> urllib2.urlopen(<span class="st">&quot;http://friendfeed-api.com/v2/feed/hesap_adiniz&quot;</span>).read()
+    <span class="cf">except</span>:
+        friendfeed <span class="op">=</span> <span class="bu">open</span>(<span class="st">&quot;/home/kullanici/Desktop/friendfeed.txt&quot;</span>).read()
     <span class="co">#url, date, body, id, from</span>
-    true = <span class="ot">True</span>
-    entries = <span class="dt">eval</span>(friendfeed)[<span class="st">&quot;entries&quot;</span>][:<span class="dv">5</span>]
-    <span class="kw">for</span> entry in entries:
-        entrydate = entry[<span class="st">&quot;date&quot;</span>]
+    true <span class="op">=</span> <span class="va">True</span>
+    entries <span class="op">=</span> <span class="bu">eval</span>(friendfeed)[<span class="st">&quot;entries&quot;</span>][:<span class="dv">5</span>]
+    <span class="cf">for</span> entry <span class="kw">in</span> entries:
+        entrydate <span class="op">=</span> entry[<span class="st">&quot;date&quot;</span>]
         <span class="co">#format 2010-06-01T06:09:14Z</span>
-        entrydate = entrydate.split(<span class="st">&quot;T&quot;</span>)
-        tarih = entrydate[^<span class="dv">0</span>]split(<span class="st">&quot;-&quot;</span>)
-        saat = entrydate[^<span class="dv">1</span>]:-<span class="dv">1</span>].split(<span class="st">&quot;:&quot;</span>)
-        entryDate = datetime.datetime(<span class="dt">int</span>(tarih[^<span class="dv">0</span>], <span class="dt">int</span>(tarih[^<span class="dv">1</span>], <span class="dt">int</span>(tarih[^<span class="dv">2</span>],
-                                      <span class="dt">int</span>(saat[^<span class="dv">0</span>], <span class="dt">int</span>(saat[^<span class="dv">1</span>], <span class="dt">int</span>(saat[^<span class="dv">2</span>])
-        entries[entries.index(entry)][<span class="st">&quot;date&quot;</span>] = (datetime.datetime.now()-entryDate).days
-    <span class="kw">return</span> entries</code></pre>
+        entrydate <span class="op">=</span> entrydate.split(<span class="st">&quot;T&quot;</span>)
+        tarih <span class="op">=</span> entrydate[<span class="op">^</span><span class="dv">0</span>]split(<span class="st">&quot;-&quot;</span>)
+        saat <span class="op">=</span> entrydate[<span class="op">^</span><span class="dv">1</span>]:<span class="op">-</span><span class="dv">1</span>].split(<span class="st">&quot;:&quot;</span>)
+        entryDate <span class="op">=</span> datetime.datetime(<span class="bu">int</span>(tarih[<span class="op">^</span><span class="dv">0</span>], <span class="bu">int</span>(tarih[<span class="op">^</span><span class="dv">1</span>], <span class="bu">int</span>(tarih[<span class="op">^</span><span class="dv">2</span>],
+                                      <span class="bu">int</span>(saat[<span class="op">^</span><span class="dv">0</span>], <span class="bu">int</span>(saat[<span class="op">^</span><span class="dv">1</span>], <span class="bu">int</span>(saat[<span class="op">^</span><span class="dv">2</span>])
+        entries[entries.index(entry)][<span class="st">&quot;date&quot;</span>] <span class="op">=</span> (datetime.datetime.now()<span class="op">-</span>entryDate).days
+    <span class="cf">return</span> entries</code></pre></div>
 <p>4. satırın olayı şu, localhost’dan ara sıra offline olarak çalıştığımdan, bir kere kendi feedimi kaydettim ve internet bağlantım yoksa o dosyadan alıyordum, o kısmı kaldırabilirsiniz.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

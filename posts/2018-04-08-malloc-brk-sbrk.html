@@ -23,62 +23,62 @@
 
 <p>Read about <code>malloc()</code> on Linux in lecture notes and even non-ancient books like The Linux Programming Interface (published on 2010) and you’ll see a lot of mentions to <code>brk()</code> and <code>sbrk()</code> system calls. They then move on to talk about <code>mmap()</code>, and at that point you probably start wondering how they interact.</p>
 <p>The problem is, because <code>mmap()</code> lets you map stuff in your program’s address space, it seems like you can easily break <code>brk</code>/<code>sbrk</code> by mapping stuff right after the current program break. Here’s a program that does exactly that:</p>
-<pre class="sourceCode c"><code class="sourceCode c"><span class="co">// mmap() something right after program break, then increase it by malloc-ing stuff</span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span class="co">// mmap() something right after program break, then increase it by malloc-ing stuff</span>
 
-<span class="ot">#include &lt;assert.h&gt;</span>
-<span class="ot">#include &lt;stdint.h&gt;</span>
-<span class="ot">#include &lt;stdio.h&gt;</span>
-<span class="ot">#include &lt;stdlib.h&gt;</span>
-<span class="ot">#include &lt;sys/mman.h&gt;</span>
-<span class="ot">#include &lt;unistd.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;assert.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;stdint.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;sys/mman.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;unistd.h&gt;</span>
 
 <span class="dt">int</span> main()
 {
     <span class="dt">long</span> page_size = sysconf(_SC_PAGESIZE);
-    printf(<span class="st">&quot;Page size:             %ld</span><span class="ch">\n</span><span class="st">&quot;</span>, page_size);
+    printf(<span class="st">&quot;Page size:             %ld</span><span class="sc">\n</span><span class="st">&quot;</span>, page_size);
 
     <span class="dt">void</span>* brk = sbrk(<span class="dv">0</span>);
-    printf(<span class="st">&quot;Current program break: %p</span><span class="ch">\n</span><span class="st">&quot;</span>, brk);
+    printf(<span class="st">&quot;Current program break: %p</span><span class="sc">\n</span><span class="st">&quot;</span>, brk);
 
     <span class="co">// mmap() right after program break</span>
     <span class="dt">void</span>* mmap_ret = mmap(
-            brk, page_size, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -<span class="dv">1</span>, <span class="dv">0</span>);
-    printf(<span class="st">&quot;mmap() returned:       %p</span><span class="ch">\n</span><span class="st">&quot;</span>, mmap_ret);
+            brk, page_size, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, <span class="dv">-1</span>, <span class="dv">0</span>);
+    printf(<span class="st">&quot;mmap() returned:       %p</span><span class="sc">\n</span><span class="st">&quot;</span>, mmap_ret);
 
     assert(mmap_ret == brk);
 
     <span class="co">// Allocate until brk changes</span>
     <span class="dt">void</span>* new_brk = sbrk(<span class="dv">0</span>);
     <span class="dt">void</span>* ret = malloc(page_size);
-    <span class="kw">for</span> (;;)
+    <span class="cf">for</span> (;;)
     {
-        <span class="kw">if</span> (!ret)
+        <span class="cf">if</span> (!ret)
         {
-            printf(<span class="st">&quot;malloc() failed</span><span class="ch">\n</span><span class="st">&quot;</span>);
-            <span class="kw">break</span>;
+            printf(<span class="st">&quot;malloc() failed</span><span class="sc">\n</span><span class="st">&quot;</span>);
+            <span class="cf">break</span>;
         }
 
-        <span class="kw">if</span> (new_brk != brk)
+        <span class="cf">if</span> (new_brk != brk)
         {
-            printf(<span class="st">&quot;brk changed</span><span class="ch">\n</span><span class="st">&quot;</span>);
-            <span class="kw">break</span>;
+            printf(<span class="st">&quot;brk changed</span><span class="sc">\n</span><span class="st">&quot;</span>);
+            <span class="cf">break</span>;
         }
 
-        <span class="kw">if</span> (ret &gt; brk)
+        <span class="cf">if</span> (ret &gt; brk)
         {
-            printf(<span class="st">&quot;ret &gt; brk</span><span class="ch">\n</span><span class="st">&quot;</span>);
-            <span class="kw">break</span>;
+            printf(<span class="st">&quot;ret &gt; brk</span><span class="sc">\n</span><span class="st">&quot;</span>);
+            <span class="cf">break</span>;
         }
 
         ret = malloc(page_size);
         new_brk = sbrk(<span class="dv">0</span>);
     }
 
-    printf(<span class="st">&quot;New brk:               %p</span><span class="ch">\n</span><span class="st">&quot;</span>, new_brk);
-    printf(<span class="st">&quot;ret:                   %p</span><span class="ch">\n</span><span class="st">&quot;</span>, ret);
+    printf(<span class="st">&quot;New brk:               %p</span><span class="sc">\n</span><span class="st">&quot;</span>, new_brk);
+    printf(<span class="st">&quot;ret:                   %p</span><span class="sc">\n</span><span class="st">&quot;</span>, ret);
 
-    <span class="kw">return</span> <span class="dv">0</span>;
-}</code></pre>
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
 <p>So we read the program break, <code>mmap()</code> stuff right after it, then <code>malloc()</code> page-sized space until the program break changes. The idea is if we actually increment the program break, we’ll end up re-using <code>mmap()</code>d area.</p>
 <p>Of course this does not happen. If you run this, you’ll see something like:</p>
 <pre><code>Page size:             4096
@@ -89,20 +89,19 @@ New brk:               0x1efb000
 ret:                   0x7fdb72d8f010</code></pre>
 <p>So the <code>malloc()</code> implementation doesn’t care about program break at all, instead it uses <code>mmap()</code>, probably with <code>NULL</code> as the <code>addr</code> parameter, to get a fresh location in the address space.</p>
 <p>Of course this is all obvious if you’re already familiar with this stuff. <code>sbrk()</code> just can’t work with <code>mmap()</code>. Try adding these lines to the program above, right before the return statement:</p>
-<pre class="sourceCode c"><code class="sourceCode c">    <span class="co">// Try to increment program break manually</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c">    <span class="co">// Try to increment program break manually</span>
     <span class="dt">void</span>* sbrk_ret = sbrk(page_size);
-    printf(<span class="st">&quot;sbrk_ret:              %p</span><span class="ch">\n</span><span class="st">&quot;</span>, sbrk_ret);
-    printf(<span class="st">&quot;New brk:               %p</span><span class="ch">\n</span><span class="st">&quot;</span>, sbrk(<span class="dv">0</span>));</code></pre>
+    printf(<span class="st">&quot;sbrk_ret:              %p</span><span class="sc">\n</span><span class="st">&quot;</span>, sbrk_ret);
+    printf(<span class="st">&quot;New brk:               %p</span><span class="sc">\n</span><span class="st">&quot;</span>, sbrk(<span class="dv">0</span>));</code></pre></div>
 <p>You’ll see that <code>sbrk()</code> returns something like <code>0xffffffffffffffff</code> ( <code>(void*)-1</code> ) and the program break does not change.</p>
 <p>Really what confused me is all these over-simplified lecture notes and book chapters.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

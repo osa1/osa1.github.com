@@ -26,50 +26,50 @@
 <p>It’s types that borrow, not values, and that makes sense. If you have an <code>Option&lt;&amp;'a T&gt;</code> where <code>'a</code> is coming from some other variable <code>x</code>, 1) <code>x</code> needs to live longer than this <code>Option</code> value 2) you can’t borrow <code>x</code> mutably while keeping the <code>Option</code> in scope (or the other way around, you can’t borrow <code>Option</code> mutably while keeping <code>x</code> in scope).</p>
 <p>This makes sense because in compile time, given an <code>Option&lt;&amp;'a T&gt;</code>, you can’t make any assumptions on <code>Option</code>’s actual value. Since <code>Some</code> constructor of the <code>Option</code> type will borrow the <code>T</code> here, you just have to assume that values of this type always borrow <code>T</code> (and that’s why we have <code>&amp;'a</code> in the type).</p>
 <p>The problem is that it’s sometimes possible to do some local reasoning, and not doing that is too restrictive. Suppose you have this:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> ListOfThings {
-    list : Vec&lt;Thing&gt;,
-}
+<div class="sourceCode" id="cb1"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> ListOfThings <span class="op">{</span>
+    list : <span class="dt">Vec</span>&lt;Thing&gt;,
+<span class="op">}</span>
 
-<span class="kw">struct</span> Thing {
-    name : String,
+<span class="kw">struct</span> Thing <span class="op">{</span>
+    name : <span class="dt">String</span>,
     <span class="co">// other fields here -- this is expensive to copy!</span>
-}
+<span class="op">}</span>
 
-<span class="kw">impl</span> Thing {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {}
-}
+<span class="kw">impl</span> Thing <span class="op">{</span>
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{}</span>
+<span class="op">}</span>
 
-<span class="kw">impl</span> ListOfThings {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
-        <span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) {
-            <span class="kw">None</span> =&gt; {
+<span class="kw">impl</span> ListOfThings <span class="op">{</span>
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span>
+        <span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) <span class="op">{</span>
+            <span class="cn">None</span> =&gt; <span class="op">{</span>
                 <span class="kw">self</span>.init_thing(name.to_owned());
                 <span class="kw">self</span>.do_something(name)
-            },
-            <span class="kw">Some</span>(t) =&gt; {
+            <span class="op">}</span>,
+            <span class="cn">Some</span>(t) =&gt; <span class="op">{</span>
                 t.do_something()
-            },
-        }
-    }
+            <span class="op">}</span>,
+        <span class="op">}</span>
+    <span class="op">}</span>
 
-    <span class="kw">fn</span> find_thing_mut&lt;<span class="ot">'a</span>&gt;(&amp;<span class="ot">'a</span> <span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) -&gt; <span class="kw">Option</span>&lt;&amp;<span class="ot">'a</span> <span class="kw">mut</span> Thing&gt; {
+    <span class="kw">fn</span> find_thing_mut&lt;<span class="ot">'a</span>&gt;(&amp;<span class="ot">'a</span> <span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) -&gt; <span class="dt">Option</span>&lt;&amp;<span class="ot">'a</span> <span class="kw">mut</span> Thing&gt; <span class="op">{</span>
         <span class="kw">self</span>.list.iter_mut().find(|t| t.name.as_str() == name)
-    }
+    <span class="op">}</span>
 
-    <span class="kw">fn</span> init_thing(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : String) {
-        <span class="kw">self</span>.list.push(Thing { name: name })
-    }
-}</code></pre>
+    <span class="kw">fn</span> init_thing(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : <span class="dt">String</span>) <span class="op">{</span>
+        <span class="kw">self</span>.list.push(Thing <span class="op">{</span> name: name <span class="op">}</span>)
+    <span class="op">}</span>
+<span class="op">}</span></code></pre></div>
 <p>The important part is this expression:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) {
-    <span class="kw">None</span> =&gt; {
+<div class="sourceCode" id="cb2"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) <span class="op">{</span>
+    <span class="cn">None</span> =&gt; <span class="op">{</span>
         <span class="kw">self</span>.init_thing(name.to_owned());
         <span class="kw">self</span>.do_something(name)
-    },
-    <span class="kw">Some</span>(t) =&gt; {
+    <span class="op">}</span>,
+    <span class="cn">Some</span>(t) =&gt; <span class="op">{</span>
         t.do_something()
-    },
-}</code></pre>
+    <span class="op">}</span>,
+<span class="op">}</span></code></pre></div>
 <p>The error we get is:</p>
 <pre><code>&lt;anon&gt;:18:17: 18:21 error: cannot borrow `*self` as mutable more than once at a time [E0499]
 &lt;anon&gt;:18                 self.init_thing(name.to_owned());
@@ -101,33 +101,33 @@
                   ^</code></pre>
 <p><code>find_thing_mut()</code> really needs to return a ref, because <code>Thing</code> is expensive to copy. The problem is since <code>None</code> has type <code>Option&lt;&amp;'a mut Thing&gt;</code> where <code>a</code> is the lifetime of <code>self</code>, we can’t call a <code>&amp;mut self</code> when that <code>None</code> is in scope. This is annoying and could be improved by doing some local reasoning. In our case, since we know that <code>None</code> can’t borrow anything (it doesn’t have any references), we could refine our information about currently borrwed values, and let this compile.</p>
 <p>There are a couple of solutions. One half-solution is to use something like standard <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry"><code>HashMap</code>’s <code>entry()</code></a>. Imagine doing something like:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::HashMap;
+<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::HashMap;
 
-<span class="kw">struct</span> ListOfThings {
-    list : HashMap&lt;String, Thing&gt;,
-}
+<span class="kw">struct</span> ListOfThings <span class="op">{</span>
+    list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,
+<span class="op">}</span>
 
-<span class="kw">struct</span> Thing {
-    field1 : <span class="kw">i32</span>,
+<span class="kw">struct</span> Thing <span class="op">{</span>
+    field1 : <span class="dt">i32</span>,
     <span class="co">// other fields here -- this is expensive to copy!</span>
-}
+<span class="op">}</span>
 
-<span class="kw">impl</span> Thing {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {}
-}
+<span class="kw">impl</span> Thing <span class="op">{</span>
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{}</span>
+<span class="op">}</span>
 
-<span class="kw">impl</span> ListOfThings {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
-        <span class="kw">match</span> <span class="kw">self</span>.list.get_mut(name) {
-            <span class="kw">None</span> =&gt; {
-                <span class="kw">self</span>.list.insert(name.to_owned(), Thing { field1: <span class="dv">123</span> });
-            },
-            <span class="kw">Some</span>(t) =&gt; {
+<span class="kw">impl</span> ListOfThings <span class="op">{</span>
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span>
+        <span class="kw">match</span> <span class="kw">self</span>.list.get_mut(name) <span class="op">{</span>
+            <span class="cn">None</span> =&gt; <span class="op">{</span>
+                <span class="kw">self</span>.list.insert(name.to_owned(), Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);
+            <span class="op">}</span>,
+            <span class="cn">Some</span>(t) =&gt; <span class="op">{</span>
                 t.do_something();
-            }
-        }
-    }
-}</code></pre>
+            <span class="op">}</span>
+        <span class="op">}</span>
+    <span class="op">}</span>
+<span class="op">}</span></code></pre></div>
 <p>The error we get:</p>
 <pre><code>&lt;anon&gt;:20:17: 20:26 error: cannot borrow `self.list` as mutable more than once at a time [E0499]
 &lt;anon&gt;:20                 self.list.insert(name.to_owned(), Thing { field1: 123 });
@@ -144,82 +144,82 @@
 &lt;anon&gt;:25         }
                   ^</code></pre>
 <p>This is exactly the same error we got before. The solution is to use <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry">the <code>Entry</code> API</a>:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::{HashMap, Entry};
+<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::<span class="op">{</span>HashMap, Entry<span class="op">}</span>;
 
-<span class="kw">struct</span> ListOfThings {
-    list : HashMap&lt;String, Thing&gt;,
-}
+<span class="kw">struct</span> ListOfThings <span class="op">{</span>
+    list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,
+<span class="op">}</span>
 
-<span class="kw">struct</span> Thing {
-    field1 : <span class="kw">i32</span>,
+<span class="kw">struct</span> Thing <span class="op">{</span>
+    field1 : <span class="dt">i32</span>,
     <span class="co">// other fields here -- this is expensive to copy!</span>
-}
+<span class="op">}</span>
 
-<span class="kw">impl</span> Thing {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {}
-}
+<span class="kw">impl</span> Thing <span class="op">{</span>
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{}</span>
+<span class="op">}</span>
 
-<span class="kw">impl</span> ListOfThings {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
-        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
-            Entry::Vacant(ve) =&gt; {
-                ve.insert(Thing { field1: <span class="dv">123</span> });
-            },
-            Entry::Occupied(<span class="kw">mut</span> oe) =&gt; {
+<span class="kw">impl</span> ListOfThings <span class="op">{</span>
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span>
+        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span>
+            Entry::Vacant(ve) =&gt; <span class="op">{</span>
+                ve.insert(Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);
+            <span class="op">}</span>,
+            Entry::Occupied(<span class="kw">mut</span> oe) =&gt; <span class="op">{</span>
                 oe.get_mut().do_something();
-            }
-        }
-    }
-}</code></pre>
+            <span class="op">}</span>
+        <span class="op">}</span>
+    <span class="op">}</span>
+<span class="op">}</span></code></pre></div>
 <p>Some things to note here:</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li><p>We had to give ownership of the key to the lookup function (<code>HashMap::entry()</code>). This potentially means copying a value just to lookup. Ideally we’d only need to do this when inserting to the map. <code>HashMap::get()</code> doesn’t have this problem.</p></li>
 <li><p>I said “half-solution” because this doesn’t really make the original code working. See how I removed a line in the first case in my <code>HashMap</code>-based implementation. If I change the first case to this:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
-            Entry::Vacant(ve) =&gt; {
-                ve.insert(Thing { field1: <span class="dv">123</span> });
+<div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span>
+            Entry::Vacant(ve) =&gt; <span class="op">{</span>
+                ve.insert(Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);
                 <span class="kw">self</span>.do_something(name)
-            },</code></pre>
+            <span class="op">}</span>,</code></pre></div>
 <p>It’d still fail as <code>Entry</code> keeps a reference to <code>self</code>. Of course you could always do things like:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) {
-            Entry::Vacant(ve) =&gt; {
-                <span class="kw">let</span> <span class="kw">mut</span> thing = Thing { field1 : <span class="dv">123</span> };
+<div class="sourceCode" id="cb8"><pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span>
+            Entry::Vacant(ve) =&gt; <span class="op">{</span>
+                <span class="kw">let</span> <span class="kw">mut</span> thing = Thing <span class="op">{</span> field1 : <span class="dv">123</span> <span class="op">}</span>;
                 thing.do_something();
                 ve.insert(thing);
-            },</code></pre>
+            <span class="op">}</span>,</code></pre></div>
 <p>Which works, but that’s quite different from our original program. Note that if we still had a method like <code>init_thing()</code> and has to pass <code>Entry</code> to that, it’d still fail with same error message. So yeah, not quite a solution.</p></li>
 </ol>
 <p>The solution I use is this:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> ListOfThings {
-    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="kw">str</span>) {
-        <span class="kw">let</span> thing : <span class="kw">Option</span>&lt;*<span class="kw">mut</span> Thing&gt; = <span class="kw">self</span>.find_thing_mut(name).map(|t| (t <span class="kw">as</span> *<span class="kw">mut</span> _));
-        <span class="kw">match</span> thing {
-            <span class="kw">None</span> =&gt; {
+<div class="sourceCode" id="cb9"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> ListOfThings <span class="op">{</span>
+    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span>
+        <span class="kw">let</span> thing : <span class="dt">Option</span>&lt;*<span class="kw">mut</span> Thing&gt; = <span class="kw">self</span>.find_thing_mut(name).map(|t| (t <span class="kw">as</span> *<span class="kw">mut</span> _));
+        <span class="kw">match</span> thing <span class="op">{</span>
+            <span class="cn">None</span> =&gt; <span class="op">{</span>
                 <span class="kw">self</span>.init_thing(name.to_owned());
                 <span class="kw">self</span>.do_something(name)
-            },
-            <span class="kw">Some</span>(t) =&gt; {
-                <span class="kw">unsafe</span> { (*t).do_something() }
-            },
-        }
-    }
-}</code></pre>
+            <span class="op">}</span>,
+            <span class="cn">Some</span>(t) =&gt; <span class="op">{</span>
+                <span class="kw">unsafe</span> <span class="op">{</span> (*t).do_something() <span class="op">}</span>
+            <span class="op">}</span>,
+        <span class="op">}</span>
+    <span class="op">}</span>
+<span class="op">}</span></code></pre></div>
 <p>(missing parts are the same as the original code),</p>
 <p>I basically work around the borrow checker by using a raw pointer and an <code>unsafe</code> block, and hope that my <code>.map()</code> will be compiled as a no-op.</p>
 <h2 id="references-to-self-in-method-values">2. References to self in method values</h2>
 <p>A code like this fails if the method is mutable in self: <code>self.f(self.x)</code>. As a running example:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> Widget {
-    pos_x : <span class="kw">i32</span>,
-    pos_y : <span class="kw">i32</span>,
-}
+<div class="sourceCode" id="cb10"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">struct</span> Widget <span class="op">{</span>
+    pos_x : <span class="dt">i32</span>,
+    pos_y : <span class="dt">i32</span>,
+<span class="op">}</span>
 
-<span class="kw">impl</span> Widget {
-    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {
+<span class="kw">impl</span> Widget <span class="op">{</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span>
         <span class="kw">self</span>.draw_at(<span class="kw">self</span>.pos_x, <span class="kw">self</span>.pos_y);
-    }
+    <span class="op">}</span>
 
-    <span class="kw">pub</span> <span class="kw">fn</span> draw_at(&amp;<span class="kw">mut</span> <span class="kw">self</span>, pos_x : <span class="kw">i32</span>, pos_y : <span class="kw">i32</span>) {}
-}</code></pre>
+    <span class="kw">pub</span> <span class="kw">fn</span> draw_at(&amp;<span class="kw">mut</span> <span class="kw">self</span>, pos_x : <span class="dt">i32</span>, pos_y : <span class="dt">i32</span>) <span class="op">{}</span>
+<span class="op">}</span></code></pre></div>
 <p>These are the errors:</p>
 <pre><code>&lt;anon&gt;:8:22: 8:32 error: cannot use `self.pos_x` because it was mutably borrowed [E0503]
 &lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
@@ -234,40 +234,40 @@
 &lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
                  ^~~~</code></pre>
 <p>Basically the method itself (<code>self.draw_at</code>) borrows <code>self</code> mutably, and since arguments are evaluated <em>after</em> the function in a function application, we get this borrow checker error. The solution is simple in this case:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">let</span> pos_x = <span class="kw">self</span>.pos_x;
+<div class="sourceCode" id="cb12"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">let</span> pos_x = <span class="kw">self</span>.pos_x;
 <span class="kw">let</span> pos_y = <span class="kw">self</span>.pos_y;
-<span class="kw">self</span>.draw_at(pos_x, pos_y);</code></pre>
+<span class="kw">self</span>.draw_at(pos_x, pos_y);</code></pre></div>
 <h2 id="variables-that-live-across-loops">3. Variables that live across loops</h2>
 <p>Suppose you have a loop that internally calls some <code>&amp;mut self</code> methods, and when it returns, it returns something with a reference to <code>&amp;self</code>. Something like:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">pub</span> <span class="kw">struct</span> TUI {
-    field1: <span class="kw">i32</span>,
-}
+<div class="sourceCode" id="cb13"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">pub</span> <span class="kw">struct</span> TUI <span class="op">{</span>
+    field1: <span class="dt">i32</span>,
+<span class="op">}</span>
 
-<span class="kw">pub</span> <span class="kw">enum</span> TUIRet&lt;<span class="ot">'a</span>&gt; {
+<span class="kw">pub</span> <span class="kw">enum</span> TUIRet&lt;<span class="ot">'a</span>&gt; <span class="op">{</span>
     Abort,
     KeyHandled,
-    Input(&amp;<span class="ot">'a</span> <span class="kw">str</span>),
-}
+    Input(&amp;<span class="ot">'a</span> <span class="dt">str</span>),
+<span class="op">}</span>
 
-<span class="kw">impl</span> TUI {
-    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">'a</span>&gt;(&amp;<span class="ot">'a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">'a</span>&gt; {
-        <span class="kw">loop</span> {
+<span class="kw">impl</span> TUI <span class="op">{</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">'a</span>&gt;(&amp;<span class="ot">'a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">'a</span>&gt; <span class="op">{</span>
+        <span class="kw">loop</span> <span class="op">{</span>
             <span class="kw">self</span>.draw();
 
-            <span class="kw">match</span> <span class="kw">self</span>.keypressed() {
-                ret @ TUIRet::Abort =&gt; { <span class="kw">return</span> ret; },
-                ret @ TUIRet::Input(_) =&gt; { <span class="kw">return</span> ret; },
-                _ =&gt; {},
-            }
-        }
-    }
+            <span class="kw">match</span> <span class="kw">self</span>.keypressed() <span class="op">{</span>
+                ret @ TUIRet::Abort =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,
+                ret @ TUIRet::Input(_) =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,
+                _ =&gt; <span class="op">{}</span>,
+            <span class="op">}</span>
+        <span class="op">}</span>
+    <span class="op">}</span>
 
-    <span class="kw">pub</span> <span class="kw">fn</span> keypressed(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet {
-        <span class="ot">panic!</span>()
-    }
+    <span class="kw">pub</span> <span class="kw">fn</span> keypressed(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet <span class="op">{</span>
+        <span class="pp">panic!</span>()
+    <span class="op">}</span>
 
-    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">self</span>) {}
-}</code></pre>
+    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">self</span>) <span class="op">{}</span>
+<span class="op">}</span></code></pre></div>
 <p>Can you see what could go wrong here? Here’s the error:</p>
 <pre><code>&lt;anon&gt;:18:13: 18:17 error: cannot borrow `*self` as immutable because it is also borrowed as mutable [E0502]
 &lt;anon&gt;:18             self.draw();
@@ -297,21 +297,20 @@
 &lt;anon&gt;:26     }
               ^</code></pre>
 <p>This is probably the worst of all. The weird part is that this works:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust">    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">'a</span>&gt;(&amp;<span class="ot">'a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">'a</span>&gt; {
-        <span class="kw">loop</span> {
+<div class="sourceCode" id="cb15"><pre class="sourceCode rust"><code class="sourceCode rust">    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">'a</span>&gt;(&amp;<span class="ot">'a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">'a</span>&gt; <span class="op">{</span>
+        <span class="kw">loop</span> <span class="op">{</span>
             <span class="kw">self</span>.draw();
             <span class="kw">return</span> <span class="kw">self</span>.keypressed();
-        }
-    }</code></pre>
+        <span class="op">}</span>
+    <span class="op">}</span></code></pre></div>
 <p>Only solution I could find here was to remove the references to <code>self</code>, by just copying the value to <code>Input</code>. This unfortunately means more redundant copying.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

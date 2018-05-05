@@ -24,52 +24,52 @@
 <p>30 saniye ile 3 saat arasında değişiyor. 3 saat sonunda hala seviyorsanız büyük ihtimalle seviyorsunuz.</p>
 <h3 id="örnek-1-coffeescript-3-saat">Örnek 1: CoffeeScript (3 saat)</h3>
 <p>CoffeeScript’te birşeyler ciddi anlamda yanlış. Bir kısmı fikir olarak <em>bence</em> kötü, bir kısmı da hata gibi. Örneğin aşağıdaki koda bakalım:</p>
-<pre class="coffeescript"><code>@e('')
-    .color('rgb(255,0,0)')
-    .attr( x: 20,
-           y: 100,
-           w: 10,
-           h: 100 )</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span class="dt">@e</span><span class="kw">(</span><span class="st">''</span><span class="kw">)</span>
+    <span class="kw">.</span>color<span class="kw">(</span><span class="st">'rgb(255,0,0)'</span><span class="kw">)</span>
+    <span class="kw">.</span>attr<span class="kw">(</span> x<span class="kw">:</span> <span class="dv">20</span><span class="kw">,</span>
+           y<span class="kw">:</span> <span class="dv">100</span><span class="kw">,</span>
+           w<span class="kw">:</span> <span class="dv">10</span><span class="kw">,</span>
+           h<span class="kw">:</span> <span class="dv">100</span> <span class="kw">)</span></code></pre></div>
 <p><code>.attr</code> çağrısına dikkat edin. Parametresinin nasıl bir JS koduna derlenmesini beklersiniz? <a href="http://coffeescript.org/#literals">Referansına</a> bakarak ben şöyle düşünüyorum: <code>x</code>, <code>y</code>, <code>w</code> ve <code>h</code> anahtarlarını içeren bir map(veya object veya her ne derseniz). Peki aslında nasıl derleniyor?</p>
-<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">this</span>.<span class="fu">e</span>(<span class="st">''</span>).<span class="fu">color</span>(<span class="st">'rgb(255,0,0)'</span>).<span class="fu">attr</span>({
-  <span class="dt">x</span>: <span class="dv">20</span>
-}, {
-  <span class="dt">y</span>: <span class="dv">100</span>,
-  <span class="dt">w</span>: <span class="dv">10</span>,
-  <span class="dt">h</span>: <span class="dv">100</span>
-})</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">this</span>.<span class="at">e</span>(<span class="st">''</span>).<span class="at">color</span>(<span class="st">'rgb(255,0,0)'</span>).<span class="at">attr</span>(<span class="op">{</span>
+  <span class="dt">x</span><span class="op">:</span> <span class="dv">20</span>
+<span class="op">},</span> <span class="op">{</span>
+  <span class="dt">y</span><span class="op">:</span> <span class="dv">100</span><span class="op">,</span>
+  <span class="dt">w</span><span class="op">:</span> <span class="dv">10</span><span class="op">,</span>
+  <span class="dt">h</span><span class="op">:</span> <span class="dv">100</span>
+<span class="op">}</span>)</code></pre></div>
 <p>x’i diğerlerinden ayırıyor. Sanki x’den sonraki virgülü parametreleri birbirinden ayıran virgülmüş gibi yorumluyor. Ama bunu yapmaması lazım çünkü 1) parametre syntaxına uymuyor(<code>:</code> karakteri) 2) madem onu parametre gibi ayırdın neden <code>y</code>, <code>w</code> ve <code>h</code>yi birbirinden ayırmadın?</p>
 <p>Hadi neyse, klasik object gösterimini kullanalım, şu şekilde:</p>
-<pre class="coffeescript"><code>@e('')
-    .color('rgb(255,0,0)')
-    .attr({ x: 20,
-            y: 100,
-            w: 10,
-            h: 100 })</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span class="dt">@e</span><span class="kw">(</span><span class="st">''</span><span class="kw">)</span>
+    <span class="kw">.</span>color<span class="kw">(</span><span class="st">'rgb(255,0,0)'</span><span class="kw">)</span>
+    <span class="kw">.</span>attr<span class="kw">({</span> x<span class="kw">:</span> <span class="dv">20</span><span class="kw">,</span>
+            y<span class="kw">:</span> <span class="dv">100</span><span class="kw">,</span>
+            w<span class="kw">:</span> <span class="dv">10</span><span class="kw">,</span>
+            h<span class="kw">:</span> <span class="dv">100</span> <span class="kw">})</span></code></pre></div>
 <p>Herşey yolunda gibi, normal {} ile object syntaxını kullandım. Bu seferde, çok komik gelecek, <code>y</code>ni olduğu satırda <code>Unexpected '{'</code> hatası veriyor. Şaka gibi. O satırda öyle bir karakter bile yok. Bu hatadan emin olmak için birkaç deneme yaptım. Öyle bir olmamasına rağmen derleyici hata veriyor. Bana bariz bir bug gibi geldi.</p>
 <p>Kodu istediğim gibi bir tek şu şekilde derleyebildim:</p>
-<pre class="coffeescript"><code>@e('')
-    .color('rgb(255,0,0)')
-    .attr
-           x: 20,
-           y: 100,
-           w: 10,
-           h: 100</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span class="dt">@e</span><span class="kw">(</span><span class="st">''</span><span class="kw">)</span>
+    <span class="kw">.</span>color<span class="kw">(</span><span class="st">'rgb(255,0,0)'</span><span class="kw">)</span>
+    <span class="kw">.</span>attr
+           x<span class="kw">:</span> <span class="dv">20</span><span class="kw">,</span>
+           y<span class="kw">:</span> <span class="dv">100</span><span class="kw">,</span>
+           w<span class="kw">:</span> <span class="dv">10</span><span class="kw">,</span>
+           h<span class="kw">:</span> <span class="dv">100</span></code></pre></div>
 <p>Şaka gibi, bir karakter aşağıda, ve indent edilmiş. Burda <code>.attr</code>dan sonra parantez koyarsam da derleniyor. Eğer <code>x</code>i ilk örnekteki gibi <code>.attr</code> ile aynı satıra alırsam yine ilk örnekteki hatayı alıyorum.</p>
 <p>Bu kodda bir de öncesinde başka bir parametre koyacaksam syntax şöyle oluyor:</p>
-<pre class="coffeescript"><code>.attr 4,
-    x: 20
-    y: 100
-    w: 10
-    h: 100</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span class="kw">.</span>attr <span class="dv">4</span><span class="kw">,</span>
+    x<span class="kw">:</span> <span class="dv">20</span>
+    y<span class="kw">:</span> <span class="dv">100</span>
+    w<span class="kw">:</span> <span class="dv">10</span>
+    h<span class="kw">:</span> <span class="dv">100</span></code></pre></div>
 <p>Daha fazlasını kaldıramayacağım :) .</p>
 <p>Bir başka dikkat edilmezse çok uğraştıracak kısım da şu, eğer <code>.color(..)</code> kısmında, <code>color</code> methoduna tek parametre göndermeme rağmen parantez kullanmazsam, <code>.attr</code> kısmı <code>.color</code>a gönderdiğim stringe çağırılıyor. Bu şekilde alt alta bir üstteki methodun dönüş değerine methodlar çağırırken, her methodun parametrelerini paranteze almamız gerekiyor yani.</p>
 <p>Bunun gibi şeyleri farketmem için yaklaşık 3 saat gerekti.</p>
 <p><strong>DÜZENLEME</strong>: Xaph’ın yorum olarak yazdıklarını mutlaka okuyun, CoffeeScript’in nesne gösteriminin nasıl çalıştığını daha iyi açıklıyor. Bir programlama dili trollü olarak CoffeeScript’in IRC kanalını bastım ve bu bahsettiklerimi orda da anlattım. Daha sonra farkettiğim bir problem bir fonksiyona birden fazla object göndermekti. Syntax kısmı yine her seferinde çakılıyordu. JS olarak şöyle birşey yapmak istiyordum yani:</p>
-<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="fu">func</span>({<span class="dt">a</span>: <span class="dv">1</span>,
-      <span class="dt">b</span>: <span class="dv">2</span>},
-     {<span class="dt">a</span>: <span class="dv">10</span>,
-      <span class="dt">b</span>: <span class="st">&quot;??&quot;</span>});</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="at">func</span>(<span class="op">{</span><span class="dt">a</span><span class="op">:</span> <span class="dv">1</span><span class="op">,</span>
+      <span class="dt">b</span><span class="op">:</span> <span class="dv">2</span><span class="op">},</span>
+     <span class="op">{</span><span class="dt">a</span><span class="op">:</span> <span class="dv">10</span><span class="op">,</span>
+      <span class="dt">b</span><span class="op">:</span> <span class="st">&quot;??&quot;</span><span class="op">}</span>)<span class="op">;</span></code></pre></div>
 <p>Bulabildiğim tek çözüm, IRC kanalından birinin yardımıyla, şu oldu:</p>
 <pre><code>func({
    a: 1
@@ -92,10 +92,9 @@
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

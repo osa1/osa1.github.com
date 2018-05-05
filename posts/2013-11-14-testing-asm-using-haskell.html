@@ -58,12 +58,12 @@ newtype CULong = CULong GHC.Word.Word64
         -- Defined in `Foreign.C.Types'</code></pre>
 <p>(not that this part should be different on 32bit systems – eg. on 32bit system you should see <code>CULong GHC.Word.Word32</code> instead of <code>Word64</code>)</p>
 <p>We also need a <code>Arbitrary</code> instance for <code>CULong</code> type to be able to use QuickCheck on this type. Since <code>CULong</code> is just a newtype wrapper over <code>Word64</code>, and <code>Word64</code> already has instance defined in QuickCheck library, we can have that for free. In the end, our test code is:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import </span><span class="dt">Foreign.C.Types</span>
-<span class="kw">import </span><span class="dt">Test.QuickCheck</span>
+<span class="kw">import</span> <span class="dt">Foreign.C.Types</span>
+<span class="kw">import</span> <span class="dt">Test.QuickCheck</span>
 
-foreign <span class="kw">import </span>ccall &quot;power&quot;
+foreign <span class="kw">import</span> ccall &quot;power&quot;
 <span class="ot">    power ::</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span>
 
 <span class="kw">instance</span> <span class="dt">Arbitrary</span> <span class="dt">CULong</span> <span class="kw">where</span>
@@ -73,9 +73,9 @@ foreign <span class="kw">import </span>ccall &quot;power&quot;
 test_prop b p <span class="fu">=</span> power b p <span class="fu">==</span> b <span class="fu">^</span> p
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> quickCheck test_prop</code></pre>
+main <span class="fu">=</span> quickCheck test_prop</code></pre></div>
 <p>and that’s it. Very simple, 16 lines of code. To compile this, I also wrote a Makefile:</p>
-<pre class="sourceCode makefile"><code class="sourceCode makefile"><span class="dv">power:</span><span class="dt"> power_test.hs power_lib.o</span>
+<div class="sourceCode" id="cb5"><pre class="sourceCode makefile"><code class="sourceCode makefile"><span class="dv">power:</span><span class="dt"> power_test.hs power_lib.o</span>
 	ghc --make <span class="ch">$^</span>
 
 <span class="dv">power_lib.o:</span><span class="dt"> power_lib.s</span>
@@ -83,17 +83,16 @@ main <span class="fu">=</span> quickCheck test_prop</code></pre>
 
 <span class="dv">clean:</span>
 	<span class="ch">-</span><span class="fu">rm power_lib.o</span>
-	<span class="ch">-</span><span class="fu">rm power_test power_test.hi power_test.o</span></code></pre>
+	<span class="ch">-</span><span class="fu">rm power_test power_test.hi power_test.o</span></code></pre></div>
 <p>(this may be helpful to see how compilation work)</p>
 <p>I think this is also a good demonstration of how easy it is to interact with foreign functions in Haskell.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

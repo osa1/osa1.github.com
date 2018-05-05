@@ -24,18 +24,18 @@
 
 <p><strong>August 13, 2015</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/supercompilation.html">supercompilation</a>, <a href="../tags/haskell.html">haskell</a>.</p>
 
-<p>I’d expect more work sharing to be always more beneficial. But apparently this is not the case, as pointed out in (Chitil, 1997)<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>.</p>
+<p>I’d expect more work sharing to be always more beneficial. But apparently this is not the case, as pointed out in (Chitil, 1997)<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>.</p>
 <p>Here’s an example from the paper: (slightly changed)</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">sum [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>] <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell">sum [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>] <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]</code></pre></div>
 <p>We can evaluate this expression to WHNF using heap space enough for a single list(to be more specific, we only need a single cons cell at any time). After evaluating a subexpression, we can deallocate and allocate for the next list etc.</p>
 <p>However, if we eliminate common subexpressions, and generate this code:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> v <span class="fu">=</span> [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]
- <span class="kw">in</span> sum v <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod v</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> v <span class="fu">=</span> [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]
+ <span class="kw">in</span> sum v <span class="fu">+</span> sum [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod v</code></pre></div>
 <p>Now <code>v</code> has to live until the let body is evaluated to a value. We win in allocation/deallocation side, but we lose in residency side. In paper’s words: “Whereas the transformation always decreases total heap usage, it may considerably influence heap residency.”</p>
 <p>In general, we can’t do this transformation, without risking increased residency:</p>
 <p>\[ e’[e,e] \leadsto \texttt{let}\; x = e\; \texttt{in}\; e’[x,x] \]</p>
 <p>As a solution, the paper suggests this:</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>We always do CSE if the subexpressions’ WHNF == NF(i.e. if it’s a “safe type” in paper’s terms). According to the paper, “a partially evaluated expression is certain to require only a small, fixed amount of space if it’s not a function, whose environment may refer to arbitrary large data structures, and its WHNF is already its normal form”.</li>
 <li>We always do CSE when a named expression is syntactically dominating another equal expression:</li>
 </ol>
@@ -45,23 +45,21 @@
 <p>Also, I’m wondering how is CSE is handled in current GHC.</p>
 <hr />
 <p>In supercompilation, we want to avoid evaluating same expressions in a loop forever, so we keep some kind of “history”, and when we come across a term that we evaluated before, we fold the process tree and avoid evaluating same term again.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">(fib <span class="dv">1000</span>, fib <span class="dv">1000</span>)</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell">(fib <span class="dv">1000</span>, fib <span class="dv">1000</span>)</code></pre></div>
 <p>Unless we make sure to split it in a way that branches of the process tree are unaware of each other, we may end up eliminating common subexpressions. However, since there are lots of cases where we may want CSE, a splitter that always prevents it is not always desirable. We should instead allow CSE in a controlled way.</p>
-<hr />
-<div class="footnotes">
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Olaf Chitil, “Common Subexpression Elimination in a Lazy Functional Language”, section 3.5.<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p>Olaf Chitil, “Common Subexpression Elimination in a Lazy Functional Language”, section 3.5.<a href="#fnref1" class="footnote-back">↩</a></p></li>
 </ol>
-</div>
+</section>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

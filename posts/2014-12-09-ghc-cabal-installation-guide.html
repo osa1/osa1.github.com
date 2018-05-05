@@ -24,7 +24,7 @@
 <p>I see a lot of starters having problems with installing latest GHC and Cabal, and then keeping their package repository in a sane state(e.g. no thousands of broken packages because of one re-install, no installation problems because of conflicts). I came up with a simple method several years ago, and today when combined with sandboxes, that works really well. I suggest every new Haskeller to do the same. Here’s how I do my GHC/Cabal installation up-to-date and sane:</p>
 <p>NEVER USE HASKELL PALTFORM. When I first started, it caused just too much pain. I don’t know how it is today, but I presume same problems should still apply. (globally installing packages)</p>
 <p>Most important thing is to keep Cabal and cabal-install up-to-date. You can easily remove a GHC, or install other versions and keep them togerher once you have a working and relatively new(so that it supports sandboxes) Cabal. In fact, I currently have 3 versions of GHC installed, for different projects, and I have no problems at all. Starting from a system with no GHC/Cabal is installed, here’s the way to install latest Cabal and cabal-install:</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>Install whatever GHC and Cabal you have in your package manager.</li>
 <li>If the GHC you installed from package manager is not latest one, install latest pre-compiled binary from <a href="http://www.haskell.org/ghc/">GHC webpage</a>. Set your <code>$PATH</code>(or move executables to <code>$PATH</code>) and remove the GHC you installed using the package manager.</li>
 <li>Run <code>cabal update &amp;&amp; cabal install Cabal cabal-install</code>, then remove Cabal and cabal-install installed using the package manager, and add <code>~/.cabal/bin</code> to $PATH. After doing that, you’ll have latest GHC and Cabal installed. Also, Cabal will be installed locally, so you can update it very easily using <code>cabal udpate &amp;&amp; cabal install Cabal cabal-install</code> whenever you want. Updating for newer GHC is similarly easy, just installed pre-compiled binary from the link above and move it wherever you want. You can use multiple GHC installations at the same time without any problems, Cabal just keeps separate repositories for different GHC versions.</li>
@@ -48,10 +48,9 @@
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

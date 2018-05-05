@@ -31,46 +31,46 @@
  ***
   *</code></pre>
 <p>Neyse, daha önceden çözdüğümden az da olsa bir fikrim vardı, çözüm sadece for ve if(kullanıcının girdiği sayıyı kontrol amacıyla) döngüleri kullanılarak yapılmalıydı. Ders sırasında, bazı yerlerde deneme-yanılma yoluyla(şu anda sorsanız anlatamam), aşağıdaki kodu yazdım:</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import java.util.Scanner;</span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import</span><span class="im"> java.util.Scanner;</span>
 <span class="kw">public</span> <span class="kw">class</span> LabUcgen {
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
         <span class="dt">int</span> tamsayi;
-        Scanner girdi = <span class="kw">new</span> Scanner(System.<span class="fu">in</span>);
-        System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Lutfen bir tek tamsayi degeri giriniz:&quot;</span>);
+        <span class="bu">Scanner</span> girdi = <span class="kw">new</span> <span class="bu">Scanner</span>(<span class="bu">System</span>.<span class="fu">in</span>);
+        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Lutfen bir tek tamsayi degeri giriniz:&quot;</span>);
         tamsayi = girdi.<span class="fu">nextInt</span>();
         <span class="dt">int</span> tamsayi2 = tamsayi;
         <span class="kw">for</span> (<span class="dt">int</span> satir=<span class="dv">1</span>; satir &lt; tamsayi2<span class="dv">-1</span>; satir++) {
             <span class="kw">for</span> (<span class="dt">int</span> bosluk=<span class="dv">0</span>; bosluk + tamsayi &lt; tamsayi2-bosluk; bosluk++ ) {
-                System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot; &quot;</span>);
+                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot; &quot;</span>);
             }
-            <span class="kw">for</span> (<span class="dt">int</span> yildiz = <span class="dv">1</span>; yildiz &lt; tamsayi<span class="dv">+1</span>; yildiz++) {
-                System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;*&quot;</span>);
+            <span class="kw">for</span> (<span class="dt">int</span> yildiz = <span class="dv">1</span>; yildiz &lt; tamsayi+<span class="dv">1</span>; yildiz++) {
+                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;*&quot;</span>);
             }
-            System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;&quot;</span>);
+            <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;&quot;</span>);
             tamsayi = tamsayi - <span class="dv">2</span>;
         }
     }
-}</code></pre>
+}</code></pre></div>
 <p>Daha sonra biraz daha düşündüm, kağıt kalem elde, satır sayısına göre kaç boşluk ve kaç yıldız koyulması gerektiğini döndüren bir fonksiyon yazmaya kalktım, Java’da beceremedim(çok uğraşmadım da, henüz arrayden başka veri yapısı bilmiyorum Java’da), fakat Python’da şöyle bir recursive fonksiyon yazabildim:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> hesap(yildiz, satir):
-    bb = yildiz/<span class="dv">2+1</span>
-    <span class="kw">if</span> satir &lt;= yildiz/<span class="dv">2</span>:
-        bosluk = bb-satir <span class="co"># kac tane bosluk?</span>
-        yildiz_sayisi = yildiz-bosluk*<span class="dv">2</span>
-    <span class="kw">else</span>:
-        <span class="kw">return</span> hesap(yildiz, yildiz-satir<span class="dv">+1</span>)
-    <span class="kw">return</span> (bosluk, yildiz_sayisi)
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> hesap(yildiz, satir):
+    bb <span class="op">=</span> yildiz<span class="op">/</span><span class="dv">2</span><span class="op">+</span><span class="dv">1</span>
+    <span class="cf">if</span> satir <span class="op">&lt;=</span> yildiz<span class="op">/</span><span class="dv">2</span>:
+        bosluk <span class="op">=</span> bb<span class="op">-</span>satir <span class="co"># kac tane bosluk?</span>
+        yildiz_sayisi <span class="op">=</span> yildiz<span class="op">-</span>bosluk<span class="op">*</span><span class="dv">2</span>
+    <span class="cf">else</span>:
+        <span class="cf">return</span> hesap(yildiz, yildiz<span class="op">-</span>satir<span class="op">+</span><span class="dv">1</span>)
+    <span class="cf">return</span> (bosluk, yildiz_sayisi)
 
-&gt;&gt;&gt; hesap(<span class="dv">9</span>, <span class="dv">3</span>)
+<span class="op">&gt;&gt;&gt;</span> hesap(<span class="dv">9</span>, <span class="dv">3</span>)
 (<span class="dv">2</span>, <span class="dv">5</span>)
-&gt;&gt;&gt; hesap(<span class="dv">9</span>, <span class="dv">3</span>) == hesap(<span class="dv">9</span>, <span class="dv">7</span>)
-<span class="ot">True</span></code></pre>
+<span class="op">&gt;&gt;&gt;</span> hesap(<span class="dv">9</span>, <span class="dv">3</span>) <span class="op">==</span> hesap(<span class="dv">9</span>, <span class="dv">7</span>)
+<span class="va">True</span></code></pre></div>
 <p>Bu fonksiyonun olayı şu: örneğin 9 yıldızlık bir şekil çizdirecekseniz, 2. ve 8. satırlar birbirinin aynısı olacak. Şekil 5. satıra göre simetrik olacak yani. Dolayısıyla kullanıcı 8. satırda ne olmalı diye fonksiyonu çağırdığında, fonksiyon aslında 2. satırda ne olduğunu gösterecek(bkz <code>hesap(yildiz, yildiz-satir+1)</code>, satir 8 ise, 9-8+1’den 2. satırı çağıracak).</p>
 <p>Java’da da benzer bir şekilde, fakat herhangi bir method kullanmadan şu şekilde çözdüm:</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> LabUcgen3 {
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+<div class="sourceCode" id="cb4"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> LabUcgen3 {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
         <span class="dt">int</span> yildizSayisi = <span class="dv">13</span>;
-        <span class="dt">int</span> bb = yildizSayisi/<span class="dv">2+1</span>;
+        <span class="dt">int</span> bb = yildizSayisi/<span class="dv">2</span>+<span class="dv">1</span>;
         <span class="dt">int</span> satir = <span class="dv">1</span>;
         
         <span class="kw">for</span> (<span class="dt">int</span> baslangic = <span class="dv">0</span>; satir &lt; yildizSayisi; satir++) {
@@ -85,25 +85,24 @@
             <span class="dt">int</span> yazilacakYildizSayisi = yildizSayisi-yazilacakBoslukSayisi*<span class="dv">2</span>;
             
             <span class="kw">for</span> (<span class="dt">int</span> yazilanBosluk = <span class="dv">0</span>; yazilanBosluk &lt; yazilacakBoslukSayisi; yazilanBosluk++) {
-                System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot; &quot;</span>);
+                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot; &quot;</span>);
             }
             <span class="kw">for</span> (<span class="dt">int</span> yazilanYildiz = <span class="dv">0</span>; yazilanYildiz &lt; yazilacakYildizSayisi; yazilanYildiz++) {
-                System.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;*&quot;</span>);
+                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;*&quot;</span>);
             }
-            System.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;&quot;</span>);
+            <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;&quot;</span>);
         }
     }
-}</code></pre>
+}</code></pre></div>
 <p>Bu kodda aslında yukarıda yazdığım Python kodunun yaptığı işi yapmaya çalıştım, toplamSatirSayisi(ki bu yildizSayisi’na eşit)/2+1 simetri eksenim oldu, onun aşağısı ve yukarısı simetrik. if-else içerisinde yazdığım kod bu işe yarıyor, örneğin 9 yıldızlı bir şekil çizdereceksem ve 6.satırdaysam, satır sayım 9/2 den 4’ü geçtiği için, <code>yazilanSatir = yildizSayisi-satir-1;</code> kodu ile yazdığım satırı değiştiriyorum.</p>
 <p><em>Daha kısa bir şekilde çözen var mı?</em> Benim aklıma gelen en kısa yöntem buydu, onu da Python’da yazıp Java’ya çevirdim zaten(bu arada Java’ya da alışıyorum, uzun değişken isimleri falan, ehehe).</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

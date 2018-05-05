@@ -33,26 +33,26 @@
 <hr />
 <p>The idea is simple; we implement resources as <code>MVar</code>s and tasks as threads. Threads (tasks) take the <code>MVar</code>s before performing the operation. Because threads are scheduled by GHC RTS, GHC handles scheduling of our tasks. Because of fairness properties of <code>MVar</code>s, our threads are scheduled “fairly”, e.g. all tasks eventually finish even when we have infinitely many tasks.</p>
 <p>A resource is an abstract object with a lock and unique identifier:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Resource</span> <span class="fu">=</span> <span class="dt">Resource</span>
-  { _<span class="ot">resourceName ::</span> <span class="dt">T.Text</span>
-  , _<span class="ot">resourceId   ::</span> <span class="dt">Unique</span>
-  , _<span class="ot">resourceLock ::</span> <span class="dt">MVar</span> ()
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Resource</span> <span class="fu">=</span> <span class="dt">Resource</span>
+  {<span class="ot"> _resourceName ::</span> <span class="dt">T.Text</span>
+  ,<span class="ot"> _resourceId   ::</span> <span class="dt">Unique</span>
+  ,<span class="ot"> _resourceLock ::</span> <span class="dt">MVar</span> ()
   }
 
 <span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Resource</span> <span class="kw">where</span>
-  show <span class="fu">=</span> T.unpack <span class="fu">.</span> _resourceName</code></pre>
+  show <span class="fu">=</span> T.unpack <span class="fu">.</span> _resourceName</code></pre></div>
 <p><code>_resourceName</code> is just a string to be used for tracing program execution.</p>
 <p>A <code>Unique</code> is an integer that can be used in at most one resource:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Unique</span> <span class="fu">=</span> <span class="dt">Unique</span> <span class="dt">Int</span>
-  <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Ord</span>)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Unique</span> <span class="fu">=</span> <span class="dt">Unique</span> <span class="dt">Int</span>
+  <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Ord</span>)</code></pre></div>
 <p>Using <code>Unique</code> we can define a total order for <code>Resource</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Resource</span> <span class="kw">where</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Resource</span> <span class="kw">where</span>
   (<span class="fu">==</span>) <span class="fu">=</span> (<span class="fu">==</span>) <span class="ot">`on`</span> _resourceId
 
 <span class="kw">instance</span> <span class="dt">Ord</span> <span class="dt">Resource</span> <span class="kw">where</span>
-  compare <span class="fu">=</span> comparing _resourceId</code></pre>
+  compare <span class="fu">=</span> comparing _resourceId</code></pre></div>
 <p>A task that requires exclusive access to a subset of all resources can be implemented using <code>withResources</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">withResources ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> m () <span class="ot">-&gt;</span> m ()
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">withResources ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> m () <span class="ot">-&gt;</span> m ()
 withResources locks a <span class="fu">=</span> acquire_locks (S.toList locks)
   <span class="kw">where</span>
     acquire_locks ls <span class="fu">=</span> <span class="kw">case</span> ls <span class="kw">of</span>
@@ -61,10 +61,10 @@ withResources locks a <span class="fu">=</span> acquire_locks (S.toList locks)
       l <span class="fu">:</span> ls' <span class="ot">-&gt;</span> <span class="kw">do</span>
         logDebug (<span class="st">&quot;taking lock &quot;</span> <span class="fu">&lt;&gt;</span> (_resourceName l))
         withMVar (_resourceLock l) <span class="fu">$</span> \() <span class="ot">-&gt;</span>
-          acquire_locks ls'</code></pre>
+          acquire_locks ls'</code></pre></div>
 <p>Note that when all tasks are implemented using this function a deadlock won’t occur: resources are ordered, and <code>S.toList</code> generates a sorted list, which in turn causes <code>acquire_locks</code> to take locks in order, effectively implementing <a href="https://en.wikipedia.org/wiki/Dining_philosophers_problem">Dijkstra’s resource hierarchy solution to the dining philosophers problem</a>.</p>
 <p>Here are three task generators:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Task</span> <span class="fu">=</span> <span class="dt">Task</span>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Task</span> <span class="fu">=</span> <span class="dt">Task</span>
   {<span class="ot"> runTask ::</span> forall m <span class="fu">.</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> m () }
 
 <span class="ot">mkFastTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
@@ -85,14 +85,14 @@ mkSlowTask i res <span class="fu">=</span>
 mkCrashingTask i res <span class="fu">=</span>
     <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
       logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i))
-      error <span class="st">&quot;task failed&quot;</span></code></pre>
+      error <span class="st">&quot;task failed&quot;</span></code></pre></div>
 <p>Integer arguments are just for tracing task execution in program output. <code>mkFastTask</code> generates a task that takes 500 milliseconds to run. <code>mkSlowTask</code> generates a task that takes 3 seconds. <code>mkCrashingTask</code> makes a task that throws an exception, demonstrating that we release resources properly on exceptions.</p>
 <p>Finally, the scheduler just spawns tasks using <code>forkIO</code> or <code>async</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">schedule ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m, <span class="dt">Forall</span> (<span class="dt">Pure</span> m)) <span class="ot">=&gt;</span> [<span class="dt">Task</span>] <span class="ot">-&gt;</span> m ()
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">schedule ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m, <span class="dt">Forall</span> (<span class="dt">Pure</span> m)) <span class="ot">=&gt;</span> [<span class="dt">Task</span>] <span class="ot">-&gt;</span> m ()
 schedule tasks <span class="fu">=</span> <span class="kw">do</span>
     thrs <span class="ot">&lt;-</span> forM tasks <span class="fu">$</span> \(<span class="dt">Task</span> task) <span class="ot">-&gt;</span>
               async (task <span class="ot">`catch`</span> (\(<span class="ot">e ::</span> <span class="dt">SomeException</span>) <span class="ot">-&gt;</span> logDebug <span class="st">&quot;Task failed&quot;</span>))
-    forM_ thrs wait</code></pre>
+    forM_ thrs wait</code></pre></div>
 <p>Here’s an example run</p>
 <pre><code>taking lock resource5
 Performing 0
@@ -137,10 +137,9 @@ Slow task done (7)</code></pre>
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

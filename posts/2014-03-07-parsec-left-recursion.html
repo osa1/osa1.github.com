@@ -25,19 +25,19 @@
 <p>The idea is to keep track of parser functions that are called without consuming any tokens from input stream. You should be able to run failure procedures when same parser function is encountered more than one time without consuming any tokens. When a token is consumed, state that is used to keep track of parser functions should be reset.</p>
 <p>One assumption here is that I’m assuming parser functions do not alter any states. Otherwise when you come across a same parser, you can have different state and parser may behave differently.</p>
 <p>Implementing the idea is easy even without having any extra support from Parsec. Here’s a demonstration on my favorite ambiguous grammar:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Exp ::= Int</span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Exp ::= Int</span>
 <span class="co">--      |  Exp `+` Exp</span>
 
 <span class="kw">data</span> <span class="dt">Exp</span> <span class="fu">=</span> <span class="dt">Int</span> <span class="dt">Int</span>
          <span class="fu">|</span> <span class="dt">Add</span> <span class="dt">Exp</span> <span class="dt">Exp</span>
-         <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre>
+         <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
 <p>Parsers for non-terminals are easy:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">plus <span class="fu">=</span> char <span class="ch">'+'</span> <span class="fu">&gt;&gt;</span> spaces
-int  <span class="fu">=</span> fmap (<span class="dt">Int</span> <span class="fu">.</span> read) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell">plus <span class="fu">=</span> char <span class="ch">'+'</span> <span class="fu">&gt;&gt;</span> spaces
+int  <span class="fu">=</span> fmap (<span class="dt">Int</span> <span class="fu">.</span> read) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre></div>
 <p>I’m using a set to keep track of already visited parsers:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">MarksSeen</span> <span class="fu">=</span> <span class="dt">S.Set</span> <span class="dt">Int</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">MarksSeen</span> <span class="fu">=</span> <span class="dt">S.Set</span> <span class="dt">Int</span>
 
-<span class="kw">type</span> <span class="dt">RecParser</span> s m a <span class="fu">=</span> <span class="dt">ParsecT</span> s <span class="dt">MarksSeen</span> m a</code></pre>
+<span class="kw">type</span> <span class="dt">RecParser</span> s m a <span class="fu">=</span> <span class="dt">ParsecT</span> s <span class="dt">MarksSeen</span> m a</code></pre></div>
 <p>Auxiliary functions to alter the state that keeps track of visited parsers:</p>
 <pre><code>putMark i = do
     is &lt;- getState
@@ -47,7 +47,7 @@ int  <span class="fu">=</span> fmap (<span class="dt">Int</span> <span class="fu
 
 resetMarks = putState S.empty</code></pre>
 <p>Now the interesting part, <code>add</code> parser marks itself as first thing to do, and calls <code>exp</code> parser. Since <code>exp</code> parser is entry point, this means an indirect recursive call. When same <code>putMark</code> call is made, Parsec runs failure actions instead of going into infinte loop:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">add <span class="fu">=</span> <span class="kw">do</span>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell">add <span class="fu">=</span> <span class="kw">do</span>
     putMark <span class="dv">1</span>
     e1 <span class="ot">&lt;-</span> exp
     resetMarks
@@ -56,17 +56,17 @@ resetMarks = putState S.empty</code></pre>
     spaces
     return <span class="fu">$</span> <span class="dt">Add</span> e1 e2
 
-exp <span class="fu">=</span> choice [try add, int]</code></pre>
+exp <span class="fu">=</span> choice [try add, int]</code></pre></div>
 <p><code>resetMarks</code> call is also important, <code>exp</code> has to consume some tokens, so after parsing <code>e1</code>, I’m calling <code>resetMarks</code>.</p>
 <p>Here’s an example call of this parser:</p>
 <pre><code>ghci&gt; runParser exp S.empty &quot;&quot; &quot;1 + 2 + 3 + 4&quot;
 Right (Add (Int 1) (Add (Int 2) (Add (Int 3) (Int 4))))</code></pre>
 <p>You can observe that parser gets into an infinite loop when marks are removed. Here’s an example demonstrating the error message:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">rec <span class="fu">=</span> putMark <span class="dv">0</span> <span class="fu">&gt;&gt;</span> rec <span class="fu">&gt;&gt;</span> resetMarks
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell">rec <span class="fu">=</span> putMark <span class="dv">0</span> <span class="fu">&gt;&gt;</span> rec <span class="fu">&gt;&gt;</span> resetMarks
 
 ghci<span class="fu">&gt;</span> runParser rec S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;&quot;</span>
 <span class="dt">Left</span> (line <span class="dv">1</span>, column <span class="dv">1</span>)<span class="fu">:</span>
-recursion</code></pre>
+recursion</code></pre></div>
 <p>One problem with this approach is that it requires more typing, and you should be careful too. Marks can be placed using TemplateHaskell to ensure unique numbers are given to each <code>putMark</code> call. As a second improvement, I think with some modifications on Parsec we can make Parsec to reset marks when a token is consumed(using <em>consumed-ok</em> continuation of <code>ParsecT</code>).</p>
 <p>You can see the complete program <a href="https://gist.github.com/osa1/9414577">here</a>.</p>
 <hr />
@@ -75,7 +75,7 @@ recursion</code></pre>
      |  Exp Exp_1 ... Exp_N [left-associative]
      ... a hundred more productions ...</code></pre>
 <p>Whenever I need to write a parser for a grammar like this, I’m thinking for an easier way to parse it. I still couldn’t come up with a solution. Idea I just explained does not solve it, because it parses right-associatively. There is one workaround, but I’m not sure if that results with a parser for same grammar:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">app <span class="fu">=</span> <span class="kw">do</span>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell">app <span class="fu">=</span> <span class="kw">do</span>
     putMark <span class="dv">2</span>
     fn <span class="ot">&lt;-</span> exp
     resetMarks
@@ -91,15 +91,14 @@ ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&q
 <span class="dt">Right</span> (<span class="dt">Add</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Int</span> <span class="dv">2</span>)) (<span class="dt">Int</span> <span class="dv">3</span>)) (<span class="dt">Int</span> <span class="dv">4</span>)) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">5</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">6</span>) (<span class="dt">Int</span> <span class="dv">7</span>))))
 
 ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 + 2 + 3 4&quot;</span>
-<span class="dt">Right</span> (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">2</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">3</span>) (<span class="dt">Int</span> <span class="dv">4</span>))))</code></pre>
+<span class="dt">Right</span> (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">1</span>) (<span class="dt">Add</span> (<span class="dt">Int</span> <span class="dv">2</span>) (<span class="dt">App</span> (<span class="dt">Int</span> <span class="dv">3</span>) (<span class="dt">Int</span> <span class="dv">4</span>))))</code></pre></div>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

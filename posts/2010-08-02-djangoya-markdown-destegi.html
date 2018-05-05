@@ -27,24 +27,24 @@
 </blockquote>
 <p>Python modülünü <a href="http://pypi.python.org/pypi/Markdown/2.0.3" class="uri">http://pypi.python.org/pypi/Markdown/2.0.3</a> adresinden indirebilirsiniz.</p>
 <p>Henüz isteğim doğrultusunda nasıl geliştirebileceğimi bulamasam da ilk haliyle bile çok yardımcı oluyor. Django’yla kullanmak için iki farklı yol izleyebilirsiniz. Birincisi, hangi modelinizde uygulamak istiyorsanız, onun save metodunu override edersiniz. Örneğin modelimdeki “post” alanına uygulamak istiyorsam, markdown modülünü import ettikten sonra şöyle yapıyorum:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> save(<span class="ot">self</span>, *args, **kargs):
-    <span class="ot">self</span>.post = markdown.markdown(<span class="ot">self</span>.post)
-    <span class="dt">super</span>(Post, <span class="ot">self</span>).save()</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> save(<span class="va">self</span>, <span class="op">*</span>args, <span class="op">**</span>kargs):
+    <span class="va">self</span>.post <span class="op">=</span> markdown.markdown(<span class="va">self</span>.post)
+    <span class="bu">super</span>(Post, <span class="va">self</span>).save()</code></pre></div>
 <p>Bu yöntemin kötü yanı, eğer o yazıyı bir daha düzenlemek isterseniz, size markdown’ın eklediği html taglarıyla beraber gelecek. Yani yazıyı bir kere eklediniz mi, düzenlemek için yine html ile uğraşmanız gerekir. Kötü bir yöntem yani.</p>
 <p>İkinci yöntem de, markdown fonksiyonu için bir template tag’ı oluşturup, istediğiniz yere uygulamanız. Bu yöntem her yönden çok daha mantıklı gözüküyor, hem istediğiniz şeye uygulayabilirsiniz. Bunun için markdown’u proje klasörüne kopyaladıktan sonra ayar dosyanızdan markdown’u ISTALLED_APPS altında eklemeniz gerekiyor. Daha sonra <a href="http://docs.djangoproject.com/en/dev/howto/custom-template-tags/">şu belgedeki</a> adımları izlemelisiniz. Ya da:</p>
 <ul>
 <li>markdown klasörünün altında templatetags klasörü oluşturursunuz.</li>
 <li>markdown.py diye bir dosya açarsınız. İçine şu kodu yapıştırırsınız:</li>
 </ul>
-<pre class="sourceCode python"><code class="sourceCode python">    <span class="ch">from</span> django <span class="ch">import</span> template
-    <span class="ch">from</span> ..markdown <span class="ch">import</span> markdown <span class="ch">as</span> Markdown
-    <span class="ch">from</span> django.template.defaultfilters <span class="ch">import</span> stringfilter
-    register = template.Library()
-    <span class="ot">@register.filter</span> <span class="co"># detayli bilgi icin http://docs.djangoproject.com/en/dev/howto/custom-template-tags/</span>
-    <span class="ot">@stringfilter</span> <span class="co"># sadece stringlerle calissin</span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python">    <span class="im">from</span> django <span class="im">import</span> template
+    <span class="im">from</span> ..markdown <span class="im">import</span> markdown <span class="im">as</span> Markdown
+    <span class="im">from</span> django.template.defaultfilters <span class="im">import</span> stringfilter
+    register <span class="op">=</span> template.Library()
+    <span class="at">@register.filter</span> <span class="co"># detayli bilgi icin http://docs.djangoproject.com/en/dev/howto/custom-template-tags/</span>
+    <span class="at">@stringfilter</span> <span class="co"># sadece stringlerle calissin</span>
     <span class="kw">def</span> markdown(value):
         <span class="co">&quot;String'i Markdown'dan gecirir.&quot;</span>
-        <span class="kw">return</span> Markdown(value)</code></pre>
+        <span class="cf">return</span> Markdown(value)</code></pre></div>
 <ul>
 <li>Daha sonra template tagımızı kullanmak istediğimiz templateimize <code>{% load markdown %}</code> satırını ekleyip, hangi string’de kullanmak istiyorsak ona markdown filter’ını uygularsınız. Örneğin <code>{{ post|markdown|safe|escape }}</code>.</li>
 </ul>
@@ -53,10 +53,9 @@
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

@@ -23,35 +23,35 @@
 
 <p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
-<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
-<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
+<div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
+<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
 
-<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
-    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
-    <span class="ot">callbacks</span>.<span class="fu">push</span>(<span class="kw">function</span> () {
-        <span class="ot">console</span>.<span class="fu">log</span>(say);
-    });
-}
+<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
+    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
+    <span class="va">callbacks</span>.<span class="at">push</span>(<span class="kw">function</span> () <span class="op">{</span>
+        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
+    <span class="op">}</span>)<span class="op">;</span>
+<span class="op">}</span>
 
-<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
-    callbacks[idx]();
-}</code></pre>
+<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
+    callbacks[idx]()<span class="op">;</span>
+<span class="op">}</span></code></pre></div>
 <p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
 <p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
-<p>Python also has this problem<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
-<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
+<p>Python also has this problem<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
 
-<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say = <span class="st">&quot;say &quot;</span> + i
+<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
     <span class="kw">def</span> callback():
-        <span class="dt">print</span> say
+        <span class="bu">print</span> say
     callbacks.append(callback)
 
-<span class="kw">for</span> c in callbacks:
-    c()</code></pre>
+<span class="cf">for</span> c <span class="kw">in</span> callbacks:
+    c()</code></pre></div>
 <p>This prints same wrong output as with JavaScript.</p>
 <p>Lua, my favorite dynamic language, does great:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
     <span class="kw">local</span> say <span class="ot">=</span> <span class="st">&quot;say &quot;</span> <span class="ot">..</span> v
@@ -60,57 +60,57 @@
 
 <span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>callbacks<span class="ot">)</span> <span class="kw">do</span>
     v<span class="ot">()</span>
-<span class="kw">end</span></code></pre>
+<span class="kw">end</span></code></pre></div>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
 main <span class="fu">=</span> sequence_ callbacks
-  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre>
+  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre></div>
 <p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
 <p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
 <p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
-<pre class="sourceCode javascript"><code class="sourceCode javascript">&gt; <span class="kw">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> ]) { <span class="ot">console</span>.<span class="fu">log</span>(v); }
+<div class="sourceCode" id="cb5"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="op">&gt;</span> <span class="cf">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> ]) <span class="op">{</span> <span class="va">console</span>.<span class="at">log</span>(v)<span class="op">;</span> <span class="op">}</span>
 <span class="dv">0</span>
 <span class="dv">1</span>
 <span class="dv">2</span>
-&gt; v
-<span class="st">&quot;2&quot;</span></code></pre>
+<span class="op">&gt;</span> v
+<span class="st">&quot;2&quot;</span></code></pre></div>
 <p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
 <h2 id="fixing-it">Fixing it</h2>
 <p>Let’s fix that in JavaScript and Python.</p>
-<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks = [];
-<span class="kw">var</span> words = [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ];
+<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
+<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
 
-<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {
-    <span class="kw">var</span> say = <span class="st">&quot;say &quot;</span> + words[idx];
-    <span class="ot">callbacks</span>.<span class="fu">push</span>((<span class="kw">function</span> (say) {
-      <span class="kw">return</span> <span class="kw">function</span> () {
-        <span class="ot">console</span>.<span class="fu">log</span>(say);
-      }
-    })(say));
-}
+<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
+    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
+    <span class="va">callbacks</span>.<span class="at">push</span>((<span class="kw">function</span> (say) <span class="op">{</span>
+      <span class="cf">return</span> <span class="kw">function</span> () <span class="op">{</span>
+        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
+      <span class="op">}</span>
+    <span class="op">}</span>)(say))<span class="op">;</span>
+<span class="op">}</span>
 
-<span class="kw">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {
-    callbacks[idx]();
-}</code></pre>
+<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
+    callbacks[idx]()<span class="op">;</span>
+<span class="op">}</span></code></pre></div>
 <p>Here we’re creating a new scope with function(remember the JavaScript module pattern?), and then passing <code>say</code> variable to it. This guarantees that we have <code>say</code> variable local to the function. Then in callback returned by wrapper function, we have a reference just like before, but it’s not shared with any other functions.</p>
 <p>In Python, there’s a cleaner way to do same thing:</p>
-<pre class="sourceCode python"><code class="sourceCode python">callbacks = []
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
 
-<span class="kw">for</span> i in [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say = <span class="st">&quot;say &quot;</span> + i
-    <span class="kw">def</span> callback(say=say):
-        <span class="dt">print</span> say
+<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
+    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
+    <span class="kw">def</span> callback(say<span class="op">=</span>say):
+        <span class="bu">print</span> say
     callbacks.append(callback)
 
-<span class="kw">for</span> c in callbacks:
-    c()</code></pre>
+<span class="cf">for</span> c <span class="kw">in</span> callbacks:
+    c()</code></pre></div>
 <p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
 <h2 id="breaking-it">Breaking it</h2>
 <p>Let’s have JavaScript’s behavior in Haskell:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import </span><span class="dt">Data.IORef</span>
+<span class="kw">import</span> <span class="dt">Data.IORef</span>
 
 printFromRef r <span class="fu">=</span> putStrLn <span class="fu">=&lt;&lt;</span> readIORef r
 
@@ -126,23 +126,21 @@ mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class
 
 main <span class="fu">=</span> <span class="kw">do</span>
   callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
-  sequence_ callbacks</code></pre>
+  sequence_ callbacks</code></pre></div>
 <p>The reason this code is that long is because we need to create and pass references explicitly.</p>
-<hr />
-<div class="footnotes">
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1" class="footnote-back">↩</a></p></li>
 </ol>
-</div>
+</section>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

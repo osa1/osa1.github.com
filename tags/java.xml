@@ -32,35 +32,35 @@
 <p>I think this is also the reason why we can’t instantiate generics in Java with primitive types.</p>
 <p>Here’s an explanation:</p>
 <p>Let’s think this C++ code:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test2
-{
-  <span class="dt">int</span> a, b;
-  test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}
-};
-
-<span class="kw">struct</span> test3
-{
-  <span class="dt">int</span> a, b, c;
-  test3(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) : a(a), b(b), c(c) {}
-};
-
-<span class="dt">void</span> f2() {}
-
-<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
-T f3(T t)
-{
-  t.a = <span class="dv">20</span>;
-  <span class="kw">return</span> t;
-}
-
-<span class="dt">int</span> main()
-{
-  test2 t2(<span class="dv">1</span>, <span class="dv">2</span>);
-  test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);
-  f3&lt;test2&gt;(t2);
-  f3&lt;test3&gt;(t3);
-  <span class="kw">return</span> <span class="dv">0</span>;
-}</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">struct</span> test<span class="dv">2</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">  <span class="dt">int</span> a, b;</a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">  test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">};</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="kw">struct</span> test<span class="dv">3</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">{</a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">  <span class="dt">int</span> a, b, c;</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">  test3(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) : a(a), b(b), c(c) {}</a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">};</a>
+<a class="sourceLine" id="cb1-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb1-13" data-line-number="13"><span class="dt">void</span> f2() {}</a>
+<a class="sourceLine" id="cb1-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb1-15" data-line-number="15"><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;</a>
+<a class="sourceLine" id="cb1-16" data-line-number="16">T f3(T t)</a>
+<a class="sourceLine" id="cb1-17" data-line-number="17">{</a>
+<a class="sourceLine" id="cb1-18" data-line-number="18">  t.a = <span class="dv">20</span>;</a>
+<a class="sourceLine" id="cb1-19" data-line-number="19">  <span class="cf">return</span> t;</a>
+<a class="sourceLine" id="cb1-20" data-line-number="20">}</a>
+<a class="sourceLine" id="cb1-21" data-line-number="21"></a>
+<a class="sourceLine" id="cb1-22" data-line-number="22"><span class="dt">int</span> main()</a>
+<a class="sourceLine" id="cb1-23" data-line-number="23">{</a>
+<a class="sourceLine" id="cb1-24" data-line-number="24">  test2 t2(<span class="dv">1</span>, <span class="dv">2</span>);</a>
+<a class="sourceLine" id="cb1-25" data-line-number="25">  test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);</a>
+<a class="sourceLine" id="cb1-26" data-line-number="26">  f3&lt;test2&gt;(t2);</a>
+<a class="sourceLine" id="cb1-27" data-line-number="27">  f3&lt;test3&gt;(t3);</a>
+<a class="sourceLine" id="cb1-28" data-line-number="28">  <span class="cf">return</span> <span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb1-29" data-line-number="29">}</a></code></pre></div>
 <p>The key thing to realize here is that I’m passing parameter by value, ie. values are copied to function stack frame. But this function is still polymorphic on parameter type. This is possible in C++ because for each distinct instance of <code>f3</code>, a specialized code will be generated. To observe this, I put a breakpoint to that <code>f3</code> function and looked to disassembly output.</p>
 <pre><code>        18	T f3(T t)
 0x400af6  &lt;+0x0000&gt;         push   rbp
@@ -96,21 +96,21 @@ T f3(T t)
 0x400b37  &lt;+0x002c&gt;         pop    rbp
 0x400b38  &lt;+0x002d&gt;         ret</code></pre>
 <p>So what happened here is two new functions is generated from the definition, one with type <code>test2 f3(test2)</code> and one with type <code>test3 f3(test3)</code>. This gives a great opportunity, for instance, we can have this function:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
-
-<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
-T someFun(T arg1, T arg2)
-{
-  <span class="kw">return</span> arg1 + arg2;
-}
-
-<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> *argv[])
-{
-  std::cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
-  std::cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.</span><span class="dv">4</span>, <span class="dv">2</span>) &lt;&lt; std::endl;
-
-  <span class="kw">return</span> <span class="dv">0</span>;
-}</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3"><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">T someFun(T arg1, T arg2)</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">{</a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">  <span class="cf">return</span> arg1 + arg2;</a>
+<a class="sourceLine" id="cb4-7" data-line-number="7">}</a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="at">const</span> <span class="dt">char</span> *argv[])</a>
+<a class="sourceLine" id="cb4-10" data-line-number="10">{</a>
+<a class="sourceLine" id="cb4-11" data-line-number="11">  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;</a>
+<a class="sourceLine" id="cb4-12" data-line-number="12">  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;</a>
+<a class="sourceLine" id="cb4-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb4-14" data-line-number="14">  <span class="cf">return</span> <span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb4-15" data-line-number="15">}</a></code></pre></div>
 <p>..which is impossible to have in Java, without manually overloading the method definition.</p>
 <p>(An off-topic but interesting note: I was expecting <code>SP</code> to be set here, but here it’s not set. I think the reason is that the compiler is clever enough to see there is no recursive calls, so no need to set <code>SP</code>, when I added a dummy function call in the middle of <code>f3</code>, <code>SP</code> is got set)</p>
 <p>So in a way, C++ generics are gives us the most general way for parametric polymorphism. For any type you instantiated the template with, it generates a specialized definition. And if that definition is accepted by type checker, you’re fine.</p>
@@ -131,18 +131,18 @@ T someFun(T arg1, T arg2)
 <pre><code>ctpop(bmp &amp; ((1&lt;&lt;n)-1))</code></pre>
 <p><code>ctpop</code>, population count fonksiyonu, yani bir sayının iki tabanında gösterilişindeki 1 bitleri sayıyor. Bu Java’da <code>Integer.bitCount</code> fonksiyonu(öhm, static methodu) ile bulunabilir.</p>
 <p>Birkaç deneme yaparak nasıl yaptığını anlayabilir ve kendimizi ikna edebiliriz:</p>
-<pre class="sourceCode python"><code class="sourceCode python">In [^<span class="dv">2</span>]: bmp = <span class="dv">0</span>
-In [^<span class="dv">3</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">15</span>
-In [^<span class="dv">4</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">4</span>]: <span class="dv">0</span>
-In [^<span class="dv">5</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">21</span>
-In [^<span class="dv">6</span>]: bmp |= <span class="dv">1</span> &lt;&lt; <span class="dv">10</span>
-In [^<span class="dv">7</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">7</span>]: <span class="dv">0</span>
-In [^<span class="dv">8</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">15</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">8</span>]: <span class="dv">1</span>
-In [^<span class="dv">9</span>]: ctpop(bmp &amp; ((<span class="dv">1</span>&lt;&lt;<span class="dv">21</span>)-<span class="dv">1</span>))
-Out[^<span class="dv">9</span>]: <span class="dv">2</span></code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb3-1" data-line-number="1">In [<span class="op">^</span><span class="dv">2</span>]: bmp <span class="op">=</span> <span class="dv">0</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">In [<span class="op">^</span><span class="dv">3</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">15</span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">In [<span class="op">^</span><span class="dv">4</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">Out[<span class="op">^</span><span class="dv">4</span>]: <span class="dv">0</span></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">In [<span class="op">^</span><span class="dv">5</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">21</span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">In [<span class="op">^</span><span class="dv">6</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">10</span></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">In [<span class="op">^</span><span class="dv">7</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">10</span>)<span class="op">-</span><span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb3-8" data-line-number="8">Out[<span class="op">^</span><span class="dv">7</span>]: <span class="dv">0</span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9">In [<span class="op">^</span><span class="dv">8</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb3-10" data-line-number="10">Out[<span class="op">^</span><span class="dv">8</span>]: <span class="dv">1</span></a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">In [<span class="op">^</span><span class="dv">9</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">21</span>)<span class="op">-</span><span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">Out[<span class="op">^</span><span class="dv">9</span>]: <span class="dv">2</span></a></code></pre></div>
 <p>Eğer arraydeki n. yere bir eleman ekliyorsak, n’den itibaren arrayi bir kaydırmamız lazım. En büyük index her zaman arrayde de daha sonda oluyor.</p>
 <p>Ne yaptığına bakalım. 25. elemanın arraydeki yerine bakarken, <code>1 &lt;&lt; 25</code>i hesaplıyorum ki bu aslında (2 tabanında) 1 ve yanına 25 tane 0 koymak demek. Daha sonra bu sayıdan 1 çıkararak, en sağdan itibaren(en anlamsız bitten itibaren) tüm 0ları 1 yapıyorum, ilk gördüğüm 1’i 0 yapıyorum, gerisine dokunmuyorum(bu şartlar altında geriye kalan tüm bitler 0 oluyor). Daha sonra bu sayı ile bitmap’i logical and(bazı yerlerde bitwise and diyor, aynı şeyler sanırım?) işlemine sokup ctpop yaptığımda, bitmap’de (1 &lt;&lt; n)’den itibaren kaç tane 1 olduğunu saymış oluyorum ve bu da bana array’deki indeximi veriyor. Çok mantıklı.</p>
 <p>Bu arada kullandığınız dile göre bu işlemi daha kolay bir şekilde yapabilirsiniz. Bazı diller(Java’da <code>Integer.bitcount</code>, Common Lisp’de <code>logcount</code> gibi) direkt olarak <code>bitCount</code> gibi fonksiyonlar sunuyor. Bir de ben Common Lisp’de hiç kaydır 1 çıkart falan demeden direkt “şu bitle şu bit arasında kaç 1 olduğunu say” şeklinde bir fonksiyon yazdım, bitwise trickler yapmadan, şöyle:</p>
@@ -159,32 +159,23 @@ Out[^<span class="dv">9</span>]: <span class="dv">2</span></code></pre>
 <p>Ödev Java ile yapılacaktı ve dolayıyısla arayüz olarak Swing kullandım. Başlangıç için Eclipse için <a href="http://code.google.com/javadevtools/wbpro/index.html">WindowBuilder</a> eklentisi ile ana çerçeve + layoutları oluşturup daha sonra elle yazdım. Bu süreçte şunu farkettim, adam gibi bir IDE, işleri daha önce tahmin edemeyeceğim kadar kolaylaştırıyor. Asıl olarak Python ile yazan biri olarak, birkaç gün öncesine kadar her işimde VIM kullanıyordum ve çok da memnundum(arayüz tasarımı yapmıyorum). Şu birkaç gün(sadece ödev için 1460 satır kod) bazı şeyleri farketmemi sağladı.</p>
 <p>Onlarca sınıf, her sınıf için onlarca method, ve bu sınıflar arasında karışık ilişkilerin olduğu bir işle uğraşıyorsanız, iyi bir IDE şart. Dökümantasyonda geçirdiğiniz çok kısaltıyor.</p>
 <p>Static typing çok hoş bir olay. Okula başladıktan sonra bol miktarda C(programlama yarışması) ve Java(ödevler) uğraşmam gerekti. Henüz sadece birkaç dili birşeyler üretebilecek seviyede biliyorum ve bu konuda çok da bilgili değilim, ama Python ile en çok dökümantasyon ve IDE sıkıntısı çekiyorum. Ücretli IDEleri denemedim ama denediğim tüm ücretsiz Python IDEleri Autocomplete konusunda çaresiz kalıyorlar. Python’da aşağıdaki gibi birşey görebilmek için herşeyimi(?!) verirdim:</p>
-<div class="figure">
-<img src="/images/ss/eclipse_autocomplete.png" />
-
-</div>
+<p><img src="/images/ss/eclipse_autocomplete.png" /></p>
 <p>Hatta mesela şöyle birşey yapabilseydim:</p>
-<div class="figure">
-<img src="/images/ss/eclipse_autocomplete1.png" />
-
-</div>
+<p><img src="/images/ss/eclipse_autocomplete1.png" /></p>
 <p>Ama yok, örneğin PyDev daha aşağıdaki kodda çakılıyor:</p>
-<pre class="sourceCode python"><code class="sourceCode python">cls = Class1()
-cls.</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" data-line-number="1">cls <span class="op">=</span> Class1()</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">cls.</a></code></pre></div>
 <p>Daha burda bile, Class1’in methodlarını gösteremiyor. Direkt olarak <code>Class1.</code> şeklinde yazıp, autocomplete çalıştırırsak, methodları gösteriyor, bu iyi, fakat bu sefer de bound-unbound method farkını anlayamıyor ve bound methodları da gösteriyor. Ki bound methodlar bu şekilde çağırılamaz. Fail.</p>
 <p>WingIDE diyenler için, personal sürümü, sanki “öyle gerekli özellikler çıkaralım ki, kimse almasın” diye düşünülerek hazırlanmış. O kısıtlı özellikleri çıkardığımızda, Vim ile de yapıyorum zaten geri kalanları. <a href="https://wingware.com/wingide/features/personal">Burdan bakın</a>. Professional sürümü de çok pahalı.</p>
 <p>PyCharm diyenler için, Open Source lisansı ücretsiz, fakat <a href="http://www.opensource.org/docs/osd">Open Source Definition</a>’a uyan bir projeniz olmalı. Benim yok.</p>
 <p>Eclipse, Java’nın verdiği acıyı inanılmaz derecede hafifletiyor. Yoksa sınıflar arasındaki saçma derecede karmaşık ilişkiler başka türlü çözülemez. Python’da ise, benzer karışıklıkta tasarlanmış(muhtemelen başka bir dilde, örneğin QT için C++) bir kütüphane ile çalışıyorsanız, acınızı hafifletecek hiçbir şey yok.</p>
 <p>Konudan biraz sapacağım ama, Python hakkında beni sinirlendiren bir başka konu da, threading ve socket olayları. Ne zaman socket veya threading kullansam, mutlaka bir problemle karşılaşıyorum ve bunu ne zaman IRC’de sorsam, mutlaka birileri Twisted kullanmamı söylüyor. Kötü alışkanlıklardan, yanlış programlamadan vs bahsedip duruyorlar. Sanki Freenode #python kanalında, içinde şöyle bir kod olan bir sürü bot varmış gibi:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> <span class="st">&quot;socket&quot;</span> in msg or <span class="st">&quot;thread&quot;</span> in msg:
-    <span class="ot">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="cf">if</span> <span class="st">&quot;socket&quot;</span> <span class="kw">in</span> msg <span class="kw">or</span> <span class="st">&quot;thread&quot;</span> <span class="kw">in</span> msg:</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">    <span class="va">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</a></code></pre></div>
 <p>Java’da yaklaşık bir hafta kadar önce kullanılabilr bir hale getirdiğimiz chat istemci/sunucusu, dilin kendi thread ve socketlerini kullanıyor. Thread ve socket kullanımı ile alakalı dökümantasyon hariç hiçbir yere baktığımı hatırlamıyorum. Python’dan gelen birisi olarak şaşırtıcı derecede kolay ve stabil oldu.</p>
 <hr />
 <p>Bir süredir kafamda kendi IRC istemcimi yazma fikri var. Şu anda yazabilmek için gerekli herşeyi biliyorum. Dün oturdum, Java ve Python’da IRC sunucusuna bağlanabilmek için gerekli en küçük kodu yazmaya karar verdim(arayüz ile beraber). Java’da, kendi socket ve thread sınıfları ve Swing ile kolayca yazdım(bu arada Swing’in ne kadar kötü gözüktüğüne dikkat, platform bağımsız olarak iğrenç gözüken bir arayüz kütüphanesi kendisi, ehehe):</p>
-<div class="figure">
-<img src="/images/ss/irc_client_java.png" />
-
-</div>
+<p><img src="/images/ss/irc_client_java.png" /></p>
 <p>Python’da QT kullandım. Fakat garip bir şekilde, ne zaman sunucudan bir mesaj gelse, QT segmentation fault veriyor:</p>
 <pre><code>QObject::connect: Cannot queue arguments of type &#39;QTextCursor&#39;
 (Make sure &#39;QTextCursor&#39; is registered using qRegisterMetaType().)
@@ -196,7 +187,7 @@ Segmentation fault</code></pre>
 <p>Şu anda static typed bir dilin bana sağladıklarını biliyorum(en azından bu projeleri yapmaya başlamadan öncekine göre çok daha iyi biliyorum). Şimdi dynamic typed bir dilin avantajlarını görmem lazım.</p>
 <p>O yüzden IRC istemcimi her şeye rağmen Python ile yazacağım. Java ile yazarsam, kendimi tekrar etmekten başka birşey yapmamış olacağım. Twisted’ı ihtiyacım olduğu kadarıyla öğrenmeye bugün başlıyorum. Çalıştırılabilir bir hale gelir gelmez yorumlarımı buraya yazacağım.</p>
 <p>(Bu arada Twisted’da IRC istemci protokolü hazır olarak var)</p>
-<h2 id="vim-hakkında">VIM hakkında</h2>
+<p>##VIM hakkında</p>
 <p>Vim hakkında da birkaç birşey söyleyeyim hazır IDE/Editor muhabbetine girmişken. Yaklaşık 7-8 aydır(sanırım) Vim kullanıyorum, ve şu dakikadan sonra Vim’siz hiçbir şey yazamaz oldum. Maillerimi Vim ile yazıyorum(sylpheed), bloga yazıları Vim ile giriyorum(kendi eklentim), Eclipse’de <a href="http://www.viplugin.com/viplugin/">Vim eklentisi</a> kullanıyorum(o olmasa Eclipse kullanamazdım), Lisp ile uğraştığımda, Emacs kullanmam gerekiyor ve Emacs’i <a href="http://www.emacswiki.org/emacs-es/Vimpulse">vimpulse</a> ile kullanıyorum. Şöyle iyi böyle güzel diye anlatmayacağım, resmen bağımlı oldum. Arkadaşların, normal IDE/Editorlerde nasıl yazdıklarını görünce duygulu anlar yaşıyorum.</p>
 <p>Bu yüzden IDE seçerken dikkat ettiğim konulardan biri de Vim desteği(veya eklentileri) oluyor. Eclipse o açıdan(viPlugin sağolsun) çok başarılı. Söz konusu Java olduğunda düşünüyorum da, Eclipse olmasa herhalde hiçbir şey yazamazdım.(bu arada WingIDE Vim tuşlarını destekliyormuş, ne kadar başarılıdır bilmiyorum)</p>]]></summary>
 </entry>
@@ -251,8 +242,8 @@ Segmentation fault</code></pre>
 <p>Aksini belirttiklerim hariç, çözümlerim <a href="http://osa1.net/media/bil113final/Calisma.java">bu</a> ve <a href="http://osa1.net/media/bil113final/Sort.java">şu</a> dosyalarda(main methodları testlerim için). Sort.java dosyasındaki düzenleme methodların ilk bakışta arrayi değiştirmesi gerekirken aslında neden değiştirmediği(ya da hangi arrayi değiştirdiği) de düşünülebilir. İlk başta anlam verememiştim. Tam sınav sorusu bence.</p>
 <p>Bunların dışında, codingbat’deki sorular güzel. Hepsi bittikten sonra çözümlerini yazacağım buraya.</p>
 <p>Bu arada, biraz konu dışı olacak ama, Python’da tek satırda quicksort, ibretlik:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> qsortr(<span class="dt">list</span>):
-    <span class="kw">return</span> [] <span class="kw">if</span> <span class="dt">list</span>==[]  <span class="kw">else</span> qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &lt; <span class="dt">list</span>[^<span class="dv">0</span>]) + [<span class="dt">list</span>[^<span class="dv">0</span>] + qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &gt;= <span class="dt">list</span>[^<span class="dv">0</span>])</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">def</span> qsortr(<span class="bu">list</span>):</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">    <span class="cf">return</span> [] <span class="cf">if</span> <span class="bu">list</span><span class="op">==</span>[]  <span class="cf">else</span> qsortr([x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">list</span>[<span class="dv">1</span>:] <span class="cf">if</span> x <span class="op">&lt;</span> <span class="bu">list</span>[<span class="op">^</span><span class="dv">0</span>]) <span class="op">+</span> [<span class="bu">list</span>[<span class="op">^</span><span class="dv">0</span>] <span class="op">+</span> qsortr([x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">list</span>[<span class="dv">1</span>:] <span class="cf">if</span> x <span class="op">&gt;=</span> <span class="bu">list</span>[<span class="op">^</span><span class="dv">0</span>])</a></code></pre></div>
 <p>Bu arada(2), bu yazıyı aşağıda ekran görüntüsünü görebileceğiniz programla ekliyorum: <img src="/images/screenshot-yaziekle.png" alt="lol" /></p>
 <p>Bunu da yine fizik finalinden önce yazmıştım. Burda, adres satırı Django admin’de olduğu gibi, yazı başlığından otomatik olarak üretiliyor. Henüz bazı durumlarda yanlış sonuçlar verebiliyor. Tek tuşla yazılı django development server’da ekliyorum, kontrol edip, web’e tıklıyorum ve bir daha gönderiyorum. Çok pratik oldu. Normalde localde admin panelinden yazıyı ekleyip, herşey tamamsa, webe kopyalıyordum. Şimdilik sadece benim yönetici panelimde çalışsa da, biraz düzenlemeyle istediğim esnekliğe getireceğim programı. Daha sonra birkaç ekleme daha yapıp burada yayınlayacağım yine.(örneğin dosya upload işini daha kolaylaştıracak birşeyler ekledikten sonra)</p>
 <p>Yazı eklemeyi daha da kolay hale getirebilmek için önceki projelerimden bkz. <a href="http://www.osa1.net/nautilus-icin-ftp-upload-scripti/">nautilus için ftp upload scripti</a></p>]]></summary>
@@ -314,59 +305,59 @@ Segmentation fault</code></pre>
     <updated>2010-10-31T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Bugün olduğumuz Bil113 arasınavında gördük ki, “hello world”ü bile Eclipse, Netbeans vs. ile yazan bizler, iş kağıt kalem ile yazmaya gelince çakılıyoruz(ben öyle değil ama yine de çakıldım gerçi). Aslında sınavın kağıt kalemle çözmek için biraz zor olduğunu düşünüyorum. Sınavda onlarca dakika uğraştığım soruları bilgisayar karşısında 5 dakikada çözebildim.</p>
 <p>Asal sayıları tespit etme gibi kolay soruları değil de, değişik bir şekilde çözdüğümü düşündüğüm üçgen sorusunu yazayım. Soru: verilen 3 kenarla bir üçgen oluşturulup oluşturulamayacağını döndür(boolean):</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">kontrol</span>(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) {
-    <span class="kw">return</span> (a &lt; b+c &amp;&amp; a &gt; Math.<span class="fu">abs</span>(b-c) &amp;&amp; b &lt; a+c &amp;&amp; b &gt; Math.<span class="fu">abs</span>(a-c) &amp;&amp; c &lt; a+b &amp;&amp; c &gt; Math.<span class="fu">abs</span>(a-b));
-}</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode java"><code class="sourceCode java"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">kontrol</span>(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) {</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">    <span class="kw">return</span> (a &lt; b+c &amp;&amp; a &gt; <span class="bu">Math</span>.<span class="fu">abs</span>(b-c) &amp;&amp; b &lt; a+c &amp;&amp; b &gt; <span class="bu">Math</span>.<span class="fu">abs</span>(a-c) &amp;&amp; c &lt; a+b &amp;&amp; c &gt; <span class="bu">Math</span>.<span class="fu">abs</span>(a-b));</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">}</a></code></pre></div>
 <p>Bu tek satırı kağıt üzerinde yazmak bayaa zor oluyor gerçi. Neyse. Sınavın sanırım en zor sorusu olan farklı tabanlarda sayıları kaydedip kendi aralarında işleme sokabildiğimiz soru:</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> Sayi {
-
-    String s;
-    <span class="dt">int</span> d;
-    
-    <span class="kw">public</span> <span class="fu">Sayi</span>(String s, <span class="dt">int</span> d) {
-        
-        <span class="kw">this</span>.<span class="fu">s</span> = s;
-        <span class="kw">this</span>.<span class="fu">d</span> = d;
-    }
-    
-    <span class="kw">public</span> <span class="dt">int</span> <span class="fu">onluk</span>() {
-        <span class="co">// this.s&#39;i 10 tabanında döndür            </span>
-        <span class="dt">int</span> r = <span class="dv">0</span>;
-        
-        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>(); i++) {
-            r += Integer.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i<span class="dv">+1</span>)) * Math.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i<span class="dv">-1</span>);
-        }
-        
-        <span class="kw">return</span> r;
-    }
-    
-    
-    <span class="kw">public</span> <span class="dt">static</span> String <span class="fu">taban</span>(<span class="dt">int</span> s, <span class="dt">int</span> d) {
-        <span class="co">// Girilen s sayısını d tabanında döndür</span>
-
-        String r1 = <span class="st">&quot;&quot;</span>;
-        String r2 = <span class="st">&quot;&quot;</span>;
-        
-        
-        <span class="kw">while</span> (s &gt;= d) {
-            r1 += s % d;
-            s = s / d;
-        }
-        r1 += s;
-        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; r1.<span class="fu">length</span>(); i++) {
-            r2 += r1.<span class="fu">substring</span>(r1.<span class="fu">length</span>()-i<span class="dv">-1</span>, r1.<span class="fu">length</span>()-i);
-        }
-        <span class="kw">return</span> r2;
-        
-    }
-    
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
-        
-        Sayi deneme = <span class="kw">new</span> <span class="fu">Sayi</span>(<span class="st">&quot;134125&quot;</span>, <span class="dv">6</span>);
-        System.<span class="fu">out</span>.<span class="fu">println</span>(deneme.<span class="fu">onluk</span>());
-        System.<span class="fu">out</span>.<span class="fu">println</span>(Sayi.<span class="fu">taban</span>(<span class="dv">987652</span>, <span class="dv">2</span>));
-    }
-}</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode java"><code class="sourceCode java"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">public</span> <span class="kw">class</span> Sayi {</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">    <span class="bu">String</span> s;</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">    <span class="dt">int</span> d;</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">    </a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">    <span class="kw">public</span> <span class="fu">Sayi</span>(<span class="bu">String</span> s, <span class="dt">int</span> d) {</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">        </a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">        <span class="kw">this</span>.<span class="fu">s</span> = s;</a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">        <span class="kw">this</span>.<span class="fu">d</span> = d;</a>
+<a class="sourceLine" id="cb2-10" data-line-number="10">    }</a>
+<a class="sourceLine" id="cb2-11" data-line-number="11">    </a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">    <span class="kw">public</span> <span class="dt">int</span> <span class="fu">onluk</span>() {</a>
+<a class="sourceLine" id="cb2-13" data-line-number="13">        <span class="co">// this.s&#39;i 10 tabanında döndür            </span></a>
+<a class="sourceLine" id="cb2-14" data-line-number="14">        <span class="dt">int</span> r = <span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb2-15" data-line-number="15">        </a>
+<a class="sourceLine" id="cb2-16" data-line-number="16">        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>(); i++) {</a>
+<a class="sourceLine" id="cb2-17" data-line-number="17">            r += <span class="bu">Integer</span>.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i+<span class="dv">1</span>)) * <span class="bu">Math</span>.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i<span class="dv">-1</span>);</a>
+<a class="sourceLine" id="cb2-18" data-line-number="18">        }</a>
+<a class="sourceLine" id="cb2-19" data-line-number="19">        </a>
+<a class="sourceLine" id="cb2-20" data-line-number="20">        <span class="kw">return</span> r;</a>
+<a class="sourceLine" id="cb2-21" data-line-number="21">    }</a>
+<a class="sourceLine" id="cb2-22" data-line-number="22">    </a>
+<a class="sourceLine" id="cb2-23" data-line-number="23">    </a>
+<a class="sourceLine" id="cb2-24" data-line-number="24">    <span class="kw">public</span> <span class="dt">static</span> <span class="bu">String</span> <span class="fu">taban</span>(<span class="dt">int</span> s, <span class="dt">int</span> d) {</a>
+<a class="sourceLine" id="cb2-25" data-line-number="25">        <span class="co">// Girilen s sayısını d tabanında döndür</span></a>
+<a class="sourceLine" id="cb2-26" data-line-number="26"></a>
+<a class="sourceLine" id="cb2-27" data-line-number="27">        <span class="bu">String</span> r1 = <span class="st">&quot;&quot;</span>;</a>
+<a class="sourceLine" id="cb2-28" data-line-number="28">        <span class="bu">String</span> r2 = <span class="st">&quot;&quot;</span>;</a>
+<a class="sourceLine" id="cb2-29" data-line-number="29">        </a>
+<a class="sourceLine" id="cb2-30" data-line-number="30">        </a>
+<a class="sourceLine" id="cb2-31" data-line-number="31">        <span class="kw">while</span> (s &gt;= d) {</a>
+<a class="sourceLine" id="cb2-32" data-line-number="32">            r1 += s % d;</a>
+<a class="sourceLine" id="cb2-33" data-line-number="33">            s = s / d;</a>
+<a class="sourceLine" id="cb2-34" data-line-number="34">        }</a>
+<a class="sourceLine" id="cb2-35" data-line-number="35">        r1 += s;</a>
+<a class="sourceLine" id="cb2-36" data-line-number="36">        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; r1.<span class="fu">length</span>(); i++) {</a>
+<a class="sourceLine" id="cb2-37" data-line-number="37">            r2 += r1.<span class="fu">substring</span>(r1.<span class="fu">length</span>()-i<span class="dv">-1</span>, r1.<span class="fu">length</span>()-i);</a>
+<a class="sourceLine" id="cb2-38" data-line-number="38">        }</a>
+<a class="sourceLine" id="cb2-39" data-line-number="39">        <span class="kw">return</span> r2;</a>
+<a class="sourceLine" id="cb2-40" data-line-number="40">        </a>
+<a class="sourceLine" id="cb2-41" data-line-number="41">    }</a>
+<a class="sourceLine" id="cb2-42" data-line-number="42">    </a>
+<a class="sourceLine" id="cb2-43" data-line-number="43">    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {</a>
+<a class="sourceLine" id="cb2-44" data-line-number="44">        </a>
+<a class="sourceLine" id="cb2-45" data-line-number="45">        Sayi deneme = <span class="kw">new</span> <span class="fu">Sayi</span>(<span class="st">&quot;134125&quot;</span>, <span class="dv">6</span>);</a>
+<a class="sourceLine" id="cb2-46" data-line-number="46">        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(deneme.<span class="fu">onluk</span>());</a>
+<a class="sourceLine" id="cb2-47" data-line-number="47">        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(Sayi.<span class="fu">taban</span>(<span class="dv">987652</span>, <span class="dv">2</span>));</a>
+<a class="sourceLine" id="cb2-48" data-line-number="48">    }</a>
+<a class="sourceLine" id="cb2-49" data-line-number="49">}</a></code></pre></div>
 <p>Sorunun tamamı bu kadar değil de, bu kısımdan sonrası ıvır zıvır. Sınavda yaptım bu soruyu aslında da, muhtemelen bir sürü yanlışım çıkacaktır(yeterince detaylı incelenirse, hatta belki de kodum derlenemez bile).</p>
 <p>Kağıt-kalem olduğumuz bu programlama sınavından öğrenilenler:</p>
 <ul>
@@ -378,37 +369,37 @@ Segmentation fault</code></pre>
 </ul>
 <h2 id="ekleme">Ekleme</h2>
 <p>Sınavdan birkaç dakika önce ‘ya çıkarsa’ diye bir arkadaşla yazdığımız, bir matrisin karesini alan kod:</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> MatrisDeneme {
-    
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
-        
-        <span class="dt">int</span>[][] matris ={{<span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">9</span>},
-                         {<span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">1</span>},
-                         {<span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">10</span>}};
-        
-        <span class="dt">int</span>[][] yeni ={{<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>},
-                        {<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>},
-                        {<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>}};
-            
-        <span class="kw">if</span> (matris.<span class="fu">length</span> != matris[^<span class="dv">0</span>]length) {
-            <span class="co">// yapilamaz</span>
-        } <span class="kw">else</span> {
-            <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; matris.<span class="fu">length</span>; i++) {
-                <span class="co">// 0 1 2</span>
-                <span class="kw">for</span> (<span class="dt">int</span> j = <span class="dv">0</span>; j &lt; matris.<span class="fu">length</span>; j++) {
-                    <span class="co">// 00 01 02 10 11 12 20 21 22</span>
-                    <span class="kw">for</span> (<span class="dt">int</span> k = <span class="dv">0</span>; k &lt; matris.<span class="fu">length</span>; k++) {
-                        yeni[i][j] += matris[k][j]*matris[j][k];
-                    }
-                }
-            }
-        }
-        
-        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">2</span>]<span class="dv">2</span>]);
-        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">0</span>]<span class="dv">1</span>]);
-    }
-
-}</code></pre>]]></summary>
+<div class="sourceCode" id="cb3"><pre class="sourceCode java"><code class="sourceCode java"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">public</span> <span class="kw">class</span> MatrisDeneme {</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">    </a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">        </a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">        <span class="dt">int</span>[][] matris ={{<span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">9</span>},</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">                         {<span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">1</span>},</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">                         {<span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">10</span>}};</a>
+<a class="sourceLine" id="cb3-8" data-line-number="8">        </a>
+<a class="sourceLine" id="cb3-9" data-line-number="9">        <span class="dt">int</span>[][] yeni ={{<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>},</a>
+<a class="sourceLine" id="cb3-10" data-line-number="10">                        {<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>},</a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">                        {<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>}};</a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">            </a>
+<a class="sourceLine" id="cb3-13" data-line-number="13">        <span class="kw">if</span> (matris.<span class="fu">length</span> != matris[^<span class="dv">0</span>]length) {</a>
+<a class="sourceLine" id="cb3-14" data-line-number="14">            <span class="co">// yapilamaz</span></a>
+<a class="sourceLine" id="cb3-15" data-line-number="15">        } <span class="kw">else</span> {</a>
+<a class="sourceLine" id="cb3-16" data-line-number="16">            <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; matris.<span class="fu">length</span>; i++) {</a>
+<a class="sourceLine" id="cb3-17" data-line-number="17">                <span class="co">// 0 1 2</span></a>
+<a class="sourceLine" id="cb3-18" data-line-number="18">                <span class="kw">for</span> (<span class="dt">int</span> j = <span class="dv">0</span>; j &lt; matris.<span class="fu">length</span>; j++) {</a>
+<a class="sourceLine" id="cb3-19" data-line-number="19">                    <span class="co">// 00 01 02 10 11 12 20 21 22</span></a>
+<a class="sourceLine" id="cb3-20" data-line-number="20">                    <span class="kw">for</span> (<span class="dt">int</span> k = <span class="dv">0</span>; k &lt; matris.<span class="fu">length</span>; k++) {</a>
+<a class="sourceLine" id="cb3-21" data-line-number="21">                        yeni[i][j] += matris[k][j]*matris[j][k];</a>
+<a class="sourceLine" id="cb3-22" data-line-number="22">                    }</a>
+<a class="sourceLine" id="cb3-23" data-line-number="23">                }</a>
+<a class="sourceLine" id="cb3-24" data-line-number="24">            }</a>
+<a class="sourceLine" id="cb3-25" data-line-number="25">        }</a>
+<a class="sourceLine" id="cb3-26" data-line-number="26">        </a>
+<a class="sourceLine" id="cb3-27" data-line-number="27">        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">2</span>]<span class="dv">2</span>]);</a>
+<a class="sourceLine" id="cb3-28" data-line-number="28">        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">0</span>]<span class="dv">1</span>]);</a>
+<a class="sourceLine" id="cb3-29" data-line-number="29">    }</a>
+<a class="sourceLine" id="cb3-30" data-line-number="30"></a>
+<a class="sourceLine" id="cb3-31" data-line-number="31">}</a></code></pre></div>]]></summary>
 </entry>
 
 </feed>

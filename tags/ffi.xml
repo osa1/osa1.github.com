@@ -52,32 +52,32 @@ newtype CULong = CULong GHC.Word.Word64
         -- Defined in `Foreign.C.Types&#39;</code></pre>
 <p>(not that this part should be different on 32bit systems – eg. on 32bit system you should see <code>CULong GHC.Word.Word32</code> instead of <code>Word64</code>)</p>
 <p>We also need a <code>Arbitrary</code> instance for <code>CULong</code> type to be able to use QuickCheck on this type. Since <code>CULong</code> is just a newtype wrapper over <code>Word64</code>, and <code>Word64</code> already has instance defined in QuickCheck library, we can have that for free. In the end, our test code is:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-<span class="kw">import </span><span class="dt">Foreign.C.Types</span>
-<span class="kw">import </span><span class="dt">Test.QuickCheck</span>
-
-foreign <span class="kw">import </span>ccall &quot;power&quot;
-<span class="ot">    power ::</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span>
-
-<span class="kw">instance</span> <span class="dt">Arbitrary</span> <span class="dt">CULong</span> <span class="kw">where</span>
-    arbitrary <span class="fu">=</span> fmap <span class="dt">CULong</span> arbitrary
-    shrink (<span class="dt">CULong</span> i) <span class="fu">=</span> map <span class="dt">CULong</span> <span class="fu">$</span> shrink i
-
-test_prop b p <span class="fu">=</span> power b p <span class="fu">==</span> b <span class="fu">^</span> p
-
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> quickCheck test_prop</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3"><span class="kw">import</span> <span class="dt">Foreign.C.Types</span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="kw">import</span> <span class="dt">Test.QuickCheck</span></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">foreign <span class="kw">import</span> ccall &quot;power&quot;</a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="ot">    power ::</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span> <span class="ot">-&gt;</span> <span class="dt">CULong</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"><span class="kw">instance</span> <span class="dt">Arbitrary</span> <span class="dt">CULong</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb4-10" data-line-number="10">    arbitrary <span class="fu">=</span> fmap <span class="dt">CULong</span> arbitrary</a>
+<a class="sourceLine" id="cb4-11" data-line-number="11">    shrink (<span class="dt">CULong</span> i) <span class="fu">=</span> map <span class="dt">CULong</span> <span class="fu">$</span> shrink i</a>
+<a class="sourceLine" id="cb4-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb4-13" data-line-number="13">test_prop b p <span class="fu">=</span> power b p <span class="fu">==</span> b <span class="fu">^</span> p</a>
+<a class="sourceLine" id="cb4-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb4-15" data-line-number="15"><span class="ot">main ::</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb4-16" data-line-number="16">main <span class="fu">=</span> quickCheck test_prop</a></code></pre></div>
 <p>and that’s it. Very simple, 16 lines of code. To compile this, I also wrote a Makefile:</p>
-<pre class="sourceCode makefile"><code class="sourceCode makefile"><span class="dv">power:</span><span class="dt"> power_test.hs power_lib.o</span>
-	ghc --make <span class="ch">$^</span>
-
-<span class="dv">power_lib.o:</span><span class="dt"> power_lib.s</span>
-	nasm -f elf64 <span class="ch">$&lt;</span> -o <span class="ch">$@</span>
-
-<span class="dv">clean:</span>
-	<span class="ch">-</span><span class="fu">rm power_lib.o</span>
-	<span class="ch">-</span><span class="fu">rm power_test power_test.hi power_test.o</span></code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode makefile"><code class="sourceCode makefile"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="dv">power:</span><span class="dt"> power_test.hs power_lib.o</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">	ghc --make <span class="ch">$^</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="dv">power_lib.o:</span><span class="dt"> power_lib.s</span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">	nasm -f elf64 <span class="ch">$&lt;</span> -o <span class="ch">$@</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="dv">clean:</span></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">	<span class="ch">-</span><span class="fu">rm power_lib.o</span></a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">	<span class="ch">-</span><span class="fu">rm power_test power_test.hi power_test.o</span></a></code></pre></div>
 <p>(this may be helpful to see how compilation work)</p>
 <p>I think this is also a good demonstration of how easy it is to interact with foreign functions in Haskell.</p>]]></summary>
 </entry>

@@ -24,73 +24,72 @@
 <p>Son dönem aramda <a href="http://landoflisp.com/">Land of Lisp</a> okumaya başlamıştım, bu sabah biraz daha kurcalayayım dedim ve common lisp’deki circular list olayını öğrendim.</p>
 <p>Kısaca, listenin son hücresinin <code>cdr</code>ının listenin <code>car</code>ını gösterdiği liste. Bu durumda örneğin liste 3 elemanlıysa, 4. eleman listenin 1. elemanını ve 5. eleman listenin 2. elemanını gösteriyor.</p>
 <p>Hazır Python’da <a href="http://www.rafekettler.com/magicmethods.html">magic method</a>ları yeni yeni kullanmaya başlamışken, bu Python’da nasıl olur diye düşündüm. Şu şekilde basit bir CircularList sınıfı oluşturabildim:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> CircularList():
-    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, *args):
-        <span class="ot">self</span>.members = <span class="dt">list</span>(args)
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> CircularList():
+    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, <span class="op">*</span>args):
+        <span class="va">self</span>.members <span class="op">=</span> <span class="bu">list</span>(args)
         
-    <span class="kw">def</span> <span class="ot">__getitem__</span>(<span class="ot">self</span>, member):
-        <span class="kw">return</span> <span class="ot">self</span>.members[member % <span class="dt">len</span>(<span class="ot">self</span>.members)]
+    <span class="kw">def</span> <span class="fu">__getitem__</span>(<span class="va">self</span>, member):
+        <span class="cf">return</span> <span class="va">self</span>.members[member <span class="op">%</span> <span class="bu">len</span>(<span class="va">self</span>.members)]
 
-    <span class="kw">def</span> <span class="ot">__setitem__</span>(<span class="ot">self</span>, member, value):
-        <span class="ot">self</span>.members[member] = value
-        <span class="kw">return</span> value
+    <span class="kw">def</span> <span class="fu">__setitem__</span>(<span class="va">self</span>, member, value):
+        <span class="va">self</span>.members[member] <span class="op">=</span> value
+        <span class="cf">return</span> value
 
-    <span class="kw">def</span> <span class="ot">__delitem__</span>(<span class="ot">self</span>, member):
-        <span class="kw">return</span> <span class="ot">self</span>.members.remove(member)
+    <span class="kw">def</span> <span class="fu">__delitem__</span>(<span class="va">self</span>, member):
+        <span class="cf">return</span> <span class="va">self</span>.members.remove(member)
 
-    <span class="kw">def</span> <span class="ot">__len__</span>(<span class="ot">self</span>):
-        <span class="kw">return</span> <span class="dt">len</span>(<span class="ot">self</span>.members)
+    <span class="kw">def</span> <span class="fu">__len__</span>(<span class="va">self</span>):
+        <span class="cf">return</span> <span class="bu">len</span>(<span class="va">self</span>.members)
 
-    <span class="kw">def</span> <span class="ot">__contains__</span>(<span class="ot">self</span>, item):
-        <span class="kw">return</span> item in <span class="ot">self</span>.members
+    <span class="kw">def</span> <span class="fu">__contains__</span>(<span class="va">self</span>, item):
+        <span class="cf">return</span> item <span class="kw">in</span> <span class="va">self</span>.members
 
-    <span class="kw">def</span> <span class="ot">__iter__</span>(<span class="ot">self</span>):
-        i = <span class="dv">0</span>
-        <span class="kw">while</span> <span class="ot">True</span>:
-            <span class="kw">yield</span> <span class="ot">self</span>.members[i]
-            i += <span class="dv">1</span>
-            <span class="kw">if</span> i &gt;= <span class="dt">len</span>(<span class="ot">self</span>.members):
-                i = <span class="dv">0</span>
+    <span class="kw">def</span> <span class="fu">__iter__</span>(<span class="va">self</span>):
+        i <span class="op">=</span> <span class="dv">0</span>
+        <span class="cf">while</span> <span class="va">True</span>:
+            <span class="cf">yield</span> <span class="va">self</span>.members[i]
+            i <span class="op">+=</span> <span class="dv">1</span>
+            <span class="cf">if</span> i <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.members):
+                i <span class="op">=</span> <span class="dv">0</span>
 
-    <span class="kw">def</span> <span class="ot">__repr__</span>(<span class="ot">self</span>):
-        s = <span class="dt">str</span>(<span class="ot">self</span>.members)
-        <span class="kw">return</span> s.split(<span class="st">']'</span>)[^<span class="dv">0</span>]+ <span class="st">', ...]'</span>
+    <span class="kw">def</span> <span class="fu">__repr__</span>(<span class="va">self</span>):
+        s <span class="op">=</span> <span class="bu">str</span>(<span class="va">self</span>.members)
+        <span class="cf">return</span> s.split(<span class="st">']'</span>)[<span class="op">^</span><span class="dv">0</span>]<span class="op">+</span> <span class="st">', ...]'</span>
 
-    <span class="kw">def</span> append(<span class="ot">self</span>, value):
-        <span class="ot">self</span>.members.append(value)
+    <span class="kw">def</span> append(<span class="va">self</span>, value):
+        <span class="va">self</span>.members.append(value)
 
-    <span class="kw">def</span> remove(<span class="ot">self</span>, value):
-        <span class="ot">self</span>.members.remove(value)</code></pre>
+    <span class="kw">def</span> remove(<span class="va">self</span>, value):
+        <span class="va">self</span>.members.remove(value)</code></pre></div>
 <p>Birkaç test:</p>
-<pre class="sourceCode python"><code class="sourceCode python">&gt;&gt;&gt; cl = CircularList(<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">5</span>, -<span class="dv">10</span>, <span class="st">'doh'</span>)
-&gt;&gt;&gt; cl[^<span class="dv">124</span>]<span class="st">'doh'</span>
-&gt;&gt;&gt; cl[^<span class="dv">4</span>]<span class="st">'doh'</span>
-&gt;&gt;&gt; cl.append(<span class="st">'fuuu'</span>)
-&gt;&gt;&gt; cl
-[<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">5</span>, -<span class="dv">10</span>, <span class="st">'doh'</span>, <span class="st">'fuuu'</span>, ...]
-&gt;&gt;&gt; cl.remove(-<span class="dv">10</span>)
-&gt;&gt;&gt; cl
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span class="op">&gt;&gt;&gt;</span> cl <span class="op">=</span> CircularList(<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">-10</span>, <span class="st">'doh'</span>)
+<span class="op">&gt;&gt;&gt;</span> cl[<span class="op">^</span><span class="dv">124</span>]<span class="st">'doh'</span>
+<span class="op">&gt;&gt;&gt;</span> cl[<span class="op">^</span><span class="dv">4</span>]<span class="st">'doh'</span>
+<span class="op">&gt;&gt;&gt;</span> cl.append(<span class="st">'fuuu'</span>)
+<span class="op">&gt;&gt;&gt;</span> cl
+[<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">-10</span>, <span class="st">'doh'</span>, <span class="st">'fuuu'</span>, ...]
+<span class="op">&gt;&gt;&gt;</span> cl.remove(<span class="op">-</span><span class="dv">10</span>)
+<span class="op">&gt;&gt;&gt;</span> cl
 [<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="st">'doh'</span>, <span class="st">'fuuu'</span>, ...]
-&gt;&gt;&gt; i = <span class="dt">iter</span>(cl)
-&gt;&gt;&gt; i.<span class="dt">next</span>()
+<span class="op">&gt;&gt;&gt;</span> i <span class="op">=</span> <span class="bu">iter</span>(cl)
+<span class="op">&gt;&gt;&gt;</span> i.<span class="bu">next</span>()
 <span class="dv">1</span>
-&gt;&gt;&gt; i.<span class="dt">next</span>()
+<span class="op">&gt;&gt;&gt;</span> i.<span class="bu">next</span>()
 <span class="dv">3</span>
-&gt;&gt;&gt; cl.remove(<span class="dv">5</span>)
-&gt;&gt;&gt; cl.remove(<span class="st">'fuuu'</span>)
-&gt;&gt;&gt; i.<span class="dt">next</span>()
+<span class="op">&gt;&gt;&gt;</span> cl.remove(<span class="dv">5</span>)
+<span class="op">&gt;&gt;&gt;</span> cl.remove(<span class="st">'fuuu'</span>)
+<span class="op">&gt;&gt;&gt;</span> i.<span class="bu">next</span>()
 <span class="co">'doh'</span>
-&gt;&gt;&gt; i.<span class="dt">next</span>()
-<span class="dv">1</span></code></pre>
+<span class="op">&gt;&gt;&gt;</span> i.<span class="bu">next</span>()
+<span class="dv">1</span></code></pre></div>
 <p>Mümkün olduğunda Python’ın <code>list</code> veri yapısına benzetmeye çalıştım(append, remove, repr falan). Ne işe yarar henüz hiçbir fikrim yok :)</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

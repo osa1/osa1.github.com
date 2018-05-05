@@ -388,9 +388,9 @@ $2 = {
   saved_info_field: []
   static_link_value: 3</code></pre>
 <p>So this object doesn’t get a static link field. This is because the condition</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">staticClosureNeedsLink (mayHaveCafRefs caf_refs) info_tbl</code></pre>
+<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell">staticClosureNeedsLink (mayHaveCafRefs caf_refs) info_tbl</code></pre></div>
 <p>doesn’t hold.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">staticClosureNeedsLink ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">CmmInfoTable</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">staticClosureNeedsLink ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">CmmInfoTable</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
 <span class="co">-- A static closure needs a link field to aid the GC when traversing</span>
 <span class="co">-- the static closure graph.  But it only needs such a field if either</span>
 <span class="co">--        a) it has an SRT</span>
@@ -399,7 +399,7 @@ $2 = {
 <span class="co">-- of the SRT.</span>
 staticClosureNeedsLink has_srt <span class="dt">CmmInfoTable</span>{ cit_rep <span class="fu">=</span> smrep }
   <span class="fu">|</span> isConRep smrep         <span class="fu">=</span> not (isStaticNoCafCon smrep)
-  <span class="fu">|</span> otherwise              <span class="fu">=</span> has_srt <span class="co">-- needsSRT (cit_srt info_tbl)</span></code></pre>
+  <span class="fu">|</span> otherwise              <span class="fu">=</span> has_srt <span class="co">-- needsSRT (cit_srt info_tbl)</span></code></pre></div>
 <p>So <code>has_srt</code> is <code>False</code> for this object and <code>idCafInfo</code> of this closure says it’s not caffy.</p>
 <p>Just to make sure this is the problem, I modify the code to treat all top-level closures as caffy. Indeed that fixes the bug.</p>
 <p>CAFness of bindings are decided in <code>hasCafRefs</code> in <code>TidyPgm</code>. Two conditions for CAFness are</p>
@@ -605,10 +605,9 @@ lvl3_rctu
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

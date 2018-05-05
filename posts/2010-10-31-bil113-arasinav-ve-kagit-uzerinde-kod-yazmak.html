@@ -23,16 +23,16 @@
 
 <p>Bugün olduğumuz Bil113 arasınavında gördük ki, “hello world”ü bile Eclipse, Netbeans vs. ile yazan bizler, iş kağıt kalem ile yazmaya gelince çakılıyoruz(ben öyle değil ama yine de çakıldım gerçi). Aslında sınavın kağıt kalemle çözmek için biraz zor olduğunu düşünüyorum. Sınavda onlarca dakika uğraştığım soruları bilgisayar karşısında 5 dakikada çözebildim.</p>
 <p>Asal sayıları tespit etme gibi kolay soruları değil de, değişik bir şekilde çözdüğümü düşündüğüm üçgen sorusunu yazayım. Soru: verilen 3 kenarla bir üçgen oluşturulup oluşturulamayacağını döndür(boolean):</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">kontrol</span>(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) {
-    <span class="kw">return</span> (a &lt; b+c &amp;&amp; a &gt; Math.<span class="fu">abs</span>(b-c) &amp;&amp; b &lt; a+c &amp;&amp; b &gt; Math.<span class="fu">abs</span>(a-c) &amp;&amp; c &lt; a+b &amp;&amp; c &gt; Math.<span class="fu">abs</span>(a-b));
-}</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">kontrol</span>(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) {
+    <span class="kw">return</span> (a &lt; b+c &amp;&amp; a &gt; <span class="bu">Math</span>.<span class="fu">abs</span>(b-c) &amp;&amp; b &lt; a+c &amp;&amp; b &gt; <span class="bu">Math</span>.<span class="fu">abs</span>(a-c) &amp;&amp; c &lt; a+b &amp;&amp; c &gt; <span class="bu">Math</span>.<span class="fu">abs</span>(a-b));
+}</code></pre></div>
 <p>Bu tek satırı kağıt üzerinde yazmak bayaa zor oluyor gerçi. Neyse. Sınavın sanırım en zor sorusu olan farklı tabanlarda sayıları kaydedip kendi aralarında işleme sokabildiğimiz soru:</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> Sayi {
+<div class="sourceCode" id="cb2"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> Sayi {
 
-    String s;
+    <span class="bu">String</span> s;
     <span class="dt">int</span> d;
     
-    <span class="kw">public</span> <span class="fu">Sayi</span>(String s, <span class="dt">int</span> d) {
+    <span class="kw">public</span> <span class="fu">Sayi</span>(<span class="bu">String</span> s, <span class="dt">int</span> d) {
         
         <span class="kw">this</span>.<span class="fu">s</span> = s;
         <span class="kw">this</span>.<span class="fu">d</span> = d;
@@ -43,18 +43,18 @@
         <span class="dt">int</span> r = <span class="dv">0</span>;
         
         <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>(); i++) {
-            r += Integer.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i<span class="dv">+1</span>)) * Math.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i<span class="dv">-1</span>);
+            r += <span class="bu">Integer</span>.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i+<span class="dv">1</span>)) * <span class="bu">Math</span>.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i<span class="dv">-1</span>);
         }
         
         <span class="kw">return</span> r;
     }
     
     
-    <span class="kw">public</span> <span class="dt">static</span> String <span class="fu">taban</span>(<span class="dt">int</span> s, <span class="dt">int</span> d) {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="bu">String</span> <span class="fu">taban</span>(<span class="dt">int</span> s, <span class="dt">int</span> d) {
         <span class="co">// Girilen s sayısını d tabanında döndür</span>
 
-        String r1 = <span class="st">&quot;&quot;</span>;
-        String r2 = <span class="st">&quot;&quot;</span>;
+        <span class="bu">String</span> r1 = <span class="st">&quot;&quot;</span>;
+        <span class="bu">String</span> r2 = <span class="st">&quot;&quot;</span>;
         
         
         <span class="kw">while</span> (s &gt;= d) {
@@ -69,13 +69,13 @@
         
     }
     
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
         
         Sayi deneme = <span class="kw">new</span> <span class="fu">Sayi</span>(<span class="st">&quot;134125&quot;</span>, <span class="dv">6</span>);
-        System.<span class="fu">out</span>.<span class="fu">println</span>(deneme.<span class="fu">onluk</span>());
-        System.<span class="fu">out</span>.<span class="fu">println</span>(Sayi.<span class="fu">taban</span>(<span class="dv">987652</span>, <span class="dv">2</span>));
+        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(deneme.<span class="fu">onluk</span>());
+        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(Sayi.<span class="fu">taban</span>(<span class="dv">987652</span>, <span class="dv">2</span>));
     }
-}</code></pre>
+}</code></pre></div>
 <p>Sorunun tamamı bu kadar değil de, bu kısımdan sonrası ıvır zıvır. Sınavda yaptım bu soruyu aslında da, muhtemelen bir sürü yanlışım çıkacaktır(yeterince detaylı incelenirse, hatta belki de kodum derlenemez bile).</p>
 <p>Kağıt-kalem olduğumuz bu programlama sınavından öğrenilenler:</p>
 <ul>
@@ -87,9 +87,9 @@
 </ul>
 <h3 id="ekleme">Ekleme</h3>
 <p>Sınavdan birkaç dakika önce ‘ya çıkarsa’ diye bir arkadaşla yazdığımız, bir matrisin karesini alan kod:</p>
-<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> MatrisDeneme {
+<div class="sourceCode" id="cb3"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> MatrisDeneme {
     
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(String[] args) {
+    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
         
         <span class="dt">int</span>[][] matris ={{<span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">9</span>},
                          {<span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">1</span>},
@@ -113,19 +113,18 @@
             }
         }
         
-        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">2</span>]<span class="dv">2</span>]);
-        System.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">0</span>]<span class="dv">1</span>]);
+        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">2</span>]<span class="dv">2</span>]);
+        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(yeni[^<span class="dv">0</span>]<span class="dv">1</span>]);
     }
 
-}</code></pre>
+}</code></pre></div>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

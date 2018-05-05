@@ -22,58 +22,58 @@
 <p><strong>August 15, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/pygame.html">pygame</a>, <a href="../tags/django.html">django</a>.</p>
 
 <p>Python ile Django’dan sonra pygame’e el attım biraz. Daha yeni başladım ve henüz pygame’in özelliklerinin çok azından yararlanarak birşeyler yapabiliyorum. Aşağıdaki kod ilk yazdığım basit bir çarpışma şeyi(neyi ben de bilmiyorum). İstediğiniz büyüklükte ekrana istediğiniz kadar top ekleyip onları rastgele hızlarda bir yerlere yolluyor ve çarpıştırıyor.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> pygame, random, math
-screenx, screeny = <span class="dv">500</span>, <span class="dv">500</span> <span class="co">#ekran buyuklugu</span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="im">import</span> pygame, random, math
+screenx, screeny <span class="op">=</span> <span class="dv">500</span>, <span class="dv">500</span> <span class="co">#ekran buyuklugu</span>
 <span class="kw">class</span> Ball:
-    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, surface):
-        <span class="ot">self</span>.surface = surface
-        <span class="ot">self</span>.radius = <span class="dv">10</span>
-        <span class="ot">self</span>.color = (<span class="dv">255</span>, <span class="dv">255</span>, <span class="dv">255</span>)
-        <span class="ot">self</span>.x = random.randint(<span class="dv">0</span>+<span class="ot">self</span>.radius, screenx-<span class="ot">self</span>.radius)
-        <span class="ot">self</span>.y = random.randint(<span class="dv">0</span>+<span class="ot">self</span>.radius, screeny-<span class="ot">self</span>.radius)
-        <span class="ot">self</span>.vx = random.randint(<span class="dv">1</span>, <span class="dv">10</span>)
-        <span class="ot">self</span>.vy = random.randint(<span class="dv">1</span>, <span class="dv">10</span>)
+    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, surface):
+        <span class="va">self</span>.surface <span class="op">=</span> surface
+        <span class="va">self</span>.radius <span class="op">=</span> <span class="dv">10</span>
+        <span class="va">self</span>.color <span class="op">=</span> (<span class="dv">255</span>, <span class="dv">255</span>, <span class="dv">255</span>)
+        <span class="va">self</span>.x <span class="op">=</span> random.randint(<span class="dv">0</span><span class="op">+</span><span class="va">self</span>.radius, screenx<span class="op">-</span><span class="va">self</span>.radius)
+        <span class="va">self</span>.y <span class="op">=</span> random.randint(<span class="dv">0</span><span class="op">+</span><span class="va">self</span>.radius, screeny<span class="op">-</span><span class="va">self</span>.radius)
+        <span class="va">self</span>.vx <span class="op">=</span> random.randint(<span class="dv">1</span>, <span class="dv">10</span>)
+        <span class="va">self</span>.vy <span class="op">=</span> random.randint(<span class="dv">1</span>, <span class="dv">10</span>)
         
-    <span class="kw">def</span> move(<span class="ot">self</span>, time_passed):
-        <span class="kw">if</span> <span class="ot">self</span>.x &gt;= screenx-<span class="ot">self</span>.radius or <span class="ot">self</span>.x &lt;= <span class="ot">self</span>.radius:
-            <span class="ot">self</span>.vx *= -<span class="dv">1</span>
-        <span class="kw">if</span> <span class="ot">self</span>.y &gt;= screeny-<span class="ot">self</span>.radius or <span class="ot">self</span>.y &lt;= <span class="ot">self</span>.radius:
-            <span class="ot">self</span>.vy *= -<span class="dv">1</span>
-        <span class="ot">self</span>.x += <span class="ot">self</span>.vx * time_passed
-        <span class="ot">self</span>.y += <span class="ot">self</span>.vy * time_passed
+    <span class="kw">def</span> move(<span class="va">self</span>, time_passed):
+        <span class="cf">if</span> <span class="va">self</span>.x <span class="op">&gt;=</span> screenx<span class="op">-</span><span class="va">self</span>.radius <span class="kw">or</span> <span class="va">self</span>.x <span class="op">&lt;=</span> <span class="va">self</span>.radius:
+            <span class="va">self</span>.vx <span class="op">*=</span> <span class="dv">-1</span>
+        <span class="cf">if</span> <span class="va">self</span>.y <span class="op">&gt;=</span> screeny<span class="op">-</span><span class="va">self</span>.radius <span class="kw">or</span> <span class="va">self</span>.y <span class="op">&lt;=</span> <span class="va">self</span>.radius:
+            <span class="va">self</span>.vy <span class="op">*=</span> <span class="dv">-1</span>
+        <span class="va">self</span>.x <span class="op">+=</span> <span class="va">self</span>.vx <span class="op">*</span> time_passed
+        <span class="va">self</span>.y <span class="op">+=</span> <span class="va">self</span>.vy <span class="op">*</span> time_passed
         
-    <span class="kw">def</span> draw(<span class="ot">self</span>):
-        pygame.draw.circle(<span class="ot">self</span>.surface, <span class="ot">self</span>.color, (<span class="ot">self</span>.x, <span class="ot">self</span>.y),
-                           <span class="ot">self</span>.radius)
+    <span class="kw">def</span> draw(<span class="va">self</span>):
+        pygame.draw.circle(<span class="va">self</span>.surface, <span class="va">self</span>.color, (<span class="va">self</span>.x, <span class="va">self</span>.y),
+                           <span class="va">self</span>.radius)
 pygame.init()
-clock = pygame.time.Clock()
-screen = pygame.display.set_mode((screenx, screeny), <span class="dv">0</span>, <span class="dv">32</span>)
-running = <span class="ot">True</span>
-balls = []
-<span class="kw">for</span> i in <span class="dt">range</span>(<span class="dv">1</span>, <span class="dv">21</span>): <span class="co">#top sayisi</span>
+clock <span class="op">=</span> pygame.time.Clock()
+screen <span class="op">=</span> pygame.display.set_mode((screenx, screeny), <span class="dv">0</span>, <span class="dv">32</span>)
+running <span class="op">=</span> <span class="va">True</span>
+balls <span class="op">=</span> []
+<span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">21</span>): <span class="co">#top sayisi</span>
     balls.append(Ball(screen))
 <span class="kw">def</span> CollisionDetect(b1):
-    <span class="kw">for</span> b2 in balls:
-        <span class="kw">if</span> b1 is not b2:
-            <span class="dt">range</span> = math.sqrt((b1.x - b2.x)**<span class="dv">2</span> + (b1.y - b2.y)**<span class="dv">2</span>)
-            <span class="kw">if</span> <span class="dt">range</span> &lt; (b1.radius + b2.radius):
-                b1.vx, b2.vx = b2.vx, b1.vx
-                b1.vy, b2.vy = b2.vy, b1.vy
+    <span class="cf">for</span> b2 <span class="kw">in</span> balls:
+        <span class="cf">if</span> b1 <span class="kw">is</span> <span class="kw">not</span> b2:
+            <span class="bu">range</span> <span class="op">=</span> math.sqrt((b1.x <span class="op">-</span> b2.x)<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> (b1.y <span class="op">-</span> b2.y)<span class="op">**</span><span class="dv">2</span>)
+            <span class="cf">if</span> <span class="bu">range</span> <span class="op">&lt;</span> (b1.radius <span class="op">+</span> b2.radius):
+                b1.vx, b2.vx <span class="op">=</span> b2.vx, b1.vx
+                b1.vy, b2.vy <span class="op">=</span> b2.vy, b1.vy
                 <span class="co">#b1.move(); b2.move()</span>
-<span class="kw">while</span> running:
-    <span class="kw">for</span> event in pygame.event.get():
+<span class="cf">while</span> running:
+    <span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():
         <span class="co">#print event</span>
-        <span class="kw">if</span> event.<span class="dt">type</span> == pygame.QUIT:
-            running = <span class="ot">False</span>
+        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.QUIT:
+            running <span class="op">=</span> <span class="va">False</span>
     
-    time_passed = clock.tick(<span class="dv">50</span>)
+    time_passed <span class="op">=</span> clock.tick(<span class="dv">50</span>)
     screen.fill((<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>))
-    <span class="kw">for</span> b in balls:
+    <span class="cf">for</span> b <span class="kw">in</span> balls:
         b.draw()
         CollisionDetect(b)
         b.move(time_passed)
     
-    pygame.display.flip()</code></pre>
+    pygame.display.flip()</code></pre></div>
 <p>Onun dışında kendime bir okunacaklar listesi hazırladım, ilk fırsatta okuyacaklarım:</p>
 <ul>
 <li><a href="http://www.pygame.org/docs/tut/MoveIt.html" class="uri">http://www.pygame.org/docs/tut/MoveIt.html</a></li>
@@ -86,10 +86,9 @@ balls = []
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

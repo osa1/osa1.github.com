@@ -75,22 +75,20 @@ Proof.
   induction n using nat10ind; auto.
   simpl. f_equal. assumption.
 Qed.</code></pre>
-<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
-<hr />
-<div class="footnotes">
+<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>See <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual011.html#sec447">tacexpr_1 production</a> of Coq expression syntax in reference manual for details.<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p>See <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual011.html#sec447">tacexpr_1 production</a> of Coq expression syntax in reference manual for details.<a href="#fnref1" class="footnote-back">↩</a></p></li>
 </ol>
-</div>
+</section>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

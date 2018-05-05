@@ -22,65 +22,64 @@
 <p><strong>October 25, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
 
 <p>Eski wordpress arşivimi daha okunabilir bir hale getirmek için küçük bir parser yazma niyetindeydim ama beceremedim. Şimdilik aşağıdaki template filter ile işimi görüyorum:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> wpcodegen(value):
-    value = value.replace(<span class="st">'[code lang=&quot;python&quot;]'</span>, <span class="st">'&lt;pre class=&quot;wp&quot;&gt;'</span>)
-    value = value.replace(<span class="st">'[/code]'</span>, <span class="st">'&lt;/pre&gt;'</span>)
-    value = value.replace(<span class="st">'[coolcode]'</span>, <span class="st">'&lt;pre class=&quot;wp&quot;&gt;'</span>)
-    value = value.replace(<span class="st">'[/coolcode]'</span>, <span class="st">'&lt;/pre&gt;'</span>)
-    <span class="kw">return</span> value</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> wpcodegen(value):
+    value <span class="op">=</span> value.replace(<span class="st">'[code lang=&quot;python&quot;]'</span>, <span class="st">'&lt;pre class=&quot;wp&quot;&gt;'</span>)
+    value <span class="op">=</span> value.replace(<span class="st">'[/code]'</span>, <span class="st">'&lt;/pre&gt;'</span>)
+    value <span class="op">=</span> value.replace(<span class="st">'[coolcode]'</span>, <span class="st">'&lt;pre class=&quot;wp&quot;&gt;'</span>)
+    value <span class="op">=</span> value.replace(<span class="st">'[/coolcode]'</span>, <span class="st">'&lt;/pre&gt;'</span>)
+    <span class="cf">return</span> value</code></pre></div>
 <p>Aslında syntax renklendirme için uğraşıyordum. Python kodlarını markdown ve codehilite ile renklendirecektim. Bunun için yazıyı parçalara ayırık, <code>[code] ... [/code]</code> arasını gerekli fonksiyona gönderip(fonksiyona göndermeden önce markdown’a göre biçimlendirmem gerekiyordu, dolayısıyla <code>[code] ... [/code]</code> arasını önce satır satır parçalayıp gerekli biçimlendirmeleri yapmam gerekri) çıktıyı o parçayı yazının neresinden söktüysem oraya yerleştirecektim. Kodlamaya başladıktan sonra biraz daha esnek bir yapı için fantastik işlere giriştim. Son hali duruma göre güzel çalışabiliyor aslında.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Parser:
-    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, metin, baslangic, bitis):
-        <span class="ot">self</span>.metin = metin
-        <span class="ot">self</span>.devam = metin
-        <span class="ot">self</span>.pos = [[<span class="dv">0</span>, <span class="dv">0</span>]]
-        <span class="ot">self</span>.baslangic = baslangic
-        <span class="ot">self</span>.bitis = bitis
-        <span class="ot">self</span>.__setPos()
-    <span class="kw">def</span> __setPos(<span class="ot">self</span>, index = <span class="dv">0</span>):
-        <span class="kw">try</span>:
-            bas = <span class="ot">self</span>.devam.index(<span class="ot">self</span>.baslangic) + \
-                  <span class="dt">len</span>(<span class="ot">self</span>.baslangic) + index
-            son = <span class="ot">self</span>.devam.index(<span class="ot">self</span>.bitis) + index
-        <span class="kw">except</span> <span class="ot">ValueError</span>:
-            <span class="kw">return</span> <span class="ot">self</span>.pos
-        <span class="ot">self</span>.pos.append([bas, son])
-        <span class="ot">self</span>.devam = <span class="ot">self</span>.devam[son+<span class="dt">len</span>(<span class="ot">self</span>.bitis):]
-        <span class="kw">return</span> <span class="ot">self</span>.__setPos(index = son+<span class="dt">len</span>(<span class="ot">self</span>.bitis))
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Parser:
+    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, metin, baslangic, bitis):
+        <span class="va">self</span>.metin <span class="op">=</span> metin
+        <span class="va">self</span>.devam <span class="op">=</span> metin
+        <span class="va">self</span>.pos <span class="op">=</span> [[<span class="dv">0</span>, <span class="dv">0</span>]]
+        <span class="va">self</span>.baslangic <span class="op">=</span> baslangic
+        <span class="va">self</span>.bitis <span class="op">=</span> bitis
+        <span class="va">self</span>.__setPos()
+    <span class="kw">def</span> __setPos(<span class="va">self</span>, index <span class="op">=</span> <span class="dv">0</span>):
+        <span class="cf">try</span>:
+            bas <span class="op">=</span> <span class="va">self</span>.devam.index(<span class="va">self</span>.baslangic) <span class="op">+</span> <span class="op">\</span>
+                  <span class="bu">len</span>(<span class="va">self</span>.baslangic) <span class="op">+</span> index
+            son <span class="op">=</span> <span class="va">self</span>.devam.index(<span class="va">self</span>.bitis) <span class="op">+</span> index
+        <span class="cf">except</span> <span class="pp">ValueError</span>:
+            <span class="cf">return</span> <span class="va">self</span>.pos
+        <span class="va">self</span>.pos.append([bas, son])
+        <span class="va">self</span>.devam <span class="op">=</span> <span class="va">self</span>.devam[son<span class="op">+</span><span class="bu">len</span>(<span class="va">self</span>.bitis):]
+        <span class="cf">return</span> <span class="va">self</span>.__setPos(index <span class="op">=</span> son<span class="op">+</span><span class="bu">len</span>(<span class="va">self</span>.bitis))
     
-    <span class="kw">def</span> codehilite(<span class="ot">self</span>, lang=<span class="st">&quot;&quot;</span>):
-        <span class="kw">if</span> <span class="ot">self</span>.pos == [[<span class="dv">0</span>, <span class="dv">0</span>]]:
-            <span class="kw">return</span> <span class="ot">self</span>.metin
-        s = <span class="st">''</span>
-        <span class="kw">for</span> i in <span class="dt">range</span>(<span class="dt">len</span>(<span class="ot">self</span>.pos)):
-            <span class="kw">if</span> i == <span class="dt">range</span>(<span class="dt">len</span>(<span class="ot">self</span>.pos))[-<span class="dv">1</span>]: 
-                <span class="kw">break</span>
-            i += <span class="dv">1</span>
-            kod = <span class="st">''</span>
-            basladi = <span class="ot">False</span>
-            s += <span class="ot">self</span>.metin[<span class="ot">self</span>.pos[i<span class="dv">-1</span>][^<span class="dv">1</span>]: <span class="ot">self</span>.pos[i][^<span class="dv">0</span>]<span class="dt">len</span>(<span class="ot">self</span>.baslangic)]
-            <span class="kw">for</span> satir in <span class="ot">self</span>.metin[<span class="ot">self</span>.pos[i][^<span class="dv">0</span>]: <span class="ot">self</span>.pos[i][^<span class="dv">1</span>].split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>):
-                <span class="kw">if</span> not basladi:
-                    <span class="kw">if</span> not lang == <span class="st">&quot;&quot;</span>:
-                        kod += <span class="st">'</span><span class="ch">\t</span><span class="st">:::</span><span class="ot">%s</span><span class="ch">\n</span><span class="st">'</span> % lang
-                    basladi = <span class="ot">True</span>
-                kod += <span class="st">'</span><span class="ch">\t</span><span class="ot">%s</span><span class="ch">\n</span><span class="st">'</span> % satir
-            s += Markdown(kod, [<span class="st">'codehilite'</span>])
-        <span class="kw">return</span> s</code></pre>
+    <span class="kw">def</span> codehilite(<span class="va">self</span>, lang<span class="op">=</span><span class="st">&quot;&quot;</span>):
+        <span class="cf">if</span> <span class="va">self</span>.pos <span class="op">==</span> [[<span class="dv">0</span>, <span class="dv">0</span>]]:
+            <span class="cf">return</span> <span class="va">self</span>.metin
+        s <span class="op">=</span> <span class="st">''</span>
+        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.pos)):
+            <span class="cf">if</span> i <span class="op">==</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.pos))[<span class="op">-</span><span class="dv">1</span>]: 
+                <span class="cf">break</span>
+            i <span class="op">+=</span> <span class="dv">1</span>
+            kod <span class="op">=</span> <span class="st">''</span>
+            basladi <span class="op">=</span> <span class="va">False</span>
+            s <span class="op">+=</span> <span class="va">self</span>.metin[<span class="va">self</span>.pos[i<span class="dv">-1</span>][<span class="op">^</span><span class="dv">1</span>]: <span class="va">self</span>.pos[i][<span class="op">^</span><span class="dv">0</span>]<span class="bu">len</span>(<span class="va">self</span>.baslangic)]
+            <span class="cf">for</span> satir <span class="kw">in</span> <span class="va">self</span>.metin[<span class="va">self</span>.pos[i][<span class="op">^</span><span class="dv">0</span>]: <span class="va">self</span>.pos[i][<span class="op">^</span><span class="dv">1</span>].split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>):
+                <span class="cf">if</span> <span class="kw">not</span> basladi:
+                    <span class="cf">if</span> <span class="kw">not</span> lang <span class="op">==</span> <span class="st">&quot;&quot;</span>:
+                        kod <span class="op">+=</span> <span class="st">'</span><span class="ch">\t</span><span class="st">:::</span><span class="sc">%s</span><span class="ch">\n</span><span class="st">'</span> <span class="op">%</span> lang
+                    basladi <span class="op">=</span> <span class="va">True</span>
+                kod <span class="op">+=</span> <span class="st">'</span><span class="ch">\t</span><span class="sc">%s</span><span class="ch">\n</span><span class="st">'</span> <span class="op">%</span> satir
+            s <span class="op">+=</span> Markdown(kod, [<span class="st">'codehilite'</span>])
+        <span class="cf">return</span> s</code></pre></div>
 <p>Birkaç sorun var, birincisi, wordpressde yazdığım bu yazılar veritabanına hep ’ &quot; gibi karakterler kaçılarak(ne desem bilemedim, <code>&amp;amp;</code> gibi karakterlere dönüştürülerek işte) kaydedilmiş. Fakat codehilite kullandığımda onlar ekrana <code>&amp;amp;</code> şeklinde yazdırılıyor. Onun dışında, iki ayrı tagı ayrıştırmak istiyorsanız 2 ayrı parser oluşturmalı ve aynı işlemi iki parser ile de uygulamalısınız. Hoş olmadı.</p>
 <p>Kullanımı şu şekilde olacaktı:</p>
-<pre class="sourceCode python"><code class="sourceCode python">&gt;&gt;&gt; ornekMetin = <span class="st">u'Buraya [test]bazı etiketler [/test]gelecek'</span>
-&gt;&gt;&gt; parser = Parser(ornekMetin, <span class="st">'[test]'</span>, <span class="st">'[/test]'</span>)
-&gt;&gt;&gt; parser.codehilite()
-<span class="co">u'Buraya &lt;pre&gt;&lt;code&gt;baz\xc4\xb1 etiketler\n&lt;/code&gt;&lt;/pre&gt;'</span></code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span class="op">&gt;&gt;&gt;</span> ornekMetin <span class="op">=</span> <span class="st">u'Buraya [test]bazı etiketler [/test]gelecek'</span>
+<span class="op">&gt;&gt;&gt;</span> parser <span class="op">=</span> Parser(ornekMetin, <span class="st">'[test]'</span>, <span class="st">'[/test]'</span>)
+<span class="op">&gt;&gt;&gt;</span> parser.codehilite()
+<span class="co">u'Buraya &lt;pre&gt;&lt;code&gt;baz\xc4\xb1 etiketler\n&lt;/code&gt;&lt;/pre&gt;'</span></code></pre></div>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

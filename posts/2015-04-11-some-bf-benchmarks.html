@@ -29,7 +29,7 @@
 pypy example5.py   bench.b   15.57s user 0.01s system 99% cpu 15.597 total
 python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</code></pre>
 <p>The Lua implementation started with this:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> mainloop<span class="ot">(</span>program<span class="ot">,</span> bracket_map<span class="ot">,</span> dispatch_fn<span class="ot">)</span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> mainloop<span class="ot">(</span>program<span class="ot">,</span> bracket_map<span class="ot">,</span> dispatch_fn<span class="ot">)</span>
     <span class="kw">local</span> pc <span class="ot">=</span> <span class="dv">1</span>
     <span class="kw">local</span> tape <span class="ot">=</span> <span class="ot">{</span><span class="dv">0</span><span class="ot">}</span>
     <span class="kw">local</span> tape_pos <span class="ot">=</span> <span class="dv">1</span>
@@ -57,13 +57,13 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
         <span class="kw">end</span>
         pc <span class="ot">=</span> pc <span class="ot">+</span> <span class="dv">1</span>
     <span class="kw">end</span>
-<span class="kw">end</span></code></pre>
+<span class="kw">end</span></code></pre></div>
 <p>I’m not sure how many reasonable different implementations one can come up with, given that the language is this small. Still, there are some optimizations that we can do and I’ve tried some of them. Here are some things I tried:</p>
 <ul>
 <li>I tried replacing one character strings with ASCII code equivalents. Since Lua doesn’t have character constants, I thought this may give us a few instructions per branch. But results were just the same.</li>
 <li>I tried replacing table getters and setters with <code>rawget</code> and <code>rawset</code>s. Nothing changed. Apparently it’s not worth the effort unless you have a metatable for your table.</li>
 <li><p>I tried generating a huge “if-then-else” statement for <code>bracket_map</code>, and used it as a jump table kind of thing. Here’s the code:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> gen_dispatch_fn<span class="ot">(</span>bracket_map<span class="ot">,</span> fun_name<span class="ot">)</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> gen_dispatch_fn<span class="ot">(</span>bracket_map<span class="ot">,</span> fun_name<span class="ot">)</span>
     <span class="kw">local</span> first <span class="ot">=</span> <span class="kw">true</span>
     <span class="kw">local</span> acc <span class="ot">=</span> <span class="ot">{}</span>
     <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;function &quot;</span> <span class="ot">..</span> fun_name <span class="ot">..</span> <span class="st">&quot;(arg)</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
@@ -81,7 +81,7 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
     <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
     <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
     <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>acc<span class="ot">)</span>
-<span class="kw">end</span></code></pre>
+<span class="kw">end</span></code></pre></div>
 <p>I loaded this code using standard <code>load()</code> function. This also didn’t work. The reason is that, even if this is faster(which is probably not always the case), profiling showed that interpreter spents only 4% of the time for <code>bracket_map</code> lookups. So if this implementation only slightly faster, it just can’t make a big difference.</p></li>
 </ul>
 <p>Profiling output revealed that, 85% of the time spent on fetching the next instruction:</p>
@@ -104,7 +104,7 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
 <pre><code>luajit example_lua.lua bench.b  34.41s user 0.00s system 99% cpu 34.442 total</code></pre>
 <p>The fact that PyPy did better job than LuaJIT here is surprising and impressive. It seems like RPython and PyPy is doing a very good job here.</p>
 <p>Since I already started gradually compiling things, I thought why not go further and compile everything. Here’s a simple BF to Lua compiler:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> compile<span class="ot">(</span>str<span class="ot">)</span>
+<div class="sourceCode" id="cb6"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> compile<span class="ot">(</span>str<span class="ot">)</span>
     <span class="kw">local</span> pgm <span class="ot">=</span> <span class="ot">{}</span>
     <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">[[</span>
 <span class="st">function pgm()</span>
@@ -122,11 +122,11 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
     <span class="kw">local</span> <span class="kw">function</span> inc<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] + &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
     <span class="kw">local</span> <span class="kw">function</span> dec<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] - &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
     <span class="kw">local</span> out  <span class="ot">=</span> <span class="st">&quot;    io.write(string.char(tape[tape_pos]))</span><span class="ot">\n</span><span class="st">&quot;</span>
-    <span class="kw">local</span> inp  <span class="ot">=</span> <span class="st">&quot;&quot;</span> <span class="co">-- no need for this</span>
+    <span class="kw">local</span> inp  <span class="ot">=</span> <span class="st">&quot;&quot;</span> <span class="do">-- no need for this</span>
     <span class="kw">local</span> jmpF <span class="ot">=</span> <span class="st">&quot;    while tape[tape_pos] ~= 0 do</span><span class="ot">\n</span><span class="st">&quot;</span>
     <span class="kw">local</span> jmpB <span class="ot">=</span> <span class="st">&quot;    if tape[tape_pos] == 0 then break end end</span><span class="ot">\n</span><span class="st">&quot;</span>
 
-    <span class="co">-- these are used to combine consecutive same instructions</span>
+    <span class="do">-- these are used to combine consecutive same instructions</span>
     <span class="kw">local</span> devs <span class="ot">=</span> <span class="dv">0</span>
     <span class="kw">local</span> incs <span class="ot">=</span> <span class="dv">0</span>
     <span class="kw">local</span> decs <span class="ot">=</span> <span class="dv">0</span>
@@ -147,22 +147,22 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
             decs <span class="ot">=</span> <span class="dv">0</span>
         <span class="kw">end</span>
 
-        <span class="kw">if</span> char <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span> <span class="co">-- 62</span>
+        <span class="kw">if</span> char <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span> <span class="do">-- 62</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> adv<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span> <span class="co">-- 60</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span> <span class="do">-- 60</span>
             devs <span class="ot">=</span> devs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span> <span class="co">-- 43</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span> <span class="do">-- 43</span>
             incs <span class="ot">=</span> incs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span> <span class="co">-- 45</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span> <span class="do">-- 45</span>
             decs <span class="ot">=</span> decs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span> <span class="co">-- 46</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span> <span class="do">-- 46</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> out<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;,&quot;</span> <span class="kw">then</span> <span class="co">-- 44</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;,&quot;</span> <span class="kw">then</span> <span class="do">-- 44</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> inp<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">then</span> <span class="co">-- 91</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">then</span> <span class="do">-- 91</span>
             indent <span class="ot">=</span> indent <span class="ot">+</span> <span class="dv">4</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpF<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">then</span> <span class="co">-- 93</span>
+        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">then</span> <span class="do">-- 93</span>
             indent <span class="ot">=</span> indent <span class="ot">-</span> <span class="dv">4</span>
             <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpB<span class="ot">))</span>
         <span class="kw">end</span>
@@ -170,7 +170,7 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
 
     <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">&quot;end&quot;</span><span class="ot">)</span>
     <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>pgm<span class="ot">)</span>
-<span class="kw">end</span></code></pre>
+<span class="kw">end</span></code></pre></div>
 <p>One thing to note here is that loops in BF programs correspond to loops in generated Lua. There’s another way to implement this compiler and it might turn out to be more efficient, but I didn’t try it. (see BF-to-C compiler below) Also, I’m merging some instructions together. This has significant performance impact, but it’s also necessary because if the generated code is too big, both PUC-Lua and LuaJIT is rejecting to load it. (this is documented, but the limit is not specified)</p>
 <p>Results:</p>
 <pre><code>luajit example_lua.lua bench.b  0.53s user 0.00s system 99% cpu 0.532 total</code></pre>
@@ -186,10 +186,9 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

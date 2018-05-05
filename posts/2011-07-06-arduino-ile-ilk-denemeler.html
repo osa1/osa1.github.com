@@ -25,9 +25,9 @@
 <iframe width="425" height="349" src="http://www.youtube.com/embed/e1MC7re1r0s" frameborder="0" allowfullscreen>
 </iframe>
 <p>Arduino’nun yaptığı, serial port’u dinleyip, gelen verinin 0’dan büyük bir takam olduğunu varsayarak(<code>val -= '0'</code>), bu veriye göre ledleri yakıp söndürmek.</p>
-<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define ledPin1 13</span>
-<span class="ot">#define ledPin2 12</span>
-<span class="ot">#define ledPin3 11</span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#define ledPin1 13</span>
+<span class="pp">#define ledPin2 12</span>
+<span class="pp">#define ledPin3 11</span>
 
 <span class="dt">int</span> val = <span class="dv">0</span>;
 
@@ -39,63 +39,62 @@
 }
 
 <span class="dt">void</span> loop () {
-    <span class="kw">if</span> (Serial.available()) {
+    <span class="cf">if</span> (Serial.available()) {
         val = Serial.read();
-        val -= '<span class="dv">0</span>';
+        val -= <span class="ch">'0'</span>;
 
-        <span class="kw">if</span> (val == <span class="dv">1</span>) {
+        <span class="cf">if</span> (val == <span class="dv">1</span>) {
             digitalWrite(ledPin1, HIGH);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">2</span>) {
+        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">2</span>) {
             digitalWrite(ledPin2, HIGH);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">3</span>) {
+        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">3</span>) {
             digitalWrite(ledPin3, HIGH);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">4</span>) {
+        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">4</span>) {
             digitalWrite(ledPin1, LOW);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">5</span>) {
+        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">5</span>) {
             digitalWrite(ledPin2, LOW);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">6</span>) {
+        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">6</span>) {
             digitalWrite(ledPin3, LOW);
         }
     }
-}</code></pre>
+}</code></pre></div>
 <p>Python ve Pygame ile de klavyeyi izleyip, tuşların basılması veya bırakılması durumlarında serial port’a gerekli verileri gönderdim:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> serial
-<span class="ch">import</span> pygame
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span class="im">import</span> serial
+<span class="im">import</span> pygame
 
-s = serial.Serial(<span class="st">'/dev/ttyACM2'</span>, <span class="dv">9600</span>)
-screen = pygame.display.set_mode((<span class="dv">100</span>, <span class="dv">100</span>))
-clock = pygame.time.Clock()
+s <span class="op">=</span> serial.Serial(<span class="st">'/dev/ttyACM2'</span>, <span class="dv">9600</span>)
+screen <span class="op">=</span> pygame.display.set_mode((<span class="dv">100</span>, <span class="dv">100</span>))
+clock <span class="op">=</span> pygame.time.Clock()
 
-keydwn = {pygame.K_LEFT : <span class="st">&quot;1&quot;</span>,
+keydwn <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;1&quot;</span>,
           pygame.K_RIGHT: <span class="st">&quot;2&quot;</span>,
           pygame.K_DOWN : <span class="st">&quot;3&quot;</span>}
 
-keyup  = {pygame.K_LEFT : <span class="st">&quot;4&quot;</span>,
+keyup  <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;4&quot;</span>,
           pygame.K_RIGHT: <span class="st">&quot;5&quot;</span>,
           pygame.K_DOWN : <span class="st">&quot;6&quot;</span>}
 
-running = <span class="dv">1</span>
-<span class="kw">while</span> running:
+running <span class="op">=</span> <span class="dv">1</span>
+<span class="cf">while</span> running:
     screen.fill((<span class="dv">00</span>, <span class="dv">00</span>, <span class="dv">00</span>))
-    <span class="kw">for</span> event in pygame.event.get():
-        <span class="kw">if</span> event.<span class="dt">type</span> == pygame.QUIT:
-            running = <span class="ot">False</span>
-        <span class="kw">elif</span> event.<span class="dt">type</span> == pygame.KEYDOWN:
+    <span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():
+        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.QUIT:
+            running <span class="op">=</span> <span class="va">False</span>
+        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYDOWN:
             s.write(keydwn.get(event.key, <span class="st">&quot;&quot;</span>))
-        <span class="kw">elif</span> event.<span class="dt">type</span> == pygame.KEYUP:
+        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYUP:
             s.write(keyup.get(event.key, <span class="st">&quot;&quot;</span>))
 
-    time = clock.tick(<span class="dv">30</span>)</code></pre>
+    time <span class="op">=</span> clock.tick(<span class="dv">30</span>)</code></pre></div>
 <p>İlk deneme için gayet basit ve güzel :) . Aslında amacım, Python ve Pygame ile yaptığım şeyleri Clojure ile(Pygame kısmı için AWT gerekecekti sanırım) yapmaktı ama sırt ağrım bir yerden sonra dayanılmaz hale geldi(zaten çalışma ortamım rahat değil, bir de Arduino için masaya eğilince) ve bir an önce bitirmeye çalıştım. Bundan sonraki denemelerimi Clojure ile yapmaya çalışacağım.</p>
 <p>Onun dışında, Arduino kodunu Pardus ortamında bir türlü derleyemedim, gerekli kütüphaneler/bağımlılıklar yüzünden. Bir ara onunla uğraşacağım.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

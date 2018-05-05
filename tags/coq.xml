@@ -15,239 +15,83 @@
     <id>http://osa1.net/posts/2014-09-23-two-challenges-for-dep-typed-langs.html</id>
     <published>2014-09-23T00:00:00Z</published>
     <updated>2014-09-23T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div class="code">
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-I propose two challenges that I think are very useful to see how easy to use a dependently typed language is. Different dependently typed languages use different type theories as their trusted cores and admit different axioms. In my experience, this significantly effects user experience. For example, lack of dependent pattern matching in Coq is leading to horribly verbose, hard to write, read and understand pattern matching code(see convoy and transport patterns).
-
-<div class="paragraph"> </div>
-
-Adding some extra axioms to Coq's trusted but sometimes too simple core can make the experience significantly better(see <a href="http://coq.inria.fr/distrib/current/stdlib/Coq.Logic.JMeq.html">JMec</a>, <a href="http://coq.inria.fr/distrib/current/stdlib/Coq.Program.Equality.html">Program</a> and <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual010.html">dependent destruction</a>). On the other hand, languages like Idris handles some of the cases that Coq can't handle by default.
-
-<div class="paragraph"> </div>
-
-The challenge is to solve two problems defined below in different dependently typed languages. We can then compare programs for 1) simplicity of code 2) use of extra axioms 3) giving away totality or some other useful properties.
-
-<div class="paragraph"> </div>
-
-Solutions of one of the challenges may also be compared for erasure of types. Problems are defined in Coq.
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
-<a name="lab1"></a><h1 class="section">Challenge 1: Cardinality</h1>
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
-This is a theorem proving exercise. <span class="inlinecode"><span class="id" title="var">Cardinality</span></span> of a type is defined as bijection of the type with <span class="inlinecode"><span class="id" title="var">Fin.t</span></span> <span class="inlinecode"><span class="id" title="var">n</span></span> for some <span class="inlinecode"><span class="id" title="var">n</span></span>:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Inductive</span> <a name="cardinality"><span class="id" title="inductive">cardinality</span></a> (<span class="id" title="var">A</span> : <span class="id" title="keyword">Type</span>) (<span class="id" title="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <span class="id" title="keyword">Prop</span> :=<br />
-| <a name="cardinality_intro"><span class="id" title="constructor">cardinality_intro</span></a><br />
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">to_fin</span>    : <span class="id" title="var">A</span> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Vectors.Fin.html#t"><span class="id" title="inductive">Fin.t</span></a> <span class="id" title="var">n</span>)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">from_fin</span>  : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Vectors.Fin.html#t"><span class="id" title="inductive">Fin.t</span></a> <span class="id" title="var">n</span> → <span class="id" title="var">A</span>)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">bijection</span> :<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#d82a7d96d3659d805ffe732283716822"><span class="id" title="notation">(</span></a><span class="id" title="keyword">∀</span> <span class="id" title="var">x</span>, <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#from_fin"><span class="id" title="variable">from_fin</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#to_fin"><span class="id" title="variable">to_fin</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#x"><span class="id" title="variable">x</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#x"><span class="id" title="variable">x</span></a><a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#d82a7d96d3659d805ffe732283716822"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#d82a7d96d3659d805ffe732283716822"><span class="id" title="notation">∧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#d82a7d96d3659d805ffe732283716822"><span class="id" title="notation">(</span></a><span class="id" title="keyword">∀</span> <span class="id" title="var">y</span>, <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#to_fin"><span class="id" title="variable">to_fin</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#from_fin"><span class="id" title="variable">from_fin</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#y"><span class="id" title="variable">y</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#y"><span class="id" title="variable">y</span></a><a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#d82a7d96d3659d805ffe732283716822"><span class="id" title="notation">)</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-You may want to solve this simple exercise just to warm-up:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Theorem</span> <a name="cardinality_bool"><span class="id" title="lemma">cardinality_bool</span></a> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#cardinality"><span class="id" title="inductive">cardinality</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> 2.<br />
-<span class="id" title="var">Admitted</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Now the challenge is to prove that cardinality of
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Inductive</span> <a name="T"><span class="id" title="inductive">T</span></a> (<span class="id" title="var">A</span> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> :=<br />
-| <a name="T1"><span class="id" title="constructor">T1</span></a> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#T"><span class="id" title="inductive">T</span></a> <span class="id" title="var">A</span><br />
-| <a name="T2"><span class="id" title="constructor">T2</span></a> : <span class="id" title="var">A</span> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#T"><span class="id" title="inductive">T</span></a> <span class="id" title="var">A</span><br />
-| <a name="T3"><span class="id" title="constructor">T3</span></a> : <span class="id" title="var">A</span> → <span class="id" title="var">A</span> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#T"><span class="id" title="inductive">T</span></a> <span class="id" title="var">A</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-.. is <span class="inlinecode">1</span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">N</span></span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">N</span></span> <span class="inlinecode">×</span> <span class="inlinecode"><span class="id" title="var">N</span></span> where <span class="inlinecode"><span class="id" title="var">N</span></span> is cardinality of <span class="inlinecode"><span class="id" title="var">A</span></span>:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Theorem</span> <a name="cardinality_T"><span class="id" title="lemma">cardinality_T</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">A</span> <span class="id" title="var">N</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#cardinality"><span class="id" title="inductive">cardinality</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#N"><span class="id" title="variable">N</span></a> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#cardinality"><span class="id" title="inductive">cardinality</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#T"><span class="id" title="inductive">T</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#A"><span class="id" title="variable">A</span></a>) (1 <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#b3eea360671e1b32b18a26e15b3aace3"><span class="id" title="notation">+</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#N"><span class="id" title="variable">N</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#b3eea360671e1b32b18a26e15b3aace3"><span class="id" title="notation">+</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#N"><span class="id" title="variable">N</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#697e4695610f677ae98a52af81f779d2"><span class="id" title="notation">×</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#N"><span class="id" title="variable">N</span></a>).<br />
-<span class="id" title="var">Admitted</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-UPDATE: First solution for this challange came from <a href="http://homes.cs.washington.edu/~jrw12/">jrw</a>, in Coq: <a href="http://lpaste.net/111568">http://lpaste.net/111568</a>. UPDATE: He wrote an awesome blog post: <a href="http://homes.cs.washington.edu/~jrw12/more-cardinality.html">Reasoning about Cardinalities of Sums and Products</a>.
-
-<div class="paragraph"> </div>
-
-UPDATE 2: See comments for more solutions.
-
-<div class="paragraph"> </div>
-
-<a name="lab2"></a><h1 class="section">Challenge 2: Verified, CoInductive definition of Pascal's Triangle</h1>
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
-This should be easier. What's good about this one is that we can compare languages for performance and/or erasure properties. Basically we expect type arguments to be absent in extracted/executed code.
-
-<div class="paragraph"> </div>
-
-Here's one way to define the problem:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">CoInductive</span> <a name="triangle_t"><span class="id" title="inductive">triangle_t</span></a> (<span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> → <span class="id" title="keyword">Type</span> :=<br />
-| <a name="triangle"><span class="id" title="constructor">triangle</span></a> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>), <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Vectors.Vector.html#t"><span class="id" title="inductive">Vector.t</span></a> <span class="id" title="var">T</span> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" title="variable">n</span></a> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#triangle_t"><span class="id" title="inductive">triangle_t</span></a> <span class="id" title="var">T</span> (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" title="variable">n</span></a>) → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#triangle_t"><span class="id" title="inductive">triangle_t</span></a> <span class="id" title="var">T</span> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" title="variable">n</span></a>.<br />
-
-<br />
-<span class="id" title="keyword">Definition</span> <a name="pascal"><span class="id" title="definition">pascal</span></a> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#triangle_t"><span class="id" title="inductive">triangle_t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> 0. <span class="id" title="var">Admitted</span>.<br />
-
-<br />
-<span class="id" title="keyword">Definition</span> <a name="pascal_nth"><span class="id" title="definition">pascal_nth</span></a> (<span class="id" title="var">row</span> <span class="id" title="var">col</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>. <span class="id" title="var">Admitted</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Extracted/executed version of <span class="inlinecode"><span class="id" title="var">pascal_nth</span></span> and any auxiliary function should be clean from type arguments.
-
-<div class="paragraph"> </div>
-
-Now the verification part:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Theorem</span> <a name="pascal_first_col_is_1"><span class="id" title="lemma">pascal_first_col_is_1</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">row</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" title="axiom">pascal_nth</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> 0 (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Arith.Le.html#le_0_n"><span class="id" title="lemma">le_0_n</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> 1.<br />
-<span class="id" title="var">Admitted</span>.<br />
-
-<br />
-<span class="id" title="keyword">Theorem</span> <a name="pascal_last_col_is_1"><span class="id" title="lemma">pascal_last_col_is_1</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">n</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" title="axiom">pascal_nth</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" title="variable">n</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#le_n"><span class="id" title="constructor">le_n</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#n"><span class="id" title="variable">n</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> 1.<br />
-<span class="id" title="var">Admitted</span>.<br />
-
-<br />
-<span class="id" title="keyword">Lemma</span> <a name="pascal_correct_aux"><span class="id" title="lemma">pascal_correct_aux</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">row</span> <span class="id" title="var">col</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#08fe8636f4b45ae6787c490d19de1366"><span class="id" title="notation">≥</span></a> 1 →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#08fe8636f4b45ae6787c490d19de1366"><span class="id" title="notation">≥</span></a> 1 →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9482aae3d3b06e249765c1225dbb8cbb"><span class="id" title="notation">-</span></a> 1 <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9482aae3d3b06e249765c1225dbb8cbb"><span class="id" title="notation">-</span></a> 1.<br />
-<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">intros</span>. <span class="id" title="tactic">omega</span>. <span class="id" title="keyword">Qed</span>.<br />
-
-<br />
-<span class="id" title="keyword">Lemma</span> <a name="lt_le"><span class="id" title="lemma">lt_le</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#a"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#b"><span class="id" title="variable">b</span></a> → <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#a"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#b"><span class="id" title="variable">b</span></a>.<br />
-<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">intros</span>. <span class="id" title="tactic">omega</span>. <span class="id" title="keyword">Qed</span>.<br />
-
-<br />
-<span class="id" title="keyword">Lemma</span> <a name="pascal_correct_aux&acute;"><span class="id" title="lemma">pascal_correct_aux&acute;</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">row</span> <span class="id" title="var">col</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#08fe8636f4b45ae6787c490d19de1366"><span class="id" title="notation">≥</span></a> 1 →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#08fe8636f4b45ae6787c490d19de1366"><span class="id" title="notation">≥</span></a> 1 →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9482aae3d3b06e249765c1225dbb8cbb"><span class="id" title="notation">-</span></a> 1.<br />
-<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">intros</span>. <span class="id" title="tactic">omega</span>. <span class="id" title="keyword">Qed</span>.<br />
-
-<br />
-<span class="id" title="keyword">Theorem</span> <a name="pascal_correct"><span class="id" title="lemma">pascal_correct</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">row</span> <span class="id" title="var">col</span><br />
-&nbsp;&nbsp;(<span class="id" title="var">pf</span> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a>)<br />
-&nbsp;&nbsp;(<span class="id" title="var">pf_row</span> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#08fe8636f4b45ae6787c490d19de1366"><span class="id" title="notation">≥</span></a> 1)<br />
-&nbsp;&nbsp;(<span class="id" title="var">pf_col</span> : <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#08fe8636f4b45ae6787c490d19de1366"><span class="id" title="notation">≥</span></a> 1),<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" title="axiom">pascal_nth</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#lt_le"><span class="id" title="lemma">lt_le</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf"><span class="id" title="variable">pf</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" title="axiom">pascal_nth</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9482aae3d3b06e249765c1225dbb8cbb"><span class="id" title="notation">-</span></a> 1) (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9482aae3d3b06e249765c1225dbb8cbb"><span class="id" title="notation">-</span></a> 1) (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_correct_aux"><span class="id" title="lemma">pascal_correct_aux</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf"><span class="id" title="variable">pf</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf_row"><span class="id" title="variable">pf_row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf_col"><span class="id" title="variable">pf_col</span></a>)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#b3eea360671e1b32b18a26e15b3aace3"><span class="id" title="notation">+</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_nth"><span class="id" title="axiom">pascal_nth</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9482aae3d3b06e249765c1225dbb8cbb"><span class="id" title="notation">-</span></a> 1) <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> (<a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pascal_correct_aux&acute;"><span class="id" title="lemma">pascal_correct_aux&acute;</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#row"><span class="id" title="variable">row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#col"><span class="id" title="variable">col</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf"><span class="id" title="variable">pf</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf_row"><span class="id" title="variable">pf_row</span></a> <a class="idref" href="/posts/2014-09-23-two-challenges-for-dep-typed-langs.html#pf_col"><span class="id" title="variable">pf_col</span></a>).<br />
-<span class="id" title="var">Admitted</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Feel free to change the definitions. The point is to 1) have strict <span class="inlinecode"><span class="id" title="var">nth</span></span> function that fail 2) prove that the data structure has property of <a href="http://en.wikipedia.org/wiki/Pascal%27s_triangle">Pascal's triangle</a>.
-
-<div class="paragraph"> </div>
-
-I'm hoping to come up with some solutions given in Coq over the next couple of weeks.
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-</div>
-]]></summary>
+    <summary type="html"><![CDATA[<pre class="coq"><code>Require Import Fin.
+Require Import Arith.
+Require Import Omega.
+Require Import Program.</code></pre>
+<p>I propose two challenges that I think are very useful to see how easy to use a dependently typed language is. Different dependently typed languages use different type theories as their trusted cores and admit different axioms. In my experience, this significantly effects user experience. For example, lack of dependent pattern matching in Coq is leading to horribly verbose, hard to write, read and understand pattern matching code(see convoy and transport patterns).</p>
+<p>Adding some extra axioms to Coq’s trusted but sometimes too simple core can make the experience significantly better(see <a href="http://coq.inria.fr/distrib/current/stdlib/Coq.Logic.JMeq.html">JMec</a>, <a href="http://coq.inria.fr/distrib/current/stdlib/Coq.Program.Equality.html">Program</a> and <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual010.html">dependent destruction</a>). On the other hand, languages like Idris handles some of the cases that Coq can’t handle by default.</p>
+<p>The challenge is to solve two problems defined below in different dependently typed languages. We can then compare programs for 1) simplicity of code 2) use of extra axioms 3) giving away totality or some other useful properties.</p>
+<p>Solutions of one of the challenges may also be compared for erasure of types. Problems are defined in Coq.</p>
+<h1 id="challenge-1-cardinality">Challenge 1: Cardinality</h1>
+<p>This is a theorem proving exercise. <code>Cardinality</code> of a type is defined as bijection of the type with <code>Fin.t n</code> for some <code>n</code>:</p>
+<pre class="coq"><code>Inductive cardinality (A : Type) (n : nat) : Prop :=
+| cardinality_intro
+    (to_fin    : A -&gt; Fin.t n)
+    (from_fin  : Fin.t n -&gt; A)
+    (bijection :
+      (forall x, from_fin (to_fin x) = x) /\ (forall y, to_fin (from_fin y) = y)).</code></pre>
+<p>You may want to solve this simple exercise just to warm-up:</p>
+<pre class="coq"><code>Theorem cardinality_bool : cardinality bool 2.
+Admitted.</code></pre>
+<p>Now the challenge is to prove that cardinality of</p>
+<pre class="coq"><code>Inductive T (A : Type) : Type :=
+| T1 : T A
+| T2 : A -&gt; T A
+| T3 : A -&gt; A -&gt; T A.</code></pre>
+<p>.. is <code>1 + N + N * N</code> where <code>N</code> is cardinality of <code>A</code>:</p>
+<pre class="coq"><code>Theorem cardinality_T : forall A N,
+  cardinality A N -&gt; cardinality (T A) (1 + N + N * N).
+Admitted.</code></pre>
+<p><strong>UPDATE:</strong> First solution for this challange came from <a href="http://homes.cs.washington.edu/~jrw12/">jrw</a>, in <a href="http://lpaste.net/111568">Coq</a>. UPDATE: He also wrote an awesome blog post: <a href="http://homes.cs.washington.edu/~jrw12/more-cardinality.html">Reasoning about Cardinalities of Sums and Products</a>.</p>
+<p><strong>UPDATE 2:</strong> See comments for more solutions.</p>
+<h1 id="challenge-2-verified-coinductive-definition-of-pascals-triangle">Challenge 2: Verified, CoInductive definition of Pascal’s Triangle</h1>
+<p>This should be easier. What’s good about this one is that we can compare languages for performance and/or erasure properties. Basically we expect type arguments to be absent in extracted/executed code.</p>
+<p>Here’s one way to define the problem:</p>
+<pre class="coq"><code>CoInductive triangle_t (T : Type) : nat -&gt; Type :=
+| triangle : forall (n : nat), Vector.t T n -&gt; triangle_t T (S n) -&gt; triangle_t T n.
+
+Definition pascal : triangle_t nat 0. Admitted.
+
+Definition pascal_nth (row col : nat) : col &lt;= row -&gt; nat. Admitted.</code></pre>
+<p>Extracted/executed version of [pascal_nth] and any auxiliary function should be clean from type arguments.</p>
+<p>Now the verification part:</p>
+<pre class="coq"><code>Theorem pascal_first_col_is_1 : forall row,
+  pascal_nth row 0 (le_0_n row) = 1.
+Admitted.
+
+Theorem pascal_last_col_is_1 : forall n,
+  pascal_nth n n (le_n n) = 1.
+Admitted.
+
+Lemma pascal_correct_aux : forall row col,
+  col &lt; row -&gt;
+  row &gt;= 1 -&gt;
+  col &gt;= 1 -&gt;
+  col - 1 &lt;= row - 1.
+Proof. intros. omega. Qed.
+
+Lemma lt_le : forall a b,
+  a &lt; b -&gt; a &lt;= b.
+Proof. intros. omega. Qed.
+
+Lemma pascal_correct_aux&#39; : forall row col,
+  col &lt; row -&gt;
+  row &gt;= 1 -&gt;
+  col &gt;= 1 -&gt;
+  col &lt;= row - 1.
+Proof. intros. omega. Qed.
+
+Theorem pascal_correct : forall row col
+  (pf : col &lt; row)
+  (pf_row : row &gt;= 1)
+  (pf_col : col &gt;= 1),
+  pascal_nth row col (lt_le col row pf) =
+      pascal_nth (row - 1) (col - 1) (pascal_correct_aux row col pf pf_row pf_col)
+    + pascal_nth (row - 1) col (pascal_correct_aux&#39; row col pf pf_row pf_col).
+Admitted.</code></pre>
+<p>Feel free to change the definitions. The point is to 1) have strict [nth] function that fail 2) prove that the data structure has property of <a href="http://en.wikipedia.org/wiki/Pascal%27s_triangle">Pascal’s triangle</a>.</p>
+<p>I’m hoping to come up with some solutions given in Coq over the next couple of weeks.</p>]]></summary>
 </entry>
 <entry>
     <title>Problems with tactic generated programs</title>
@@ -276,810 +120,740 @@ I'm hoping to come up with some solutions given in Coq over the next couple of w
     <id>http://osa1.net/posts/2014-09-08-proving-sorting-correct.html</id>
     <published>2014-09-08T00:00:00Z</published>
     <updated>2014-09-08T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div class="code">
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-I've been working on proving some sorting algorithms correct in Coq. After 600 lines of Coq proofs, I managed to prove correctness of <a href="http://en.wikipedia.org/wiki/Insertion_sort">insertion sort</a>, <a href="http://en.wikipedia.org/wiki/Selection_sort">selection sort</a>, and a weird sorting algorithm called <a href="http://austingwalters.com/everyday-algorithms-pancake-sort/">pancake sort</a>. This post is a <a href="https://github.com/osa1/blog/blob/master/theories/SortingCorrect.v">literate Coq file</a> which you can download and execute in a Coq IDE, step by step. To keep the post shorter and easier to read and make it more like an exercise, I hided most of the proofs in HTML version.
-
-<div class="paragraph"> </div>
-
-Goals of this post are:
-
-<div class="paragraph"> </div>
-
-<ul class="doclist">
-<li> Provide some guidance for starters who are interested in proving algorithms correct.
-
-</li>
-<li> Demonstrate how to prove properties of functions with accumulators and functions that work on list indexes, instead of elements of the list.
-
-</li>
-<li> Demonstrate how to use "timeout" arguments to convince Coq that a function is really terminating on all inputs.
-
-</li>
+    <summary type="html"><![CDATA[<p>I’ve been working on proving some sorting algorithms correct in Coq. After 600 lines of Coq proofs, I managed to prove correctness of <a href="http://en.wikipedia.org/wiki/Insertion_sort">insertion sort</a>, <a href="http://en.wikipedia.org/wiki/Selection_sort">selection sort</a>, and a weird sorting algorithm called <a href="http://austingwalters.com/everyday-algorithms-pancake-sort/">pancake sort</a>. This post is a <a href="https://github.com/osa1/blog/blob/master/theories/SortingCorrect.v">literate Coq file</a> which you can download and execute in a Coq IDE, step by step. To keep the post shorter and easier to read and make it more like an exercise, I hided most of the proofs in HTML version.</p>
+<p>Goals of this post are:</p>
+<ul>
+<li>Provide some guidance for starters who are interested in proving algorithms correct.</li>
+<li>Demonstrate how to prove properties of functions with accumulators and functions that work on list indexes, instead of elements of the list.</li>
+<li>Demonstrate how to use “timeout” arguments to convince Coq that a function is really terminating on all inputs.</li>
 </ul>
-A note before starting: I deliberately ignored advanced proof automation tools and go with more primitive way of proving. This is for two reasons: 1) I don't like magic, and since I don't understand underlying mechanics of advanced proofs tactics like <span class="inlinecode"><span class="id" title="var">crush</span></span>, it's magic to me 2) They're sometimes so powerful, they get in your way to understand what's really happening in the proof.
-
-<div class="paragraph"> </div>
-
-If you're reading this post as an exercise and filling the proofs yourself, that should not be a problem for you. Otherwise you may find my proofs more verbose than what's necessary.
-
-<div class="paragraph"> </div>
-
-Let's start with standard stuff: imports. These are for some list helpers, list syntax, Peano definitions + functions etc. Just standard stuff. Only exception is the <span class="inlinecode"><span class="id" title="var">Permutation</span></span> library, which I'll soon explain why it's necessary.
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#"><span class="id" title="library">List</span></a>.<br />
-<span class="id" title="keyword">Import</span> <span class="id" title="var">ListNotations</span>.<br />
-<span class="id" title="keyword">Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">list_scope</span>.<br />
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Arith.Arith.html#"><span class="id" title="library">Arith</span></a>.<br />
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.omega.Omega.html#"><span class="id" title="library">Omega</span></a>.<br />
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#"><span class="id" title="library">Permutation</span></a>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Our goal is to define some sorting algorithms and then prove them correct, but for that we first need to define what we mean by for a sorting algorithm to be "correct". For some functions definition of correctness may be tricky to give, but in the context of sorting I think it's obvious:
-
-<div class="paragraph"> </div>
-
-<ul class="doclist">
-<li> Result should be a permutation of it's parameter.
-
-</li>
-<li> Result should be in sorted order.
-
-</li>
+<p>A note before starting: I deliberately ignored advanced proof automation tools and go with more primitive way of proving. This is for two reasons: 1) I don’t like magic, and since I don’t understand underlying mechanics of advanced proofs tactics like [crush], it’s magic to me 2) They’re sometimes so powerful, they get in your way to understand what’s really happening in the proof.</p>
+<p>If you’re reading this post as an exercise and filling the proofs yourself, that should not be a problem for you. Otherwise you may find my proofs more verbose than what’s necessary.</p>
+<p>Let’s start with standard stuff: imports. These are for some list helpers, list syntax, Peano definitions + functions etc. Just standard stuff. Only exception is the [Permutation] library, which I’ll soon explain why it’s necessary.</p>
+<pre class="coq"><code>Require Import List.
+Import ListNotations.
+Open Scope list_scope.
+Require Import Arith.
+Require Import Omega.
+Require Import Permutation.</code></pre>
+<p>Our goal is to define some sorting algorithms and then prove them correct, but for that we first need to define what we mean by for a sorting algorithm to be “correct”. For some functions definition of correctness may be tricky to give, but in the context of sorting I think it’s obvious:</p>
+<ul>
+<li>Result should be a permutation of it’s parameter.</li>
+<li>Result should be in sorted order.</li>
 </ul>
-Definition of a "permutation" is defined in the <span class="inlinecode"><span class="id" title="var">Permutation</span></span> library we've just included, and it comes with lots of very useful lemmas. I suggest you to go to <span class="inlinecode"><span class="id" title="var">Permutation</span></span> library's documentation(you can go to the docs by clicking <span class="inlinecode"><span class="id" title="var">Permutation</span></span> link in the imports part above) and just skim through the definition and lemmas, and convince yourself that the definition is really enough to show that two lists are really a permutation.
-
-<div class="paragraph"> </div>
-
-For being sorted, we need to define what does that mean.
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Inductive</span> <a name="sorted"><span class="id" title="inductive">sorted</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> → <span class="id" title="keyword">Prop</span> :=<br />
-| <a name="Sorted_nil"><span class="id" title="constructor">Sorted_nil</span></a> : <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a><br />
-| <a name="Sorted_singleton"><span class="id" title="constructor">Sorted_singleton</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">e</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#ca01241a0c3f7016e6e2a252e5d50788"><span class="id" title="notation">[</span></a><a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a><a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#ca01241a0c3f7016e6e2a252e5d50788"><span class="id" title="notation">]</span></a><br />
-| <a name="Sorted_cons"><span class="id" title="constructor">Sorted_cons</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">e</span> <span class="id" title="var">h</span> <span class="id" title="var">t</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a>) → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Again, convince yourself that <span class="inlinecode"><span class="id" title="var">sorted</span></span> <span class="inlinecode"><span class="id" title="var">l</span></span> really encodes what we intuitively know about being sorted. Main property that should hold for any <span class="inlinecode"><span class="id" title="var">l</span></span> that is <span class="inlinecode"><span class="id" title="var">sorted</span></span> <span class="inlinecode"><span class="id" title="var">l</span></span> is that for any consecutive elements <span class="inlinecode"><span class="id" title="var">a</span></span> and <span class="inlinecode"><span class="id" title="var">b</span></span> in the list, <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">≤</span> <span class="inlinecode"><span class="id" title="var">b</span></span> should hold, which our third constructor shows.
-
-<div class="paragraph"> </div>
-
-Using <span class="inlinecode"><span class="id" title="var">Permutation</span></span> and <span class="inlinecode"><span class="id" title="var">sorted</span></span>, we can define what does being correct for a sorting algorithm mean:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Inductive</span> <a name="Sorting_correct"><span class="id" title="inductive">Sorting_correct</span></a> (<span class="id" title="var">algo</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) :=<br />
-| <a name="sorting_correct_intro"><span class="id" title="constructor">sorting_correct_intro</span></a> :<br />
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">l</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> (<span class="id" title="var">algo</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#d82a7d96d3659d805ffe732283716822"><span class="id" title="notation">∧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> (<span class="id" title="var">algo</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>)) → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#Sorting_correct"><span class="id" title="inductive">Sorting_correct</span></a> <span class="id" title="var">algo</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Note that in both definition of <span class="inlinecode"><span class="id" title="var">sorted</span></span> and <span class="inlinecode"><span class="id" title="var">Sorting_correct</span></span>, we used list of nats instead of any lists of ordered elements. This is really just to make definitions and proofs simpler. Generalization may be done as an exercise.
-
-<div class="paragraph"> </div>
-
-Now with those definitions, we can prove our first and easiest-to-prove algorithm.
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
-<a name="lab1"></a><h1 class="section">Insertion sort</h1>
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
-We define insertion sort as a right fold:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Fixpoint</span> <a name="insert"><span class="id" title="definition">insert</span></a> (<span class="id" title="var">i</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) :=<br />
-&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a>     ⇒ <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#ca01241a0c3f7016e6e2a252e5d50788"><span class="id" title="notation">[</span></a><a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a><a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#ca01241a0c3f7016e6e2a252e5d50788"><span class="id" title="notation">]</span></a><br />
-&nbsp;&nbsp;| <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">t</span> ⇒ <span class="id" title="keyword">if</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Arith.Compare_dec.html#leb"><span class="id" title="definition">leb</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a> <span class="id" title="var">h</span> <span class="id" title="keyword">then</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">t</span> <span class="id" title="keyword">else</span> <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#insert"><span class="id" title="definition">insert</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a> <span class="id" title="var">t</span><br />
-&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br />
-
-<br />
-<span class="id" title="keyword">Definition</span> <a name="insertion_sort"><span class="id" title="definition">insertion_sort</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#fold_right"><span class="id" title="definition">fold_right</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#insert"><span class="id" title="definition">insert</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Now if we could show that <span class="inlinecode"><span class="id" title="var">insert</span></span> <span class="inlinecode"><span class="id" title="var">h</span></span> <span class="inlinecode"><span class="id" title="var">t</span></span> on list <span class="inlinecode"><span class="id" title="var">h</span></span> <span class="inlinecode">::</span> <span class="inlinecode"><span class="id" title="var">t</span></span> returns a permutation, we could easily show that insertion sort returns a permutation, because all it does is to call <span class="inlinecode"><span class="id" title="var">insert</span></span> on list elements, using <span class="inlinecode"><span class="id" title="var">fold_right</span></span>.
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
- ***** Exercise: 1 star. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="insert_perm"><span class="id" title="lemma">insert_perm</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">h</span> <span class="id" title="var">t</span>, <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#insert"><span class="id" title="definition">insert</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a>) (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 2 stars. Use <span class="inlinecode"><span class="id" title="var">insert_perm</span></span> and transitivity, symmetry and reflexivity of <span class="inlinecode"><span class="id" title="var">Permutation</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Theorem</span> <a name="Permutation_insertion_sort"><span class="id" title="lemma">Permutation_insertion_sort</span></a>: <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span>, <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#insertion_sort"><span class="id" title="definition">insertion_sort</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-To show that it returns sorted, we use a similar approach. We first show that if <span class="inlinecode"><span class="id" title="var">sorted</span></span> <span class="inlinecode"><span class="id" title="var">l</span></span>, then <span class="inlinecode"><span class="id" title="var">sorted</span></span> <span class="inlinecode">(<span class="id" title="var">insert</span></span> <span class="inlinecode"><span class="id" title="var">e</span></span> <span class="inlinecode"><span class="id" title="var">l</span>)</span>. Empty and singleton lists are sorted by definition. Using these facts, we can easily prove that insertion sort really return sorted.
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
- ***** Exercise: 2 star. You need to use some lemmas about <span class="inlinecode"><span class="id" title="var">leb</span></span> that are already included. Use <span class="inlinecode"><span class="id" title="keyword">SearchAbout</span></span> <span class="inlinecode"><span class="id" title="var">leb</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="insert_sorted_preserve"><span class="id" title="lemma">insert_sorted_preserve</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">e</span> <span class="id" title="var">l</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#insert"><span class="id" title="definition">insert</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 2 star. Use <span class="inlinecode"><span class="id" title="var">insert_sorted_preserve</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Theorem</span> <a name="insertion_sort_sorted"><span class="id" title="lemma">insertion_sort_sorted</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#insertion_sort"><span class="id" title="definition">insertion_sort</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-With permutation and sorted properties proved, we can show that our insertion sort implementation is correct:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Theorem</span> <a name="insertion_sort_correct"><span class="id" title="lemma">insertion_sort_correct</span></a> : <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#Sorting_correct"><span class="id" title="inductive">Sorting_correct</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#insertion_sort"><span class="id" title="definition">insertion_sort</span></a>.<br />
-<span class="id" title="keyword">Proof</span>.<br />
-&nbsp;&nbsp;<span class="id" title="tactic">constructor</span>. <span class="id" title="tactic">split</span>. <span class="id" title="tactic">apply</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#insertion_sort_sorted"><span class="id" title="lemma">insertion_sort_sorted</span></a>. <span class="id" title="tactic">apply</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#Permutation_insertion_sort"><span class="id" title="lemma">Permutation_insertion_sort</span></a>.<br />
-<span class="id" title="keyword">Qed</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-<a name="lab2"></a><h1 class="section">Selection sort</h1>
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
-Next, we move to selection sort. This one is significantly harder and most stuff we define in this section will be used in the next section.
-
-<div class="paragraph"> </div>
-
-Before implementing the algorithm, we need some auxiliary functions. <span class="inlinecode"><span class="id" title="var">find_min_idx</span></span> is both used in selection sort and pancake sort. As you can imagine from the name, it returns index of one of the smallest elements in a list.
-
-<div class="paragraph"> </div>
-
-Note that it's very very hard to reason about this definition. The reason is that we're using index of a list, instead of head/tail of it. Simple induction-based proofs that we do before simply don't work on this definition.
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Fixpoint</span> <a name="find_min_idx_aux"><span class="id" title="definition">find_min_idx_aux</span></a> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<span class="id" title="var">min</span> <span class="id" title="var">min_idx</span> <span class="id" title="var">cur_idx</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> :=<br />
-&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a>     ⇒ <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#min_idx"><span class="id" title="variable">min_idx</span></a><br />
-&nbsp;&nbsp;| <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">t</span> ⇒ <span class="id" title="keyword">if</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Arith.Compare_dec.html#leb"><span class="id" title="definition">leb</span></a> <span class="id" title="var">h</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#min"><span class="id" title="variable">min</span></a> <span class="id" title="keyword">then</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#find_min_idx_aux"><span class="id" title="definition">find_min_idx_aux</span></a> <span class="id" title="var">t</span> <span class="id" title="var">h</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#cur_idx"><span class="id" title="variable">cur_idx</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#cur_idx"><span class="id" title="variable">cur_idx</span></a>)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#find_min_idx_aux"><span class="id" title="definition">find_min_idx_aux</span></a> <span class="id" title="var">t</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#min"><span class="id" title="variable">min</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#min_idx"><span class="id" title="variable">min_idx</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#cur_idx"><span class="id" title="variable">cur_idx</span></a>)<br />
-&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br />
-
-<br />
-<span class="id" title="keyword">Definition</span> <a name="find_min_idx"><span class="id" title="definition">find_min_idx</span></a> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> :=<br />
-&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a>     ⇒ 0<br />
-&nbsp;&nbsp;| <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">t</span> ⇒ <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#find_min_idx_aux"><span class="id" title="definition">find_min_idx_aux</span></a> <span class="id" title="var">t</span> <span class="id" title="var">h</span> 0 1<br />
-&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-An invariant of <span class="inlinecode"><span class="id" title="var">find_min_idx</span></span>:
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
- ***** Exercise: 1 star. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="find_min_idx_len_inv"><span class="id" title="lemma">find_min_idx_len_inv</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span> <span class="id" title="var">m</span> <span class="id" title="var">mi</span> <span class="id" title="var">ci</span> <span class="id" title="var">r</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#find_min_idx_aux"><span class="id" title="definition">find_min_idx_aux</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#mi"><span class="id" title="variable">mi</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#ci"><span class="id" title="variable">ci</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#r"><span class="id" title="variable">r</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#mi"><span class="id" title="variable">mi</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#ci"><span class="id" title="variable">ci</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#r"><span class="id" title="variable">r</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#ci"><span class="id" title="variable">ci</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#b3eea360671e1b32b18a26e15b3aace3"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Make sure you understand what it's saying. We need this lemma to eliminate some impossible cases in proofs.
-
-<div class="paragraph"> </div>
-
-We also need a "membership" predicate. This is used to express the idea of "for all elements in the list ...", which is expressed in Coq like <span class="inlinecode"><span class="id" title="keyword">∀</span></span> <span class="inlinecode"><span class="id" title="var">e</span>,</span> <span class="inlinecode"><span class="id" title="var">member</span></span> <span class="inlinecode"><span class="id" title="var">e</span></span> <span class="inlinecode"><span class="id" title="var">l</span></span> <span class="inlinecode">→</span> <span class="inlinecode">...</span>.
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Inductive</span> <a name="member"><span class="id" title="inductive">member</span></a> {<span class="id" title="var">A</span>} : <span class="id" title="var">A</span> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <span class="id" title="var">A</span> → <span class="id" title="keyword">Prop</span> :=<br />
-| <a name="Member_head"><span class="id" title="constructor">Member_head</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">e</span> <span class="id" title="var">l</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>)<br />
-| <a name="Member_tail"><span class="id" title="constructor">Member_tail</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">e</span> <span class="id" title="var">h</span> <span class="id" title="var">t</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a> → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Again, convince yourself that this really expresses that idea. Here's a property of member:
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
- ***** Exercise: 1 star. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="member_preserved_by_perm"><span class="id" title="lemma">member_preserved_by_perm</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">A</span> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>) <span class="id" title="var">l&acute;</span> <span class="id" title="var">e</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l&acute;"><span class="id" title="variable">l&acute;</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l&acute;"><span class="id" title="variable">l&acute;</span></a>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Now using <span class="inlinecode"><span class="id" title="var">member</span></span>, we can express correctness of <span class="inlinecode"><span class="id" title="var">find_min_idx</span></span> and prove it. Note that this is a very hard exercise. I couldn't solve it for a week, and even after that period I couldn't solve it without help from Coq IRC channel. Feel free to cheat by looking the source of this post.
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 5 stars. <span class="inlinecode"><span class="id" title="var">find_min_idx</span></span> really returns index of smallest element. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="find_min_idx_correct"><span class="id" title="lemma">find_min_idx_correct</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">n</span> <span class="id" title="var">l</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#find_min_idx"><span class="id" title="definition">find_min_idx</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#n"><span class="id" title="variable">n</span></a> →<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">e</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#nth"><span class="id" title="definition">nth</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> 0 <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Now, in selection sort, we run several operations on argument. One of them is <span class="inlinecode"><span class="id" title="var">find_min_idx</span></span> which we already defined. Another one of them is <span class="inlinecode"><span class="id" title="tactic">replace</span></span> operation, which replaces nth element in a list with given element. Here's a definition and some properties:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Fixpoint</span> <a name="replace"><span class="id" title="definition">replace</span></a> {<span class="id" title="var">A</span>} (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>) (<span class="id" title="var">idx</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<span class="id" title="var">e</span> : <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a> :=<br />
-&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a><br />
-&nbsp;&nbsp;| <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">t</span> ⇒<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#idx"><span class="id" title="variable">idx</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 0 ⇒ <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">t</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">idx&acute;</span> ⇒ <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#replace"><span class="id" title="definition">replace</span></a> <span class="id" title="var">t</span> <span class="id" title="var">idx&acute;</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br />
-&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 1 star. First part of correctness proof of <span class="inlinecode"><span class="id" title="tactic">replace</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="replace_nth"><span class="id" title="lemma">replace_nth</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span> <span class="id" title="var">i</span> <span class="id" title="var">e</span> <span class="id" title="var">l&acute;</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#replace"><span class="id" title="definition">replace</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l&acute;"><span class="id" title="variable">l&acute;</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#nth"><span class="id" title="definition">nth</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l&acute;"><span class="id" title="variable">l&acute;</span></a> 0 <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 1 star. Second part of correctness proof of <span class="inlinecode"><span class="id" title="tactic">replace</span></span>. <span class="inlinecode"><span class="id" title="tactic">replace</span></span> preserves length of the list. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="replace_len"><span class="id" title="lemma">replace_len</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">A</span> <span class="id" title="var">l</span> <span class="id" title="var">i</span> (<span class="id" title="var">e</span> : <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>),<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#replace"><span class="id" title="definition">replace</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Using <span class="inlinecode"><span class="id" title="tactic">replace</span></span>, we can define <span class="inlinecode"><span class="id" title="var">selection_sort</span></span>. Note that our naive implementation doesn't convince Coq that it terminates on all input. An easy workaround is to add a <span class="inlinecode"><span class="id" title="var">step</span></span> parameter. Observing that selection sort algorithm terminates in <span class="inlinecode"><span class="id" title="var">length</span></span> <span class="inlinecode"><span class="id" title="var">l</span></span> steps, where <span class="inlinecode"><span class="id" title="var">l</span></span> is the input, we can define this:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Fixpoint</span> <a name="selection_sort_aux"><span class="id" title="definition">selection_sort_aux</span></a> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<span class="id" title="var">step</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> :=<br />
-&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#step"><span class="id" title="variable">step</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;| 0       ⇒ <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a><br />
-&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">step&acute;</span> ⇒<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a>     ⇒ <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">t</span> ⇒<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#find_min_idx_aux"><span class="id" title="definition">find_min_idx_aux</span></a> <span class="id" title="var">t</span> <span class="id" title="var">h</span> 0 1 <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 0     ⇒ <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#selection_sort_aux"><span class="id" title="definition">selection_sort_aux</span></a> <span class="id" title="var">t</span> <span class="id" title="var">step&acute;</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">min</span> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#nth"><span class="id" title="definition">nth</span></a> <span class="id" title="var">min</span> <span class="id" title="var">t</span> 0 <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#selection_sort_aux"><span class="id" title="definition">selection_sort_aux</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#replace"><span class="id" title="definition">replace</span></a> <span class="id" title="var">t</span> <span class="id" title="var">min</span> <span class="id" title="var">h</span>) <span class="id" title="var">step&acute;</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br />
-&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br />
-
-<br />
-<span class="id" title="keyword">Definition</span> <a name="selection_sort"><span class="id" title="definition">selection_sort</span></a> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> := <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#selection_sort_aux"><span class="id" title="definition">selection_sort_aux</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-We have all we need to prove permutation property. It's still not easy though. I'm putting an extra lemma here as a tip.
-
-</div>
-<div class="code">
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 2 stars. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="replace_perm_head"><span class="id" title="lemma">replace_perm_head</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">n</span> <span class="id" title="var">h</span> <span class="id" title="var">t</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a>) (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#nth"><span class="id" title="definition">nth</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a> 0 <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#replace"><span class="id" title="definition">replace</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 3 stars. Use <span class="inlinecode"><span class="id" title="var">replace_perm_head</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Theorem</span> <a name="Permutation_selection_sort"><span class="id" title="lemma">Permutation_selection_sort</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span>, <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#selection_sort"><span class="id" title="definition">selection_sort</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Proving sorted property is again, not easy. I'm putting some lemmas as pointers. Lemmas are very easy to prove, leaving only the master theorem as a challange.
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
- ***** Exercise: 1 star. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="member_replace"><span class="id" title="lemma">member_replace</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">A</span> <span class="id" title="var">l</span> <span class="id" title="var">i</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>),<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#x"><span class="id" title="variable">x</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#replace"><span class="id" title="definition">replace</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#i"><span class="id" title="variable">i</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#y"><span class="id" title="variable">y</span></a>) →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#x"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#y"><span class="id" title="variable">y</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#7a45dffb109c3069e5c675be68643e60"><span class="id" title="notation">∨</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#x"><span class="id" title="variable">x</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 2 stars. Use <span class="inlinecode"><span class="id" title="var">member_replace</span></span> and <span class="inlinecode"><span class="id" title="var">find_min_idx_correct</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="swap_min_replace"><span class="id" title="lemma">swap_min_replace</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">h</span> <span class="id" title="var">t</span> <span class="id" title="var">min_idx</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#find_min_idx"><span class="id" title="definition">find_min_idx</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#min_idx"><span class="id" title="variable">min_idx</span></a> →<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">e</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#replace"><span class="id" title="definition">replace</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#min_idx"><span class="id" title="variable">min_idx</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a>) → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#nth"><span class="id" title="definition">nth</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#min_idx"><span class="id" title="variable">min_idx</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a> 0 <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 1 star. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="sorted_min_tail"><span class="id" title="lemma">sorted_min_tail</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">h</span> <span class="id" title="var">t</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a> →<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">e</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a> → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a>) →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 2 stars. Use <span class="inlinecode"><span class="id" title="var">member_preserved_by_perm</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="min_preserved_by_perm"><span class="id" title="lemma">min_preserved_by_perm</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">m</span> <span class="id" title="var">l</span> <span class="id" title="var">l&acute;</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l&acute;"><span class="id" title="variable">l&acute;</span></a> →<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">e</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a>) →<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">e</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l&acute;"><span class="id" title="variable">l&acute;</span></a> → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 4 stars. Selection sort returns sorted. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Theorem</span> <a name="selection_sort_sorted"><span class="id" title="lemma">selection_sort_sorted</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#selection_sort"><span class="id" title="definition">selection_sort</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 1 star. Show that selection sort is correct. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Theorem</span> <a name="selection_sort_correct"><span class="id" title="lemma">selection_sort_correct</span></a> : <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#Sorting_correct"><span class="id" title="inductive">Sorting_correct</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#selection_sort"><span class="id" title="definition">selection_sort</span></a>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-<a name="lab3"></a><h1 class="section">Pancake sort</h1>
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
-This is getting harder and harder. We'll define pancake sort in terms of <span class="inlinecode"><span class="id" title="var">rev_at</span></span> which reverses a list at given index and <span class="inlinecode"><span class="id" title="var">map_rest</span></span> which is like <span class="inlinecode"><span class="id" title="var">map</span></span>, but applies the function to the rest of the list.
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Fixpoint</span> <a name="rev_at"><span class="id" title="definition">rev_at</span></a> {<span class="id" title="var">A</span>} <span class="id" title="var">idx</span> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a> :=<br />
-&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#idx"><span class="id" title="variable">idx</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;| 0      ⇒ <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#rev"><span class="id" title="definition">rev</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a><br />
-&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">idx&acute;</span> ⇒<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a>     ⇒ <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">t</span> ⇒ <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#rev_at"><span class="id" title="definition">rev_at</span></a> <span class="id" title="var">idx&acute;</span> <span class="id" title="var">t</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br />
-&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br />
-
-<br />
-<span class="id" title="keyword">Fixpoint</span> <a name="map_rest_aux"><span class="id" title="definition">map_rest_aux</span></a> {<span class="id" title="var">A</span>} (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>) (<span class="id" title="var">f</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>) (<span class="id" title="var">timeout</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a> :=<br />
-&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#timeout"><span class="id" title="variable">timeout</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;| 0 ⇒ <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a><br />
-&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">timeout&acute;</span> ⇒<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#f"><span class="id" title="variable">f</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <span class="id" title="keyword">with</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#145bedf8a5d4a541831f3f70db03085c"><span class="id" title="notation">[]</span></a><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <span class="id" title="var">t</span> ⇒ <span class="id" title="var">h</span> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#map_rest_aux"><span class="id" title="definition">map_rest_aux</span></a> <span class="id" title="var">t</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#f"><span class="id" title="variable">f</span></a> <span class="id" title="var">timeout&acute;</span><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br />
-&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br />
-
-<br />
-<span class="id" title="keyword">Definition</span> <a name="map_rest"><span class="id" title="definition">map_rest</span></a> {<span class="id" title="var">A</span>} (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>) (<span class="id" title="var">f</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a> :=<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#map_rest_aux"><span class="id" title="definition">map_rest_aux</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#f"><span class="id" title="variable">f</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Two things to note: 1) <span class="inlinecode"><span class="id" title="var">rev_at</span></span> returns the original list if <span class="inlinecode"><span class="id" title="var">idx</span></span> is larger than <span class="inlinecode"><span class="id" title="var">length</span></span> <span class="inlinecode"><span class="id" title="var">l</span></span> <span class="inlinecode">-</span> <span class="inlinecode">1</span>. 2) <span class="inlinecode"><span class="id" title="var">map_rest</span></span> only works as expected if <span class="inlinecode"><span class="id" title="var">f</span></span> preserves length of it's argument in it's return value.
-
-<div class="paragraph"> </div>
-
-There's a very useful property that we need to show before showing that pancake sort returns a permutation: if <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode"><span class="id" title="var">l</span></span> returns a permutation, than <span class="inlinecode"><span class="id" title="var">map_rest</span></span> <span class="inlinecode"><span class="id" title="var">l</span></span> <span class="inlinecode"><span class="id" title="var">f</span></span> returns a permutation:
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
- ***** Exercise: 2 stars. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="Permutation_map_rest"><span class="id" title="lemma">Permutation_map_rest</span></a> :<br />
-&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <span class="id" title="var">A</span> (<span class="id" title="var">f</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a> → <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>),<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>), <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#f"><span class="id" title="variable">f</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>)) →<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>), <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#map_rest"><span class="id" title="definition">map_rest</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#f"><span class="id" title="variable">f</span></a>)).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Using this definition we can define pancake sort:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Definition</span> <a name="flip_pancakes"><span class="id" title="definition">flip_pancakes</span></a> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> :=<br />
-&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">min_idx</span> := <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#find_min_idx"><span class="id" title="definition">find_min_idx</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <span class="id" title="keyword">in</span><br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#rev_at"><span class="id" title="definition">rev_at</span></a> 0 (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#rev_at"><span class="id" title="definition">rev_at</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#min_idx"><span class="id" title="variable">min_idx</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-<span class="id" title="keyword">Definition</span> <a name="pancake_sort"><span class="id" title="definition">pancake_sort</span></a> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> := <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#map_rest"><span class="id" title="definition">map_rest</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#flip_pancakes"><span class="id" title="definition">flip_pancakes</span></a>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Showing permutation property is actually very easy. All we need is two simple lemmas:
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
- ***** Exercise: 2 stars. Use already included standard permutation lemmas. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="Permutation_rev_at"><span class="id" title="lemma">Permutation_rev_at</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">A</span> <span class="id" title="var">n</span> (<span class="id" title="var">l</span> : <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#A"><span class="id" title="variable">A</span></a>),<br />
-&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#rev_at"><span class="id" title="definition">rev_at</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 2 stars. Use transitivity of permutation and <span class="inlinecode"><span class="id" title="var">Permutation_rev_at</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="Permutation_flip_pancakes"><span class="id" title="lemma">Permutation_flip_pancakes</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span>, <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#flip_pancakes"><span class="id" title="definition">flip_pancakes</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 1 star. Use <span class="inlinecode"><span class="id" title="var">Permutation_flip_pancakes</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Theorem</span> <a name="Permutation_pancake_sort"><span class="id" title="lemma">Permutation_pancake_sort</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span>, <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#pancake_sort"><span class="id" title="definition">pancake_sort</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-Now the hard part. I needed a lot of lemmas for showing sorted property. I'm listing lemmas I used in no particular order.
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
- ***** Exercise: 2 stars. Smallest element is still smallest in a permutation. I found this a bit tricky. You may need to use another lemma we defined. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="min_permutation"><span class="id" title="lemma">min_permutation</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">e</span> <span class="id" title="var">l</span>,<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">e&acute;</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e&acute;"><span class="id" title="variable">e&acute;</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e&acute;"><span class="id" title="variable">e&acute;</span></a>) →<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">l&acute;</span>, <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Sorting.Permutation.html#Permutation"><span class="id" title="inductive">Permutation</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l&acute;"><span class="id" title="variable">l&acute;</span></a> →<br />
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">e&acute;</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e&acute;"><span class="id" title="variable">e&acute;</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l&acute;"><span class="id" title="variable">l&acute;</span></a> → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e"><span class="id" title="variable">e</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e&acute;"><span class="id" title="variable">e&acute;</span></a>)).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 1 star. <span class="inlinecode"><span class="id" title="var">flip_pancakes</span></span> preserves the length. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Theorem</span> <a name="flip_pancakes_len"><span class="id" title="lemma">flip_pancakes_len</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span>, <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#flip_pancakes"><span class="id" title="definition">flip_pancakes</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 4 stars. We can use <span class="inlinecode"><span class="id" title="var">rev_at</span></span> to move smallest element to the end of the list, and then to the beginning of the list. Very tricky. Feel free to cheat. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="rev_at_n"><span class="id" title="lemma">rev_at_n</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">n</span> <span class="id" title="var">l</span> <span class="id" title="var">h</span> <span class="id" title="var">t</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#989c98e7ddd65d5bf37c334ff2076de8"><span class="id" title="notation">&lt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#length"><span class="id" title="definition">length</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#rev_at"><span class="id" title="definition">rev_at</span></a> 0 (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#rev_at"><span class="id" title="definition">rev_at</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t"><span class="id" title="variable">t</span></a> →<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Lists.List.html#nth"><span class="id" title="definition">nth</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> 0.<br />
-
-<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 3 stars. <span class="inlinecode"><span class="id" title="var">flip_pancakes</span></span> moves smallest element to the head of the list. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <a name="flip_pancakes_min"><span class="id" title="lemma">flip_pancakes_min</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span> <span class="id" title="var">h&acute;</span> <span class="id" title="var">t&acute;</span>,<br />
-&nbsp;&nbsp;<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#flip_pancakes"><span class="id" title="definition">flip_pancakes</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Logic.html#1c39bf18749e5cc609e83c0a0ba5a372"><span class="id" title="notation">=</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h&acute;"><span class="id" title="variable">h&acute;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Datatypes.html#0a8150c3c4df34d205c5ed9a427e2ed5"><span class="id" title="notation">::</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t&acute;"><span class="id" title="variable">t&acute;</span></a> →<br />
-&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">e&acute;</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#member"><span class="id" title="inductive">member</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e&acute;"><span class="id" title="variable">e&acute;</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#t&acute;"><span class="id" title="variable">t&acute;</span></a> → <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#h&acute;"><span class="id" title="variable">h&acute;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/8.4pl6/stdlib/Coq.Init.Peano.html#9b077c369e19739ef880736ba34623ff"><span class="id" title="notation">≤</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#e&acute;"><span class="id" title="variable">e&acute;</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-***** Exercise: 4 stars. You need a lot of lemmas we defined before, and it's a very long proof. Still not as hard as <span class="inlinecode"><span class="id" title="var">find_min_idx_correct</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Theorem</span> <a name="pancake_sorted"><span class="id" title="lemma">pancake_sorted</span></a> : <span class="id" title="keyword">∀</span> <span class="id" title="var">l</span>, <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#sorted"><span class="id" title="inductive">sorted</span></a> (<a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#pancake_sort"><span class="id" title="definition">pancake_sort</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#l"><span class="id" title="variable">l</span></a>).<br />
-
-<br />
-</div>
-
-<div class="doc">
-
-<div class="paragraph"> </div>
-
-And finally, our master theorem:
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-
-<br />
-<span class="id" title="keyword">Theorem</span> <a name="pancake_sort_correct"><span class="id" title="lemma">pancake_sort_correct</span></a> : <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#Sorting_correct"><span class="id" title="inductive">Sorting_correct</span></a> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#pancake_sort"><span class="id" title="definition">pancake_sort</span></a>.<br />
-<span class="id" title="keyword">Proof</span>.<br />
-&nbsp;&nbsp;<span class="id" title="tactic">constructor</span>. <span class="id" title="tactic">intro</span>. <span class="id" title="tactic">split</span>. <span class="id" title="tactic">apply</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#pancake_sorted"><span class="id" title="lemma">pancake_sorted</span></a>. <span class="id" title="tactic">apply</span> <a class="idref" href="/posts/2014-09-08-proving-sorting-correct.html#Permutation_pancake_sort"><span class="id" title="lemma">Permutation_pancake_sort</span></a>.<br />
-<span class="id" title="keyword">Qed</span>.<br />
-
-<br />
-</div>
-
-<div class="doc">
-<a name="lab4"></a><h1 class="section">Notes and lessons learned</h1>
-
-<div class="paragraph"> </div>
-
-
-<div class="paragraph"> </div>
-
-Implementation of algorithms are not what you'd expect to have in an imperative language. Rather than mutable arrays with O(1) access, I used classic functional style, using persistent linked lists. While that doesn't affect runtime asymptotic complexities of sorting algorithms I used, it causes a lot of redundant allocations and worse iteration performance. Even the OCaml/Haskell extractions are not usable.
-
-<div class="paragraph"> </div>
-
-Still, proving on those purely functional definitions were very hard. The reason is that once you move away from basic "induction of subterm" style proofs, proving gets very hard very fast. Specifically, I found working on indexes and accumulators very hard.
-
-<div class="paragraph"> </div>
-
-As a next step, I'm hoping to define an imperative language in Coq, like IMP of Software Foundations but with mutable arrays, and prove same algorithms defined in that language correct.
-
-<div class="paragraph"> </div>
-
-
-</div>
-<div class="code">
-</div>
-]]></summary>
+<p>Definition of a “permutation” is defined in the [Permutation] library we’ve just included, and it comes with lots of very useful lemmas. I suggest you to go to [Permutation] library’s documentation(you can go to the docs by clicking [Permutation] link in the imports part above) and just skim through the definition and lemmas, and convince yourself that the definition is really enough to show that two lists are really a permutation.</p>
+<p>For being sorted, we need to define what does that mean.</p>
+<pre class="coq"><code>Inductive sorted : list nat -&gt; Prop :=
+| Sorted_nil : sorted []
+| Sorted_singleton : forall e, sorted [e]
+| Sorted_cons : forall e h t, sorted (h :: t) -&gt; e &lt;= h -&gt; sorted (e :: h :: t).
+(* begin hide *)
+Hint Constructors sorted.
+(* end hide *)</code></pre>
+<p>Again, convince yourself that <code>sorted l</code> really encodes what we intuitively know about being sorted. Main property that should hold for any <code>l</code> that is <code>sorted l</code> is that for any consecutive elements <code>a</code> and <code>b</code> in the list, <code>a &lt;= b</code> should hold, which our third constructor shows.</p>
+<p>Using <code>Permutation</code> and <code>sorted</code>, we can define what does being correct for a sorting algorithm mean:</p>
+<pre class="coq"><code>Inductive Sorting_correct (algo : list nat -&gt; list nat) :=
+| sorting_correct_intro :
+    (forall l, sorted (algo l) /\ Permutation l (algo l)) -&gt; Sorting_correct algo.</code></pre>
+<p>Note that in both definition of <code>sorted</code> and <code>Sorting_correct</code>, we used list of nats instead of any lists of ordered elements. This is really just to make definitions and proofs simpler. Generalization may be done as an exercise.</p>
+<p>Now with those definitions, we can prove our first and easiest-to-prove algorithm.</p>
+<h1 id="insertion-sort">Insertion sort</h1>
+<p>We define insertion sort as a right fold:</p>
+<pre class="coq"><code>Fixpoint insert (i : nat) (l : list nat) :=
+  match l with
+  | []     =&gt; [i]
+  | h :: t =&gt; if leb i h then i :: h :: t else h :: insert i t
+  end.
+
+Definition insertion_sort := fold_right insert [].
+(* begin hide *)
+Hint Unfold insertion_sort.
+(* end hide *)</code></pre>
+<p>Now if we could show that <code>insert h t</code> on list <code>h :: t</code> returns a permutation, we could easily show that insertion sort returns a permutation, because all it does is to call <code>insert</code> on list elements, using <code>fold_right</code>.</p>
+<pre class="coq"><code>(** ***** Exercise: 1 star. *)
+Lemma insert_perm : forall h t, Permutation (insert h t) (h :: t).
+(* begin hide *)
+Proof.
+  intros. induction t as [|h&#39; t&#39;]; auto.
+  simpl. destruct (leb h h&#39;); auto.
+  apply perm_trans with (h&#39; :: h :: t&#39;); auto. apply perm_swap.
+Qed.
+(* end hide *)
+
+(** *****
+  Exercise: 2 stars.
+  Use [insert_perm] and transitivity, symmetry and reflexivity of [Permutation]. *)
+Theorem Permutation_insertion_sort: forall l, Permutation l (insertion_sort l).
+(* begin hide *)
+Proof.
+  intros. induction l as [|h t]; auto.
+  assert (Permutation (h :: t) (h :: insertion_sort t)); auto.
+  simpl. rewrite H. rewrite insert_perm. reflexivity.
+Qed.
+(* end hide *)</code></pre>
+<p>To show that it returns sorted, we use a similar approach. We first show that if <code>sorted l</code>, then <code>sorted (insert e l)</code>. Empty and singleton lists are sorted by definition. Using these facts, we can easily prove that insertion sort really return sorted.</p>
+<pre class="coq"><code>(** *****
+  Exercise: 2 star.
+  You need to use some lemmas about [leb] that are already included. Use [SearchAbout leb]. *)
+Lemma insert_sorted_preserve : forall e l,
+  sorted l -&gt; sorted (insert e l).
+(* begin hide *)
+Proof.
+  intros e l h. induction h; simpl; auto with *.
+  + remember (leb e e0) as bh. symmetry in Heqbh. destruct bh.
+    - apply leb_complete in Heqbh. auto.
+    - apply leb_complete_conv in Heqbh. auto with *.
+  + simpl. remember (leb e e0) as bh. symmetry in Heqbh. destruct bh.
+     - apply leb_complete in Heqbh. auto.
+     - remember (leb e h) as bh&#39;. symmetry in Heqbh&#39;. destruct bh&#39;.
+       * apply leb_complete in Heqbh&#39;. apply leb_complete_conv in Heqbh. auto with *.
+       * apply leb_complete_conv in Heqbh. constructor; auto.
+         simpl in IHh. rewrite Heqbh&#39; in IHh. apply IHh.
+Qed.
+Hint Resolve insert_sorted_preserve.
+(* end hide *)
+
+(** ***** Exercise: 2 star. Use [insert_sorted_preserve]. *)
+Theorem insertion_sort_sorted : forall l, sorted (insertion_sort l).
+(* begin hide *)
+Proof.
+  intros. induction l as [|h t]; simpl; auto.
+Qed.
+(* end hide *)</code></pre>
+<p>With permutation and sorted properties proved, we can show that our insertion sort implementation is correct:</p>
+<pre class="coq"><code>Theorem insertion_sort_correct : Sorting_correct insertion_sort.
+Proof.
+  constructor. split. apply insertion_sort_sorted. apply Permutation_insertion_sort.
+Qed.</code></pre>
+<h1 id="selection-sort">Selection sort</h1>
+<p>Next, we move to selection sort. This one is significantly harder and most stuff we define in this section will be used in the next section.</p>
+<p>Before implementing the algorithm, we need some auxiliary functions. <code>find_min_idx</code> is both used in selection sort and pancake sort. As you can imagine from the name, it returns index of one of the smallest elements in a list.</p>
+<p>Note that it’s very very hard to reason about this definition. The reason is that we’re using index of a list, instead of head/tail of it. Simple induction-based proofs that we do before simply don’t work on this definition.</p>
+<pre class="coq"><code>Fixpoint find_min_idx_aux (l : list nat) (min min_idx cur_idx : nat) : nat :=
+  match l with
+  | []     =&gt; min_idx
+  | h :: t =&gt; if leb h min then find_min_idx_aux t h cur_idx (S cur_idx)
+                           else find_min_idx_aux t min min_idx (S cur_idx)
+  end.
+
+Definition find_min_idx (l : list nat) : nat :=
+  match l with
+  | []     =&gt; 0
+  | h :: t =&gt; find_min_idx_aux t h 0 1
+  end.</code></pre>
+<p>An invariant of <code>find_min_idx</code>:</p>
+<pre class="coq"><code>(** ***** Exercise: 1 star. *)
+Lemma find_min_idx_len_inv : forall l m mi ci r,
+  find_min_idx_aux l m mi ci = r -&gt;
+  mi &lt; ci -&gt;
+  r &lt; ci + length l.
+(* begin hide *)
+Proof.
+  induction l as [|h t].
+  + intros. simpl in H. omega.
+  + intros. simpl in *. destruct (leb h m); apply IHt in H; omega.
+Qed.
+(* end hide *)</code></pre>
+<p>Make sure you understand what it’s saying. We need this lemma to eliminate some impossible cases in proofs.</p>
+<p>We also need a “membership” predicate. This is used to express the idea of “for all elements in the list …”, which is expressed in Coq like <code>forall e, member e l -&gt; ...</code>.</p>
+<pre class="coq"><code>Inductive member {A} : A -&gt; list A -&gt; Prop :=
+| Member_head : forall e l, member e (e :: l)
+| Member_tail : forall e h t, member e t -&gt; member e (h :: t).
+(* begin hide *)
+Hint Constructors member.
+(* end hide *)</code></pre>
+<p>Again, convince yourself that this really expresses that idea. Here’s a property of member:</p>
+<pre class="coq"><code>(** ***** Exercise: 1 star. *)
+Lemma member_preserved_by_perm : forall A (l : list A) l&#39; e,
+  Permutation l l&#39; -&gt;
+  member e l -&gt;
+  member e l&#39;.
+(* begin hide *)
+Proof.
+  intros A l l&#39; e H. induction H; auto.
+  + intro. inversion H0; auto.
+  + intro. inversion H; auto. inversion H2; auto.
+Qed.
+(* end hide *)</code></pre>
+<p>Now using <code>member</code>, we can express correctness of <code>find_min_idx</code> and prove it. Note that this is a very hard exercise. I couldn’t solve it for a week, and even after that period I couldn’t solve it without help from Coq IRC channel. Feel free to cheat by looking the source of this post.</p>
+<pre class="coq"><code>(* begin hide *)
+Lemma find_min_idx_aux_ret_ge_mi :
+  forall l m mi ci r,
+    find_min_idx_aux l m mi ci = r -&gt;
+    mi &lt;= ci -&gt;
+    mi &lt;= r.
+Proof.
+  induction l as [|h t].
+  + intros. simpl in H. omega.
+  + intros. simpl in H. destruct (leb h m); apply IHt in H; omega.
+Qed.
+
+Lemma find_min_idx_aux_correct_same :
+  forall l m mi ci,
+    mi &lt; ci -&gt;
+    find_min_idx_aux l m mi ci = mi -&gt;
+    forall e,
+      member e l -&gt;
+      m &lt;= e.
+Proof.
+  intro. remember (length l) as len. generalize dependent l. induction len as [|len&#39;].
+  + intros. destruct l. inversion H1. inversion Heqlen.
+  + intros.
+    (* l should be in form h :: t with length t = len&#39; *)
+    destruct l as [|h t]; inversion Heqlen; clear Heqlen.
+
+    simpl in H0. destruct (leb h m) eqn: eq.
+    - pose proof (find_min_idx_aux_ret_ge_mi t h ci (S ci) mi H0).
+      assert (ci &lt;= S ci) by omega. apply H2 in H4. omega.
+    - inversion_clear H1.
+      * apply leb_complete_conv in eq. omega.
+      * apply IHlen&#39; with (l := t) (mi := mi) (ci := S ci); auto.
+Qed.
+
+Lemma find_min_idx_aux_cases :
+  forall l r m mi ci,
+    find_min_idx_aux l m mi ci = r -&gt;
+    r = mi \/ ci &lt;= r.
+Proof.
+  induction l as [|h t].
+  + intros. simpl in H. omega.
+  + intros. simpl in H. destruct (leb h m) eqn: eq.
+    - apply IHt in H. inversion H; right; omega.
+    - apply IHt in H. inversion H; auto. right. omega.
+Qed.
+
+Lemma find_min_idx_aux_correct_succ_le_min :
+  forall l n m mi ci,
+    find_min_idx_aux l m mi ci = n + ci -&gt;
+    mi &lt; ci -&gt;
+    nth n l 0 &lt;= m.
+Proof.
+  induction l as [|h t].
+  + intros. destruct n; simpl; omega.
+  + intros. simpl in H. destruct (leb h m) eqn: eq.
+    - destruct n as [|n&#39;].
+      * apply leb_complete in eq. auto.
+      * simpl. apply leb_complete in eq.
+        subst.  pose proof (IHt n&#39; h ci (S ci)).
+        assert (S n&#39; + ci = n&#39; + S ci) by omega.
+        rewrite H2 in H. apply H1 in H; omega.
+    - destruct n as [|n&#39;].
+      * apply find_min_idx_aux_cases in H. inversion H; omega.
+      * simpl. apply IHt with (mi := mi) (ci := S ci); omega.
+Qed.
+
+Lemma find_min_idx_aux_correct_succ :
+  forall l n m mi ci,
+    find_min_idx_aux l m mi ci = n + ci -&gt;
+    mi &lt; ci -&gt;
+    forall e,
+      member e l -&gt;
+      nth n l 0 &lt;= e.
+Proof.
+  induction l as [|h t].
+  + intros. inversion H1.
+  + intros. simpl in H. destruct (leb h m) eqn: eq.
+    - inversion_clear H1.
+      * simpl. destruct n as [|n&#39;]. reflexivity.
+        apply find_min_idx_aux_correct_succ_le_min with (mi := ci) (ci := S ci); omega.
+      * simpl. destruct n as [|n&#39;].
+        { apply find_min_idx_aux_correct_same with (l := t) (mi := ci) (ci := S ci);
+          try omega; auto. }
+        { apply IHt with (m := h) (mi := ci) (ci := S ci); try omega; auto. }
+    - inversion_clear H1.
+      * simpl. destruct n as [|n&#39;]. reflexivity.
+        assert (S n&#39; + ci = n&#39; + S ci) by omega. rewrite H1 in H; clear H1.
+        pose proof (find_min_idx_aux_correct_succ_le_min t n&#39; m mi (S ci) H).
+        assert (mi &lt; S ci) by omega. apply H1 in H2; clear H1.
+        SearchAbout leb. apply leb_complete_conv in eq. omega.
+      * simpl. destruct n as [|n&#39;].
+        { simpl in H. pose proof (find_min_idx_aux_cases t ci m mi (S ci) H).
+          inversion H1; omega. }
+        { apply IHt with (m := m) (mi := mi) (ci := S ci); try omega; auto. }
+Qed.
+(* end hide *)
+(** ***** Exercise: 5 stars. [find_min_idx] really returns index of smallest element. *)
+Lemma find_min_idx_correct : forall n l,
+  find_min_idx l = n -&gt;
+  (forall e, member e l -&gt; nth n l 0 &lt;= e).
+(* begin hide *)
+Proof.
+  destruct l as [|h t].
+  + intros. inversion H0.
+  + intros. destruct n as [|n&#39;].
+    - simpl in H. simpl. inversion H0.
+      * reflexivity.
+      * apply find_min_idx_aux_correct_same with (l := t) (mi := 0) (ci := 1); auto.
+    - simpl in H. simpl. inversion_clear H0.
+      * apply find_min_idx_aux_correct_succ_le_min with (mi := 0) (ci := 1); omega.
+      * apply find_min_idx_aux_correct_succ with (m := h) (mi := 0) (ci := 1); try omega; auto.
+Qed.
+(* end hide *)</code></pre>
+<p>Now, in selection sort, we run several operations on argument. One of them is <code>find_min_idx</code> which we already defined. Another one of them is <code>replace</code> operation, which replaces nth element in a list with given element. Here’s a definition and some properties:</p>
+<pre><code>Fixpoint replace {A} (l : list A) (idx : nat) (e : A) : list A :=
+  match l with
+  | [] =&gt; []
+  | h :: t =&gt;
+      match idx with
+      | 0 =&gt; e :: t
+      | S idx&#39; =&gt; h :: replace t idx&#39; e
+      end
+  end.
+
+(** ***** Exercise: 1 star. First part of correctness proof of [replace]. *)
+Lemma replace_nth : forall l i e l&#39;,
+  i &lt; length l -&gt;
+  replace l i e = l&#39; -&gt;
+  nth i l&#39; 0 = e.
+(* begin hide *)
+Proof.
+  induction l as [|h t]; intros.
+  + inversion H.
+  + simpl in *. destruct i as [|i&#39;]; subst; auto.
+    - apply lt_S_n in H. simpl. apply IHt; auto.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 1 star.
+    Second part of correctness proof of [replace]. [replace] preserves length of the list. *)
+Lemma replace_len : forall A l i (e : A),
+  i &lt; length l -&gt;
+  length l = length (replace l i e).
+(* begin hide *)
+Proof.
+  induction l as [|h t]; intros.
+  + inversion H.
+  + simpl in *. destruct i as [|i&#39;]; subst; auto.
+    - simpl. f_equal. apply IHt with (i := i&#39;) (e := e); auto; omega.
+Qed.
+(* end hide *)</code></pre>
+<p>Using <code>replace</code>, we can define <code>selection_sort</code>. Note that our naive implementation doesn’t convince Coq that it terminates on all input. An easy workaround is to add a <code>step</code> parameter. Observing that selection sort algorithm terminates in <code>length l</code> steps, where <code>l</code> is the input, we can define this:</p>
+<pre class="coq"><code>Fixpoint selection_sort_aux (l : list nat) (step : nat) : list nat :=
+  match step with
+  | 0       =&gt; l
+  | S step&#39; =&gt;
+      match l with
+      | []     =&gt; []
+      | h :: t =&gt;
+          match find_min_idx_aux t h 0 1 with
+          | 0     =&gt; h :: selection_sort_aux t step&#39;
+          | S min =&gt; nth min t 0 :: selection_sort_aux (replace t min h) step&#39;
+          end
+      end
+  end.
+
+Definition selection_sort (l : list nat) : list nat := selection_sort_aux l (length l).
+(* begin hide *)
+Hint Unfold selection_sort.
+(* end hide *)</code></pre>
+<p>We have all we need to prove permutation property. It’s still not easy though. I’m putting an extra lemma here as a tip.</p>
+<pre class="coq"><code>(* begin hide *)
+Lemma perm_cons_inside : forall A (a : A) b c d e,
+  Permutation (a :: b) (c :: d) -&gt;
+  Permutation (a :: e :: b) (c :: e :: d).
+Proof.
+  intros.
+  assert (Permutation (e :: a :: b) (a :: e :: b)) by constructor.
+  rewrite &lt;- H0.
+  assert (Permutation (c :: e :: d) (e :: c :: d)) by constructor.
+  rewrite H1. auto.
+Qed.
+(* end hide *)
+(** ***** Exercise: 2 stars. *)
+Lemma replace_perm_head : forall n h t,
+  n &lt; length t -&gt;
+  Permutation (h :: t) (nth n t 0 :: replace t n h).
+(* begin hide *)
+Proof.
+  induction n as [|n&#39;].
+  + intros. destruct t; simpl in *. omega. constructor.
+  + intros. destruct t as [|th tt]. inversion H.
+    assert (n&#39; &lt; length tt). { simpl in H. omega. } clear H. simpl.
+    pose proof IHn&#39; h tt H0.
+    apply perm_cons_inside. assumption.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 3 stars. Use [replace_perm_head]. *)
+Theorem Permutation_selection_sort : forall l, Permutation l (selection_sort l).
+(* begin hide *)
+Proof.
+  intro. remember (length l) as len. generalize dependent l.
+  induction len as [|len&#39;]; intros; destruct l; auto; inversion Heqlen; clear Heqlen.
+  unfold selection_sort in *. simpl. destruct (find_min_idx_aux l n 0 1) as [|n&#39;] eqn: ret; auto.
+
+  (* selection sort on (replace l n&#39; n) should return a permutation *)
+  pose proof IHlen&#39; (replace l n&#39; n).
+  (* .. but to show that, we first need to show that (replace l n&#39; n) has same length with l.
+     to be able to use [replace_len], we need to show [n&#39; &lt; length l] *)
+  apply find_min_idx_len_inv in ret. simpl in *. rewrite &lt;- H0 in ret.
+  assert (n&#39; &lt; length l) by omega; clear ret.
+  (* now we know [n&#39; &lt; length l], we can show [length (replace l n&#39; n) = length l]. *)
+  pose proof replace_len nat l n&#39; n H1. assert (len&#39; = length (replace l n&#39; n)) by omega.
+  (* show that recursive call returns a permutation *)
+  apply H in H3.
+
+  assert (Permutation (nth n&#39; l 0 :: selection_sort_aux (replace l n&#39; n) (length l))
+                      (nth n&#39; l 0 :: replace l n&#39; n)).
+  { apply perm_skip. rewrite H2. rewrite &lt;- H3. reflexivity. }
+
+  rewrite H4. apply replace_perm_head. auto. auto.
+Qed.
+(* end hide *)</code></pre>
+<p>Proving sorted property is again, not easy. I’m putting some lemmas as pointers. Lemmas are very easy to prove, leaving only the master theorem as a challange.</p>
+<pre class="coq"><code>(** ***** Exercise: 1 star. *)
+Lemma member_replace : forall A l i (x y : A),
+  member x (replace l i y) -&gt;
+  x = y \/ member x l.
+(* begin hide *)
+Proof.
+  intros A l. induction l as [|h t].
+  + intros. inversion H.
+  + intros. destruct i as [|i&#39;]; simpl in *; inversion H; auto.
+    subst. pose proof IHt i&#39; x y H2. inversion H0; auto.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 2 stars. Use [member_replace] and [find_min_idx_correct]. *)
+Lemma swap_min_replace : forall h t min_idx,
+  find_min_idx (h :: t) = S min_idx -&gt;
+  (forall e, member e (replace t min_idx h) -&gt; nth min_idx t 0 &lt;= e).
+(* begin hide *)
+Proof.
+  intros.
+  pose proof H0. apply member_replace in H0.
+  pose proof H. apply find_min_idx_correct with (e := e) in H2; auto.
+  inversion H0; subst; auto.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 1 star. *)
+Lemma sorted_min_tail : forall h t,
+  sorted t -&gt;
+  (forall e, member e t -&gt; h &lt;= e) -&gt;
+  sorted (h :: t).
+(* begin hide *)
+Proof.
+  intros. destruct t as [|ht tt]; auto.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 2 stars. Use [member_preserved_by_perm]. *)
+Lemma min_preserved_by_perm : forall m l l&#39;,
+  Permutation l l&#39; -&gt;
+  (forall e, member e l -&gt; m &lt;= e) -&gt;
+  (forall e, member e l&#39; -&gt; m &lt;= e).
+(* begin hide *)
+Proof.
+  intros m l l&#39; H. induction H; intros; auto.
+  + apply H0. apply member_preserved_by_perm with (l&#39; := x :: l) in H1.
+    - apply H1.
+    - constructor. apply Permutation_sym in H. apply H.
+  + apply member_preserved_by_perm with (l&#39; := y :: x :: l) in H0. auto. constructor.
+Qed.
+(* end hide *)
+
+
+(** ***** Exercise: 4 stars. Selection sort returns sorted. *)
+Theorem selection_sort_sorted : forall l, sorted (selection_sort l).
+(* begin hide *)
+Proof.
+  intro. remember (length l) as len. generalize dependent l.
+  induction len as [|len&#39;]; intros; destruct l; inversion Heqlen; clear Heqlen; auto.
+  unfold selection_sort. simpl. remember (find_min_idx_aux l n 0 1) as min_idx.
+  destruct min_idx as [|min_idx&#39;].
+  + symmetry in Heqmin_idx.
+    assert (0 &lt; 1) by omega. pose proof find_min_idx_aux_correct_same l n 0 1 H Heqmin_idx.
+    apply sorted_min_tail. apply IHlen&#39;. apply H0.
+    apply min_preserved_by_perm with (l := l). apply Permutation_selection_sort. apply H1.
+
+  + symmetry in Heqmin_idx. pose proof swap_min_replace.
+    unfold find_min_idx in H. pose proof H n l min_idx&#39; Heqmin_idx. clear H.
+
+    assert (length l = length (replace l min_idx&#39; n)).
+    { apply replace_len. apply find_min_idx_len_inv in Heqmin_idx; omega. }
+
+    assert (sorted (selection_sort_aux (replace l min_idx&#39; n) (length l))).
+    { unfold selection_sort in IHlen&#39;.
+      rewrite H. apply IHlen&#39;. rewrite H0. apply replace_len.
+      apply find_min_idx_len_inv in Heqmin_idx; omega.
+    }
+
+    assert (Permutation (replace l min_idx&#39; n)
+                        (selection_sort_aux (replace l min_idx&#39; n) (length l))).
+    { rewrite H. apply Permutation_selection_sort. }
+
+    apply sorted_min_tail. auto. intros.
+
+    pose proof min_preserved_by_perm
+                (nth min_idx&#39; l 0)
+                (replace l min_idx&#39; n)
+                (selection_sort_aux (replace l min_idx&#39; n) (length l)) H3 H1. auto.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 1 star. Show that selection sort is correct. *)
+Theorem selection_sort_correct : Sorting_correct selection_sort.
+(* begin hide *)
+Proof.
+  constructor. intros. split. apply selection_sort_sorted. apply Permutation_selection_sort.
+Qed.
+(* end hide *)</code></pre>
+<h1 id="pancake-sort">Pancake sort</h1>
+<p>This is getting harder and harder. We’ll define pancake sort in terms of <code>rev_at</code> which reverses a list at given index and <code>map_rest</code> which is like <code>map</code>, but applies the function to the rest of the list.</p>
+<pre class="coq"><code>Fixpoint rev_at {A} idx (l : list A) : list A :=
+  match idx with
+  | 0      =&gt; rev l
+  | S idx&#39; =&gt;
+      match l with
+      | []     =&gt; []
+      | h :: t =&gt; h :: rev_at idx&#39; t
+      end
+  end.
+
+Fixpoint map_rest_aux {A} (l : list A) (f : list A -&gt; list A) (timeout : nat) : list A :=
+  match timeout with
+  | 0 =&gt; l
+  | S timeout&#39; =&gt;
+      match f l with
+      | [] =&gt; []
+      | h :: t =&gt; h :: map_rest_aux t f timeout&#39;
+      end
+  end.
+
+Definition map_rest {A} (l : list A) (f : list A -&gt; list A) : list A :=
+  map_rest_aux l f (length l).</code></pre>
+<p>Two things to note: 1) <code>rev_at</code> returns the original list if <code>idx</code> is larger than <code>length l - 1</code>. 2) <code>map_rest</code> only works as expected if <code>f</code> preserves length of it’s argument in it’s return value.</p>
+<p>There’s a very useful property that we need to show before showing that pancake sort returns a permutation: if <code>f l</code> returns a permutation, than <code>map_rest l f</code> returns a permutation:</p>
+<pre class="coq"><code>(** ***** Exercise: 2 stars. *)
+Lemma Permutation_map_rest :
+  forall A (f : list A -&gt; list A),
+  (forall (l : list A), Permutation l (f l)) -&gt;
+  (forall (l : list A), Permutation l (map_rest l f)).
+(* begin hide *)
+Proof.
+  intros. remember (length l) as n. symmetry in Heqn. generalize dependent l. induction n as [|n&#39;].
+  + intros. destruct l. constructor. inversion Heqn.
+  + intros. destruct l.
+    - inversion Heqn.
+    - inversion Heqn; clear Heqn.
+      unfold map_rest. simpl. destruct (f (a :: l)) as [|h t] eqn: Heqret.
+      * pose proof H (a :: l). rewrite Heqret in H0. apply H0.
+      * pose proof H (a :: l). rewrite Heqret in H0.
+        apply Permutation_trans with (l   := a :: l)
+                                     (l&#39;  := h :: t)
+                                     (l&#39;&#39; := h :: map_rest_aux t f (length l)); auto.
+        apply perm_skip. unfold map_rest in IHn&#39;.
+        apply Permutation_length in H0. inversion H0. rewrite H3.
+        apply IHn&#39; with (l := t).
+        rewrite &lt;- H3. apply H1.
+Qed.
+(* end hide *)</code></pre>
+<p>Using this definition we can define pancake sort:</p>
+<pre class="coq"><code>Definition flip_pancakes (l : list nat) : list nat :=
+  let min_idx := find_min_idx l in
+  rev_at 0 (rev_at min_idx l).
+
+Definition pancake_sort (l : list nat) : list nat := map_rest l flip_pancakes.</code></pre>
+<p>Showing permutation property is actually very easy. All we need is two simple lemmas:</p>
+<pre class="coq"><code>(** ***** Exercise: 2 stars. Use already included standard permutation lemmas. *)
+Lemma Permutation_rev_at : forall A n (l : list A),
+  Permutation l (rev_at n l).
+(* begin hide *)
+Proof.
+  intros. generalize dependent n. induction l.
+  + destruct n; constructor.
+  + destruct n as [|n&#39;].
+    - simpl. rewrite Permutation_cons_append. apply Permutation_app_tail. apply Permutation_rev.
+    - simpl. apply Permutation_cons. apply IHl.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 2 stars. Use transitivity of permutation and [Permutation_rev_at]. *)
+Lemma Permutation_flip_pancakes : forall l, Permutation l (flip_pancakes l).
+(* begin hide *)
+Proof.
+  intro. unfold flip_pancakes.
+  apply perm_trans with
+    (l   := l)
+    (l&#39;  := rev_at (find_min_idx l) l)
+    (l&#39;&#39; := rev_at 0 (rev_at (find_min_idx l) l)); apply Permutation_rev_at.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 1 star. Use [Permutation_flip_pancakes]. *)
+Theorem Permutation_pancake_sort : forall l, Permutation l (pancake_sort l).
+(* begin hide *)
+Proof.
+  intros. induction l as [|h t].
+  + auto.
+  + unfold pancake_sort. unfold map_rest. apply Permutation_map_rest.
+    intros. apply Permutation_flip_pancakes.
+Qed.
+(* end hide *)</code></pre>
+<p>Now the hard part. I needed a lot of lemmas for showing sorted property. I’m listing lemmas I used in no particular order.</p>
+<pre class="coq"><code>(** ***** Exercise: 2 stars.
+    Smallest element is still smallest in a permutation.
+    I found this a bit tricky. You may need to use another lemma we defined. *)
+Lemma min_permutation : forall e l,
+  (forall e&#39;, member e&#39; l -&gt; e &lt;= e&#39;) -&gt;
+  (forall l&#39;, Permutation l l&#39; -&gt;
+    (forall e&#39;, member e&#39; l&#39; -&gt; e &lt;= e&#39;)).
+(* begin hide *)
+Proof.
+  (* tricky part is to see what lemma do you need *)
+  intros. apply member_preserved_by_perm with (l&#39; := l) in H1.
+  + auto.
+  + apply Permutation_sym in H0. apply H0.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 1 star. [flip_pancakes] preserves the length. *)
+Theorem flip_pancakes_len : forall l, length l = length (flip_pancakes l).
+(* begin hide *)
+Proof.
+  intros. apply Permutation_length. apply Permutation_flip_pancakes.
+Qed.
+(* end hide *)
+
+(* begin hide *)
+Lemma rev_at_1 : forall A n (l : list A),
+  rev_at n l = firstn n l ++ rev (skipn n l).
+Proof.
+  intros. generalize dependent n. induction l as [|h t].
+  + intros. destruct n; auto.
+  + intros. destruct n as [|n&#39;].
+    - reflexivity.
+    - simpl. f_equal. apply IHt.
+Qed.
+
+Lemma skipn_head : forall n l h t,
+  skipn n l = h :: t -&gt; nth n l 0 = h.
+Proof.
+  intros n l. generalize dependent n. induction l.
+  + intros. destruct n; inversion H.
+  + intros. destruct n as [|n&#39;].
+    - simpl in *. inversion H. reflexivity.
+    - simpl in *. apply IHl with (t := t). apply H.
+Qed.
+
+Lemma skipn_list : forall A n (l : list A),
+  n &lt; length l -&gt;
+  exists h t, skipn n l = h :: t.
+Proof.
+  intros. generalize dependent n. induction l.
+  + intros. destruct n; inversion H.
+  + intros. destruct n.
+    - eexists. eexists. simpl. auto.
+    - assert (n &lt; length l). { inversion H; omega. }
+      pose proof IHl n H0. inversion H1. inversion H2. exists x. exists x0. auto.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 4 stars.
+    We can use [rev_at] to move smallest element to the end of the list,
+    and then to the beginning of the list. Very tricky. Feel free to cheat. *)
+Lemma rev_at_n : forall n l h t,
+  n &lt; length l -&gt;
+  rev_at 0 (rev_at n l) = h :: t -&gt;
+  h = nth n l 0.
+(* begin hide *)
+Proof.
+  intros. rewrite rev_at_1 in H0. simpl in H0. rewrite rev_at_1 in H0.
+  rewrite rev_app_distr in H0. rewrite rev_involutive in H0.
+  (* [skipn n l] should be in form [a :: b]. *)
+  pose proof skipn_list nat n l H. inversion_clear H1. inversion_clear H2. rewrite H1 in H0.
+  assert (x = h). { simpl in H0. inversion H0. reflexivity. }
+  subst. pose proof skipn_head n l h x0 H1. auto.
+Qed.
+(* end hide *)
+
+(* begin hide *)
+Lemma find_min_idx_len : forall n l,
+  find_min_idx l = n -&gt;
+  l = [] \/ n &lt; length l.
+Proof.
+  intros. induction l as [|h t].
+  + auto.
+  + right. simpl in *. pose proof find_min_idx_len_inv t h 0 1 n H. auto.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 3 stars. [flip_pancakes] moves smallest element to the head of the list. *)
+Lemma flip_pancakes_min : forall l h&#39; t&#39;,
+  flip_pancakes l = h&#39; :: t&#39; -&gt;
+  (forall e&#39;, member e&#39; t&#39; -&gt; h&#39; &lt;= e&#39;).
+(* begin hide *)
+Proof.
+  intros.
+  pose proof (Permutation_flip_pancakes l). rewrite H in H1.
+  unfold flip_pancakes in H. apply rev_at_n in H.
+  + remember (find_min_idx l) as min.
+    symmetry in Heqmin. pose proof (find_min_idx_correct min l Heqmin).
+    pose proof (min_preserved_by_perm (nth min l 0) l (h&#39; :: t&#39;) H1 H2). rewrite &lt;- H in H3. auto.
+  + destruct l. apply Permutation_nil in H1. inversion H1.
+    pose proof find_min_idx_len (find_min_idx (n :: l)) (n :: l).
+    assert (find_min_idx (n :: l) = find_min_idx (n :: l)) by reflexivity.
+    apply H2 in H3. inversion H3.
+    - inversion H4.
+    - omega.
+Qed.
+(* end hide *)
+
+(** ***** Exercise: 4 stars.
+    You need a lot of lemmas we defined before, and it&#39;s a very long proof.
+    Still not as hard as [find_min_idx_correct]. *)
+Theorem pancake_sorted : forall l, sorted (pancake_sort l).
+(* begin hide *)
+Proof.
+  intro. remember (length l) as len. generalize dependent l. induction len.
+  + intros. destruct l. constructor. inversion Heqlen.
+  + intros. destruct l as [|h t].
+    - inversion Heqlen.
+    - unfold pancake_sort in *. unfold map_rest in *. simpl.
+      destruct (flip_pancakes (h :: t)) eqn: ret.
+      * pose proof (flip_pancakes_len (h :: t)). rewrite ret in H. inversion H.
+      * (* clean up the goal a bit, we want `sorted (n :: pancake_sort l)` *)
+        assert (length l = length t) as leq.
+        { pose proof (flip_pancakes_len (h :: t)). rewrite ret in H. inversion H. reflexivity. }
+        rewrite &lt;- leq. clear leq.
+
+        (* fold pancake_sort *)
+        assert (map_rest_aux l flip_pancakes (length l) = pancake_sort l); auto.
+        rewrite H. clear H.
+
+        (* we can use inductive hypothesis to show pancake_sort l returns sorted *)
+        assert (sorted (pancake_sort l)).
+        { pose proof (flip_pancakes_len (h :: t)).
+          rewrite ret in H. inversion H. inversion Heqlen. rewrite H1 in H2.
+          pose proof (IHlen l H2). apply H0. }
+
+        (* since n :: l = flip_pancakes (h :: t), n is smaller or equal than any element in l.
+           we also know that pancake_sort returns a permutation.
+           using that we can prove our goal. *)
+
+        pose proof (flip_pancakes_min (h :: t) n l ret) as Nsmallest.
+
+        destruct (pancake_sort l) as [|sh st] eqn: ret&#39;.
+        { constructor. }
+        { (* n should be smallest in sorted version too *)
+          pose proof (Permutation_pancake_sort l). rewrite ret&#39; in H0.
+          apply min_permutation with (e := n) (e&#39; := sh) in H0.
+          + constructor. assumption. omega.
+          + apply Nsmallest.
+          + constructor.
+        }
+Qed.
+(* end hide *)</code></pre>
+<p>And finally, our master theorem:</p>
+<pre class="coq"><code>Theorem pancake_sort_correct : Sorting_correct pancake_sort.
+Proof.
+  constructor. intro. split. apply pancake_sorted. apply Permutation_pancake_sort.
+Qed.</code></pre>
+<h1 id="notes-and-lessons-learned">Notes and lessons learned</h1>
+<p>Implementation of algorithms are not what you’d expect to have in an imperative language. Rather than mutable arrays with O(1) access, I used classic functional style, using persistent linked lists. While that doesn’t affect runtime asymptotic complexities of sorting algorithms I used, it causes a lot of redundant allocations and worse iteration performance. Even the OCaml/Haskell extractions are not usable.</p>
+<p>Still, proving on those purely functional definitions were very hard. The reason is that once you move away from basic “induction of subterm” style proofs, proving gets very hard very fast. Specifically, I found working on indexes and accumulators very hard.</p>
+<p>As a next step, I’m hoping to define an imperative language in Coq, like IMP of Software Foundations but with mutable arrays, and prove same algorithms defined in that language correct.</p>]]></summary>
 </entry>
 <entry>
     <title>Coq exercises for beginners</title>
@@ -1428,14 +1202,13 @@ Proof.
   induction n using nat10ind; auto.
   simpl. f_equal. assumption.
 Qed.</code></pre>
-<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
-<hr />
-<div class="footnotes">
+<p>One thing that I found weird in <code>nat10ind</code> definition is that the expression <code>match goal with ...</code> is kind of special in that <code>goal</code> is not an identifier that represents some part of the context. Rather, <code>match goal with ...</code> is a special syntax to pattern match against the whole context, with hypothesis and goals<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>. <code>H : _ /\ _ |- _</code> part is then matching for any hypothesis with form <code>_ /\ _</code> and binding it to <code>H</code>, ignoring the current goal(RHS of turnstile shown as <code>|-</code>).</p>
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>See <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual011.html#sec447">tacexpr_1 production</a> of Coq expression syntax in reference manual for details.<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p>See <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual011.html#sec447">tacexpr_1 production</a> of Coq expression syntax in reference manual for details.<a href="#fnref1" class="footnote-back">↩</a></p></li>
 </ol>
-</div>]]></summary>
+</section>]]></summary>
 </entry>
 <entry>
     <title>Proving soundness of simply typed multi-staged lambda-calculus</title>

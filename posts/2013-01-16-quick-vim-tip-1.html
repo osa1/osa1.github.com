@@ -24,27 +24,20 @@
 <p>I almost always work in fullscreen, and when I do that, text in vim starts just where my laptop monitor’s frame ends and it’s really annoying. And even if I don’t use vim in fullscreen, generally I want some margin(empty space) on the left side of vim window.</p>
 <p>One way to achieve this is enabling line numbers. But I don’t like this solution because line numbers cause unnecessary noise in the screen.</p>
 <p>As a solution, I was using <code>foldcolumn</code>, which, like line numbers, puts some space on the left side to show some folding information. It’s a nice solution if you never use folding in your code, and I wasn’t using folding in my code, but now I’m using folding and foldcolumn looks horrible:</p>
-<div class="figure">
-<img src="../images/vimtip1/foldmethodmarker1.png" />
-
-</div>
+<p><img src="../images/vimtip1/foldmethodmarker1.png" /></p>
 <p>A nasty trick to make this folding guides hidden is making folding guides’ foreground and background color the same, and same as you colorscheme’s background color:</p>
 <pre class="vimscript"><code>autocmd Colorscheme * highlight FoldColumn guifg=bg guibg=bg</code></pre>
 <p>Put this in your .vimrc, somewhere before setting your colorscheme(ie. before <code>colorscheme ...</code> line) and whenever you change color colorscheme, foldcolumn’s colors will be set and folding guides will be hidden.</p>
-<div class="figure">
-<img src="../images/vimtip1/foldmethodmarker2.png" />
-
-</div>
+<p><img src="../images/vimtip1/foldmethodmarker2.png" /></p>
 <p>How does it work: <code>bg</code> and <code>fg</code> are two special variables that will be set by vim automagically whenever you set <code>Normal</code> colors by calling <code>:highlight Normal [options]</code> and all colorschemes do that because that’s the way to set vim’s background color and default text color.</p>
 <p><code>autocmd Colorscheme *</code> makes this command run whenever you set your colorscheme by calling <code>:colorscheme ...</code> command. And now you have clear left margin. Enjoy.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

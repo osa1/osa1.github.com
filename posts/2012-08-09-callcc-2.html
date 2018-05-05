@@ -25,22 +25,20 @@
 <p><code>call/cc</code> bu özelliklerden biri, hakkında buralarda birşeyler yazmıştım. <code>call/cc</code> benim gözümde, birazdan bahsedeceğim yazıdaki tabiriyle, “ultimate abstraction of control” idi. Kendi dilime de call/cc’yi programın kontrol akışı üzerinde değişiklikler gerektiren yapıları implement etmek için kullnacaktım.</p>
 <p>Bugün internetteki favori sayfalarımdan <a href="http://okmij.org/ftp/">okmij</a>de <a href="http://okmij.org/ftp/continuations/against-callcc.html">“An argument against call/cc”</a> adlı yazıya denk geldim. Meraklısı olan varsa kaçırmasın.</p>
 <p>call/cc’nin neden kötü bir soyutlama olduğunu 7 madde halinde incelemiş. Benim anladığım, tüm bu problemleri delimited continuationlarla çözebiliriz. Delimited continuationlara giriş için <a href="http://pllab.is.ocha.ac.jp/~asai/cw2011tutorial/main-e.pdf">Introduction to Programming with Shift and Reset</a>e bakabilirsiniz. Ben epey anlaşılır buldum(OchaCaml’ı yükleyip denemedim gerçi, içinde yama uygulamayı da içeren birkaç maddelik kurulum komutu var, şaka gibi). Bir maddede <code>dynamic-wind</code>den bahsetmiş. <code>dynamic-wind</code> ile ilk kez bu yazıda karşılaştım, ve anladığım kadarıyla delimited continuationlar buna olan ihtiyacı ortadan kaldırmıyor. Sonuçta örneğin bir dosyaya erişim yapıldığı durumda, continuation dosyanın referansını içerecektir ve daha sonradan bu continuation kullnıldığında, delimited olsa da olmasa da, aynı kaynakların alınıp(dosyanın açılması, sunucuya bağlanılması vs.), işlem sonrasında kapatılması gerekir.</p>
-<p>Static bir tip sistemi ve lexical scope ile call/cc implementasyonu benim için zaten yeterince zor bir problem. Belki de tamamen kaldırıp, Lua usulü biraz daha genelleştirilmiş generatorlar<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>ile yola devam etmeliyim.</p>
-<hr />
-<div class="footnotes">
+<p>Static bir tip sistemi ve lexical scope ile call/cc implementasyonu benim için zaten yeterince zor bir problem. Belki de tamamen kaldırıp, Lua usulü biraz daha genelleştirilmiş generatorlar<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>ile yola devam etmeliyim.</p>
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p><a href="http://dl.acm.org/citation.cfm?id=1462167&amp;CFID=125136476&amp;CFTOKEN=41020401">Revisiting coroutines</a><a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p><a href="http://dl.acm.org/citation.cfm?id=1462167&amp;CFID=125136476&amp;CFTOKEN=41020401">Revisiting coroutines</a><a href="#fnref1" class="footnote-back">↩</a></p></li>
 </ol>
-</div>
+</section>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

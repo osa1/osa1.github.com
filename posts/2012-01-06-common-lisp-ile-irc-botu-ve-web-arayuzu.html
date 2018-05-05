@@ -22,19 +22,15 @@
 <p><strong>January  6, 2012</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
 
 <p>Tamamen Common Lisp ile basit bir IRC botu ve web arayüzünün nasıl yazılabileceğinden bahsedeceğim biraz. Web kısmında web server dahil herşey yine Common Lisp ile yazılmış olacak.</p>
-<div class="figure">
-<img src="../images/made-with-lisp-logo.jpg" />
-
-</div>
+<p><img src="../images/made-with-lisp-logo.jpg" /></p>
 <p>Gistler: <a href="https://gist.github.com/1570375">arayüz</a> <a href="https://gist.github.com/1566862">bot</a></p>
 <p>Öncelikle botun ne yapacağına karar verelim, benim amacım çalışan en minimal botu yazmak. Daha sonra üzerine istediğimiz özelliği ekleyebiliriz. Bu yüzden şimdilik sadece bağlandığı kanalları ve kendisine atılan özel mesajları kaydedip, bir web sayfasında yayınlayacak.</p>
-<div class="figure">
-<img src="../images/bot-web-ui.png" alt="/images/bot-web-ui.png" />
-<p class="caption">/images/bot-web-ui.png</p>
-</div>
+<figure>
+<img src="../images/bot-web-ui.png" alt="/images/bot-web-ui.png" /><figcaption>/images/bot-web-ui.png</figcaption>
+</figure>
 <p>Öncelikle IRC sunucusuna bağlanabilmemiz için bir socket kütüphanesine ihtiyacımız var(evet Common Lisp standardı socket içermiyor). Bu iş için <a href="http://common-lisp.net/project/usocket/">usocket</a>’i seçtim(uğraşacak olan varsa bir diğer alternatif de <a href="http://common-lisp.net/project/iolib/">iolib</a>, fakat ikisi için de işe yarar dökümantasyon yok dolayısıyla her türlü yolumuzu kendimiz bulmamız gerek).</p>
 <p>Programımızın ana döngüsü gayet basit:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> run </span>()
+<div class="sourceCode" id="cb1"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> run </span>()
   (<span class="kw">let*</span> ((socket (socket-connect <span class="st">&quot;irc.freenode.org&quot;</span> <span class="dv">8001</span>))
          (socket-stream (socket-stream socket))
          (start-time (<span class="kw">get-universal-time</span>)))
@@ -43,13 +39,13 @@
         (<span class="kw">format</span> <span class="kw">t</span> <span class="st">&quot;~A~%&quot;</span> msg) <span class="co">;; debug ve gozetleme amacli</span>
         (<span class="kw">multiple-value-bind</span> (prefix command params) (parse-msg msg)
           (handle-command prefix (<span class="kw">intern</span> (<span class="kw">string-upcase</span> command)) params socket-stream)))
-      (<span class="kw">let</span> ((time-passed (<span class="kw">-</span> (<span class="kw">get-universal-time</span>) start-time)))
-        (<span class="kw">when</span> (<span class="kw">&gt;</span> time-passed (<span class="kw">*</span> <span class="dv">1</span> <span class="dv">30</span>))
+      (<span class="kw">let</span> ((time-passed (<span class="op">-</span> (<span class="kw">get-universal-time</span>) start-time)))
+        (<span class="kw">when</span> (<span class="op">&gt;</span> time-passed (<span class="op">*</span> <span class="dv">1</span> <span class="dv">30</span>))
           (update-html)
-          (<span class="kw">setf</span> start-time (<span class="kw">get-universal-time</span>)))))))</code></pre>
-<p>Bir socket oluşturup Freenode sunucularına bağlanıyoruz. Socket’e yazma ve socket’den okuma işlemlerini socket’in stream’ine yapacağız<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> <code>read-line</code> ile sunucudan her seferinde bir tam satır okuyoruz ve <code>parse-msg</code>a gönderiyoruz. <code>parse-msg</code> gelen mesajı <a href="http://www.irchelp.org/irchelp/rfc/rfc.html">IRC RFC</a>’de belirtilen mesaj formatında göre <code>prefix</code>, <code>command</code> ve <code>params</code> olarak 3 parçaya bölüyor ve Common Lisp’in <code>values</code> özel formu ile bunları dönüyor<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> Daha sonra bu parçaları <code>handle-command</code> generic fonksiyonuna gönderiyoruz. <code>handle-command</code> <code>command</code> parametresine göre gerekli dispatch fonksiyonunu çağırıyor<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> Daha basit olamazdı. Son olarak yeterli vakit geçtiyse(ben 30 saniyede bir güncelliyordum sık sık debug ile uğraştığımdan), static html sayfalarını güncelleyecek olan <code>update-html</code>i çağırıyoruz. Burda zamanı çok da düzgün tutmadığımıza dikkat. Eğer socket’den 10 dakika yanıt gelmezse 30 saniyede bir de güncelliyor olsak 10 dakika beklemek zorundayız<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
+          (<span class="kw">setf</span> start-time (<span class="kw">get-universal-time</span>)))))))</code></pre></div>
+<p>Bir socket oluşturup Freenode sunucularına bağlanıyoruz. Socket’e yazma ve socket’den okuma işlemlerini socket’in stream’ine yapacağız<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> <code>read-line</code> ile sunucudan her seferinde bir tam satır okuyoruz ve <code>parse-msg</code>a gönderiyoruz. <code>parse-msg</code> gelen mesajı <a href="http://www.irchelp.org/irchelp/rfc/rfc.html">IRC RFC</a>’de belirtilen mesaj formatında göre <code>prefix</code>, <code>command</code> ve <code>params</code> olarak 3 parçaya bölüyor ve Common Lisp’in <code>values</code> özel formu ile bunları dönüyor<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a> Daha sonra bu parçaları <code>handle-command</code> generic fonksiyonuna gönderiyoruz. <code>handle-command</code> <code>command</code> parametresine göre gerekli dispatch fonksiyonunu çağırıyor<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a> Daha basit olamazdı. Son olarak yeterli vakit geçtiyse(ben 30 saniyede bir güncelliyordum sık sık debug ile uğraştığımdan), static html sayfalarını güncelleyecek olan <code>update-html</code>i çağırıyoruz. Burda zamanı çok da düzgün tutmadığımıza dikkat. Eğer socket’den 10 dakika yanıt gelmezse 30 saniyede bir de güncelliyor olsak 10 dakika beklemek zorundayız<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a></p>
 <p>Mesajları parçalara ayıran fonksiyonumuz şöyle:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> parse-msg </span>(msg)
+<div class="sourceCode" id="cb2"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> parse-msg </span>(msg)
   <span class="st">&quot;Parse irc message to prefix, command and params.</span>
 <span class="st">http://www.irchelp.org/irchelp/rfc/chapter2.html#c2_3_1</span>
 <span class="st">&lt;message&gt; ::=</span>
@@ -63,38 +59,38 @@
 <span class="st">&quot;</span>
   (<span class="kw">let*</span> ((first-space (<span class="kw">position</span> <span class="ch">#\s</span>pace msg))
          (<span class="kw">first</span> (<span class="kw">subseq</span> msg <span class="dv">0</span> first-space))
-         (<span class="kw">rest</span> (<span class="kw">subseq</span> msg (<span class="kw">1+</span> first-space)))
+         (<span class="kw">rest</span> (<span class="kw">subseq</span> msg (<span class="op">1+</span> first-space)))
          (prefix (<span class="kw">if</span> (<span class="kw">eq</span> (<span class="kw">elt</span> <span class="kw">first</span> <span class="dv">0</span>) <span class="ch">#\:</span>)
                      (<span class="kw">subseq</span> <span class="kw">first</span> <span class="dv">1</span>)
                      <span class="kw">nil</span>))
          (second-space (<span class="kw">position</span> <span class="ch">#\s</span>pace <span class="kw">rest</span>)))
     (<span class="kw">if</span> prefix
         (<span class="kw">let</span> ((command (<span class="kw">subseq</span> <span class="kw">rest</span> <span class="dv">0</span> second-space))
-              (params (<span class="kw">subseq</span> <span class="kw">rest</span> (<span class="kw">1+</span> second-space))))
+              (params (<span class="kw">subseq</span> <span class="kw">rest</span> (<span class="op">1+</span> second-space))))
           (<span class="kw">values</span> prefix command params))
         (<span class="kw">let</span> ((command (<span class="kw">subseq</span> <span class="kw">first</span> <span class="dv">0</span> first-space))
               (params <span class="kw">rest</span>))
-          (<span class="kw">values</span> <span class="kw">nil</span> command params)))))</code></pre>
+          (<span class="kw">values</span> <span class="kw">nil</span> command params)))))</code></pre></div>
 <p>Ben burda ciddi bir şekilde parse etmektense, önek, komut ve parametreleri birbirlerinden ayıran boşluklar olduğunu farkettim ve basitçe bu boşluklara göre ayırdım. Saatlerdir log tutuyor henüz bir problem yaşamadım.</p>
 <p>Mesajları parçaladıktan sonra şu generic fonksiyona gönderiyoruz:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defgeneric</span><span class="fu"> handle-command </span>(prefix command params socket-stream))</code></pre>
-<p>Bu fonksiyonu çağırırken <code>command</code> parametresinin her zaman bir sembol olması lazım. Başka türlü command parametresine göre dispatch fonksiyonuna karar veremiyoruz<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a> Ana döngüde string’i sembole çevirdiğim hacky kısım bu yüzden.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defgeneric</span><span class="fu"> handle-command </span>(prefix command params socket-stream))</code></pre></div>
+<p>Bu fonksiyonu çağırırken <code>command</code> parametresinin her zaman bir sembol olması lazım. Başka türlü command parametresine göre dispatch fonksiyonuna karar veremiyoruz<a href="#fn5" class="footnote-ref" id="fnref5"><sup>5</sup></a> Ana döngüde string’i sembole çevirdiğim hacky kısım bu yüzden.</p>
 <p>Şu aşamada ilgimizi çeken 3 komut var. <code>PRIVMSG</code>, <code>NOTICE</code>, ve <code>PING</code>. <code>PING</code> komutunu sunucu bize, uzun süre yanıt vermediğimiz için gönderecek(sürekli dinlemede olacağımızdan) ve hemen <code>PONG</code> cevabını vermemiz lazım. <code>PRIVMSG</code> herhangi bir kanala veya bize bir mesaj gönderildiğinde gelecek. <code>NOTICE</code>de ne zaman login olmak için komut göndermemiz gerektiğine karar vermemiz için. Burda en kritik olanı <code>PRIVMSG</code>, diğerlerine gist’den bakabilirsiniz:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmethod</span><span class="fu"> handle-command </span>(prefix (command (<span class="kw">eql</span> 'privmsg)) params socket-stream)
+<div class="sourceCode" id="cb4"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmethod</span><span class="fu"> handle-command </span>(prefix (command (<span class="kw">eql</span> 'privmsg)) params socket-stream)
   (<span class="kw">let</span> ((channel-or-nick (<span class="kw">subseq</span> params <span class="dv">0</span> (<span class="kw">position</span> <span class="ch">#\s</span>pace params)))
         (sender (<span class="kw">subseq</span> prefix <span class="dv">0</span> (<span class="kw">position</span> <span class="ch">#\!</span> prefix)))
-        (msg (<span class="kw">subseq</span> params (<span class="kw">+</span> <span class="dv">2</span> (<span class="kw">position</span> <span class="ch">#\s</span>pace params)))))
+        (msg (<span class="kw">subseq</span> params (<span class="op">+</span> <span class="dv">2</span> (<span class="kw">position</span> <span class="ch">#\s</span>pace params)))))
     (<span class="kw">multiple-value-bind</span> (channel-message-queue channel-exists)
         (<span class="kw">gethash</span> channel-or-nick *channels*)
       (<span class="kw">unless</span> channel-exists
         (<span class="kw">setf</span> (<span class="kw">gethash</span> channel-or-nick *channels*) '()))
       (<span class="kw">setf</span> (<span class="kw">gethash</span> channel-or-nick *channels*)
             (<span class="kw">cons</span> (make-message :msg msg
-                                :sender sender) channel-message-queue)))))</code></pre>
+                                :sender sender) channel-message-queue)))))</code></pre></div>
 <p><code>*channels*</code>, tüm kanallar için bir liste tuttuğumuz hash tablomuz. Burda static web sayfalarını güncelleme vaktimiz gelene kadar gelen mesajları tutuyoruz(gelen mesajı yine IRC RFC’nin <a href="http://www.irchelp.org/irchelp/rfc/chapter4.html#c4_4_1">şu bölümü</a>ne göre parçalıyorum). Mesajları tuttuğumuz yapımız basitçe sadece mesajın içeriğini ve göndereni tutuyor:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defstruct</span><span class="fu"> message </span>msg sender)</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defstruct</span><span class="fu"> message </span>msg sender)</code></pre></div>
 <p>Son olarak static sayfaları güncellemek için çağırdığımız <code>update-html</code>:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> update-html </span>()
+<div class="sourceCode" id="cb6"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> update-html </span>()
   (<span class="kw">loop</span> for channel-or-nick being <span class="kw">the</span> hash-keys of *channels* <span class="kw">do</span>
     (<span class="kw">let</span> ((msgs (<span class="kw">reverse</span> (<span class="kw">gethash</span> channel-or-nick *channels*))))
       (<span class="kw">with-open-file</span> (<span class="kw">file-stream</span> (concat <span class="st">&quot;/home/sinan/Desktop/cl/logs/&quot;</span>
@@ -102,50 +98,50 @@
                                                (<span class="kw">subseq</span> channel-or-nick <span class="dv">1</span>)
                                                <span class="st">&quot;direct-messages&quot;</span>)
                                            <span class="st">&quot;.html&quot;</span>) <span class="co">;; remove # from channel name</span>
-                                   <span class="kw">:direction</span> <span class="kw">:output</span>
-                                   :if-exists <span class="kw">:append</span>
-                                   :if-does-not-exist <span class="kw">:create</span>)
+                                   <span class="bu">:direction</span> <span class="bu">:output</span>
+                                   :if-exists <span class="bu">:append</span>
+                                   :if-does-not-exist <span class="bu">:create</span>)
         (with-html-output (<span class="kw">file-stream</span>)
           (<span class="kw">dolist</span> (msg msgs)
             (<span class="kw">let</span> ((message-text (concat (message-sender msg)
                                         <span class="st">&quot;&gt; &quot;</span>
                                         (message-msg msg))))
               (htm (:p :class <span class="st">&quot;msg&quot;</span> (str message-text)))))))
-      (<span class="kw">setf</span> (<span class="kw">gethash</span> channel-or-nick *channels*) '()))))</code></pre>
-<p>Burda html çıktısını üretmek için <a href="http://weitz.de/cl-who/">cl-who</a> kütüphanesini kullanıyoruz<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a> <code>with-open-file</code> ile kanal adına ait dosyayı açıp(yoksa oluşturup, varsa sonuna ekleyerek) <code>with-html-output</code> ile html elementlerini Lisp formları ve keywordler ile yazarak html kodunu dosyaya yazıyoruz ve hash tablomuzdaki mesaj listesini boşaltıyoruz(henüz tüm sayfayı oluşturmuyoruz, sadece mesajları html formatında kaydettik).</p>
+      (<span class="kw">setf</span> (<span class="kw">gethash</span> channel-or-nick *channels*) '()))))</code></pre></div>
+<p>Burda html çıktısını üretmek için <a href="http://weitz.de/cl-who/">cl-who</a> kütüphanesini kullanıyoruz<a href="#fn6" class="footnote-ref" id="fnref6"><sup>6</sup></a> <code>with-open-file</code> ile kanal adına ait dosyayı açıp(yoksa oluşturup, varsa sonuna ekleyerek) <code>with-html-output</code> ile html elementlerini Lisp formları ve keywordler ile yazarak html kodunu dosyaya yazıyoruz ve hash tablomuzdaki mesaj listesini boşaltıyoruz(henüz tüm sayfayı oluşturmuyoruz, sadece mesajları html formatında kaydettik).</p>
 <p>Şu anda sunucuda istediğiniz kanalları dinleyip kaydeden bir botumuz var(kod hakkında eksik olan birkaç tanımlama için en başta verdiğim gistlere bakabilirsiniz).</p>
 <p>İkinci adım olarak web arayüzü. Static sayfaları sunmak için <a href="http://weitz.de/hunchentoot/">Hunchentoot</a> kullanacağız. Bu gibi basit işler için inanılmaz rahat bir kütüphane.</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defvar</span><span class="fu"> server </span>(<span class="kw">make-instance</span> 'easy-acceptor :port <span class="dv">4242</span>
+<div class="sourceCode" id="cb7"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defvar</span><span class="fu"> server </span>(<span class="kw">make-instance</span> 'easy-acceptor :port <span class="dv">4242</span>
                                              :document-root <span class="st">&quot;/home/sinan/Desktop/cl/static&quot;</span>))
-(start server)</code></pre>
+(start server)</code></pre></div>
 <p>Hunchentoot ile 4242. portu dinleyen bir sunucu oluşturduk ve başlattık. <code>document-root</code>, static dosyaların(css dosyaları, resimler vs.) tutulduğu klasör. Hunchentoot sayfa yönlendirmelerini <code>*dispatch-table*</code> listesinden yapıyor. Yönlendirme işlemi birkaç farklı dispatcher ile yapılabiliyor ama biz şu anki basit sayfamız için sadece kanal adlarını yönlendirmekle ilgileneceğiz. Bu yüzden kullanacağımız dispatcher <code>prefix-dispatcher</code> olacak.</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> define-url-fn </span>((name) &amp;body body)
+<div class="sourceCode" id="cb8"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> define-url-fn </span>((name) &amp;body body)
   `(<span class="kw">progn</span>
      (<span class="kw">defun</span><span class="fu"> </span>,name ()
        ,@body)
-     (<span class="kw">push</span> (create-prefix-dispatcher ,(<span class="kw">format</span> <span class="kw">nil</span> <span class="st">&quot;/~(~a~).html&quot;</span> name) ',name) *dispatch-table*)))</code></pre>
+     (<span class="kw">push</span> (create-prefix-dispatcher ,(<span class="kw">format</span> <span class="kw">nil</span> <span class="st">&quot;/~(~a~).html&quot;</span> name) ',name) *dispatch-table*)))</code></pre></div>
 <p>Genel olarak sayfa oluşturma yapımız bu. <code>(define-url-fn (sayfa-adi) icerik)</code> şeklinde çağırdığımızda, <code>localhost:4242/sayfa-adi</code> adresinde <code>icerik</code>i gösterek şekilde ayarlıyor. Bu kadar basit. Şimdi sayfa içeriğimizi oluşturmadan önce her sayfada olacak kısımları ayıralım:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> standard-page </span>((&amp;key title) &amp;body body)
-  `(with-html-output-to-string (<span class="kw">*standard-output*</span> <span class="kw">nil</span> :prologue <span class="kw">t</span> :indent <span class="kw">t</span>)
+<div class="sourceCode" id="cb9"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> standard-page </span>((&amp;key title) &amp;body body)
+  `(with-html-output-to-string (<span class="va">*standard-output*</span> <span class="kw">nil</span> :prologue <span class="kw">t</span> :indent <span class="kw">t</span>)
      (:html
       (:meta :charset <span class="st">&quot;utf-8&quot;</span>)
       (:head
        (:title ,title)
-       (:link <span class="kw">:type</span> <span class="st">&quot;text/css&quot;</span>
+       (:link <span class="bu">:type</span> <span class="st">&quot;text/css&quot;</span>
               :rel <span class="st">&quot;stylesheet&quot;</span>
               :href <span class="st">&quot;/static/reset.css&quot;</span>)
-       (:link <span class="kw">:type</span> <span class="st">&quot;text/css&quot;</span>
+       (:link <span class="bu">:type</span> <span class="st">&quot;text/css&quot;</span>
               :rel <span class="st">&quot;stylesheet&quot;</span>
               :href <span class="st">&quot;/static/main.css&quot;</span>))
       (:body
        (:div :class <span class="st">&quot;main&quot;</span>
-             ,@body)))))</code></pre>
+             ,@body)))))</code></pre></div>
 <p>Bu şekilde sadece bir sayfayı diğer sayfadan ayıracak kısımlarla ilgileneceğiz ve <code>standard-page</code> macrosuna göndereceğiz. Web arayüzümüz tamamen ayrı bir program olduğundan, önce logların tutulduğu klasöre bakıp kanal listesini çıkaralım:</p>
-<pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> list-file-names </span>(&amp;optional (folder *log-folder*))
+<div class="sourceCode" id="cb10"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> list-file-names </span>(&amp;optional (folder *log-folder*))
   (<span class="kw">mapcar</span> (<span class="kw">lambda</span> (<span class="kw">pathname</span>)
             (<span class="kw">let</span> ((filename (<span class="kw">file-namestring</span> <span class="kw">pathname</span>)))
               (<span class="kw">pathname-name</span> filename)))
-          (<span class="kw">directory</span> (<span class="kw">make-pathname</span> <span class="kw">:directory</span> folder <span class="kw">:name</span> :wild <span class="kw">:type</span> <span class="st">&quot;html&quot;</span>))))</code></pre>
+          (<span class="kw">directory</span> (<span class="kw">make-pathname</span> <span class="bu">:directory</span> folder <span class="bu">:name</span> :wild <span class="bu">:type</span> <span class="st">&quot;html&quot;</span>))))</code></pre></div>
 <p>Burda yapılan bariz gibi. Bir klasördeki html dosyalarının adlarını listeliyoruz. Bu kadar. Bu aşamadan sonra ana menü(kanal listesinin bulunduğu) ve kanal loglarının görüntüleneceği sayfaları oluşturmak kalıyor.</p>
 <pre><code>;; ana menu
 (define-url-fn (log-list)
@@ -178,26 +174,24 @@
 <li>Çok sorulan sorular için cevaplar: Yetki verilen bazı kullanıcılar belirli komutlar için yazılacak cevabı belirleyebilir. Birisi bir soru sorduğunda bota ona istenilen cevabı vermesi söylenebilir.</li>
 <li>Hata/durum(exception/condition) kontrolü. Bağlantı bir şekilde kesildiğinde yeniden bağlanabilir vs.</li>
 </ul>
-<hr />
-<div class="footnotes">
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Common Lisp’in bir güzel yanı, lexical scope veya direkt olarak parametre olarak aktararak, kullanıcıya yazdırıp kullanıcıdan okuduğumuz fonksiyonların hepsini dosya, socket vs. için çok rahat kullanabiliyoruz<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>Common Lisp’de bir fonksiyon birden fazla değer dönebiliyor, epey ilginç bir özellik, gerekliliği tartışılır tabii, sonuçta bir tuple/list/vs. dönmekten pek bir farkı yok, yanlızca eğer özel olarak belirtilmezse çağırana sadece otomatik olarak ilk değer dönüyor böylece her fonkisyon için “acaba kaç değer dönüyor?” diye düşünmüyoruz.<a href="#fnref2">↩</a></p></li>
-<li id="fn3"><p>Burada Clojure’dan bahsetmem lazım. Clojure multimethod’ları isteğe bağlı dispatch fonksiyonları ile çalışıyorken Common Lisp bu konuda daha kısıtlı. Clojure multimethodları hakkında <a href="http://clojure.org/multimethods">şuraya</a> bakabilirsiniz. Pascal usta buna benzer bir yapıyı Common Lisp için implement etmiş. <a href="http://www.p-cos.net/research.html">Şurda biryerlerde</a>ydi ama bulamadım şimdi.<a href="#fnref3">↩</a></p></li>
-<li id="fn4"><p>Socket’ler konusunda çok bilgili değilim. usocket ve iolib kütüphaneleri direkt olarak unix socketlerini(posix socketleri mi oluyor?) implement etmişler, api olarak çok benzerler. Yine de ben non-blocking io yapmayı bir türlü beceremedim. Thread’lerden de bir süredir nefret ediyorum. Common Lisp’de çok kullanılan <a href="http://common-lisp.net/project/bordeaux-threads/">Bordeaux Threads</a> kütüphanesinde(Common Lisp standardının thread de içermediğini söylemiş miydim?) de timer yok.<a href="#fnref4">↩</a></p></li>
-<li id="fn5"><p>Common Lisp’in karşılaştırmayı <code>eql</code> fonksiyoinu ile yapmasıyla alakalı. Daha önce bahsettiğim kısıtlama.<a href="#fnref5">↩</a></p></li>
-<li id="fn6"><p>Lisp dillerinin bir başka güzel yanı: kendi syntaxları ile kolaylıkla herhangi bir markup dilini ifade edebilirsiniz(şansınızı zorlarsanız JavaScript’i bile ifade edebilirsiniz ama bana delilik gibi geliyor açıkçası, bkz. <a href="http://common-lisp.net/project/parenscript/">parenscript</a>).<a href="#fnref6">↩</a></p></li>
+<li id="fn1"><p>Common Lisp’in bir güzel yanı, lexical scope veya direkt olarak parametre olarak aktararak, kullanıcıya yazdırıp kullanıcıdan okuduğumuz fonksiyonların hepsini dosya, socket vs. için çok rahat kullanabiliyoruz<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>Common Lisp’de bir fonksiyon birden fazla değer dönebiliyor, epey ilginç bir özellik, gerekliliği tartışılır tabii, sonuçta bir tuple/list/vs. dönmekten pek bir farkı yok, yanlızca eğer özel olarak belirtilmezse çağırana sadece otomatik olarak ilk değer dönüyor böylece her fonkisyon için “acaba kaç değer dönüyor?” diye düşünmüyoruz.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn3"><p>Burada Clojure’dan bahsetmem lazım. Clojure multimethod’ları isteğe bağlı dispatch fonksiyonları ile çalışıyorken Common Lisp bu konuda daha kısıtlı. Clojure multimethodları hakkında <a href="http://clojure.org/multimethods">şuraya</a> bakabilirsiniz. Pascal usta buna benzer bir yapıyı Common Lisp için implement etmiş. <a href="http://www.p-cos.net/research.html">Şurda biryerlerde</a>ydi ama bulamadım şimdi.<a href="#fnref3" class="footnote-back">↩</a></p></li>
+<li id="fn4"><p>Socket’ler konusunda çok bilgili değilim. usocket ve iolib kütüphaneleri direkt olarak unix socketlerini(posix socketleri mi oluyor?) implement etmişler, api olarak çok benzerler. Yine de ben non-blocking io yapmayı bir türlü beceremedim. Thread’lerden de bir süredir nefret ediyorum. Common Lisp’de çok kullanılan <a href="http://common-lisp.net/project/bordeaux-threads/">Bordeaux Threads</a> kütüphanesinde(Common Lisp standardının thread de içermediğini söylemiş miydim?) de timer yok.<a href="#fnref4" class="footnote-back">↩</a></p></li>
+<li id="fn5"><p>Common Lisp’in karşılaştırmayı <code>eql</code> fonksiyoinu ile yapmasıyla alakalı. Daha önce bahsettiğim kısıtlama.<a href="#fnref5" class="footnote-back">↩</a></p></li>
+<li id="fn6"><p>Lisp dillerinin bir başka güzel yanı: kendi syntaxları ile kolaylıkla herhangi bir markup dilini ifade edebilirsiniz(şansınızı zorlarsanız JavaScript’i bile ifade edebilirsiniz ama bana delilik gibi geliyor açıkçası, bkz. <a href="http://common-lisp.net/project/parenscript/">parenscript</a>).<a href="#fnref6" class="footnote-back">↩</a></p></li>
 </ol>
-</div>
+</section>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

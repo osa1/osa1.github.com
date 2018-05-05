@@ -22,23 +22,23 @@
 <p>I will not formally define the type system here, but I think it can be seen as a simple Damas-Hindley-Milner style type system.</p>
 <p>This implementation basically embeds type definitions in Prolog. This is what makes this implementation simple. You can always implement a fully-featured type system in Prolog just like you can do it in any other language. What I’m trying to show here that it’s very simple to do when there is a way to implement types as rules in Prolog.</p>
 <p>Here’s knowledge base of types:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">nat(o)<span class="kw">.</span>
-nat(s(<span class="dt">N</span>)) <span class="kw">:-</span> nat(<span class="dt">N</span>)<span class="kw">.</span>
-
-bool(<span class="kw">true</span>)<span class="kw">.</span>
-bool(<span class="kw">false</span>)<span class="kw">.</span>
-
-type(<span class="dt">A</span><span class="kw">,</span> nat) <span class="kw">:-</span> nat(<span class="dt">A</span>)<span class="kw">,</span> <span class="kw">!.</span>
-type(<span class="dt">A</span><span class="kw">,</span> bool) <span class="kw">:-</span> bool(<span class="dt">A</span>)<span class="kw">,</span> <span class="kw">!.</span>
-type(id<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">A</span>)) <span class="kw">:-</span> <span class="kw">!.</span>
-type(add<span class="kw">,</span> arrow(nat<span class="kw">,</span> arrow(nat<span class="kw">,</span> nat))) <span class="kw">:-</span> <span class="kw">!.</span>
-type(not<span class="kw">,</span> arrow(bool<span class="kw">,</span> bool)) <span class="kw">:-</span> <span class="kw">!.</span>
-type(const<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> arrow(<span class="dt">_</span><span class="kw">,</span> <span class="dt">A</span>)))<span class="kw">.</span></code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb1-1" data-line-number="1">nat(o)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">nat(s(<span class="dt">N</span>)) <span class="kw">:-</span> nat(<span class="dt">N</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">bool(<span class="kw">true</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">bool(<span class="kw">false</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">type(<span class="dt">A</span><span class="kw">,</span> nat) <span class="kw">:-</span> nat(<span class="dt">A</span>)<span class="kw">,</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">type(<span class="dt">A</span><span class="kw">,</span> bool) <span class="kw">:-</span> bool(<span class="dt">A</span>)<span class="kw">,</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">type(id<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">A</span>)) <span class="kw">:-</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">type(add<span class="kw">,</span> arrow(nat<span class="kw">,</span> arrow(nat<span class="kw">,</span> nat))) <span class="kw">:-</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">type(not<span class="kw">,</span> arrow(bool<span class="kw">,</span> bool)) <span class="kw">:-</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">type(const<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> arrow(<span class="dt">_</span><span class="kw">,</span> <span class="dt">A</span>)))<span class="kw">.</span></a></code></pre></div>
 <p>Implementing type definitions as rules in a Prolog system is what makes this implementation simple. Here <code>id</code> is a function with type <code>forall a. a -&gt; a</code>, <code>add</code> is <code>nat -&gt; nat</code>, <code>not</code> is <code>bool -&gt; bool</code>, and <code>const</code> is <code>forall a b. a -&gt; b -&gt; a</code>.</p>
 <p>Type checking of function applications is also simple:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
-    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">R</span>))<span class="kw">,</span>
-    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span></code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb2-1" data-line-number="1">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">R</span>))<span class="kw">,</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span></a></code></pre></div>
 <p>And we’re done. This much code is enough for type checking polymorphic functions. Here are some examples:</p>
 <pre><code>?- type(app(id, false), T).
 T = bool.
@@ -62,53 +62,53 @@ T = bool.
 T = bool.</code></pre>
 <p>One major limitation of this implementation is that there is no way to implement monomorphic functions. To do this, we should somehow have two different kinds of Prolog variables, one for polymorphic variables and one for monomorphic ones.</p>
 <p>Since there’s no way to directly express this in Prolog, I had to extend this code with a typing environment. In the implementation above, if parameter of a function is an atom and not a variable, then it’s looked in a global environment.</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
-    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span>
-    <span class="dt">var</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% polymorphic parameter</span>
-    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">,</span>
-    <span class="dt">R</span> <span class="kw">=</span> <span class="dt">B</span><span class="kw">,</span>
-    <span class="kw">!.</span>
-
-type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
-    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span>
-    <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span>
-    get_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span>
-    <span class="co">% type already exists in environment</span>
-    <span class="kw">!,</span>
-    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span>
-    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span>
-    <span class="kw">!.</span>
-
-type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span>
-    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span>
-    <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span>
-    <span class="co">% type doesn&#39;t exist in environment</span>
-    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span>
-    add_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span>
-    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span>
-    <span class="kw">!.</span></code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb4-1" data-line-number="1">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">    <span class="dt">var</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% polymorphic parameter</span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">    <span class="dt">R</span> <span class="kw">=</span> <span class="dt">B</span><span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">    <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-10" data-line-number="10">    <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span></a>
+<a class="sourceLine" id="cb4-11" data-line-number="11">    get_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-12" data-line-number="12">    <span class="co">% type already exists in environment</span></a>
+<a class="sourceLine" id="cb4-13" data-line-number="13">    <span class="kw">!,</span></a>
+<a class="sourceLine" id="cb4-14" data-line-number="14">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-15" data-line-number="15">    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-16" data-line-number="16">    <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb4-17" data-line-number="17"></a>
+<a class="sourceLine" id="cb4-18" data-line-number="18">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb4-19" data-line-number="19">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-20" data-line-number="20">    <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span></a>
+<a class="sourceLine" id="cb4-21" data-line-number="21">    <span class="co">% type doesn&#39;t exist in environment</span></a>
+<a class="sourceLine" id="cb4-22" data-line-number="22">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-23" data-line-number="23">    add_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-24" data-line-number="24">    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-25" data-line-number="25">    <span class="kw">!.</span></a></code></pre></div>
 <p>First rule is for polymorphic parameters, only difference from the first code is <code>var(A)</code>, which ensures the parameter type is a variable.</p>
 <p>Second rule does a similar check, but this time to ensure the parameter is an atom and not a variable. After that, type of this parameter is looked from an environment and checked against it. The third rule is when a type is not found in the environment. In that case, a new type is added to the environment.</p>
 <p>Note that first cut is required in second rule. Because otherwise, when a type checking fails, third rule would be executed and a new type would be added to the environment.</p>
 <p>Here are environment operations:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">init_state(<span class="dt">Name</span>) <span class="kw">:-</span>
-    empty_assoc(<span class="dt">A</span>)<span class="kw">,</span>
-    nb_setval(<span class="dt">Name</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span>
-
-add_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span>
-    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span>
-    put_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">,</span>
-    nb_setval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">.</span>
-
-get_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span>
-    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span>
-    get_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span>)<span class="kw">.</span></code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb5-1" data-line-number="1">init_state(<span class="dt">Name</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">    empty_assoc(<span class="dt">A</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">    nb_setval(<span class="dt">Name</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">add_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">    put_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">    nb_setval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb5-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10">get_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb5-11" data-line-number="11">    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb5-12" data-line-number="12">    get_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span>)<span class="kw">.</span></a></code></pre></div>
 <p>Environment operations get a environment name to keep the state local. ie. you can be sure your state is local if name of the state is not used somewhere else :-)</p>
 <p>This helper is used to get type of a term when term is an atom, and it’s type is available in environment. Otherwise it returns the term itself.</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>) <span class="kw">:-</span> get_type(types<span class="kw">,</span> <span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>)<span class="kw">.</span>
-type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T</span>)<span class="kw">.</span></code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb6-1" data-line-number="1">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>) <span class="kw">:-</span> get_type(types<span class="kw">,</span> <span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T</span>)<span class="kw">.</span></a></code></pre></div>
 <p>An example monomorphic function rule:</p>
-<pre class="sourceCode prolog"><code class="sourceCode prolog">type(mono_id<span class="kw">,</span> arrow(mono_id__a<span class="kw">,</span> mono_id__a)) <span class="kw">:-</span> <span class="kw">!.</span></code></pre>
+<div class="sourceCode" id="cb7"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb7-1" data-line-number="1">type(mono_id<span class="kw">,</span> arrow(mono_id__a<span class="kw">,</span> mono_id__a)) <span class="kw">:-</span> <span class="kw">!.</span></a></code></pre></div>
 <p>It should be guaranteed by the programmer that <code>mono_id__a</code> atom is only used for <code>mono_id</code> function.</p>
 <p>Here are some examples for checking monomorphic functions(others work as before):</p>
 <pre><code>?- init_state(types).
@@ -141,13 +141,13 @@ false.</code></pre>
     <published>2013-05-25T00:00:00Z</published>
     <updated>2013-05-25T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I wrote a C++ code like this:</p>
-<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> max_number_of_something = <span class="dv">-1</span>;
-set&lt;some_type&gt; s;
-
-...
-
-<span class="kw">if</span> (s.size() &gt; max_number_of_something)
-    max_number_of_something = s.size();</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="dt">int</span> max_number_of_something = <span class="dv">-1</span>;</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">set&lt;<span class="dt">some_type</span>&gt; s;</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">...</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="cf">if</span> (s.size() &gt; max_number_of_something)</a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">    max_number_of_something = s.size();</a></code></pre></div>
 <p>The problem with this code is that this conditional will never be taken, and no errors will be raised either. This is because type of <code>s.size()</code> is unsigned and in the expression <code>s.size() &gt; max_number_of_something</code>, <code>max_number_of_something</code> will be casted to unsigned, implicitly. So <code>-1</code> is now <code>4294967295</code> and no other 32bit unsigned integer is bigger than that number.</p>
 <p>Another reason to not to like weak typing and implicit type casts.</p>]]></summary>
 </entry>
@@ -188,7 +188,7 @@ set&lt;some_type&gt; s;
 <li>Our work - extending multi-stage language with subtyping and Wallce: a module type inference system</li>
 </ul>
 <h1 id="introduction-to-type-systems-and-polymorphism">Introduction to type systems and polymorphism</h1>
-<p>As far as software engineering concerned, a type system is a static analysis method that aims to prove a program ‘won’t go wrong’<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, meaning that the program will not crash at runtime. Static type checking can also be used for some compiler optimisations. Also, some languages have mechanisms for dispatching on types.</p>
+<p>As far as software engineering concerned, a type system is a static analysis method that aims to prove a program ‘won’t go wrong’<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, meaning that the program will not crash at runtime. Static type checking can also be used for some compiler optimisations. Also, some languages have mechanisms for dispatching on types.</p>
 <p>Type systems (in this text, this term is used as ‘static type systems’) do that by inspecting program terms and proving some properties and relations among them. This work is done before run-time, and most type information can be deleted so that it won’t cause any runtime costs.</p>
 <p>For most type systems, process of type checking is ‘syntactic’. This means two things; first, the type checker only needs program text and it doesn’t need any information that can only be obtained at run-time. And second, type checking a program term only depends on type checking subterms of that program. These two properties also give us a somewhat simple way to express type checking on terms in a symbolic and formal way.</p>
 <p>Type systems are ‘conservative’, meaning they will reject some ‘correct’ programs. A correct program means a program that won’t crash at runtime. For instance, this program(in OCaml syntax):</p>
@@ -204,7 +204,7 @@ set&lt;some_type&gt; s;
 ...
 add5 10</code></pre>
 <p>Here <code>10</code> has type <code>int</code>, so we can’t apply it to a function that expects a float value. Type systems with subtyping overcome this problem by defining a common supertype of types. In our case, <code>float</code> is already a supertype of <code>int</code>, so this example is well-typed in the presence of subtyping.</p>
-<p>As an example of being able to encode more <em>invariants</em> in the type system, let’s look to the type of a sort function from a dependently-typed programming language:<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
+<p>As an example of being able to encode more <em>invariants</em> in the type system, let’s look to the type of a sort function from a dependently-typed programming language:<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
 <pre><code>sort : List Int -&gt; List Int</code></pre>
 <p>This type can be inhabited with some wrong functions. For instance, a function that takes a list and returns an empty list will have this type, just like <em>reverse</em> and <em>shuffle</em> functions.</p>
 <pre><code>sort : Vect Int n -&gt; Vect Int n</code></pre>
@@ -236,7 +236,7 @@ c := (fun x -&gt; x+1);
 !c true</code></pre>
 <p>Giving <code>c</code> the type <code>forall a. ('a -&gt; 'a) ref</code> (in OCaml syntax) makes this example well-typed, which is wrong. Instead, type system should have given the type <code>( '_a -&gt; '_a) ref</code>, then during the type checking <code>c := (fun x -&gt; x + 1)</code>, <code>_a</code> should be unified with <code>int</code>. Note that since <code>('_a -&gt; '_a) ref</code> doesn’t quantify the variable <code>a</code>, after this point, type of <code>c</code> will be <code>(int -&gt; int_ ref</code>, so applying it a bool value will fail.</p>
 <p>Let-polymorphism has some interesting properties. It’s simple, but it still accepts realistic programs. And even though its worst-case efficiency is exponential on the size of input program, most realistic programs don’t hit the worst case and have linear time complexity. For this reason, let-polymorphism is named as the ‘sweet-spot’ of type systems.</p>
-<p>Another great property of HM type system is that it can be reduced to constraint generation and solving steps. These separate steps lead to a more modular algorithm, with changeable constraint generators and solvers. HM(X)<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> is a formalization of this observation.</p>
+<p>Another great property of HM type system is that it can be reduced to constraint generation and solving steps. These separate steps lead to a more modular algorithm, with changeable constraint generators and solvers. HM(X)<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a> is a formalization of this observation.</p>
 <h1 id="row-polymorphism">Row polymorphism</h1>
 <p>Rows are a way to encode ‘labeled products’. A product type is a type that contains some other types; for example, a pair is a product type of two other types (<code>(int * bool)</code> is a product type with <code>int</code> and <code>bool</code> parts).</p>
 <p>A ‘labeled sum’ is a product type, but with labels. For instance:</p>
@@ -266,15 +266,15 @@ c := (fun x -&gt; x+1);
 <p>Note that code values can be open, but only closed code values can be run. Our <code>pow_body_gen</code> function returns a code value with an unbound variable <code>a</code>, then in <code>power_five</code>, we define <code>a</code> in stage 1, and by unboxing <code>pow_body_gen 5</code>, we actually generate a bigger code value, with <code>a</code> defined. Now our code value is closed, so it can be run.</p>
 <p>There is also a relation between multi-stage programming and partial evaluation, but this is out of this text’s scope.</p>
 <h1 id="our-work">Our work</h1>
-<p>Wallace is a type inference library, supporting subtyping. “Its goal is to serve as a plug-in component in the design of a constraint-based type-checker, regardless of the programming language being analyzed.”<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
-<p>We used Wallace to get subtyping in our language. Wallace comes with an example language, called ‘toy’, which has extensible records built-in. For simplicity, instead of generating constraints for Wallace, we first translated our multi-stage language to record calculus. Translation to record calculus preserves semantics, but eliminates staged computations<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a>. Our record calculus is then translated to ‘toy’. ‘toy’ infers types for us, by generating and passing constraints to Wallace.</p>
-<p>We then compared our type system with<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a>. This expression:</p>
+<p>Wallace is a type inference library, supporting subtyping. “Its goal is to serve as a plug-in component in the design of a constraint-based type-checker, regardless of the programming language being analyzed.”<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a></p>
+<p>We used Wallace to get subtyping in our language. Wallace comes with an example language, called ‘toy’, which has extensible records built-in. For simplicity, instead of generating constraints for Wallace, we first translated our multi-stage language to record calculus. Translation to record calculus preserves semantics, but eliminates staged computations<a href="#fn5" class="footnote-ref" id="fnref5"><sup>5</sup></a>. Our record calculus is then translated to ‘toy’. ‘toy’ infers types for us, by generating and passing constraints to Wallace.</p>
+<p>We then compared our type system with<a href="#fn6" class="footnote-ref" id="fnref6"><sup>6</sup></a>. This expression:</p>
 <pre><code>run((fun c -&gt; &lt;(let x = 1 in ~c, let y = 1 in ~c)&gt;) &lt;1&gt;);;</code></pre>
 <p>is not typeable under polymorphic type system, but is well-typed in our system with subtyping. By mapping the calculated type back to our multi-stage language, we got subtyping in the multi-stage language for free.</p>
 <p>Wallace is used as is, without any modifications. But we changed ‘toy’ language for our purposes. We first added some numerical types with subtyping relations. ‘toy’ had a problem that it was generalizing every let bindings, without value restriction. To overcome this problem, we added an extra lambda wrapper in the translator when value restriction is needed. Since our type system already had value restriction, it was trivial to apply the same test to check if an expression is expansive. Expansive expressions are those that may allocate new memory cells. Expansive expressions are not generalized.</p>
 <p>Another problem with ‘toy’ language is that it doesn’t support toplevel declarations, and adding that wasn’t easy. To overcome this without any serious modifications in ‘toy’s source, we collected all well-typed toplevel expressions and declarations, and then generated a <code>let .. in ..</code> chain of toplevel declarations to give ’toy’ type checker. This means for every new toplevel phrase, ‘toy’ now type checks all old expressions too. This may not be efficient but works fine with our purposes, and it was easy to implement.</p>
-<p>Implementing type inference: Implementing a type inference system is hard to do elegantly. One problem is already discussed in my blog (in Turkish)<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a>. Every non-trivial type system requires types to be separated into kinds. After that, every type variable will also have kind information and it’s a type error to unify a type variable with wrong kinds. Type applications also checked with the help of kinds.</p>
-<p>Kinds are generally checked at run-time. Type systems with kinds usually lead to a simpler type language. For instance, almost all types mentioned in this text can be represented by this simply type language (code taken from <a href="#fn8" class="footnoteRef" id="fnref8"><sup>8</sup></a>) :</p>
+<p>Implementing type inference: Implementing a type inference system is hard to do elegantly. One problem is already discussed in my blog (in Turkish)<a href="#fn7" class="footnote-ref" id="fnref7"><sup>7</sup></a>. Every non-trivial type system requires types to be separated into kinds. After that, every type variable will also have kind information and it’s a type error to unify a type variable with wrong kinds. Type applications also checked with the help of kinds.</p>
+<p>Kinds are generally checked at run-time. Type systems with kinds usually lead to a simpler type language. For instance, almost all types mentioned in this text can be represented by this simply type language (code taken from <a href="#fn8" class="footnote-ref" id="fnref8"><sup>8</sup></a>) :</p>
 <pre><code>type kind =
   | KStar                 (* kind of term types *)
   | KRow                  (* kind of row types *)
@@ -330,20 +330,19 @@ and recvarlink = tyrec link</code></pre>
 <pre><code>printf &quot;@[&lt;hov 2&gt;~(&quot;; print_exp exp; printf &quot;)@]&quot;</code></pre>
 <p>Here <code>@[&lt;hov 2&gt;</code> part creates a new “horizontal or vertical” box. This box has a property that when a line is split to two lines, every other newline pointers will also be split into separate lines. So contents of this box is either displayed as a single line, or separated from every newline pointers. Later, <code>print_exp exp;</code> part prints the expression inside the box. And lastly, `printf “)@]” closes the paren, then closes the box, so that the text comes later will not be bound with this line split rule.</p>
 <p>This gives an easy and concise way to print even most complex structures.</p>
-<hr />
-<div class="footnotes">
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>A Theory of Type Polymorphism in Programming – Robin Milner<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>Code examples taken from <a href="http://vimeo.com/61576198">Dependently Typed Functional Programming with Idris</a> course slides.<a href="#fnref2">↩</a></p></li>
-<li id="fn3"><p><a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.73.3971">Notes on HM(X)</a><a href="#fnref3">↩</a></p></li>
-<li id="fn4"><p><a href="http://gallium.inria.fr/~fpottier/wallace/">Wallace</a><a href="#fnref4">↩</a></p></li>
-<li id="fn5"><p>Choi, Aktemur, Yi, Tatsuta: Static Analysis of Multi-Staged Programs via Unstaging Translation<a href="#fnref5">↩</a></p></li>
-<li id="fn6"><p>Kim, Yi, Calcagno: A Polymorphic Modal Type System for List-Like Multi-Staged Languages<a href="#fnref6">↩</a></p></li>
-<li id="fn7"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref7">↩</a></p></li>
-<li id="fn8"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref8">↩</a></p></li>
+<li id="fn1"><p>A Theory of Type Polymorphism in Programming – Robin Milner<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>Code examples taken from <a href="http://vimeo.com/61576198">Dependently Typed Functional Programming with Idris</a> course slides.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn3"><p><a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.73.3971">Notes on HM(X)</a><a href="#fnref3" class="footnote-back">↩</a></p></li>
+<li id="fn4"><p><a href="http://gallium.inria.fr/~fpottier/wallace/">Wallace</a><a href="#fnref4" class="footnote-back">↩</a></p></li>
+<li id="fn5"><p>Choi, Aktemur, Yi, Tatsuta: Static Analysis of Multi-Staged Programs via Unstaging Translation<a href="#fnref5" class="footnote-back">↩</a></p></li>
+<li id="fn6"><p>Kim, Yi, Calcagno: A Polymorphic Modal Type System for List-Like Multi-Staged Languages<a href="#fnref6" class="footnote-back">↩</a></p></li>
+<li id="fn7"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref7" class="footnote-back">↩</a></p></li>
+<li id="fn8"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref8" class="footnote-back">↩</a></p></li>
 </ol>
-</div>]]></summary>
+</section>]]></summary>
 </entry>
 <entry>
     <title>Rowlar, kindlar ve tip çıkarımı hakkında öylesine bir yazı</title>
@@ -353,90 +352,89 @@ and recvarlink = tyrec link</code></pre>
     <updated>2013-02-15T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Bu yazı birkaç gün önce attığım bir mail aslında. Acele ile yazılmış bir yazı olmasına rağmen epey uzun oldu ve maili yazmaya başlamadan önce kafamda karmaşık bir şekilde duran bazı fikirleri toparlamamda yardımcı oldu. Pek kimsenin işine yarayacağını tahmin etmesem de, yine de buraya koyuyorum. Küçük bazı düzenlemeler yaptım. Eklemeler ise yazının en altına yazıldı. Kodlar OCaml dilinde yazıldı.</p>
 <hr />
-<p>Üzerinde çalıştığım dilin tip sistemi hakkında<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
-<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> ty =
-  | ...
-  | <span class="dt">TRow</span> <span class="kw">of</span> tyrow
-  | ...
-
-<span class="kw">type</span> fieldty =
-  | <span class="dt">Pre</span> ty
-  | <span class="dt">Btm</span> <span class="co">(* Abs ismi lambda abstractionlarda kullanildi *)</span>
-
-<span class="kw">type</span> tyrow =
-  | <span class="dt">EmptyRow</span>
-  | <span class="dt">Row</span> (id * ty * ..<span class="fl">1.</span>.)
-  | ..<span class="fl">2.</span>.</code></pre>
+<p>Üzerinde çalıştığım dilin tip sistemi hakkında<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">type</span> ty =</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">  | ...</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">  | TRow <span class="kw">of</span> tyrow</a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">  | ...</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="kw">type</span> fieldty =</a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">  | Pre ty</a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">  | Btm <span class="co">(* Abs ismi lambda abstractionlarda kullanildi *)</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="kw">type</span> tyrow =</a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">  | EmptyRow</a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">  | Row (id * ty * ..<span class="dv">1</span>..)</a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">  | ..<span class="dv">2</span>..</a></code></pre></div>
 <p>1 ve 2 boşluklarını doldurmamız gerekiyor. Sorunlar şunlar:</p>
 <p>1 kısmına yazdığımız tip, sadece yine kendi tipiyle(yani <code>TRow</code> ile) unify etmek zorunda(ilk bakışta <code>tyrow</code> yazmak mantıklı gibi geliyor ama bu yüzden değil).</p>
 <p>2 kısmına yazdığımız constructor polymorphic row’u temsil edecek. Burada ben ilk başta aslında row değişkenlerini tamamen yok sayıp, recordlar extensible mı değil mi diye bir boolean flag tutayım demiştim. Fakat sorun, recordlar rowları paylaşabiliyorlar, örneğin şöyle bir fonksiyonda <code>\r -&gt; r.x = 10</code> tip <code>{r/x} -&gt; {x:int|r/x}</code> oluyor, başka bir yerde bu <code>r</code> kullanılabilir(parametre olarak verilen record başka yerlerde kullanıldığında fonksiyonun dönüş değeri olan recordın row değişkeni ile aynı row değişkenine sahip birden fazla record oluyor). Dolayısıyla bir değişken olmak zorunda.</p>
 <p>Fakat bu <code>typevar</code> tipinde olamaz, çünkü <code>typevar</code> bir <code>ty</code> ile unify edilebiliyor. Rowlarda ise <code>tyrow</code> ile unify etmek istiyoruz. Ayrı bir tip gerekiyor yani.</p>
-<p>Temel olarak row variable ile normal variable tamamen aynı olmalı, tek farkla, row değişkenler sadece row değişkenlerle/değerler ile unify edecek, variablelar da aynı şekilde.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
+<p>Temel olarak row variable ile normal variable tamamen aynı olmalı, tek farkla, row değişkenler sadece row değişkenlerle/değerler ile unify edecek, variablelar da aynı şekilde.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
 <h2 id="neden-tip-seviyesinde-kindlara-ihtiyaç-var">Neden tip seviyesinde kindlara ihtiyaç var ?</h2>
-<p>Type schemeler row değişkenler de tutabilir. <code>let</code> ile bir fonksiyon tanımladım, fonksiyon tipindeki free type variableları generalize ederek(terimler teminoloji ile uyumlu olsun diye ingilizce kullanıldı) bu fonksiyon polymorphic hale getiriliyor ve tipi <code>TypeScheme</code> olarak tutuluyor, quantified değişkenler belirtiliyor.<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a></p>
+<p>Type schemeler row değişkenler de tutabilir. <code>let</code> ile bir fonksiyon tanımladım, fonksiyon tipindeki free type variableları generalize ederek(terimler teminoloji ile uyumlu olsun diye ingilizce kullanıldı) bu fonksiyon polymorphic hale getiriliyor ve tipi <code>TypeScheme</code> olarak tutuluyor, quantified değişkenler belirtiliyor.<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a></p>
 <p>Daha sonra bu fonksiyon kullanıldığında instantiate ediliyor. Burada instantiate edilen quantified değişkenler yerine ancak kendi kindlarında tiplerin konulması bir şekilde sağlanmalı.</p>
 <p>Yani şunu demeye çalışıyorum, elimde bir row variable varsa, bu ancak bir row tipi ile yer değiştirebilir(yerine ancak row tipi yazılabilir). Bunu implementasyon sırasında tip sistemi ile garanti etmek gerçekten zor. İnsanlar bu yüzden kind sistemi kullanıyorlar sanırım.</p>
-<p>Kind kullanırsam şöyle oluyor, her tipe bir kind veriyorum. Özet geçmek gerekirse, mesela TVar bir type değişkeni tutuyordu, şimdi bir de kind tutacak. Kindlar ise dilimde kaç tip -birbirlerinden farklı- type varsa, o kadar olacak. Örneğin <code>Star</code> int, bool gibi tipler için kullanılırken, <code>Row</code> row tipleri için kullanılır. Bu sayede bir değişkenim Row kindında ise, quantified edilse de instantiate edilse de bu bilgi taşınır ve en son yerine yazılacağında kind kontrol edilir. Tüm yerine yazmalar <code>kind-preserving</code> olmalıdır.<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
+<p>Kind kullanırsam şöyle oluyor, her tipe bir kind veriyorum. Özet geçmek gerekirse, mesela TVar bir type değişkeni tutuyordu, şimdi bir de kind tutacak. Kindlar ise dilimde kaç tip -birbirlerinden farklı- type varsa, o kadar olacak. Örneğin <code>Star</code> int, bool gibi tipler için kullanılırken, <code>Row</code> row tipleri için kullanılır. Bu sayede bir değişkenim Row kindında ise, quantified edilse de instantiate edilse de bu bilgi taşınır ve en son yerine yazılacağında kind kontrol edilir. Tüm yerine yazmalar <code>kind-preserving</code> olmalıdır.<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a></p>
 <p>Bu sayede farklı kindlarda type variablelar için aynı fonksiyonları kullanabilirim, sürekli kind bilgisini de taşırım. En son substitution veya unification yaparken, kindların korunup korunmadığını kontrol ederim ve normal type değişkeni yerine row type yazılmamasını sağlarım veya unification sırasında hata alırım.</p>
 <p>–</p>
 <p>Kindlarla beraber tipleri şu şekilde tanımlayabiliyoruz(yaklaşık olarak, henüz programı yazmadım)</p>
-<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> kind =
-  | <span class="dt">KStar</span>                 <span class="co">(* kind of term types *)</span>
-  | <span class="dt">KRow</span>                  <span class="co">(* kind of row types *)</span>
-  | <span class="dt">KArr</span> <span class="kw">of</span> (kind * kind) <span class="co">(* kind of type constructors *)</span>
-
-<span class="kw">type</span> ty =
-  | <span class="dt">TCon</span> <span class="kw">of</span> tycon     <span class="co">(* constant *)</span>
-  | <span class="dt">TVar</span> <span class="kw">of</span> tyvar     <span class="co">(* type variable *)</span>
-  | <span class="dt">TApp</span> <span class="kw">of</span> (ty * ty)
-      <span class="co">(* type application, to be well-typed</span>
-<span class="co">         kind of first ty should be KArr (k2, k)</span>
-<span class="co">         and second ty should be k2 *)</span>
-<span class="kw">and</span> tyvar = (tyvarlink <span class="dt">ref</span> * kind)
-<span class="kw">and</span> tyvarlink =
-  | <span class="dt">NoLink</span> <span class="kw">of</span> id <span class="co">(* just a type variable *)</span>
-  | <span class="dt">LinkTo</span> <span class="kw">of</span> ty <span class="co">(* equated to a ty *)</span>
-<span class="kw">and</span> tycon = (id * kind) <span class="co">(* kind should be always KStar *)</span>
-
-<span class="kw">let</span> t_int        = <span class="dt">TCon</span> (<span class="st">&quot;int&quot;</span>,  <span class="dt">KStar</span>)
-<span class="kw">let</span> t_bool       = <span class="dt">TCon</span> (<span class="st">&quot;bool&quot;</span>, <span class="dt">KStar</span>)
-<span class="kw">let</span> t_unit       = <span class="dt">TCon</span> (<span class="st">&quot;unit&quot;</span>, <span class="dt">KStar</span>)
-<span class="kw">let</span> t_list       = <span class="dt">TCon</span> (<span class="st">&quot;[]&quot;</span>,   <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KStar</span>))
-<span class="kw">let</span> t_ref        = <span class="dt">TCon</span> (<span class="st">&quot;ref&quot;</span>,  <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KStar</span>))
-<span class="kw">let</span> t_arr        = <span class="dt">TCon</span> (<span class="st">&quot;-&gt;&quot;</span>,   <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KStar</span>)))
-<span class="kw">let</span> t_empty_row  = <span class="dt">TCon</span> (<span class="st">&quot;&lt;|&gt;&quot;</span>,  <span class="dt">KRow</span>)
-<span class="kw">let</span> t_row_ext    = <span class="dt">TCon</span> (<span class="st">&quot;&lt;+&gt;&quot;</span>,  <span class="dt">KArr</span> (<span class="dt">KStar</span>, <span class="dt">KArr</span> (<span class="dt">KRow</span>, <span class="dt">KRow</span>)))
-<span class="kw">let</span> t_rec_const  = <span class="dt">TCon</span> (<span class="st">&quot;{_}&quot;</span>,  <span class="dt">KArr</span> (<span class="dt">KRow</span>, <span class="dt">KStar</span>))
-
-<span class="co">(* type of {r1} *)</span>
-<span class="kw">let</span> rp1 = <span class="dt">TApp</span> (t_rec_const, <span class="dt">TVar</span> (<span class="dt">ref</span> (<span class="dt">NoLink</span> <span class="st">&quot;r1&quot;</span>), <span class="dt">KRow</span>))
-
-<span class="co">(* type of {r1} -&gt; {_:int|r1} *)</span>
-<span class="kw">let</span> f   = <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_arr, rp1), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_row_ext, t_int), rp1))</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">type</span> kind =</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">  | KStar                 <span class="co">(* kind of term types *)</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">  | KRow                  <span class="co">(* kind of row types *)</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">  | KArr <span class="kw">of</span> (kind * kind) <span class="co">(* kind of type constructors *)</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="kw">type</span> ty =</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">  | TCon <span class="kw">of</span> tycon     <span class="co">(* constant *)</span></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">  | TVar <span class="kw">of</span> tyvar     <span class="co">(* type variable *)</span></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">  | TApp <span class="kw">of</span> (ty * ty)</a>
+<a class="sourceLine" id="cb2-10" data-line-number="10">      <span class="co">(* type application, to be well-typed</span></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">         kind of first ty should be KArr (k2, k)</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">         and second ty should be k2 *)</span></a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="kw">and</span> tyvar = (tyvarlink <span class="dt">ref</span> * kind)</a>
+<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="kw">and</span> tyvarlink =</a>
+<a class="sourceLine" id="cb2-15" data-line-number="15">  | NoLink <span class="kw">of</span> id <span class="co">(* just a type variable *)</span></a>
+<a class="sourceLine" id="cb2-16" data-line-number="16">  | LinkTo <span class="kw">of</span> ty <span class="co">(* equated to a ty *)</span></a>
+<a class="sourceLine" id="cb2-17" data-line-number="17"><span class="kw">and</span> tycon = (id * kind) <span class="co">(* kind should be always KStar *)</span></a>
+<a class="sourceLine" id="cb2-18" data-line-number="18"></a>
+<a class="sourceLine" id="cb2-19" data-line-number="19"><span class="kw">let</span> t_int        = TCon (<span class="st">&quot;int&quot;</span>,  KStar)</a>
+<a class="sourceLine" id="cb2-20" data-line-number="20"><span class="kw">let</span> t_bool       = TCon (<span class="st">&quot;bool&quot;</span>, KStar)</a>
+<a class="sourceLine" id="cb2-21" data-line-number="21"><span class="kw">let</span> t_unit       = TCon (<span class="st">&quot;unit&quot;</span>, KStar)</a>
+<a class="sourceLine" id="cb2-22" data-line-number="22"><span class="kw">let</span> t_list       = TCon (<span class="st">&quot;[]&quot;</span>,   KArr (KStar, KStar))</a>
+<a class="sourceLine" id="cb2-23" data-line-number="23"><span class="kw">let</span> t_ref        = TCon (<span class="st">&quot;ref&quot;</span>,  KArr (KStar, KStar))</a>
+<a class="sourceLine" id="cb2-24" data-line-number="24"><span class="kw">let</span> t_arr        = TCon (<span class="st">&quot;-&gt;&quot;</span>,   KArr (KStar, KArr (KStar, KStar)))</a>
+<a class="sourceLine" id="cb2-25" data-line-number="25"><span class="kw">let</span> t_empty_row  = TCon (<span class="st">&quot;&lt;|&gt;&quot;</span>,  KRow)</a>
+<a class="sourceLine" id="cb2-26" data-line-number="26"><span class="kw">let</span> t_row_ext    = TCon (<span class="st">&quot;&lt;+&gt;&quot;</span>,  KArr (KStar, KArr (KRow, KRow)))</a>
+<a class="sourceLine" id="cb2-27" data-line-number="27"><span class="kw">let</span> t_rec_const  = TCon (<span class="st">&quot;{_}&quot;</span>,  KArr (KRow, KStar))</a>
+<a class="sourceLine" id="cb2-28" data-line-number="28"></a>
+<a class="sourceLine" id="cb2-29" data-line-number="29"><span class="co">(* type of {r1} *)</span></a>
+<a class="sourceLine" id="cb2-30" data-line-number="30"><span class="kw">let</span> rp1 = TApp (t_rec_const, TVar (<span class="dt">ref</span> (NoLink <span class="st">&quot;r1&quot;</span>), KRow))</a>
+<a class="sourceLine" id="cb2-31" data-line-number="31"></a>
+<a class="sourceLine" id="cb2-32" data-line-number="32"><span class="co">(* type of {r1} -&gt; {_:int|r1} *)</span></a>
+<a class="sourceLine" id="cb2-33" data-line-number="33"><span class="kw">let</span> f   = TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), rp1))</a></code></pre></div>
 <p>En sonraki iki tanım örnek olsun diyeydi.</p>
-<p>Karmaşık olduğunun farkındayım ama 1) bu tip sistemi implementasyonları için standard yol gibi geldi bana(çok fazla makalede kind sistemlerinden bahsediliyor) 2) diğer türlü de daha az karmaşık değil gibi.<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a></p>
+<p>Karmaşık olduğunun farkındayım ama 1) bu tip sistemi implementasyonları için standard yol gibi geldi bana(çok fazla makalede kind sistemlerinden bahsediliyor) 2) diğer türlü de daha az karmaşık değil gibi.<a href="#fn5" class="footnote-ref" id="fnref5"><sup>5</sup></a></p>
 <p>Burda mesela <code>TApp</code> oluşturan bir yardımcı fonksiyon oluştururuz ve kindları kontrol eder, uyumlu mu diye, bir miktar daha kolaylaşır. Yardımcı fonksiyonlarla işi kolaylaştırabiliriz diye düşünüyorum yani.</p>
 <p>Bu örnekde <code>rp1</code> yerine mesela <code>{a:bool}</code> (yani <code>TApp (TApp (t_rec_ext, bool_ty), t_empty_row)</code>) yazarsak:</p>
-<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="dt">TApp</span> (<span class="dt">TApp</span> (t_arr, rp1), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_row_ext, t_int), <span class="dt">TApp</span> (<span class="dt">TApp</span> (t_rec_ext, bool_ty), t_empty_row)))</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb3-1" data-line-number="1">TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), TApp (TApp (t_rec_ext, bool_ty), t_empty_row)))</a></code></pre></div>
 <p>Bana gayet temiz bir şekilde <code>{x:int, a:bool}</code> elde ettik gibi geliyor ve tek yaptığımız yerine yazmak oldu. ( bu sunumda labelların atlandığının farkındayım, tam olarak labelları nasıl bu sisteme entegre ederim düşünmedim )</p>
-<p>Diğer türlü yapılamaz mı, tabii ki yapılabilir ve ben zaten çok yaklaşmıştım. Fakat çirkin olmayan bir yolu yok. Kod içerisinde şöyle kısımlar olmak <em>zorunda</em> gibi: “implementasyonum doğru olduğuna göre bu type variable record ile unify edilmiş olacak, exhaustive olmayan pattern matching yap”. Mesela tüm row değişkenler bir record’a unify edilimş olacak, ben pattern matching ile fieldları alacağım kendi recordıma ekleyeceğim vs.<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a></p>
+<p>Diğer türlü yapılamaz mı, tabii ki yapılabilir ve ben zaten çok yaklaşmıştım. Fakat çirkin olmayan bir yolu yok. Kod içerisinde şöyle kısımlar olmak <em>zorunda</em> gibi: “implementasyonum doğru olduğuna göre bu type variable record ile unify edilmiş olacak, exhaustive olmayan pattern matching yap”. Mesela tüm row değişkenler bir record’a unify edilimş olacak, ben pattern matching ile fieldları alacağım kendi recordıma ekleyeceğim vs.<a href="#fn6" class="footnote-ref" id="fnref6"><sup>6</sup></a></p>
 <p>Ama kindler ile yaptığımda bu gibi durumlar olmayacak, ben <code>TApp</code>’lar ile typelar oluşturacağım, kind preserving substitutionlar, generalizationlar, instantiationlar yapılacağından, her zaman row tiplerim well-formed olmuş olacak ben hiçbir kontrol yapmadan <code>TApp</code>’ler oluşturmaya başlayacağım.</p>
 <p>Ben bugün akşam birkaç makale daha inceleyeceğim: Type Inference for Records in a Natural Extension of ML (Didier Rémy) ve A Polymorphic Type System for Extensible Records and Variants (Mark P. Jones, Benedict R. Gaster). Bir de Typing Haskell in Haskell (Mark P. Jones)’a baktım, Haskell’da burada konuştuğumuz anlamda recordlar yok, ama kind sisteminden bahsederken “row kindlar da kolayca eklenebilir” diyerek sanırım yukarıda yaptığım şeyi kastetmekte.</p>
 <p>Bu nasıl olabiliyor anlayabilmiş değilim ama gerçekten internette hiç örnek implementasyon yok. Bu yüzden ben bir tane yazacağım blog yazısı olarak. Polymorphic recordlara sahip bir dil inceleyeyim dedim, bir tanesi <a href="http://elm-lang.org/">Elm</a> adlı bir dil, kaynağı Haskell ile yazılmış temel olarak “Scoped Labels” makalesini kullanmış, ama kod berbat bir durumda. Çok çok karmaşık, kod stili berbat(type annotationlarını atlamış, Haskell’da bunu hiçbir zaman yapmayız, derleyici uyarı verir, annotationlar OCaml’daki gibi kodun içine yazılmaz, ayrı bir satıra yazılır ve anlaşılabilmeye çok katkı sağlarlar) vs. Yine de okunacak olursa en mantıklısı bu.</p>
-<p>İkincisi <a href="http://www.pllab.riec.tohoku.ac.jp/smlsharp/">SML#</a>. Bu da ne yazık ki SML üzerine implement edilmiş ve kaynak kodu devasa. Tüm SML kodunu incelemek gerekecek yani(aradım bulamadım alakalı kısımları).<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a></p>
-<hr />
-<div class="footnotes">
+<p>İkincisi <a href="http://www.pllab.riec.tohoku.ac.jp/smlsharp/">SML#</a>. Bu da ne yazık ki SML üzerine implement edilmiş ve kaynak kodu devasa. Tüm SML kodunu incelemek gerekecek yani(aradım bulamadım alakalı kısımları).<a href="#fn7" class="footnote-ref" id="fnref7"><sup>7</sup></a></p>
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Özetle, row polymorphism’e sahip, multi-staged bir dil. Buradaki veri yapısı dilin tip sistemini ifade ediyor. Row tiplerine dikkat. Row polymorphism’de fieldlar üzerinde bazı kısıtlar tanımlamanın birkaç yolu var. Bir yol, benim burada yaptığım ve <a href="http://gallium.inria.fr/~remy/publications.html">D. Rémy</a>’nin “Type inference for records in a natural extension of ML” ve başka makalelerinde gösterdiği gibi, field tiplerinde bir çeşit “flag” tutmak. Makalelerde Abs/Pre diye geçer, benim kodumda Pre/Btm. Bu yolun bu işi yapmak en bariz yol olduğunu söyleyebiliriz belki. Fakat kesinlikle en kolay/güzel yötem değil. Alternatif olarak kısıtlar constraint seviyesinde, kind seviyesinde veya başka bazı seviyelerde tanımlanabiliyor.<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>Burada anlatmaya çalıştığım problem bana çok vakit kaybettirdi ve aslında pek çok kişiye tanıdık gelebilir. Kısaca yapmaya çalıştığım şey, bazı şeyleri statik olarak garanti etmek için tip sistemini kullanmaya çalışmak. Örneğin bir programlama dilinde syntax ağacını well-formed olmayan programları ifade edebilmesini engelleyecek şekilde oluşturmak gibi. Bu gibi durumlarda eğer yeterince güçlü tip sisteminiz yoksa(örnek: GADTler yardımcı olabiliyor) işiniz çok zorlaşabiliyor. Daha kolay bir yöntemi runtime’da bunu garantilemek. Hemen sonrasında anlattığım şey tam olarak bu aslında. Statik garantiler verebilmek süper birşey aslında. Hiçbir şart altında programınızın yanlış çalışmayacağını garanti altına alıyorsunuz. Ama bazı durumlarda bu mümkün ama çok zor olabiliyor. Diğer yandan, zor da olsa bir kere implement ettikten sonra kesin olarak doğru çalışacağından emin olabiliyorsunuz. Veya test etmesi çok kolay oluyor vs.<a href="#fnref2">↩</a></p></li>
-<li id="fn3"><p>Anlattığım şey Damas-Hindley-Milner tip sisteminin temellerinden aslında.<a href="#fnref3">↩</a></p></li>
-<li id="fn4"><p>Kindları kendi kendime keşfettiğim an. Aslında Haskell programcısı olduğumdan kind konspetine aşinaydım, ama bu şekilde kullanımı bir bakıma kendi kendime keşfettim diyebilirim. Kind adını da ben vermedim tabii, daha sonra hakkında okudukça farkettim.<a href="#fnref4">↩</a></p></li>
-<li id="fn5"><p>“diğer türlü daha az karmaşık değil gibi” derken kastettiğim, Rémy usulü, field tiplerine bir flag koyarak Abs/Pre özelliğini belirtmekti.<a href="#fnref5">↩</a></p></li>
-<li id="fn6"><p>Burda aslında biraz programımın implementasyonu ile alakalı detaylardan bahsediyorum. Belki bir ara biraz daha açarım.<a href="#fnref6">↩</a></p></li>
-<li id="fn7"><p>Daha sonradan farkettim ki bir alternatif daha varmış: “Extensible records with scoped labels” makalesinde bahsedilenlerin implement edildiği <a href="http://www.equational.org/morrow/">Morrow</a> programlama dili. En iyi implementasyon şimdilik bu. Tek problemi, kurulmak için <a href="http://www.cs.uu.nl/wiki/HUT/AttributeGrammarSystem">UUAG attribute grammar system</a>a ihtiyaç duyması. Bir de eğer sadece type inference yapmasın, bir de çalıştırsın derseniz, OCaml’a ihtiyaç duyuyor. Evet çok fantastik. Haskell ile statik analiz kısımları yapılıyor ve OCaml’a derleniyor. Tabii programın asıl olayı tip sistemi olduğundan, deneme için yazdığınız programları çalıştırmak istemeyebilirsiniz, o zaman OCaml’a gerek yok.<a href="#fnref7">↩</a></p></li>
+<li id="fn1"><p>Özetle, row polymorphism’e sahip, multi-staged bir dil. Buradaki veri yapısı dilin tip sistemini ifade ediyor. Row tiplerine dikkat. Row polymorphism’de fieldlar üzerinde bazı kısıtlar tanımlamanın birkaç yolu var. Bir yol, benim burada yaptığım ve <a href="http://gallium.inria.fr/~remy/publications.html">D. Rémy</a>’nin “Type inference for records in a natural extension of ML” ve başka makalelerinde gösterdiği gibi, field tiplerinde bir çeşit “flag” tutmak. Makalelerde Abs/Pre diye geçer, benim kodumda Pre/Btm. Bu yolun bu işi yapmak en bariz yol olduğunu söyleyebiliriz belki. Fakat kesinlikle en kolay/güzel yötem değil. Alternatif olarak kısıtlar constraint seviyesinde, kind seviyesinde veya başka bazı seviyelerde tanımlanabiliyor.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>Burada anlatmaya çalıştığım problem bana çok vakit kaybettirdi ve aslında pek çok kişiye tanıdık gelebilir. Kısaca yapmaya çalıştığım şey, bazı şeyleri statik olarak garanti etmek için tip sistemini kullanmaya çalışmak. Örneğin bir programlama dilinde syntax ağacını well-formed olmayan programları ifade edebilmesini engelleyecek şekilde oluşturmak gibi. Bu gibi durumlarda eğer yeterince güçlü tip sisteminiz yoksa(örnek: GADTler yardımcı olabiliyor) işiniz çok zorlaşabiliyor. Daha kolay bir yöntemi runtime’da bunu garantilemek. Hemen sonrasında anlattığım şey tam olarak bu aslında. Statik garantiler verebilmek süper birşey aslında. Hiçbir şart altında programınızın yanlış çalışmayacağını garanti altına alıyorsunuz. Ama bazı durumlarda bu mümkün ama çok zor olabiliyor. Diğer yandan, zor da olsa bir kere implement ettikten sonra kesin olarak doğru çalışacağından emin olabiliyorsunuz. Veya test etmesi çok kolay oluyor vs.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn3"><p>Anlattığım şey Damas-Hindley-Milner tip sisteminin temellerinden aslında.<a href="#fnref3" class="footnote-back">↩</a></p></li>
+<li id="fn4"><p>Kindları kendi kendime keşfettiğim an. Aslında Haskell programcısı olduğumdan kind konspetine aşinaydım, ama bu şekilde kullanımı bir bakıma kendi kendime keşfettim diyebilirim. Kind adını da ben vermedim tabii, daha sonra hakkında okudukça farkettim.<a href="#fnref4" class="footnote-back">↩</a></p></li>
+<li id="fn5"><p>“diğer türlü daha az karmaşık değil gibi” derken kastettiğim, Rémy usulü, field tiplerine bir flag koyarak Abs/Pre özelliğini belirtmekti.<a href="#fnref5" class="footnote-back">↩</a></p></li>
+<li id="fn6"><p>Burda aslında biraz programımın implementasyonu ile alakalı detaylardan bahsediyorum. Belki bir ara biraz daha açarım.<a href="#fnref6" class="footnote-back">↩</a></p></li>
+<li id="fn7"><p>Daha sonradan farkettim ki bir alternatif daha varmış: “Extensible records with scoped labels” makalesinde bahsedilenlerin implement edildiği <a href="http://www.equational.org/morrow/">Morrow</a> programlama dili. En iyi implementasyon şimdilik bu. Tek problemi, kurulmak için <a href="http://www.cs.uu.nl/wiki/HUT/AttributeGrammarSystem">UUAG attribute grammar system</a>a ihtiyaç duyması. Bir de eğer sadece type inference yapmasın, bir de çalıştırsın derseniz, OCaml’a ihtiyaç duyuyor. Evet çok fantastik. Haskell ile statik analiz kısımları yapılıyor ve OCaml’a derleniyor. Tabii programın asıl olayı tip sistemi olduğundan, deneme için yazdığınız programları çalıştırmak istemeyebilirsiniz, o zaman OCaml’a gerek yok.<a href="#fnref7" class="footnote-back">↩</a></p></li>
 </ol>
-</div>]]></summary>
+</section>]]></summary>
 </entry>
 
 </feed>

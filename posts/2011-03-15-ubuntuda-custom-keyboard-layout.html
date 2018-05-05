@@ -22,7 +22,7 @@
 <p><strong>March 15, 2011</strong> - Tagged as: <a href="../tags/tr.html">tr</a>.</p>
 
 <p>Vim ile uğraştığım son birkaç ayda kendime çok sağlam bir <a href="https://github.com/osa1/rcbackup/blob/master/.vimrc">.vimrc</a> dosyası hazırladım. Bir sürü ayar var ama benim için en önemli kısımları, sistem genelinde ihtiyaç duyduğum <code>map ğ [</code> <code>map ü ]</code> <code>map Ğ {</code> ve <code>map Ü }</code> kısımları. Dizüstü bilgisyarımın klavyesi ingilizce ve ordan farkettim, ingilizce klavyede ğ ve ü’nün olduğu yerlerde [ ] var ve çok daha kullanışlı.</p>
-<p>Kod yazarken türkçe karakterleri hiçbir şekilde kullanmadığımıza göre, bunları bir şekilde [] ile değiştirebilirsem çok daha kullanışlı olacak. Türkçe klavyede []{} karakterlerinin yerleri çok kötü. (vim’de { } karakterleri normal mode’da bloklar arasında gezinmeyi de sağlıyor.)</p>
+<p>Kod yazarken türkçe karakterleri hiçbir şekilde kullanmadığımıza göre, bunları bir şekilde [] ile değiştirebilirsem çok daha kullanışlı olacak. Türkçe klavyede <span></span> karakterlerinin yerleri çok kötü. (vim’de { } karakterleri normal mode’da bloklar arasında gezinmeyi de sağlıyor.)</p>
 <p>Küçük bir araştırmayla nasıl olacağını buldum. Not olsun, buraya yazıyorum(diğer bilgisayarda da yapılacak).</p>
 <p>Klavye düzenleri <code>/usr/share/X11/xkb/symbols</code> adresinde tutuluyor. Burdaki tr bizim kullandığımız türkçe klavye. Bizim yapmak istediğimiz ondaki sadece 2 satırı değiştirmek olduğundan, tüm dosyayı kopyalayıp adını istediğimiz bir şekilde değiştiriyoruz(ben <code>t1</code> yaptım). Daha sonra içini açıp şu satırları buluyoruz.</p>
 <pre><code>key &lt;AD11&gt;	{[gbreve, Gbreve ]};
@@ -31,7 +31,7 @@ key &lt;AD12&gt;	{[udiaeresis, Udiaeresis, asciitilde, dead_macron]};</code></pr
 <pre><code>key &lt;AD11&gt;	{[bracketleft, braceleft ]};
 key &lt;AD12&gt;	{[bracketright, braceright, asciitilde, dead_macron]};</code></pre>
 <p>Bu kadar. Kaydedip çıktıktan sonra başka bir dosyada daha değişiklik yapacağız. <code>/usr/share/X11/xkb/rules/evdav.xml</code> dosyasını açıyoruz. Herhangi bir <code>&lt;/layout&gt;</code> sonuna şunu ekliyoruz:</p>
-<pre class="sourceCode xml"><code class="sourceCode xml"><span class="kw">&lt;layout&gt;</span> <span class="co">&lt;!-- custom --&gt;</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode xml"><code class="sourceCode xml"><span class="kw">&lt;layout&gt;</span> <span class="co">&lt;!-- custom --&gt;</span>
 	<span class="kw">&lt;configItem&gt;</span>
 		<span class="kw">&lt;name&gt;</span>t1<span class="kw">&lt;/name&gt;</span> <span class="co">&lt;!-- buraya dosyanizin adi gelecek --&gt;</span>
 		<span class="kw">&lt;shortDescription&gt;</span>t1<span class="kw">&lt;/shortDescription&gt;</span> <span class="co">&lt;!-- bu satir gnome panelde de gozukecek --&gt;</span>
@@ -39,16 +39,15 @@ key &lt;AD12&gt;	{[bracketright, braceright, asciitilde, dead_macron]};</code></
 		<span class="kw">&lt;languageList&gt;&lt;iso639Id&gt;</span>tur<span class="kw">&lt;/iso639Id&gt;&lt;/languageList&gt;</span>
 	<span class="kw">&lt;/configItem&gt;</span>
 	<span class="kw">&lt;variantList/&gt;</span>
-<span class="kw">&lt;/layout&gt;</span></code></pre>
+<span class="kw">&lt;/layout&gt;</span></code></pre></div>
 <p>Bu kadar. Bundan sonra <code>gnome-keyboard-properties</code>i çalıştırıp klavye düzenimizi ekliyoruz. Burda klavye düzenlerini hızlıca değiştirmek için ayar ekranından <code>shift + ctrl</code> vb. şeyler seçebilirsiniz.</p>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

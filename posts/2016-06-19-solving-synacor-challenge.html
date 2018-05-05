@@ -60,41 +60,41 @@
 [6067] Ret [] -- end of function at 6027 --   return;
                                          -- }</code></pre>
 <p>I added next to each instruction how they would look like in a C-like language. It’s hard to understand what’s going on. So to experiment with it I implement it in Rust. Since registers are shared in each call, I use shared state in my initial implementation:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="ot">#[</span>inline<span class="ot">]</span>
-<span class="kw">fn</span> add(i1 : <span class="kw">u16</span>, i2 : <span class="kw">u16</span>) -&gt; <span class="kw">u16</span> {
+<div class="sourceCode" id="cb2"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="at">#[</span>inline<span class="at">]</span>
+<span class="kw">fn</span> add(i1 : <span class="dt">u16</span>, i2 : <span class="dt">u16</span>) -&gt; <span class="dt">u16</span> <span class="op">{</span>
     (i1 + i2) % <span class="dv">32768</span>
-}
+<span class="op">}</span>
 
-<span class="ot">#[</span>derive<span class="ot">(</span>Debug<span class="ot">)]</span>
-<span class="kw">struct</span> FnState {
-    reg0  : <span class="kw">u16</span>,
-    reg1  : <span class="kw">u16</span>,
-    reg7  : <span class="kw">u16</span>,
-    stack : Vec&lt;<span class="kw">u16</span>&gt;,
-}
+<span class="at">#[</span>derive<span class="at">(</span><span class="bu">Debug</span><span class="at">)]</span>
+<span class="kw">struct</span> FnState <span class="op">{</span>
+    reg0  : <span class="dt">u16</span>,
+    reg1  : <span class="dt">u16</span>,
+    reg7  : <span class="dt">u16</span>,
+    stack : <span class="dt">Vec</span>&lt;<span class="dt">u16</span>&gt;,
+<span class="op">}</span>
 
-<span class="kw">impl</span> FnState {
-    <span class="kw">fn</span> init(reg0 : <span class="kw">u16</span>, reg1 : <span class="kw">u16</span>, reg7 : <span class="kw">u16</span>) -&gt; FnState {
-        FnState {
+<span class="kw">impl</span> FnState <span class="op">{</span>
+    <span class="kw">fn</span> init(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; FnState <span class="op">{</span>
+        FnState <span class="op">{</span>
             reg0: reg0,
             reg1: reg1,
             reg7: reg7,
-            stack: Vec::new(),
-        }
-    }
+            stack: <span class="dt">Vec</span>::new(),
+        <span class="op">}</span>
+    <span class="op">}</span>
 
-    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {
-        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> {
+    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span>
+        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> <span class="op">{</span>
             <span class="kw">self</span>.reg0 = add(<span class="kw">self</span>.reg1, <span class="dv">1</span>);
             <span class="kw">return</span>;
-        }
-        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> {
+        <span class="op">}</span>
+        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> <span class="op">{</span>
             <span class="co">// self.reg0 = add(self.reg0, 32767);</span>
             <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;
             <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg7;
             <span class="kw">self</span>.f();
             <span class="kw">return</span>;
-        }
+        <span class="op">}</span>
         <span class="kw">self</span>.stack.push(<span class="kw">self</span>.reg0);
         <span class="co">// self.reg1 = add(self.reg1, 32767);</span>
         <span class="kw">self</span>.reg1 -= <span class="dv">1</span>;
@@ -105,25 +105,25 @@
         <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;
         <span class="kw">self</span>.f();
         <span class="kw">return</span>;
-    }
-}</code></pre>
+    <span class="op">}</span>
+<span class="op">}</span></code></pre></div>
 <p>Now, this function grows really fast. Even for very small inputs it takes minutes to compute. I try to think some well-known functions that grow very fast. Ackermann comes to my mind and I check the Wiki page. Indeed, this looks quite similar, but the third argument makes it different than Ackermann. In any case, it doesn’t really matter for the solution.</p>
 <p>So the problem is coming up with a <code>reg7</code> in this code so that <code>f(4, 1, reg7)</code> returns <code>6</code>. For that I need to implement a search but this is basically impossible with this slow function. I start simplifying the function a little bit. My first attempt:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> FnState {
-    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) {
+<div class="sourceCode" id="cb3"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> FnState <span class="op">{</span>
+    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span>
         <span class="co">// When reg0 hits zero, restart it from reg1 + 1</span>
-        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> {
+        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> <span class="op">{</span>
             <span class="kw">self</span>.reg0 = add(<span class="kw">self</span>.reg1, <span class="dv">1</span>);
             <span class="kw">return</span>;
-        }
+        <span class="op">}</span>
 
         <span class="co">// When reg1 hits zero, decrement reg0, restart reg1 from reg7</span>
-        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> {
+        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> <span class="op">{</span>
             <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;
             <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg7;
             <span class="kw">self</span>.f();
             <span class="kw">return</span>;
-        }
+        <span class="op">}</span>
 
         <span class="kw">let</span> save_reg0 = <span class="kw">self</span>.reg0;
 
@@ -136,21 +136,21 @@
 
         <span class="kw">self</span>.f();
         <span class="kw">return</span>;
-    }
-}</code></pre>
+    <span class="op">}</span>
+<span class="op">}</span></code></pre></div>
 <p>This version doesn’t use an explicit stack, instead uses a temporary in the call frame. This works because in the original version each push corresponds to a pop done in the same call frame.</p>
 <p>It’s still too complicated. I keep simplifying.</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(<span class="kw">mut</span> reg0 : <span class="kw">u16</span>, <span class="kw">mut</span> reg1 : <span class="kw">u16</span>, <span class="kw">mut</span> reg7 : <span class="kw">u16</span>) -&gt; (<span class="kw">u16</span>, <span class="kw">u16</span>) {
-    <span class="kw">if</span> reg0 == <span class="dv">0</span> {
+<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(<span class="kw">mut</span> reg0 : <span class="dt">u16</span>, <span class="kw">mut</span> reg1 : <span class="dt">u16</span>, <span class="kw">mut</span> reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span>
+    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span>
         reg0 = add(reg1, <span class="dv">1</span>);
         <span class="kw">return</span> (reg0, reg1);
-    }
+    <span class="op">}</span>
 
-    <span class="kw">if</span> reg1 == <span class="dv">0</span> {
+    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span>
         reg0 -= <span class="dv">1</span>;
         reg1 = reg7;
         <span class="kw">return</span> f(reg0, reg1, reg7);
-    }
+    <span class="op">}</span>
 
     <span class="kw">let</span> save_reg0 = reg0;
     reg1 -= <span class="dv">1</span>;
@@ -165,38 +165,38 @@
     reg0 -= <span class="dv">1</span>;
 
     <span class="kw">return</span> f(reg0, reg1, reg7);
-}</code></pre>
+<span class="op">}</span></code></pre></div>
 <p>This version doesn’t have any shared mutable state. At this point I realize that it may be possible to remove internal mutable state too:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(reg0 : <span class="kw">u16</span>, reg1 : <span class="kw">u16</span>, reg7 : <span class="kw">u16</span>) -&gt; (<span class="kw">u16</span>, <span class="kw">u16</span>) {
-    <span class="kw">if</span> reg0 == <span class="dv">0</span> {
+<div class="sourceCode" id="cb5"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span>
+    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span>
         <span class="kw">return</span> (add(reg1, <span class="dv">1</span>), reg1);
-    }
+    <span class="op">}</span>
 
-    <span class="kw">if</span> reg1 == <span class="dv">0</span> {
+    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span>
         <span class="kw">return</span> f(reg0 - <span class="dv">1</span>, reg7, reg7);
-    }
+    <span class="op">}</span>
 
     <span class="kw">let</span> (reg1, _) = f(reg0, reg1 - <span class="dv">1</span>, reg7);
 
     <span class="kw">return</span> f(reg0 - <span class="dv">1</span>, reg1, reg7);
-}</code></pre>
+<span class="op">}</span></code></pre></div>
 <p>Now, this is a function I can read and understand. One advantage of this version is that this could be easily memoized:</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f_memo(reg0 : <span class="kw">u16</span>, reg1 : <span class="kw">u16</span>, reg7 : <span class="kw">u16</span>, memo : &amp;<span class="kw">mut</span> HashMap&lt;(<span class="kw">u16</span>, <span class="kw">u16</span>), (<span class="kw">u16</span>, <span class="kw">u16</span>)&gt;) -&gt; (<span class="kw">u16</span>, <span class="kw">u16</span>) {
-    <span class="kw">if</span> <span class="kw">let</span> <span class="kw">Some</span>(ret) = memo.get(&amp;(reg0, reg1)) {
+<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f_memo(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>, memo : &amp;<span class="kw">mut</span> HashMap&lt;(<span class="dt">u16</span>, <span class="dt">u16</span>), (<span class="dt">u16</span>, <span class="dt">u16</span>)&gt;) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span>
+    <span class="kw">if</span> <span class="kw">let</span> <span class="cn">Some</span>(ret) = memo.get(&amp;(reg0, reg1)) <span class="op">{</span>
         <span class="kw">return</span> *ret;
-    }
+    <span class="op">}</span>
 
-    <span class="kw">if</span> reg0 == <span class="dv">0</span> {
+    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span>
         <span class="kw">let</span> ret = (add(reg1, <span class="dv">1</span>), reg1);
         memo.insert((reg0, reg1), ret);
         <span class="kw">return</span> ret;
-    }
+    <span class="op">}</span>
 
-    <span class="kw">if</span> reg1 == <span class="dv">0</span> {
+    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span>
         <span class="kw">let</span> ret = f_memo(reg0 - <span class="dv">1</span>, reg7, reg7, memo);
         memo.insert((reg0, reg1), ret);
         <span class="kw">return</span> ret;
-    }
+    <span class="op">}</span>
 
     <span class="co">// careful there</span>
     <span class="kw">let</span> (reg1_new, _) = f_memo(reg0, reg1 - <span class="dv">1</span>, reg7, memo);
@@ -204,42 +204,42 @@
     <span class="kw">let</span> ret = f_memo(reg0 - <span class="dv">1</span>, reg1_new, reg7, memo);
     memo.insert((reg0, reg1), ret);
     <span class="kw">return</span> ret;
-}</code></pre>
+<span class="op">}</span></code></pre></div>
 <p>This version is super fast when compared to the original version. I feel like I can just search the whole space in a few hours. I start the search and as it searches through the search space I start wondering about how to further improve it. I think, why not split search space into pieces and search in parallel?</p>
-<pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> search(start_range : <span class="kw">u16</span>, end_range : <span class="kw">u16</span>) -&gt; <span class="kw">Option</span>&lt;<span class="kw">u16</span>&gt; {
-    <span class="kw">for</span> i in start_range .. end_range {
+<div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> search(start_range : <span class="dt">u16</span>, end_range : <span class="dt">u16</span>) -&gt; <span class="dt">Option</span>&lt;<span class="dt">u16</span>&gt; <span class="op">{</span>
+    <span class="kw">for</span> i <span class="kw">in</span> start_range .. end_range <span class="op">{</span>
         <span class="co">// println!(&quot;i = {}&quot;, i);</span>
         <span class="kw">let</span> <span class="kw">mut</span> tbl = HashMap::new();
         <span class="kw">let</span> ret = f_memo(<span class="dv">4</span>, <span class="dv">1</span>, i, &amp;<span class="kw">mut</span> tbl);
-        <span class="kw">if</span> ret.<span class="dv">0</span> == <span class="dv">6</span> {
-            <span class="ot">println!</span>(<span class="st">&quot;Found an answer: {:?} {}&quot;</span>, ret, i);
-            <span class="kw">return</span> <span class="kw">Some</span>(i);
-        }
-    }
+        <span class="kw">if</span> ret.<span class="dv">0</span> == <span class="dv">6</span> <span class="op">{</span>
+            <span class="pp">println!</span>(<span class="st">&quot;Found an answer: {:?} {}&quot;</span>, ret, i);
+            <span class="kw">return</span> <span class="cn">Some</span>(i);
+        <span class="op">}</span>
+    <span class="op">}</span>
 
-    <span class="kw">None</span>
-}
+    <span class="cn">None</span>
+<span class="op">}</span>
 
-<span class="kw">fn</span> search_in_parallel(n : <span class="kw">i32</span>) {
-    <span class="kw">let</span> increment = <span class="kw">u16</span>::MAX / (n <span class="kw">as</span> <span class="kw">u16</span>);
-    <span class="kw">let</span> <span class="kw">mut</span> threads = Vec::with_capacity(n <span class="kw">as</span> usize);
+<span class="kw">fn</span> search_in_parallel(n : <span class="dt">i32</span>) <span class="op">{</span>
+    <span class="kw">let</span> increment = <span class="dt">u16</span>::MAX / (n <span class="kw">as</span> <span class="dt">u16</span>);
+    <span class="kw">let</span> <span class="kw">mut</span> threads = <span class="dt">Vec</span>::with_capacity(n <span class="kw">as</span> <span class="dt">usize</span>);
 
-    <span class="kw">for</span> i in <span class="dv">0</span> .. n {
-        <span class="kw">let</span> range_start = increment * (i <span class="kw">as</span> <span class="kw">u16</span>);
-        <span class="kw">let</span> range_end   = increment * ((i <span class="kw">as</span> <span class="kw">u16</span>) + <span class="dv">1</span>) + <span class="dv">1</span>;
-        threads.push(thread::Builder::new().stack_size(<span class="dv">1000000000</span>).spawn(move || {
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="dv">0</span> .. n <span class="op">{</span>
+        <span class="kw">let</span> range_start = increment * (i <span class="kw">as</span> <span class="dt">u16</span>);
+        <span class="kw">let</span> range_end   = increment * ((i <span class="kw">as</span> <span class="dt">u16</span>) + <span class="dv">1</span>) + <span class="dv">1</span>;
+        threads.push(thread::Builder::new().stack_size(<span class="dv">1000000000</span>).spawn(<span class="kw">move</span> || <span class="op">{</span>
             search(range_start, range_end)
-        }).unwrap());
-    }
+        <span class="op">}</span>).unwrap());
+    <span class="op">}</span>
 
-    <span class="kw">for</span> thread in threads {
+    <span class="kw">for</span> thread <span class="kw">in</span> threads <span class="op">{</span>
         thread.join();
-    }
-}
+    <span class="op">}</span>
+<span class="op">}</span>
 
-<span class="kw">fn</span> main() {
+<span class="kw">fn</span> main() <span class="op">{</span>
     search_in_parallel(<span class="dv">8</span>);
-}</code></pre>
+<span class="op">}</span></code></pre></div>
 <p>This parallel search takes a couple of seconds until it prints:</p>
 <pre><code>Found an answer: (6, 5) 25734</code></pre>
 <p>So <code>25734</code> returns 6! This is the R8 value we were looking for.</p>
@@ -254,10 +254,9 @@
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

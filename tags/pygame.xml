@@ -35,67 +35,67 @@
 <iframe width="425" height="349" src="http://www.youtube.com/embed/e1MC7re1r0s" frameborder="0" allowfullscreen>
 </iframe>
 <p>Arduino’nun yaptığı, serial port’u dinleyip, gelen verinin 0’dan büyük bir takam olduğunu varsayarak(<code>val -= '0'</code>), bu veriye göre ledleri yakıp söndürmek.</p>
-<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define ledPin1 13</span>
-<span class="ot">#define ledPin2 12</span>
-<span class="ot">#define ledPin3 11</span>
-
-<span class="dt">int</span> val = <span class="dv">0</span>;
-
-<span class="dt">void</span> setup() {
-    pinMode(ledPin1, OUTPUT);
-    pinMode(ledPin2, OUTPUT);
-    pinMode(ledPin3, OUTPUT);
-    Serial.begin(<span class="dv">9600</span>);
-}
-
-<span class="dt">void</span> loop () {
-    <span class="kw">if</span> (Serial.available()) {
-        val = Serial.read();
-        val -= &#39;<span class="dv">0</span>&#39;;
-
-        <span class="kw">if</span> (val == <span class="dv">1</span>) {
-            digitalWrite(ledPin1, HIGH);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">2</span>) {
-            digitalWrite(ledPin2, HIGH);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">3</span>) {
-            digitalWrite(ledPin3, HIGH);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">4</span>) {
-            digitalWrite(ledPin1, LOW);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">5</span>) {
-            digitalWrite(ledPin2, LOW);
-        } <span class="kw">else</span> <span class="kw">if</span> (val == <span class="dv">6</span>) {
-            digitalWrite(ledPin3, LOW);
-        }
-    }
-}</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="pp">#define ledPin1 13</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="pp">#define ledPin2 12</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="pp">#define ledPin3 11</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="dt">int</span> val = <span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="dt">void</span> setup() {</a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">    pinMode(ledPin1, OUTPUT);</a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">    pinMode(ledPin2, OUTPUT);</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">    pinMode(ledPin3, OUTPUT);</a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">    Serial.begin(<span class="dv">9600</span>);</a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">}</a>
+<a class="sourceLine" id="cb1-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb1-14" data-line-number="14"><span class="dt">void</span> loop () {</a>
+<a class="sourceLine" id="cb1-15" data-line-number="15">    <span class="cf">if</span> (Serial.available()) {</a>
+<a class="sourceLine" id="cb1-16" data-line-number="16">        val = Serial.read();</a>
+<a class="sourceLine" id="cb1-17" data-line-number="17">        val -= <span class="ch">&#39;0&#39;</span>;</a>
+<a class="sourceLine" id="cb1-18" data-line-number="18"></a>
+<a class="sourceLine" id="cb1-19" data-line-number="19">        <span class="cf">if</span> (val == <span class="dv">1</span>) {</a>
+<a class="sourceLine" id="cb1-20" data-line-number="20">            digitalWrite(ledPin1, HIGH);</a>
+<a class="sourceLine" id="cb1-21" data-line-number="21">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">2</span>) {</a>
+<a class="sourceLine" id="cb1-22" data-line-number="22">            digitalWrite(ledPin2, HIGH);</a>
+<a class="sourceLine" id="cb1-23" data-line-number="23">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">3</span>) {</a>
+<a class="sourceLine" id="cb1-24" data-line-number="24">            digitalWrite(ledPin3, HIGH);</a>
+<a class="sourceLine" id="cb1-25" data-line-number="25">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">4</span>) {</a>
+<a class="sourceLine" id="cb1-26" data-line-number="26">            digitalWrite(ledPin1, LOW);</a>
+<a class="sourceLine" id="cb1-27" data-line-number="27">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">5</span>) {</a>
+<a class="sourceLine" id="cb1-28" data-line-number="28">            digitalWrite(ledPin2, LOW);</a>
+<a class="sourceLine" id="cb1-29" data-line-number="29">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">6</span>) {</a>
+<a class="sourceLine" id="cb1-30" data-line-number="30">            digitalWrite(ledPin3, LOW);</a>
+<a class="sourceLine" id="cb1-31" data-line-number="31">        }</a>
+<a class="sourceLine" id="cb1-32" data-line-number="32">    }</a>
+<a class="sourceLine" id="cb1-33" data-line-number="33">}</a></code></pre></div>
 <p>Python ve Pygame ile de klavyeyi izleyip, tuşların basılması veya bırakılması durumlarında serial port’a gerekli verileri gönderdim:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> serial
-<span class="ch">import</span> pygame
-
-s = serial.Serial(<span class="st">&#39;/dev/ttyACM2&#39;</span>, <span class="dv">9600</span>)
-screen = pygame.display.set_mode((<span class="dv">100</span>, <span class="dv">100</span>))
-clock = pygame.time.Clock()
-
-keydwn = {pygame.K_LEFT : <span class="st">&quot;1&quot;</span>,
-          pygame.K_RIGHT: <span class="st">&quot;2&quot;</span>,
-          pygame.K_DOWN : <span class="st">&quot;3&quot;</span>}
-
-keyup  = {pygame.K_LEFT : <span class="st">&quot;4&quot;</span>,
-          pygame.K_RIGHT: <span class="st">&quot;5&quot;</span>,
-          pygame.K_DOWN : <span class="st">&quot;6&quot;</span>}
-
-running = <span class="dv">1</span>
-<span class="kw">while</span> running:
-    screen.fill((<span class="dv">00</span>, <span class="dv">00</span>, <span class="dv">00</span>))
-    <span class="kw">for</span> event in pygame.event.get():
-        <span class="kw">if</span> event.<span class="dt">type</span> == pygame.QUIT:
-            running = <span class="ot">False</span>
-        <span class="kw">elif</span> event.<span class="dt">type</span> == pygame.KEYDOWN:
-            s.write(keydwn.get(event.key, <span class="st">&quot;&quot;</span>))
-        <span class="kw">elif</span> event.<span class="dt">type</span> == pygame.KEYUP:
-            s.write(keyup.get(event.key, <span class="st">&quot;&quot;</span>))
-
-    time = clock.tick(<span class="dv">30</span>)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="im">import</span> serial</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="im">import</span> pygame</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">s <span class="op">=</span> serial.Serial(<span class="st">&#39;/dev/ttyACM2&#39;</span>, <span class="dv">9600</span>)</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">screen <span class="op">=</span> pygame.display.set_mode((<span class="dv">100</span>, <span class="dv">100</span>))</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">clock <span class="op">=</span> pygame.time.Clock()</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">keydwn <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;1&quot;</span>,</a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">          pygame.K_RIGHT: <span class="st">&quot;2&quot;</span>,</a>
+<a class="sourceLine" id="cb2-10" data-line-number="10">          pygame.K_DOWN : <span class="st">&quot;3&quot;</span>}</a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">keyup  <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;4&quot;</span>,</a>
+<a class="sourceLine" id="cb2-13" data-line-number="13">          pygame.K_RIGHT: <span class="st">&quot;5&quot;</span>,</a>
+<a class="sourceLine" id="cb2-14" data-line-number="14">          pygame.K_DOWN : <span class="st">&quot;6&quot;</span>}</a>
+<a class="sourceLine" id="cb2-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb2-16" data-line-number="16">running <span class="op">=</span> <span class="dv">1</span></a>
+<a class="sourceLine" id="cb2-17" data-line-number="17"><span class="cf">while</span> running:</a>
+<a class="sourceLine" id="cb2-18" data-line-number="18">    screen.fill((<span class="dv">00</span>, <span class="dv">00</span>, <span class="dv">00</span>))</a>
+<a class="sourceLine" id="cb2-19" data-line-number="19">    <span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():</a>
+<a class="sourceLine" id="cb2-20" data-line-number="20">        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.QUIT:</a>
+<a class="sourceLine" id="cb2-21" data-line-number="21">            running <span class="op">=</span> <span class="va">False</span></a>
+<a class="sourceLine" id="cb2-22" data-line-number="22">        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYDOWN:</a>
+<a class="sourceLine" id="cb2-23" data-line-number="23">            s.write(keydwn.get(event.key, <span class="st">&quot;&quot;</span>))</a>
+<a class="sourceLine" id="cb2-24" data-line-number="24">        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYUP:</a>
+<a class="sourceLine" id="cb2-25" data-line-number="25">            s.write(keyup.get(event.key, <span class="st">&quot;&quot;</span>))</a>
+<a class="sourceLine" id="cb2-26" data-line-number="26"></a>
+<a class="sourceLine" id="cb2-27" data-line-number="27">    time <span class="op">=</span> clock.tick(<span class="dv">30</span>)</a></code></pre></div>
 <p>İlk deneme için gayet basit ve güzel :) . Aslında amacım, Python ve Pygame ile yaptığım şeyleri Clojure ile(Pygame kısmı için AWT gerekecekti sanırım) yapmaktı ama sırt ağrım bir yerden sonra dayanılmaz hale geldi(zaten çalışma ortamım rahat değil, bir de Arduino için masaya eğilince) ve bir an önce bitirmeye çalıştım. Bundan sonraki denemelerimi Clojure ile yapmaya çalışacağım.</p>
 <p>Onun dışında, Arduino kodunu Pardus ortamında bir türlü derleyemedim, gerekli kütüphaneler/bağımlılıklar yüzünden. Bir ara onunla uğraşacağım.</p>]]></summary>
 </entry>
@@ -110,17 +110,14 @@ running = <span class="dv">1</span>
 <p>Yaptığım şey kısaca şu:</p>
 <p>vm1, çarpacak cismimizin merkezinden, 1. yüzeyin merkezine vektör olsun. m1b, 1. yüzeyin merkezinden düzlem merkezini gösteren birim vektör olsun vm1’in m1b izdüşümü(<a href="http://en.wikipedia.org/wiki/Vector_projection">projection</a>) yeterince küçükse(örneğin cisim topsa, yarıçapından küçükse), çarpışacaklar demektir.</p>
 <p>Kendi yazdığım Vector sınıfıyla beraber kod şöyle birşey oluyor:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> <span class="dt">abs</span>((m1b*vm1.dot_product(m1b)).length) &lt; <span class="dv">5</span>:
-        <span class="co"># carpisma!</span></code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="cf">if</span> <span class="bu">abs</span>((m1b<span class="op">*</span>vm1.dot_product(m1b)).length) <span class="op">&lt;</span> <span class="dv">5</span>:</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">        <span class="co"># carpisma!</span></a></code></pre></div>
 <p>Bu yöntemi başka bir yöntemden esinlenerek kendim ürettiğimden, pek sağlıklı olmayabilir. Bu uygulama için gayet güzel çalışıyor ama. Zaten çarptıracağınız yüzeye ve çarpan cisme göre farklı algoritmalar daha mantıklı oluyor.</p>
 <p>Yansıma için de <a href="http://pfirth.co.uk/Reflection.html">reflection vector</a> kullandım. Şöyle birşey:</p>
 <p>R = V - 2<em>N</em>(V DOT N) . Bizim şartlar altında, R yansıyan hız vektörü, V gelen hız, N de yüzeyin normal vektörü. Yine kendi yazdığım Vector sınıfımla beraber şöyle birşey yani:</p>
-<pre class="sourceCode python"><code class="sourceCode python">ref_v = v_hiz - m1b*<span class="dv">2</span>*(v_hiz.dot_product(m1b))</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" data-line-number="1">ref_v <span class="op">=</span> v_hiz <span class="op">-</span> m1b<span class="op">*</span><span class="dv">2</span><span class="op">*</span>(v_hiz.dot_product(m1b))</a></code></pre></div>
 <p>Programdaki küçük(ya da bir daha düşündüm de, büyük) hata ise, toplar yüzeylere çarpmak üzereyken yüzeyleri hareket ettirirseniz, toplar alandan dışarı çıkıyorlar. Ekranın dışına çıktıklarında diğer taraftan tekrar girmelerini sağladığımdan, tekrardan alan içerisine alabiliyorum, ehaeuhe. Neden olduğu hakkında az da olsa fikrim var, bir şekilde çözeceğiz artık.</p>
-<div class="figure">
-<img src="/images/collision.png" />
-
-</div>
+<p><img src="/images/collision.png" /></p>
 <p>Bundan sonra 3. örnek, zıplayan toplar var. Önce topların alandan dışarı çıkmasını engellemeye çalışacağım sanırım.</p>
 <p>Bu arada tüm kodlar <a href="http://github.com/osa1">github</a>’da.</p>]]></summary>
 </entry>
@@ -133,49 +130,37 @@ running = <span class="dv">1</span>
     <summary type="html"><![CDATA[<p>Hazırlıktayken Pygame ile bir süre uğraşmıştım, hiçbir zaman oynanabilir bir oyun üretemedim ama birkaç deneme ile bu işlerin zorluğunu az da olsa tecrübe etmiştim.</p>
 <p>Bugün <a href="http://www.wildbunny.co.uk/blog/2011/04/06/physics-engines-for-dummies/">şu</a> sayfayı gördüm. Basit bir fizik motoru yapımından bahsediyor. Ordaki ilk örneği zaten <a href="http://osa1.net/pygame-denemeleri-1-ve-okunacaklar/">yapmıştım</a>(yöntemim biraz farklı ama olsun). Diğerleri de çok zor gözükmedi gözüme. Sonuçta, adım adım ilerleyerek zor gibi gözüken en son örnek bile halledilebilir.</p>
 <p>Beklenmedik bir şekilde zor oldu :) . Öncelikle, genel olarak bu iş böyle mi yürüyor bilmiyorum ama, Pygame’de koordinat düzlemi biraz farklı. Aşağıdaki gibi.</p>
-<div class="figure">
-<img src="/images/koordinat.png" />
-
-</div>
+<p><img src="/images/koordinat.png" /></p>
 <p>Yani ekranın üst sol köşesi (0, 0) noktası, Y ekseni aşağı indikçe artıyor. Bilgiğimiz kartezyen düzlemin X eksenine göre döndürülmüş hali gibi yani. Bu tüm işleri zorlaştırıyor.</p>
 <p>Topları falan eklemeden önce, 2. örnekteki siyah çerçeveyi yapmaya başladım. Aklımdaki fikir şuydu, ekranın ortasından(orijin) mouse’u gösteren bir birim vektör yardımıyla, ona paralel ve dik doğrular çizip kaydıracaktım. Tabii ekranın ortası, üstteki şekildeki düzene göre, (150, 150) oluyor.</p>
 <p>Bu şu ana kadar alıştığımız düzenden çok farklı ve üzerinde hesap yapmak çok zor. Bunun yerine benim yapmaya çalıştığım, ekranın ortasını (0, 0) noktası alıp, işlemleri yapıp, daha sonra bir fonksiyondan geçirerek koordinatları ve vektörleri Pygame’deki düzleme uyarlamaktı. Şöyle bir fonksiyonla örneğin:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> _(v):
-    <span class="kw">return</span> v[^<span class="dv">0</span>]SCREENX/<span class="dv">2</span>, SCREENY/<span class="dv">2</span>-v[^<span class="dv">1</span>]</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">def</span> _(v):</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">    <span class="cf">return</span> v[<span class="op">^</span><span class="dv">0</span>]SCREENX<span class="op">/</span><span class="dv">2</span>, SCREENY<span class="op">/</span><span class="dv">2</span><span class="op">-</span>v[<span class="op">^</span><span class="dv">1</span>]</a></code></pre></div>
 <p>Ekranın ortasını (0, 0) alarak hesapladığınız vektörü veya koordinat çiftini Pygame düzenine getiriyor. Bundan sonrası biraz daha kolay.</p>
 <p>3 adımda tamamladım, ilk başta ekranın ortasından, mouse’u gösteren birim vektörle aynı ve zıt yönlerde doğrular çizdirdim. Daha sonra birim vektöre dik yönlerde. Fakat burda dikkat edilmesi gereken şey, Pygame mouse koordinatlarını verirken kendi düzenine göre veriyor, yani kullanabilmek için önce ekranın ortasının (0, 0) olduğu düzene dönüştürmemiz gerekiyor. Şu şekilde:</p>
-<pre class="sourceCode python"><code class="sourceCode python">posx = ekran_genisligi / <span class="dv">2</span>
-posy = ekran_yuksekligi / <span class="dv">2</span>
-<span class="kw">for</span> event in pygame.event.get():
-        <span class="kw">if</span> event.<span class="dt">type</span> == pygame.MOUSEMOTION:
-            r = [event.pos[^<span class="dv">0</span>]posx, -event.pos[^<span class="dv">1</span>]posy]</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" data-line-number="1">posx <span class="op">=</span> ekran_genisligi <span class="op">/</span> <span class="dv">2</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">posy <span class="op">=</span> ekran_yuksekligi <span class="op">/</span> <span class="dv">2</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.MOUSEMOTION:</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">            r <span class="op">=</span> [event.pos[<span class="op">^</span><span class="dv">0</span>]posx, <span class="op">-</span>event.pos[<span class="op">^</span><span class="dv">1</span>]posy]</a></code></pre></div>
 <p>Bunu şöyle bir fonksiyondan geçirerek birim vektör haline getiriyorum:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> birim_vektor(n1, n2):
-    <span class="co">&quot;&quot;&quot;</span>
-<span class="co">    n1, n2 noktalar ([x, y])</span>
-<span class="co">    iki vektor nokta arasindaki birim vektoru verir.</span>
-<span class="co">    baslangic n1, bitis n2 seklinde</span>
-<span class="co">    &quot;&quot;&quot;</span>
-    v = [n2[^<span class="dv">0</span>]n1[^<span class="dv">0</span>] n2[^<span class="dv">1</span>]n1[^<span class="dv">1</span>]
-    uzaklik = sqrt(v[^<span class="dv">0</span>]*<span class="dv">2</span> + v[^<span class="dv">1</span>]*<span class="dv">2</span>)
-    v[^<span class="dv">0</span>]/= uzaklik
-    v[^<span class="dv">1</span>]/= uzaklik
-    <span class="kw">return</span> v</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">def</span> birim_vektor(n1, n2):</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">    <span class="co">&quot;&quot;&quot;</span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">    n1, n2 noktalar ([x, y])</span></a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="co">    iki vektor nokta arasindaki birim vektoru verir.</span></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="co">    baslangic n1, bitis n2 seklinde</span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="co">    &quot;&quot;&quot;</span></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">    v <span class="op">=</span> [n2[<span class="op">^</span><span class="dv">0</span>]n1[<span class="op">^</span><span class="dv">0</span>] n2[<span class="op">^</span><span class="dv">1</span>]n1[<span class="op">^</span><span class="dv">1</span>]</a>
+<a class="sourceLine" id="cb3-8" data-line-number="8">    uzaklik <span class="op">=</span> sqrt(v[<span class="op">^</span><span class="dv">0</span>]<span class="op">*</span><span class="dv">2</span> <span class="op">+</span> v[<span class="op">^</span><span class="dv">1</span>]<span class="op">*</span><span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb3-9" data-line-number="9">    v[<span class="op">^</span><span class="dv">0</span>]<span class="op">/=</span> uzaklik</a>
+<a class="sourceLine" id="cb3-10" data-line-number="10">    v[<span class="op">^</span><span class="dv">1</span>]<span class="op">/=</span> uzaklik</a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">    <span class="cf">return</span> v</a></code></pre></div>
 <p>Daha sonra bu vektöre dik ve zıt yönlü vektörler elde edip(koordinatlarını değiştirerek, - ile çarparak), ne uzunlukta istiyorsam koordinatlarını çarparak çizeceğim doğrunun diğer ucunu elde ediyorum(ilk ucu ekranın ortası zaten). Şöyle birşey:</p>
-<div class="figure">
-<img src="/images/pyg1.png" />
-
-</div>
+<p><img src="/images/pyg1.png" /></p>
 <p>Bundan sonra yapmam gereken, merkezden başlayarak, çizgilerin uç kısımlarına kalan olan kısmı vektör haline getirip, toplamam. Toplam vektörü bana oluşturmaya çalıştığım karenin köşelerini verecek:</p>
-<div class="figure">
-<img src="/images/pyg2.png" />
-
-</div>
+<p><img src="/images/pyg2.png" /></p>
 <p>Sonrası da zaten noktaları silip, bulundukları yere <code>pygame.draw.aaline()</code> ile çizgiler çizdirmek:</p>
-<div class="figure">
-<img src="/images/pyg3.png" />
-
-</div>
+<p><img src="/images/pyg3.png" /></p>
 <p>Kolay gibi gözükebilir, ama saatlerimi aldı. Koordinat düzlemi çok kafa karıştırıcı, ilk yazdığım fonksiyonu en başta yazıp, direkt normal, bildiğimiz kartezyen düzlemde çalışmaya başlamalıydım. İkinci olarak, vektörlerin bu kadar kullanışlı olacağını hiç bilmezdim, daha önce de hiç kullanmamıştım zaten. Onu öğrendim. Kapsamlı bir vektör sınıfı yazılabilir(vektörel/skaler çarpım, toplama, çıkarma, vb. işlemler için). Çarpışma için de sürekli kullanılacaklar zaten.</p>
 <p>Başta verdiğim kaynaktaki tüm örnekleri yapmaya çalışacağım. Olduğu kadarını github’a koyacağım muhtemelen. Şu anda kod kötü durumda, düzenledikten sonra bu halini de koyabilirim.</p>
 <p>Bu arada şunu farkettim, Pygame çok kolay bir kütüphane, öğrenme diye birşey yok, dökümantasyonu açıyorsunuz, ne gerekirsa 10 saniyede bakıp çiziyorsunuz. Programlamaya başlangıç veya başka testler için eğlenceli işler yapılabilir. Geçen seneden kalma Pygame kod arşivim var, font işlemler, çizgiler, resimler vs, ne işim olsa ordan bakarak yazıyorum. Mesela aklıma geldi, networking ile uğraşıyorum, Pygame yardımıyla basit bir pong yapılabilir. Pygame kısmı zaten 100 satırı bile geçmeyecektir.</p>]]></summary>
@@ -187,58 +172,58 @@ posy = ekran_yuksekligi / <span class="dv">2</span>
     <published>2010-08-15T00:00:00Z</published>
     <updated>2010-08-15T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Python ile Django’dan sonra pygame’e el attım biraz. Daha yeni başladım ve henüz pygame’in özelliklerinin çok azından yararlanarak birşeyler yapabiliyorum. Aşağıdaki kod ilk yazdığım basit bir çarpışma şeyi(neyi ben de bilmiyorum). İstediğiniz büyüklükte ekrana istediğiniz kadar top ekleyip onları rastgele hızlarda bir yerlere yolluyor ve çarpıştırıyor.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> pygame, random, math
-screenx, screeny = <span class="dv">500</span>, <span class="dv">500</span> <span class="co">#ekran buyuklugu</span>
-<span class="kw">class</span> Ball:
-    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, surface):
-        <span class="ot">self</span>.surface = surface
-        <span class="ot">self</span>.radius = <span class="dv">10</span>
-        <span class="ot">self</span>.color = (<span class="dv">255</span>, <span class="dv">255</span>, <span class="dv">255</span>)
-        <span class="ot">self</span>.x = random.randint(<span class="dv">0</span>+<span class="ot">self</span>.radius, screenx-<span class="ot">self</span>.radius)
-        <span class="ot">self</span>.y = random.randint(<span class="dv">0</span>+<span class="ot">self</span>.radius, screeny-<span class="ot">self</span>.radius)
-        <span class="ot">self</span>.vx = random.randint(<span class="dv">1</span>, <span class="dv">10</span>)
-        <span class="ot">self</span>.vy = random.randint(<span class="dv">1</span>, <span class="dv">10</span>)
-        
-    <span class="kw">def</span> move(<span class="ot">self</span>, time_passed):
-        <span class="kw">if</span> <span class="ot">self</span>.x &gt;= screenx-<span class="ot">self</span>.radius or <span class="ot">self</span>.x &lt;= <span class="ot">self</span>.radius:
-            <span class="ot">self</span>.vx *= -<span class="dv">1</span>
-        <span class="kw">if</span> <span class="ot">self</span>.y &gt;= screeny-<span class="ot">self</span>.radius or <span class="ot">self</span>.y &lt;= <span class="ot">self</span>.radius:
-            <span class="ot">self</span>.vy *= -<span class="dv">1</span>
-        <span class="ot">self</span>.x += <span class="ot">self</span>.vx * time_passed
-        <span class="ot">self</span>.y += <span class="ot">self</span>.vy * time_passed
-        
-    <span class="kw">def</span> draw(<span class="ot">self</span>):
-        pygame.draw.circle(<span class="ot">self</span>.surface, <span class="ot">self</span>.color, (<span class="ot">self</span>.x, <span class="ot">self</span>.y),
-                           <span class="ot">self</span>.radius)
-pygame.init()
-clock = pygame.time.Clock()
-screen = pygame.display.set_mode((screenx, screeny), <span class="dv">0</span>, <span class="dv">32</span>)
-running = <span class="ot">True</span>
-balls = []
-<span class="kw">for</span> i in <span class="dt">range</span>(<span class="dv">1</span>, <span class="dv">21</span>): <span class="co">#top sayisi</span>
-    balls.append(Ball(screen))
-<span class="kw">def</span> CollisionDetect(b1):
-    <span class="kw">for</span> b2 in balls:
-        <span class="kw">if</span> b1 is not b2:
-            <span class="dt">range</span> = math.sqrt((b1.x - b2.x)**<span class="dv">2</span> + (b1.y - b2.y)**<span class="dv">2</span>)
-            <span class="kw">if</span> <span class="dt">range</span> &lt; (b1.radius + b2.radius):
-                b1.vx, b2.vx = b2.vx, b1.vx
-                b1.vy, b2.vy = b2.vy, b1.vy
-                <span class="co">#b1.move(); b2.move()</span>
-<span class="kw">while</span> running:
-    <span class="kw">for</span> event in pygame.event.get():
-        <span class="co">#print event</span>
-        <span class="kw">if</span> event.<span class="dt">type</span> == pygame.QUIT:
-            running = <span class="ot">False</span>
-    
-    time_passed = clock.tick(<span class="dv">50</span>)
-    screen.fill((<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>))
-    <span class="kw">for</span> b in balls:
-        b.draw()
-        CollisionDetect(b)
-        b.move(time_passed)
-    
-    pygame.display.flip()</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="im">import</span> pygame, random, math</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">screenx, screeny <span class="op">=</span> <span class="dv">500</span>, <span class="dv">500</span> <span class="co">#ekran buyuklugu</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">class</span> Ball:</a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, surface):</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">        <span class="va">self</span>.surface <span class="op">=</span> surface</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">        <span class="va">self</span>.radius <span class="op">=</span> <span class="dv">10</span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">        <span class="va">self</span>.color <span class="op">=</span> (<span class="dv">255</span>, <span class="dv">255</span>, <span class="dv">255</span>)</a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">        <span class="va">self</span>.x <span class="op">=</span> random.randint(<span class="dv">0</span><span class="op">+</span><span class="va">self</span>.radius, screenx<span class="op">-</span><span class="va">self</span>.radius)</a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">        <span class="va">self</span>.y <span class="op">=</span> random.randint(<span class="dv">0</span><span class="op">+</span><span class="va">self</span>.radius, screeny<span class="op">-</span><span class="va">self</span>.radius)</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">        <span class="va">self</span>.vx <span class="op">=</span> random.randint(<span class="dv">1</span>, <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">        <span class="va">self</span>.vy <span class="op">=</span> random.randint(<span class="dv">1</span>, <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">        </a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">    <span class="kw">def</span> move(<span class="va">self</span>, time_passed):</a>
+<a class="sourceLine" id="cb1-14" data-line-number="14">        <span class="cf">if</span> <span class="va">self</span>.x <span class="op">&gt;=</span> screenx<span class="op">-</span><span class="va">self</span>.radius <span class="kw">or</span> <span class="va">self</span>.x <span class="op">&lt;=</span> <span class="va">self</span>.radius:</a>
+<a class="sourceLine" id="cb1-15" data-line-number="15">            <span class="va">self</span>.vx <span class="op">*=</span> <span class="dv">-1</span></a>
+<a class="sourceLine" id="cb1-16" data-line-number="16">        <span class="cf">if</span> <span class="va">self</span>.y <span class="op">&gt;=</span> screeny<span class="op">-</span><span class="va">self</span>.radius <span class="kw">or</span> <span class="va">self</span>.y <span class="op">&lt;=</span> <span class="va">self</span>.radius:</a>
+<a class="sourceLine" id="cb1-17" data-line-number="17">            <span class="va">self</span>.vy <span class="op">*=</span> <span class="dv">-1</span></a>
+<a class="sourceLine" id="cb1-18" data-line-number="18">        <span class="va">self</span>.x <span class="op">+=</span> <span class="va">self</span>.vx <span class="op">*</span> time_passed</a>
+<a class="sourceLine" id="cb1-19" data-line-number="19">        <span class="va">self</span>.y <span class="op">+=</span> <span class="va">self</span>.vy <span class="op">*</span> time_passed</a>
+<a class="sourceLine" id="cb1-20" data-line-number="20">        </a>
+<a class="sourceLine" id="cb1-21" data-line-number="21">    <span class="kw">def</span> draw(<span class="va">self</span>):</a>
+<a class="sourceLine" id="cb1-22" data-line-number="22">        pygame.draw.circle(<span class="va">self</span>.surface, <span class="va">self</span>.color, (<span class="va">self</span>.x, <span class="va">self</span>.y),</a>
+<a class="sourceLine" id="cb1-23" data-line-number="23">                           <span class="va">self</span>.radius)</a>
+<a class="sourceLine" id="cb1-24" data-line-number="24">pygame.init()</a>
+<a class="sourceLine" id="cb1-25" data-line-number="25">clock <span class="op">=</span> pygame.time.Clock()</a>
+<a class="sourceLine" id="cb1-26" data-line-number="26">screen <span class="op">=</span> pygame.display.set_mode((screenx, screeny), <span class="dv">0</span>, <span class="dv">32</span>)</a>
+<a class="sourceLine" id="cb1-27" data-line-number="27">running <span class="op">=</span> <span class="va">True</span></a>
+<a class="sourceLine" id="cb1-28" data-line-number="28">balls <span class="op">=</span> []</a>
+<a class="sourceLine" id="cb1-29" data-line-number="29"><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">21</span>): <span class="co">#top sayisi</span></a>
+<a class="sourceLine" id="cb1-30" data-line-number="30">    balls.append(Ball(screen))</a>
+<a class="sourceLine" id="cb1-31" data-line-number="31"><span class="kw">def</span> CollisionDetect(b1):</a>
+<a class="sourceLine" id="cb1-32" data-line-number="32">    <span class="cf">for</span> b2 <span class="kw">in</span> balls:</a>
+<a class="sourceLine" id="cb1-33" data-line-number="33">        <span class="cf">if</span> b1 <span class="kw">is</span> <span class="kw">not</span> b2:</a>
+<a class="sourceLine" id="cb1-34" data-line-number="34">            <span class="bu">range</span> <span class="op">=</span> math.sqrt((b1.x <span class="op">-</span> b2.x)<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> (b1.y <span class="op">-</span> b2.y)<span class="op">**</span><span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb1-35" data-line-number="35">            <span class="cf">if</span> <span class="bu">range</span> <span class="op">&lt;</span> (b1.radius <span class="op">+</span> b2.radius):</a>
+<a class="sourceLine" id="cb1-36" data-line-number="36">                b1.vx, b2.vx <span class="op">=</span> b2.vx, b1.vx</a>
+<a class="sourceLine" id="cb1-37" data-line-number="37">                b1.vy, b2.vy <span class="op">=</span> b2.vy, b1.vy</a>
+<a class="sourceLine" id="cb1-38" data-line-number="38">                <span class="co">#b1.move(); b2.move()</span></a>
+<a class="sourceLine" id="cb1-39" data-line-number="39"><span class="cf">while</span> running:</a>
+<a class="sourceLine" id="cb1-40" data-line-number="40">    <span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():</a>
+<a class="sourceLine" id="cb1-41" data-line-number="41">        <span class="co">#print event</span></a>
+<a class="sourceLine" id="cb1-42" data-line-number="42">        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.QUIT:</a>
+<a class="sourceLine" id="cb1-43" data-line-number="43">            running <span class="op">=</span> <span class="va">False</span></a>
+<a class="sourceLine" id="cb1-44" data-line-number="44">    </a>
+<a class="sourceLine" id="cb1-45" data-line-number="45">    time_passed <span class="op">=</span> clock.tick(<span class="dv">50</span>)</a>
+<a class="sourceLine" id="cb1-46" data-line-number="46">    screen.fill((<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>))</a>
+<a class="sourceLine" id="cb1-47" data-line-number="47">    <span class="cf">for</span> b <span class="kw">in</span> balls:</a>
+<a class="sourceLine" id="cb1-48" data-line-number="48">        b.draw()</a>
+<a class="sourceLine" id="cb1-49" data-line-number="49">        CollisionDetect(b)</a>
+<a class="sourceLine" id="cb1-50" data-line-number="50">        b.move(time_passed)</a>
+<a class="sourceLine" id="cb1-51" data-line-number="51">    </a>
+<a class="sourceLine" id="cb1-52" data-line-number="52">    pygame.display.flip()</a></code></pre></div>
 <p>Onun dışında kendime bir okunacaklar listesi hazırladım, ilk fırsatta okuyacaklarım:</p>
 <ul>
 <li><a href="http://www.pygame.org/docs/tut/MoveIt.html" class="uri">http://www.pygame.org/docs/tut/MoveIt.html</a></li>

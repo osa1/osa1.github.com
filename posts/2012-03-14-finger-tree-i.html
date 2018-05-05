@@ -26,34 +26,31 @@
 <p>So, let’s start. AFAIK, the first paper about finger trees was <a href="http://www.soi.city.ac.uk/~ross/papers/FingerTree.html">Finger Trees: A Simple General-purpose Data Structure</a>. I read the paper a couple of times and I found it too .. complex. So I’ll explain most of the stuff in my own words. Some part of the code will be different from code in the paper.</p>
 <p>The problem finger trees are trying to solve is, since in functional setting we can’t mutate any structures, to form our structures in a way that making some specific changes on them should cost us minimum number of copying operations. This idea is similar to zippers. With zippers, we convert our structures to a form that make changes in some specific places cost us less copying operations, which means we can make changes more efficiently. And with finger trees, we have a structure that make modifications on two(or maybe more, depending on your implementation) places are really efficient. For instance, we can create <em>deque</em> with finger trees with efficient <code>push_back</code>, <code>push_front</code>, <code>pop_back</code> and <code>pop_front</code> operations.</p>
 <p>Let’s assume a 2-3 tree, which we use as a <em>deque</em>. In order to make modifications on ends of the tree, we need to copy all nodes on it’s way to end. So we change the structure, like in zippers, create a new structure which looks like this:</p>
-<div class="figure">
-<img src="../images/fingertree/finger.png" />
-
-</div>
+<p><img src="../images/fingertree/finger.png" /></p>
 <p>For those who have already read the original paper, this example is the same with the paper. But I change the look of it. I found drawing of this example in paper confusing. It shows different nodes with same shapes, then gives a definition of the structure, which I found completely unrelated with the drawing.</p>
 <p>This is a deque contains characters of “thisisnotatree”. To make some changes in front or back of the deque, all we need to change is the nodes containing “th” and “ree”, which are just ordinary arrays, and the root node. When arrays get bigger, we shift some elements from arrays to our tree structures. Let’s make some definitions(most of my ADTs are deriving from <code>Show</code>, I found it better to see internals of structures that I’m working on):</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Node</span> s <span class="fu">=</span> <span class="dt">Node2</span> s s <span class="fu">|</span> <span class="dt">Node3</span> s s s
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Node</span> s <span class="fu">=</span> <span class="dt">Node2</span> s s <span class="fu">|</span> <span class="dt">Node3</span> s s s
   <span class="kw">deriving</span> (<span class="dt">Show</span>)
 <span class="kw">data</span> <span class="dt">FingerTree</span> a <span class="fu">=</span> <span class="dt">Empty</span>
                   <span class="fu">|</span> <span class="dt">Single</span> a
                   <span class="fu">|</span> <span class="dt">Deep</span> (<span class="dt">Digit</span> a) (<span class="dt">FingerTree</span> (<span class="dt">Node</span> a)) (<span class="dt">Digit</span> a)
   <span class="kw">deriving</span> (<span class="dt">Show</span>)
-<span class="kw">type</span> <span class="dt">Digit</span> a <span class="fu">=</span> [a]</code></pre>
-<p>In my drawing, blue nodes are FingerTrees, black nodes which characters inside are Digits<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<span class="kw">type</span> <span class="dt">Digit</span> a <span class="fu">=</span> [a]</code></pre></div>
+<p>In my drawing, blue nodes are FingerTrees, black nodes which characters inside are Digits<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a></p>
 <p>So let’s see how we can add new Digits to the structure. In my examples, Digits will be <code>[Char]</code>, which are the same with <code>String</code>. Later we’ll see we can use any types that provide some operations.</p>
 <p>Let’s define <code>addl</code> and <code>addr</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addl ::</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addl ::</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a</code></pre></div>
 <p>We have 4 cases, if we add to an empty finger tree, it’s obvious:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a <span class="dt">Empty</span> <span class="fu">=</span> <span class="dt">Single</span> a</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell">addl a <span class="dt">Empty</span> <span class="fu">=</span> <span class="dt">Single</span> a</code></pre></div>
 <p>If we add to a finger tree with only one element(<code>Single a</code>), we just shift old element to right part of the structure and put new element to left:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Single</span> b) <span class="fu">=</span> <span class="dt">Deep</span> [a] <span class="dt">Empty</span> [b]</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Single</span> b) <span class="fu">=</span> <span class="dt">Deep</span> [a] <span class="dt">Empty</span> [b]</code></pre></div>
 <p>When we add to a tree with left side contains 4 elements, we push two of this elements to subtree part, and push new element to new left part:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Deep</span> [b,c,d,e] m sf) <span class="fu">=</span> <span class="dt">Deep</span> [a, b] (addl (<span class="dt">Node3</span> c d e) m) sf</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Deep</span> [b,c,d,e] m sf) <span class="fu">=</span> <span class="dt">Deep</span> [a, b] (addl (<span class="dt">Node3</span> c d e) m) sf</code></pre></div>
 <p>And lastly, if our left part contains less than 4 elements, we just add a new element to the left part:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span> <span class="dt">Deep</span> ([a] <span class="fu">++</span> pr) m sf</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell">addl a (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span> <span class="dt">Deep</span> ([a] <span class="fu">++</span> pr) m sf</code></pre></div>
 <p>The number of maximum elements in our left and right part of trees are arbitrary. When we come to Clojure’s persistent vector implementation, we’ll see that it could be 32, depending on your needs.</p>
 <p>We can easily track our structure when creating a tree of “thisisnotatree”:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Empty</span>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Empty</span>
 <span class="dt">Single</span> <span class="ch">'e'</span>
 <span class="dt">Deep</span> [<span class="ch">'e'</span>] <span class="dt">Empty</span> [<span class="ch">'e'</span>]
 <span class="dt">Deep</span> [<span class="ch">'r'</span>, <span class="ch">'e'</span>] <span class="dt">Empty</span> [<span class="ch">'e'</span>]
@@ -67,16 +64,16 @@
 <span class="dt">Deep</span> [<span class="ch">'s'</span>, <span class="ch">'i'</span> ,<span class="ch">'s'</span>, <span class="ch">'n'</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">'o'</span> <span class="ch">'t'</span> <span class="ch">'a'</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">'t'</span> <span class="ch">'r'</span> <span class="ch">'e'</span>)]) [<span class="ch">'e'</span>]
 <span class="dt">Deep</span> [<span class="ch">'i'</span>, <span class="ch">'s'</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">'i'</span> <span class="ch">'s'</span> <span class="ch">'n'</span>), (<span class="dt">Node3</span> <span class="ch">'o'</span> <span class="ch">'t'</span> <span class="ch">'a'</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">'t'</span> <span class="ch">'r'</span> <span class="ch">'e'</span>)]) [<span class="ch">'e'</span>]
 <span class="dt">Deep</span> [<span class="ch">'h'</span>, <span class="ch">'i'</span>, <span class="ch">'s'</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">'i'</span> <span class="ch">'s'</span> <span class="ch">'n'</span>), (<span class="dt">Node3</span> <span class="ch">'o'</span> <span class="ch">'t'</span> <span class="ch">'a'</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">'t'</span> <span class="ch">'r'</span> <span class="ch">'e'</span>)]) [<span class="ch">'e'</span>]
-<span class="dt">Deep</span> [<span class="ch">'t'</span>, <span class="ch">'h'</span>, <span class="ch">'i'</span>, <span class="ch">'s'</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">'i'</span> <span class="ch">'s'</span> <span class="ch">'n'</span>), (<span class="dt">Node3</span> <span class="ch">'o'</span> <span class="ch">'t'</span> <span class="ch">'a'</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">'t'</span> <span class="ch">'r'</span> <span class="ch">'e'</span>)]) [<span class="ch">'e'</span>]</code></pre>
+<span class="dt">Deep</span> [<span class="ch">'t'</span>, <span class="ch">'h'</span>, <span class="ch">'i'</span>, <span class="ch">'s'</span>] (<span class="dt">Deep</span> [(<span class="dt">Node3</span> <span class="ch">'i'</span> <span class="ch">'s'</span> <span class="ch">'n'</span>), (<span class="dt">Node3</span> <span class="ch">'o'</span> <span class="ch">'t'</span> <span class="ch">'a'</span>)] <span class="dt">Empty</span> [(<span class="dt">Node3</span> <span class="ch">'t'</span> <span class="ch">'r'</span> <span class="ch">'e'</span>)]) [<span class="ch">'e'</span>]</code></pre></div>
 <p>When I first saw the definition of <code>FingerTree</code> in the paper, I had no idea what was this all about, and tracing the structure while adding characters one by one helped me a lot. Notice that we have only one element in the right part. This is because we made all changes to the left part of the structure so right part remained unchanged.</p>
 <p><code>push_right</code> is just the mirror of <code>push_left</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addr ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addr ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
 addr <span class="dt">Empty</span> a                 <span class="fu">=</span> <span class="dt">Single</span> a
 addr (<span class="dt">Single</span> b) a            <span class="fu">=</span> <span class="dt">Deep</span> [b] <span class="dt">Empty</span> [a]
 addr (<span class="dt">Deep</span> pr m [e,b,c,d]) a <span class="fu">=</span> <span class="dt">Deep</span> pr (addr m (<span class="dt">Node3</span> e d c)) [b,a]
-addr (<span class="dt">Deep</span> pr m sf) a        <span class="fu">=</span> <span class="dt">Deep</span> pr m (sf <span class="fu">++</span> [a])</code></pre>
+addr (<span class="dt">Deep</span> pr m sf) a        <span class="fu">=</span> <span class="dt">Deep</span> pr m (sf <span class="fu">++</span> [a])</code></pre></div>
 <p>So, the structure of FingerTree’s and add operations should be clear now. To create FingerTrees from other collections, we need <code>fold</code> operations:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Foldable</span> <span class="dt">Node</span> <span class="kw">where</span>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Foldable</span> <span class="dt">Node</span> <span class="kw">where</span>
   foldr f z (<span class="dt">Node2</span> a b) <span class="fu">=</span> a <span class="ot">`f`</span> (b <span class="ot">`f`</span> z)
   foldr f z (<span class="dt">Node3</span> a b c) <span class="fu">=</span> a <span class="ot">`f`</span> (b <span class="ot">`f`</span> (c <span class="ot">`f`</span> z))
   foldl f z (<span class="dt">Node2</span> a b) <span class="fu">=</span> (z <span class="ot">`f`</span> a) <span class="ot">`f`</span> b
@@ -89,57 +86,55 @@ addr (<span class="dt">Deep</span> pr m sf) a        <span class="fu">=</span> <
   foldl _ z <span class="dt">Empty</span> <span class="fu">=</span> z
   foldl f z (<span class="dt">Single</span> x) <span class="fu">=</span> z <span class="ot">`f`</span> x
   foldl f z (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span>
-    foldl f (foldl (foldl f) (foldl f z pr) m) sf</code></pre>
+    foldl f (foldl (foldl f) (foldl f z pr) m) sf</code></pre></div>
 <p><code>Foldable</code> typeclass is in <code>Data.Foldable</code> package. Only part that is not so trivial in this definitions is folding over a <code>Deep</code> structure. When we <code>foldr</code> over a <code>Deep</code> structure, we first <code>foldr</code> over it’s right part(<code>sf</code>), then <code>foldr</code> it over it’s subtree part, and then <code>foldr</code> it to right part. I don’t know how can I explain it more but if you inspect functions a little bit you’ll see that it’s just a recursive fold operation, and it really makes sense.</p>
 <p>With help of this fold functions, we define some helpers:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addl' ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addl' ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
 addl' <span class="fu">=</span> flip <span class="fu">$</span> foldr addl
 <span class="ot">addr' ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
-addr' <span class="fu">=</span> flip <span class="fu">$</span> foldl addr</code></pre>
+addr' <span class="fu">=</span> flip <span class="fu">$</span> foldl addr</code></pre></div>
 <p>Those are not really necessary, just helpers. Now we can define a function to create FingerTrees from lists:</p>
 <pre><code>toTree :: [a] -&gt; FingerTree a
 toTree s = addl' s Empty</code></pre>
 <p>So now we can create FingerTree from a String with just <code>toTree &quot;thisisnotatree&quot; Empty</code>. From now on, we need some operations to pop each side of the <em>deque</em> . For this, authors of the original paper use a structure called <code>view</code>. I’m not sure if I’d do it the same way, but I’ll stick with the authors’ idea.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">LeftView</span> s a <span class="fu">=</span> <span class="dt">LeftNil</span> <span class="fu">|</span> <span class="dt">LeftCons</span> a (s a)
-  <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">LeftView</span> s a <span class="fu">=</span> <span class="dt">LeftNil</span> <span class="fu">|</span> <span class="dt">LeftCons</span> a (s a)
+  <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
 <p>With this structure, we can easily create <code>first</code> and <code>tail</code> operations of FingerTree. But first we need to convert our FingerTrees to LeftView:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">leftView ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">LeftView</span> <span class="dt">FingerTree</span> a
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">leftView ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">LeftView</span> <span class="dt">FingerTree</span> a
 leftView <span class="dt">Empty</span> <span class="fu">=</span> <span class="dt">LeftNil</span>
 leftView (<span class="dt">Single</span> x) <span class="fu">=</span> <span class="dt">LeftCons</span> x <span class="dt">Empty</span>
-leftView (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span> <span class="dt">LeftCons</span> (head pr) (leftDeep (tail pr) m sf)</code></pre>
+leftView (<span class="dt">Deep</span> pr m sf) <span class="fu">=</span> <span class="dt">LeftCons</span> (head pr) (leftDeep (tail pr) m sf)</code></pre></div>
 <p>This code is trivial other than the last part. It just splits our structure to <code>head</code> and <code>tail</code>. With this, we can work on finger trees just like we work on any list. In the last case, we are calling <code>leftDeep</code> on tail of the left part, this is because we don’t want our <code>tail</code> tree’s left part to be empty. So if we call <code>tail</code> with the tree with one element in it’s left part, we get a new tree, with a left part not empty:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">leftDeep ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> (<span class="dt">Node</span> a) <span class="ot">-&gt;</span> <span class="dt">Digit</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">leftDeep ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> (<span class="dt">Node</span> a) <span class="ot">-&gt;</span> <span class="dt">Digit</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
 leftDeep [] m sf <span class="fu">=</span> <span class="kw">case</span> leftView m <span class="kw">of</span>
                      <span class="dt">LeftNil</span>       <span class="ot">-&gt;</span> toTree sf
                      <span class="dt">LeftCons</span> a m' <span class="ot">-&gt;</span> <span class="dt">Deep</span> (toList a) m' sf
-leftDeep pr m sf <span class="fu">=</span> <span class="dt">Deep</span> pr m sf</code></pre>
+leftDeep pr m sf <span class="fu">=</span> <span class="dt">Deep</span> pr m sf</code></pre></div>
 <p>With the help of this view functions, we can easily define <code>head</code>, <code>tail</code> and <code>isEmpty</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">isEmpty ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">isEmpty ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">Bool</span>
 isEmpty x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span>
               <span class="dt">LeftNil</span>      <span class="ot">-&gt;</span> <span class="dt">True</span>
               <span class="dt">LeftCons</span> _ _ <span class="ot">-&gt;</span> <span class="dt">False</span>
 <span class="ot">leftHead ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> a
 leftHead x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span> <span class="dt">LeftCons</span> a _ <span class="ot">-&gt;</span> a
 <span class="ot">leftTail ::</span> <span class="dt">FingerTree</span> a <span class="ot">-&gt;</span> <span class="dt">FingerTree</span> a
-leftTail x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span> <span class="dt">LeftCons</span> _ x' <span class="ot">-&gt;</span> x'</code></pre>
+leftTail x <span class="fu">=</span> <span class="kw">case</span> leftView x <span class="kw">of</span> <span class="dt">LeftCons</span> _ x' <span class="ot">-&gt;</span> x'</code></pre></div>
 <p>And that’s it. I’m omitting definitions of <code>rightHead</code>, <code>rightTail</code> and right view functions because they’re just mirrors of lefts. Now let’s talk about efficiency. I’m not experienced in that stuff so don’t expect a detailed explanation :) .</p>
 <p>Since Haskell is a lazy language, when we call head function on left or right views, we only create head part of the view structures. <em>Deque</em> operations take more than constant time only when we have 4 elements in the left/right part of the tree. Also, changes affect next level of the tree only when we have 4 elements in the subtree’s left/right part. Which means, at most half of the operations descend to second level, and at most quarter of the operations descent to the third level. All of this gives us a great <em>deque</em> structure implemented as a FingerTree. You can refer to the paper for some detailed analysis :) .</p>
 <p>BTW, Haskell’s <code>Data.Sequence</code> is just a FingerTree, implemented by the paper’s authors. Next, we’ll implement a priority queue based on ideas explained in this post. I’ll also talk about monoids.</p>
-<hr />
-<div class="footnotes">
+<section class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Digit name here used for compatibility with the paper.<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p>Digit name here used for compatibility with the paper.<a href="#fnref1" class="footnote-back">↩</a></p></li>
 </ol>
-</div>
+</section>
 
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

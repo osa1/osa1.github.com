@@ -78,17 +78,11 @@ end</code></pre>
     <summary type="html"><![CDATA[<p>I almost always work in fullscreen, and when I do that, text in vim starts just where my laptop monitor’s frame ends and it’s really annoying. And even if I don’t use vim in fullscreen, generally I want some margin(empty space) on the left side of vim window.</p>
 <p>One way to achieve this is enabling line numbers. But I don’t like this solution because line numbers cause unnecessary noise in the screen.</p>
 <p>As a solution, I was using <code>foldcolumn</code>, which, like line numbers, puts some space on the left side to show some folding information. It’s a nice solution if you never use folding in your code, and I wasn’t using folding in my code, but now I’m using folding and foldcolumn looks horrible:</p>
-<div class="figure">
-<img src="/images/vimtip1/foldmethodmarker1.png" />
-
-</div>
+<p><img src="/images/vimtip1/foldmethodmarker1.png" /></p>
 <p>A nasty trick to make this folding guides hidden is making folding guides’ foreground and background color the same, and same as you colorscheme’s background color:</p>
 <pre class="vimscript"><code>autocmd Colorscheme * highlight FoldColumn guifg=bg guibg=bg</code></pre>
 <p>Put this in your .vimrc, somewhere before setting your colorscheme(ie. before <code>colorscheme ...</code> line) and whenever you change color colorscheme, foldcolumn’s colors will be set and folding guides will be hidden.</p>
-<div class="figure">
-<img src="/images/vimtip1/foldmethodmarker2.png" />
-
-</div>
+<p><img src="/images/vimtip1/foldmethodmarker2.png" /></p>
 <p>How does it work: <code>bg</code> and <code>fg</code> are two special variables that will be set by vim automagically whenever you set <code>Normal</code> colors by calling <code>:highlight Normal [options]</code> and all colorschemes do that because that’s the way to set vim’s background color and default text color.</p>
 <p><code>autocmd Colorscheme *</code> makes this command run whenever you set your colorscheme by calling <code>:colorscheme ...</code> command. And now you have clear left margin. Enjoy.</p>]]></summary>
 </entry>
@@ -131,10 +125,7 @@ end</code></pre>
 <p>Eğer mechanize yüklü değilse, kapak indirme seçeneği aktif olmuyor. Onun dışında program aynı şekilde çalışmaya devam ediyor.</p>
 <p>Bu arada programın albüm kapaklarını nasıl bulduğundan bahsedeyim biraz. Mechanize’dan <a href="http://osa1.net/nautilus-icin-cleancss-scripti/">daha önce</a> biraz bahsetmiştim. Yine mechanize ile, google resimler’e giriyorum, formu sanatçı adı + albüm adı ile dolduruyorum, sayfadan, kendi yazdığım regex deseni ile arama yapıyorum(ilk başta BeautifulSoup ile resimleri ayırıyordum, fakat onlarca sayfa için tekrarlayınca performans kaybı ço koldu), sonuçlardan birkaç kritere göre eleme yaparak, kalan ilk sonucu indirip kaydediyorum.</p>
 <p>İndirme işlemlerini threading ile yapıyorum(bu tip işlemlerde çok bariz performans artışı sağlıyor). Aşağıda programı test ederken yaptığım bir denemenin sonucunu görebilirsiniz. Genel olarak oldukça isabetli resimler indiriyor. Arama cümlesi değiştirilerek (sanatçı adı + albüm adı + &quot; album cover&quot; gibi mesela) daha uygun sonuçlar da elde edilebilir.</p>
-<div class="figure">
-<img src="http://www.osa1.net/media/script_yeni.png" />
-
-</div>
+<p><img src="http://www.osa1.net/media/script_yeni.png" /></p>
 <p>Yarın muhtemelen nautilus scriptine de ekleyeceğim bu özelliği, aslında ben zaten sadece nautilus scriptini kullanıyorum(aracı bir script ile, düzenleyip arşivimin olduğu yere kopyalıyor, onu da bir ara yazacağım sanırım).</p>
 <p>Bu arada, sanırım tüm kodlarımı github veya benzeri bir yere koyacağım. Bu şekilde çok zor olmaya başladı, her güncellemeden sonra tar dosyasını oluşturmak bile zor geliyor artık, bir yolunu bulmam lazım. Daha düzenli olacak sanırım öyle. Django admin scriptini de bayaa geliştirdim, örneğin artık programın üzerine sürüklediğim dosya veya klasörleri alanıma upload ediyor. Sadece bu programı kullanarak her işimi görebiliyorum. Kodlarımı bir yerde topladıktan sonra, Django admin programını da koyacağım. Nasıl birşey olduğunu merak edenler için, <a href="http://127.0.0.1:8000/bil113-finale-hazirlik/">şu yazımda</a> bir ekran görüntüsü koymuştum.</p>
 <p>Unutmadan, program için hata raporlarınızı ve tercüme desteğinizi bekliyorum. Tam olarak tercüme edebilsem, Ubuntu veya Pardus için paketler hazırlanabilir aslında.</p>
@@ -154,10 +145,7 @@ end</code></pre>
 <p>Common Lisp ve Haskell ile ilgilenmeye başlayınca farkettim ki, belki de dünyadaki tüm diller için ortak 2 tane editor var, Vim ve Emacs. Haskell yazacaksınız, IDE/editor arıyorsunuz, ama Eclipse gibi devasa araçlara ihtiyacınız yok, hızlı, pratik bir çözüm arıyorsunuz. 2 alternatifiniz var: Vim ve Emacs. Common Lisp için aynısını isteseniz, bu sefer tek alternatif, Emacs. Ki yeterince öğrendikten sonra Java için bile kullanılabiliyorlar(<em>Java için bile</em> diyorum, çünkü Java’da gerçekten gelişmiş IDE özelliklerinize ihtiyacınız oluyor, yeni başlayan ben bile Eclipse’in özelliklerini kullanıyorum).</p>
 <p>Python’da da basit, hızlı, kullanışlı bir editor ararken <a href="http://www.activestate.com/komodo-edit">Komodo Edit</a>’i keşfettmiştim. Aslında bayaa kullanışlı bir araç, kendi çalıştırma komutlarınızı kolayca tanımlayabilir, çalıştırırkenki çevre değişkenlerinizi belirleyebiliyorsunuz falan. Kullanışlı ve küçük bir araç, ama çok büyük bir sorunu var; çok yavaş. Birkaç yüz satırlık kodda bile rahatlıkla gezinemiyorum, her nedense çok yavaş çalışıyor.</p>
 <p>Dolayısıyla bu sabah yine Vim’e bir şans vermeye karar verdim. Emacs bana hep Vim’den daha karışık gibi gelmiştir. Ayarlarıyla, kısayollarıyla falan. GVim kurulumu yaptım, sıfırdan başlamak yerine birkaç farklı kaynaktan vim ayar dosyalarını incelemeye başladım(.vimrc). Neticede birkaç yerden derlediğim ve kendi kattığım birkaç satırla kendi Vim’imi oluşturdum(bu arada resimdeki arşiv düzenleyinin arayüzünün son hali):</p>
-<div class="figure">
-<img src="/images/vim.png" />
-
-</div>
+<p><img src="/images/vim.png" /></p>
 <p>Henüz Vim’in çoğu özelliğinden faydalanamıyorum ve metin düzenlerken sıkıntılar yaşıyorum(hatta bu yazıyı yazdığım sırada nasıl tüm kelimeyi sileceğimi, ve kopyaladığım bir metini nasıl yapıştıracağımı bile bilmiyordum), ama en azından tam istediğim özelliklere sahip bir Python editorum oldu.</p>
 <p>Oturup vimtutor çalışarak öğrenmek yerine, işimi yaparken öğreneceğim artık. .vimrc dosyamı <a href="http://www.osa1.net/media/.vimrc">buradan</a> indirebilirsiniz. Çoğu satırda açıklama var zaten, kısayollar genelde bana ait. Eski alışkanlıklarımdan kurtulamadığımdan, alt+w, alt+s, tab değiştirmek için alt+oklar gibi kısayollar ekledim.</p>
 <p>Bu arada, Google ile kolaylıkla binlerce kaynak bulunabilir tabii ki, ama ben yine de kendi faydalandığım kaynakları vereyim:</p>

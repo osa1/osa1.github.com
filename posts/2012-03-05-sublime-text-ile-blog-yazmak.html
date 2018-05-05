@@ -27,53 +27,53 @@
 <p>API o kadar basit ve küçüktü ki ilk birkaç saatte bir plugin yapabildim. IRC odalarına kod yapıştırmak için kullandığım <a href="https://github.com/osa1/st2-lodgeit">LodgeIt için bir plugin</a> yazdım. Kod içerisinde nereyi yapıştırmak istiyorsanız seçiyorsunuz, sağ tıklayıp yapıştır diyorsunuz ve LodgeIt sayfası açılıyor.</p>
 <p>Bugün de blog yazma işini kolaylaştırmak için bir değişiklik yaptım. Artık blog yazılarımı Sublime Text 2 ile yazıyorum, F7 ile markdown’dan html render edip bakıyor, F8 ile sayfaya ekliyorum.</p>
 <p>Daha önceden yazı ekleme işlerini yine kendi yazdığım bir arayüzle yapıyordum, arayüzün yaptığı <a href="http://wwwsearch.sourceforge.net/mechanize/">mechanize</a> ile Django admine login olup yazıyı eklemekti. Yazıyı ekledikten sonra programı kapatırsam bir daha güncelleyemiyordum. Django admin değişirse programı güncellemem gerekecekti. Bu sefer blogda bir değişiklik yaparak yeni bir view fonksiyonu ekledim:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> add_post(request):
-    post_data = request.POST
-    user = authenticate(username=post_data[<span class="st">'username'</span>], password=post_data[<span class="st">'password'</span>])
-    json_response = {<span class="st">&quot;result&quot;</span>: <span class="st">&quot;fail&quot;</span>}
-    <span class="kw">if</span> user is not <span class="ot">None</span> and user.is_active:
-        <span class="kw">if</span> post_data.has_key(<span class="st">'id'</span>):
-            post = Post.objects.get(<span class="dt">id</span>=post_data[<span class="st">'id'</span>])
-            <span class="kw">for</span> attr in post_data:
-                <span class="kw">if</span> attr != <span class="st">&quot;username&quot;</span> and attr != <span class="st">&quot;password&quot;</span>:
-                    post.<span class="ot">__setattr__</span>(attr, post_data[attr])
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> add_post(request):
+    post_data <span class="op">=</span> request.POST
+    user <span class="op">=</span> authenticate(username<span class="op">=</span>post_data[<span class="st">'username'</span>], password<span class="op">=</span>post_data[<span class="st">'password'</span>])
+    json_response <span class="op">=</span> {<span class="st">&quot;result&quot;</span>: <span class="st">&quot;fail&quot;</span>}
+    <span class="cf">if</span> user <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span> <span class="kw">and</span> user.is_active:
+        <span class="cf">if</span> post_data.has_key(<span class="st">'id'</span>):
+            post <span class="op">=</span> Post.objects.get(<span class="bu">id</span><span class="op">=</span>post_data[<span class="st">'id'</span>])
+            <span class="cf">for</span> attr <span class="kw">in</span> post_data:
+                <span class="cf">if</span> attr <span class="op">!=</span> <span class="st">&quot;username&quot;</span> <span class="kw">and</span> attr <span class="op">!=</span> <span class="st">&quot;password&quot;</span>:
+                    post.<span class="fu">__setattr__</span>(attr, post_data[attr])
             post.save()
-            json_response[<span class="st">&quot;result&quot;</span>] = <span class="st">&quot;update post&quot;</span>
-            json_response[<span class="st">&quot;id&quot;</span>] = post.<span class="dt">id</span>
-        <span class="kw">else</span>:
+            json_response[<span class="st">&quot;result&quot;</span>] <span class="op">=</span> <span class="st">&quot;update post&quot;</span>
+            json_response[<span class="st">&quot;id&quot;</span>] <span class="op">=</span> post.<span class="bu">id</span>
+        <span class="cf">else</span>:
             <span class="co"># crate new post</span>
-            required_fields = <span class="dt">set</span>([<span class="st">&quot;title&quot;</span>, <span class="st">&quot;verbose_name&quot;</span>, <span class="st">&quot;short&quot;</span>, <span class="st">&quot;post&quot;</span>])
-            <span class="kw">for</span> attr in post_data:
-                <span class="kw">if</span> attr != <span class="st">&quot;username&quot;</span> and attr != <span class="st">&quot;password&quot;</span>:
+            required_fields <span class="op">=</span> <span class="bu">set</span>([<span class="st">&quot;title&quot;</span>, <span class="st">&quot;verbose_name&quot;</span>, <span class="st">&quot;short&quot;</span>, <span class="st">&quot;post&quot;</span>])
+            <span class="cf">for</span> attr <span class="kw">in</span> post_data:
+                <span class="cf">if</span> attr <span class="op">!=</span> <span class="st">&quot;username&quot;</span> <span class="kw">and</span> attr <span class="op">!=</span> <span class="st">&quot;password&quot;</span>:
                     required_fields.add(attr)
-            <span class="kw">try</span>:
-                p = Post(**{key : post_data[key] <span class="kw">for</span> key in required_fields})
+            <span class="cf">try</span>:
+                p <span class="op">=</span> Post(<span class="op">**</span>{key : post_data[key] <span class="cf">for</span> key <span class="kw">in</span> required_fields})
                 p.save()
-                json_response[<span class="st">&quot;result&quot;</span>] = <span class="st">&quot;new post&quot;</span>
-                json_response[<span class="st">&quot;id&quot;</span>] = p.<span class="dt">id</span>
-            <span class="kw">except</span> MultiValueDictKeyError <span class="ch">as</span> err:
+                json_response[<span class="st">&quot;result&quot;</span>] <span class="op">=</span> <span class="st">&quot;new post&quot;</span>
+                json_response[<span class="st">&quot;id&quot;</span>] <span class="op">=</span> p.<span class="bu">id</span>
+            <span class="cf">except</span> MultiValueDictKeyError <span class="im">as</span> err:
                 <span class="co"># in case of some required fields are missing</span>
-                json_response[<span class="st">&quot;result&quot;</span>] = <span class="dt">str</span>(err)
-    <span class="kw">return</span> HttpResponse(json.dumps(json_response), mimetype=<span class="st">&quot;application/json&quot;</span>)</code></pre>
+                json_response[<span class="st">&quot;result&quot;</span>] <span class="op">=</span> <span class="bu">str</span>(err)
+    <span class="cf">return</span> HttpResponse(json.dumps(json_response), mimetype<span class="op">=</span><span class="st">&quot;application/json&quot;</span>)</code></pre></div>
 <p>HTTP POST methodu ile, kullanıcı adımı, şifremi, ve değişiklik yapmak istediğim veya eklemek istediğim yazının bilgilerini gönderiyorum ve duruma göre yazı ekleniyor veya varolan bir yazı güncelleniyor. Cevap olarak JSON formatında birkaç veri döndürüyor. Örneğin eklenen yazının id’si. Daha sonra Sublime Text için yazdığım eklenti bu id’yi sayfanın başına ekliyor ve bir daha F8 yaptığımda bu sefer daha önceden eklemiş olduğum yazı güncelleniyor. Küçük bir scriptle veritabanındaki tüm yazıları bu formatta kaydettim ve artık istediğim yazıyı tamamen Sublime Text ile güncelleyebiliyorum(sanki çok yazı güncelliyormuşum gibi hehe).</p>
 <p>Sublime Text 2 eklentisi şöyle birşey:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> PostBlogCommand(sublime_plugin.TextCommand):
-    <span class="kw">def</span> run(<span class="ot">self</span>, edit):
-        file_path = <span class="ot">self</span>.view.file_name()
-        <span class="dt">print</span> <span class="st">&quot;file_path:&quot;</span>, file_path
-        popen = subprocess.Popen([<span class="st">&quot;blogpost&quot;</span>, file_path],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        result, error = popen.communicate()
-        <span class="kw">if</span> error:
-            <span class="ot">self</span>.view.set_status(<span class="st">&quot;Blog&quot;</span>, <span class="st">&quot;Error: &quot;</span> + error)
-        <span class="kw">else</span>:
-            d = json.loads(result)
-            <span class="kw">if</span> d[<span class="st">&quot;result&quot;</span>] == <span class="st">&quot;new post&quot;</span>:
-                <span class="ot">self</span>.view.insert(edit, <span class="dv">0</span>, <span class="st">&quot;#</span><span class="ot">%s</span><span class="ch">\n\n</span><span class="st">&quot;</span> % d[<span class="st">&quot;id&quot;</span>])
-            <span class="ot">self</span>.view.set_status(<span class="st">&quot;Blog&quot;</span>, d[<span class="st">&quot;result&quot;</span>])
-        sublime.set_timeout(<span class="ot">self</span>.clean_statusbar, <span class="dv">5000</span>)
-    <span class="kw">def</span> clean_statusbar(<span class="ot">self</span>):
-        <span class="ot">self</span>.view.erase_status(<span class="st">&quot;Blog&quot;</span>)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> PostBlogCommand(sublime_plugin.TextCommand):
+    <span class="kw">def</span> run(<span class="va">self</span>, edit):
+        file_path <span class="op">=</span> <span class="va">self</span>.view.file_name()
+        <span class="bu">print</span> <span class="st">&quot;file_path:&quot;</span>, file_path
+        popen <span class="op">=</span> subprocess.Popen([<span class="st">&quot;blogpost&quot;</span>, file_path],
+            stdout<span class="op">=</span>subprocess.PIPE, stderr<span class="op">=</span>subprocess.PIPE)
+        result, error <span class="op">=</span> popen.communicate()
+        <span class="cf">if</span> error:
+            <span class="va">self</span>.view.set_status(<span class="st">&quot;Blog&quot;</span>, <span class="st">&quot;Error: &quot;</span> <span class="op">+</span> error)
+        <span class="cf">else</span>:
+            d <span class="op">=</span> json.loads(result)
+            <span class="cf">if</span> d[<span class="st">&quot;result&quot;</span>] <span class="op">==</span> <span class="st">&quot;new post&quot;</span>:
+                <span class="va">self</span>.view.insert(edit, <span class="dv">0</span>, <span class="st">&quot;#</span><span class="sc">%s</span><span class="ch">\n\n</span><span class="st">&quot;</span> <span class="op">%</span> d[<span class="st">&quot;id&quot;</span>])
+            <span class="va">self</span>.view.set_status(<span class="st">&quot;Blog&quot;</span>, d[<span class="st">&quot;result&quot;</span>])
+        sublime.set_timeout(<span class="va">self</span>.clean_statusbar, <span class="dv">5000</span>)
+    <span class="kw">def</span> clean_statusbar(<span class="va">self</span>):
+        <span class="va">self</span>.view.erase_status(<span class="st">&quot;Blog&quot;</span>)</code></pre></div>
 <p>Yaptığı şey kendi kendi yazdığım <code>blogpost</code> adlı programa dosyanın konumunu gönderip çıktısına göre Sublime Text’de statusbarda gerekli notları göstermek. <code>blogpost</code>da anlaşılabileceği gibi konumunu gösterdiğim dosyayı blog yazısı olarak siteye ekliyor. Kendime göre bir format oluşturdum(boş olmayan ilk satır başlık olacak vs. gibi).</p>
 <p>Bu arada yazmayı unutmuşum, eklenti geliştirme işlemi de saçma derecede hızlı. Ne dosyası olursa olsun(kısayol tuşu ayarlayan dosyalar, menuleri ayarlayan dosyalar falan hep farklı) kaydettiğiniz an editor güncelleniyor ve bu neredeyse anlık bir işlem. ctrl+` ile Python editorün Python shell’ini açıp eklentilerinizi debug edebiliyor, API’ı inceleyebiliyorsunuz.</p>
 <p>Lisp işleri için tabii ki Emacs’den vazgeçemem Python ve Haskell işlerim için artık Sublime Text ile devam edeceğim sanırım. Böyle basit bir API ve Python ile eklenti yazabilmek iyiymiş :) .</p>
@@ -81,10 +81,9 @@
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

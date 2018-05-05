@@ -23,23 +23,23 @@
 
 <p>Python ve Java ile yaptığım gereksiz işlere yenilerini eklemeye devam.</p>
 <p>Çoplüğe dönen müzik arşivimi düzenlemek için(düzenleyemedim bir türlü şu arşivi :S) bir script daha. Burda aslında amacım arşivin düzenli olması falan değil de, can sıkıntısından birşeyler yazıyorum işte. Bu seferki içinde sadece bir dosya bulunan(klasör değil, en alt klasöre kadar tarar, en üst klasörü kopyalar) klasörleri bir yere topluyor.</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="co">#!/usr/bin/python</span>
-<span class="ch">import</span> os, shutil
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="co">#!/usr/bin/python</span>
+<span class="im">import</span> os, shutil
 <span class="kw">def</span> say(klasor, sayac):
-    <span class="kw">for</span> dosya in os.listdir(klasor):
-        <span class="kw">if</span> os.path.isdir(os.path.join(klasor, dosya)):
-            sayac += say(os.path.join(klasor, dosya), <span class="dv">0</span>)
-        <span class="kw">else</span>:
-            sayac += <span class="dv">1</span>
-    <span class="kw">return</span> sayac
+    <span class="cf">for</span> dosya <span class="kw">in</span> os.listdir(klasor):
+        <span class="cf">if</span> os.path.isdir(os.path.join(klasor, dosya)):
+            sayac <span class="op">+=</span> say(os.path.join(klasor, dosya), <span class="dv">0</span>)
+        <span class="cf">else</span>:
+            sayac <span class="op">+=</span> <span class="dv">1</span>
+    <span class="cf">return</span> sayac
 <span class="co">#print say(&quot;/home/osa1/Desktop/ad&quot;, 0)</span>
-yer = <span class="st">&quot;/home/osa1/Music/&quot;</span>
-klasorler = <span class="dt">filter</span>(os.path.isdir, [yer + dosya <span class="kw">for</span> dosya in os.listdir(yer)])
-<span class="kw">for</span> klasor in klasorler:
-    sayac = <span class="dv">0</span>
-    <span class="kw">if</span> say(klasor, <span class="dv">0</span>) == <span class="dv">1</span>:
-        <span class="dt">print</span> klasor.split(os.path.sep)[-<span class="dv">1</span>]
-        os.rename(klasor, <span class="st">&quot;/home/osa1/Music/test2/&quot;</span> + klasor.split(os.path.sep)[-<span class="dv">1</span>])</code></pre>
+yer <span class="op">=</span> <span class="st">&quot;/home/osa1/Music/&quot;</span>
+klasorler <span class="op">=</span> <span class="bu">filter</span>(os.path.isdir, [yer <span class="op">+</span> dosya <span class="cf">for</span> dosya <span class="kw">in</span> os.listdir(yer)])
+<span class="cf">for</span> klasor <span class="kw">in</span> klasorler:
+    sayac <span class="op">=</span> <span class="dv">0</span>
+    <span class="cf">if</span> say(klasor, <span class="dv">0</span>) <span class="op">==</span> <span class="dv">1</span>:
+        <span class="bu">print</span> klasor.split(os.path.sep)[<span class="op">-</span><span class="dv">1</span>]
+        os.rename(klasor, <span class="st">&quot;/home/osa1/Music/test2/&quot;</span> <span class="op">+</span> klasor.split(os.path.sep)[<span class="op">-</span><span class="dv">1</span>])</code></pre></div>
 <p>Arşiv düzenleyici arayüzünü güncelledim, küçük bir hata vardı. Dosya kopyalama sırasında kopyalanan dosya sayısı güncellenmiyordu.</p>
 <p>Bir de, dizüstü bilgisayarımı fullhd monitöre bağladıktan sonra, bilgisayarı kapatıp açtığımda üst panel dağılmış oluyor. Panel ayarlarımı bir yere kopyaladım, ve bir komut aracılığıyla onu panel ayarlarının tutulduğu yere geri kopyalıyorum. Komutu .bashrc dosyama kopyaladım:</p>
 <pre><code>python -c 'import os; os.rename(&quot;/home/osa1/Yedek/panel&quot;, &quot;/home/osa1/.gconf/apps/panel&quot;)'</code></pre>
@@ -50,10 +50,9 @@ klasorler = <span class="dt">filter</span>(os.path.isdir, [yer + dosya <span cla
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>

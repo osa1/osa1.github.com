@@ -41,8 +41,8 @@
 <p>Aksini belirttiklerim hariç, çözümlerim <a href="http://osa1.net/media/bil113final/Calisma.java">bu</a> ve <a href="http://osa1.net/media/bil113final/Sort.java">şu</a> dosyalarda(main methodları testlerim için). Sort.java dosyasındaki düzenleme methodların ilk bakışta arrayi değiştirmesi gerekirken aslında neden değiştirmediği(ya da hangi arrayi değiştirdiği) de düşünülebilir. İlk başta anlam verememiştim. Tam sınav sorusu bence.</p>
 <p>Bunların dışında, codingbat’deki sorular güzel. Hepsi bittikten sonra çözümlerini yazacağım buraya.</p>
 <p>Bu arada, biraz konu dışı olacak ama, Python’da tek satırda quicksort, ibretlik:</p>
-<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> qsortr(<span class="dt">list</span>):
-    <span class="kw">return</span> [] <span class="kw">if</span> <span class="dt">list</span>==[]  <span class="kw">else</span> qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &lt; <span class="dt">list</span>[^<span class="dv">0</span>]) + [<span class="dt">list</span>[^<span class="dv">0</span>] + qsortr([x <span class="kw">for</span> x in <span class="dt">list</span>[<span class="dv">1</span>:] <span class="kw">if</span> x &gt;= <span class="dt">list</span>[^<span class="dv">0</span>])</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> qsortr(<span class="bu">list</span>):
+    <span class="cf">return</span> [] <span class="cf">if</span> <span class="bu">list</span><span class="op">==</span>[]  <span class="cf">else</span> qsortr([x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">list</span>[<span class="dv">1</span>:] <span class="cf">if</span> x <span class="op">&lt;</span> <span class="bu">list</span>[<span class="op">^</span><span class="dv">0</span>]) <span class="op">+</span> [<span class="bu">list</span>[<span class="op">^</span><span class="dv">0</span>] <span class="op">+</span> qsortr([x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">list</span>[<span class="dv">1</span>:] <span class="cf">if</span> x <span class="op">&gt;=</span> <span class="bu">list</span>[<span class="op">^</span><span class="dv">0</span>])</code></pre></div>
 <p>Bu arada(2), bu yazıyı aşağıda ekran görüntüsünü görebileceğiniz programla ekliyorum: <img src="../images/screenshot-yaziekle.png" alt="lol" /></p>
 <p>Bunu da yine fizik finalinden önce yazmıştım. Burda, adres satırı Django admin’de olduğu gibi, yazı başlığından otomatik olarak üretiliyor. Henüz bazı durumlarda yanlış sonuçlar verebiliyor. Tek tuşla yazılı django development server’da ekliyorum, kontrol edip, web’e tıklıyorum ve bir daha gönderiyorum. Çok pratik oldu. Normalde localde admin panelinden yazıyı ekleyip, herşey tamamsa, webe kopyalıyordum. Şimdilik sadece benim yönetici panelimde çalışsa da, biraz düzenlemeyle istediğim esnekliğe getireceğim programı. Daha sonra birkaç ekleme daha yapıp burada yayınlayacağım yine.(örneğin dosya upload işini daha kolaylaştıracak birşeyler ekledikten sonra)</p>
 <p>Yazı eklemeyi daha da kolay hale getirebilmek için önceki projelerimden bkz. <a href="http://www.osa1.net/nautilus-icin-ftp-upload-scripti/">nautilus için ftp upload scripti</a></p>
@@ -50,10 +50,9 @@
 <hr />
 <div id="disqus_thread"></div>
 <script type="text/javascript">
-    var disqus_shortname = 'osa1';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        dsq.src = 'https://osa1.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
 </script>
