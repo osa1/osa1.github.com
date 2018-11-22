@@ -19,7 +19,7 @@
             <div class="inner">
                 <h1 id="post-title">Three runtime optimizations done by GHC's GC</h1>
 
-<p><strong>March 16, 2018</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>March 16, 2018</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/ghc.html">ghc</a>.</p>
 
 <p>While working on GHC’s GC code I realized that it does some runtime optimizations. One of those I already knew from another language, but the other two were quite interesting to me because they’re related with laziness. I wouldn’t think consequences of laziness reach this far into the runtime system. It turns out it does; disabling those optimizations make programs run significantly slower.</p>
 <p>Because I almost read the whole code line by line, I believe this list is exhaustive. The code is taken from the source code but significantly simplified.</p>
