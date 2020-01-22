@@ -8,8 +8,72 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2018-10-22T00:00:00Z</updated>
+    <updated>2019-01-22T00:00:00Z</updated>
     <entry>
+    <title>Some arguments against small syntax extensions in GHC</title>
+    <link href="http://osa1.net/posts/2019-01-22-no-small-syntax-extensions.html" />
+    <id>http://osa1.net/posts/2019-01-22-no-small-syntax-extensions.html</id>
+    <published>2019-01-22T00:00:00Z</published>
+    <updated>2019-01-22T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I realized recently that I haven’t published a single post in 2019. I think that’s the longest break I ever took to blogging, and it kinda made me motivated to publish some of the draft posts that I’ve been keeping in private Github gists.</p>
+<p>This post is originally written in 11 January 2019. Becuase it is more of an angry rant than a constructive piece, I wasn’t sure at the time that publishing it is a good idea. However reading it again now, I see that it’s not directed at a person, a group, or a specific proposal/patch, so I think it shouldn’t be offensive to anyone and I should be able to publish it on my personal blog.</p>
+<p>(original post starts below)</p>
+<hr />
+<p>So I woke up at 5AM today and felt like writing about one of my frustrations. These are my personal opinions, and I don’t represent GHC HQ here.</p>
+<hr />
+<p>At this point adding new syntax to GHC/Haskell is a bad idea. Before moving on to examples, here are some facts:</p>
+<ul>
+<li><p>The language that GHC supports is incredibly complex. GHC 8.6.3 man page lists 115 language pragmas.</p></li>
+<li><p>You just can’t have a good understanding of <em>all</em> of these features and know interactions of the proposed syntax with all combinations of these.</p></li>
+<li><p>GHC is a complex and old compiler with parts that today no active contributor knows well. The compiler (ignoring all the libraries, the RTS, tools etc.) currently has 189,699 lines of code (ignoring comments and whitespace). That’s a lot of complexity to deal with.</p></li>
+<li>When you propose a new syntax, what you’re actually proposing is:
+<ul>
+<li>At least one more pragma</li>
+<li>More user manual sections</li>
+<li>MVP implementation of your syntax (which is usually not bug-free)</li>
+<li>A few common-case tests (which are usually not enough)</li>
+<li>More headache for tool developers</li>
+<li>Scaring more potential new Haskell developers away</li>
+<li>Adding to the frustration of existing Haskell developers</li>
+<li>Adding maintanence burden to GHC devs</li>
+</ul></li>
+<li><p>Becuase you can’t predict all the interactions of your new syntax (conceptually, or in the implementation) your syntax will cause a ton of problems.</p></li>
+<li><p>Those problems will sit there unfixed for months/years.</p></li>
+<li><p>GHC maintainers barely have enough time and manpower to provide stable releases. 8.6.1 and 8.6.2 are completely broken (<a href="https://gitlab.haskell.org/ghc/ghc/issues/15544">#15544</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/15696">#15696</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/15892">#15892</a>), and 8.6.3 doesn’t <a href="https://gitlab.haskell.org/ghc/ghc/issues/16057">work well on Windows</a>.</p></li>
+</ul>
+<p>You might not accept some of these, however in my experience these are facts. If you disagree with any of these let me know and I can elaborate.</p>
+<p>I’ll have only two examples for now, because I don’t normally work on front-end parts of the compiler I don’t notice most of the problems.</p>
+<h1 id="example-1-tiny-addition-to-ghci-syntax">Example 1: Tiny addition to GHCi syntax</h1>
+<p><a href="https://gitlab.haskell.org/ghc/ghc/issues/7253">#7253</a> proposed a tiny new syntax in GHCi. A few years later a new contributor picked it up and submitted a <a href="https://phabricator.haskell.org/D1299">patch</a>. This trivial new syntax later caused <a href="https://gitlab.haskell.org/ghc/ghc/issues/11606">#11606</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/12091">#12091</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/15721">#15721</a>. That’s 3 too many tickets for a trivial syntax that buys us so little. It also generated at least one <a href="https://stackoverflow.com/questions/53898220/sprint-and-seq-together-missing-evaluation">SO question</a>, and invalidated an answer to <a href="https://stackoverflow.com/questions/14052093/ghci-let-what-does-it-do/14052220#14052220">another SO question</a> by making things more complicated.</p>
+<p>The implementation is finally <a href="https://gitlab.haskell.org/ghc/ghc/merge_requests/97">fixed by a frustrated maintainer</a>, but the additional complexity (both in the implementation, and as the GHCi syntax to be explained to users) it added won’t be fixed.</p>
+<h1 id="example-2--xblockarguments">Example 2: -XBlockArguments</h1>
+<p>This was proposed as <a href="https://github.com/ghc-proposals/ghc-proposals/pull/90">a GHC proposal</a>. It’s a trivial syntax change that in the best case can save 3 characters (including spaces). So far it generated two tickets: <a href="https://gitlab.haskell.org/ghc/ghc/issues/16137">#16137</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/16097">#16097</a>. Even worse than the previous example is none of these tickets mention <code>-XBlockArguments</code>, they don’t even use it! Yet the error messages got significantly worse because of it.</p>
+<hr />
+<h1 id="just-to-be-clear">Just to be clear</h1>
+<p>I think some of the extensions are quite useful. However I also think that at this point new syntax extensions are doing more harm than good. Problems from a maintainer’s point of view are as listed above (arguably maintainers’ problems are also users’ problems because they lead to poor product, but let’s ignore this aspect for now). Now I want to add one more problem, this time from a software developer/engineer’s point of view:</p>
+<ul>
+<li>Adding a different way of doing things, especially when the difference is so small, does more harm than good.</li>
+</ul>
+<p>Here’s why. Now that we have two ways of using <code>do</code> syntax:</p>
+<pre><code>-- (1)
+atomically $ do
+  ...
+-- (2) with -XBlockArguments
+atomically do
+  ...</code></pre>
+<p>with my team I have to do one of these</p>
+<ol type="1">
+<li>Decide which one to use, and somehow manually make sure to use it consistently (this can’t be done automatically as we lack the tooling)</li>
+<li>Let everyone use whatever they want.</li>
+</ol>
+<p>(1) means wasting the team’s time and energy on endless bikeshedding. (2) means being inconsistent in the source code. Either way we lose.</p>
+<p>You might argue that with good tooling (1) is not a problem, and I’d agree. However as we add new syntax the tooling story will only get worse. GHC Haskell syntax is already so complex we don’t even have a good formatter. We should first stop making it even more complex if we want the tooling story to get better.</p>
+<h1 id="what-we-need">What we need</h1>
+<p>In my opinion what we need is principles to guide the language and the compiler. Currently <a href="https://github.com/ghc-proposals/ghc-proposals/pull/190#issuecomment-450440245">we don’t have this</a> (last paragraph), and the result is 100+ pragmas, a buggy compiler, and frustrated users and maintainers.</p>
+<h1 id="my-advice-to-users">My advice to users</h1>
+<p>If you’re proposing a new syntax; don’t! If you know someone who will, point them to this blog post.</p>]]></summary>
+</entry>
+<entry>
     <title>A project we've been working on presented at MuniHac 2018</title>
     <link href="http://osa1.net/posts/2018-10-22-gc-work-presented.html" />
     <id>http://osa1.net/posts/2018-10-22-gc-work-presented.html</id>
@@ -1204,47 +1268,6 @@ test.hs:15:11: error: [-Wmissing-fields, -Werror=missing-fields]
 <hr />
 <ol>
 <li id="fn1"><p>I discovered and reported <a href="https://ghc.haskell.org/trac/ghc/ticket/10598">#10598</a> two years ago, which led to <code>-XDerivingStrategies</code> work, I was involved in the <a href="http://ezyang.com/papers/ezyang15-cnf.pdf">Compact regions paper</a>, and I implemented <a href="https://phabricator.haskell.org/D2259">unboxed sums</a> during my time at MSR Cambridge last summer.<a href="#fnref1" class="footnote-back">↩</a></p></li>
-</ol>
-</section>]]></summary>
-</entry>
-<entry>
-    <title>My new XFCE + i3 setup</title>
-    <link href="http://osa1.net/posts/2016-11-30-new-xfce-i3-setup.html" />
-    <id>http://osa1.net/posts/2016-11-30-new-xfce-i3-setup.html</id>
-    <published>2016-11-30T00:00:00Z</published>
-    <updated>2016-11-30T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’ve been running Linux exclusively since 6-7 years ago, and since my first days on Linux I’ve been obsessed with two things:</p>
-<ul>
-<li><p>I hate the mouse, and I try really hard to not use it.</p></li>
-<li><p>I need a very stable system. If my distro is not stable enough, I try to bring the system to a stable state and then I never update anything. My previous setup had one year uptime and that’s because I never updated anything and it kept running without any problems <a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>.</p></li>
-</ul>
-<p>Initially I was running GNOME 2, but I had to switch to KDE because the distro I was working on at the time (Pardus) was mainly a KDE distro and as far as I remember it was the only DE that was officially supported<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>. It took some time but I ended up liking it quite a lot, and kept using it after I stopped working on Pardus and switched to openSUSE.</p>
-<p>My KDE setup was weird. I had dozens of key bindings for window management, and I was using vim and yakuake with lots of customization and key bindings. I basically rolled my own tiling window manager using KDE settings and key bindings.</p>
-<p>I tried <a href="http://xmonad.org/">XMonad</a> and <a href="https://awesome.naquadah.org/">awesomewm</a> a couple of times, but I was too lazy to configure them to a stable state where all the services (login/logout, power management, sound and brightness settings, network controllers etc.) work flawlessly.</p>
-<p>Then I discovered <a href="https://i3wm.org/">i3</a>. In my first hours with it all I had to change was the <code>jkl;</code> combination for left/down/up/right: I was already an experienced vim user so I changed it to <code>hjkl</code> and that was pretty much it. I had a usable setup already.</p>
-<p>The way I run it was again weird. I replaced KDE’s window manager, so all other KDE services were running. This setup had many problems, for example, neither <code>i3bar</code> nor the KDE status bar worked, so I didn’t use a status bar. KDE’s desktop was still running, so I added a status bar widget to the desktop, and I was using a spare i3 desktop when I needed to use the status bar. I had to disable some of the KDE services (like the one that detects connected monitors) because they weren’t working as expected when I replaced the window manager etc. This system worked great for about 2 years once I disabled some of the KDE services that didn’t work properly.</p>
-<p>Then, 3 weeks ago, I had some free time, and decided to finally update my system. I was using openSUSE, and I wanted to stick with it, so I installed openSUSE Tumbleweed. This time instead of using a weird KDE + i3 setup I wanted a proper i3 setup. I messed with a plain i3 setup for a while, but it got tiresome real quick, so I looked at other DEs to find one that works with i3.</p>
-<p>Long story short, I found out that <a href="https://www.xfce.org/">XFCE</a> and i3 work really great together. It takes 15 minutes to set up my desktop. Here’s how I do it:</p>
-<ol type="1">
-<li><p>Install a distro with a recent XFCE and i3. Install a full XFCE desktop and i3.</p></li>
-<li><p><code>xfce4-session-settings</code> &gt; “Session”: Remove everything other than <code>Xfsettingsd</code> and <code>Power Manager</code>.</p></li>
-<li><p><code>xfce4-session-settings</code> &gt; “Advanced”: Enable “Launch GNOME services on startup”.</p></li>
-<li><p><code>xfce4-session-settings</code> &gt; “Application Autostart”: Add <code>i3</code> executable.</p></li>
-</ol>
-<p>That’s all you need to get a working XFCE + i3 setup! <code>i3-bar</code> will be used instead of XFCE panel (which you disabled already in step (2)). After this just configure XFCE and i3 as usual.</p>
-<p>Here is some of the configurations I do:</p>
-<ul>
-<li><p>I add <code>/usr/bin/setxkbmap -option &quot;ctrl:nocaps&quot;</code> to <code>xfce4-settings-manager</code> &gt; “Application Autostart” to make caps lock an additional ctrl.</p></li>
-<li><p>I install <code>feh</code> and run it on i3 startup to set a desktop background image (see my i3 config below).</p></li>
-<li><p>I add some key bindings in <code>xfce4-keyboard-settings</code> for sound controls. Normally I add key bindings to i3 config, but it’s hard to find key names for <code>Fn + key</code> combinations and XFCE helps with that part.</p></li>
-<li><p>In <code>xfce4-keyboard-settings</code> I set repeat delay 260ms and repeat speed 55 key strokes/second.</p></li>
-</ul>
-<p>Then I install zsh, vim etc. and generate symlinks for my <a href="https://github.com/osa1/rcbackup">configs</a>. My i3 config is <a href="https://github.com/osa1/rcbackup/blob/master/.i3/config">here</a>.</p>
-<section class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>It probably had some security issues though…<a href="#fnref1" class="footnote-back">↩</a></p></li>
-<li id="fn2"><p>There was an unofficial work on a GNOME port but it was never completed as far as I know.<a href="#fnref2" class="footnote-back">↩</a></p></li>
 </ol>
 </section>]]></summary>
 </entry>
