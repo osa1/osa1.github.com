@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Knot-tying: why and how (and my opinions on it)</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+                <span class="menu-item"><a href="https://gitlab.haskell.org/osa1">gitlab</a></span>
+                <span class="menu-item"><a href="../rss.xml">rss</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Knot-tying: why and how (and my opinions on it)</h1>
+
+<p><strong>February 21, 2020</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/ghc.html">ghc</a>.</p>
+
+<p>Suppose I have this simple language:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Expr</span>
+  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">Id</span>
+  <span class="fu">|</span> <span class="dt">IntE</span> <span class="dt">Int</span>
+  <span class="fu">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span></code></pre></div>
+<p>When generating code, for an identifier that stands for a lambda, I want to know the arity of the lambda, so that I can generate more efficient code. While in this language a lambda takes only one argument, if I have something like</p>
+<pre><code>let f = \x . \y . \z . ...
+ in ...</code></pre>
+<p>I consider <code>f</code> as having arity 3.</p>
+<p>One way to implement this is having this information attached to every <code>Id</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
+  {<span class="ot"> idName ::</span> <span class="dt">String</span>
+    <span class="co">-- ^ Unique name of the identifier</span>
+  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span>
+    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
+  }</code></pre></div>
+<p>This way of associating information to <code>Id</code>s makes some things very simple. For example, if I’m generating code for this application:</p>
+<pre><code>f 1 2</code></pre>
+<p>In AST:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> (<span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span>, idArity <span class="fu">=</span> <span class="dv">3</span> })) (<span class="dt">IntE</span> <span class="dv">1</span>)) (<span class="dt">IntE</span> <span class="dv">2</span>)</code></pre></div>
+<p>I can simply use the <code>idArity</code> field to see the arity of the function being applied. It doesn’t get any simpler than this.</p>
+<h2 id="problem-1-redundant-allocations">Problem 1: redundant allocations</h2>
+<p>In a program we usually have many references to a single Id, whether it’s for a top-level function or an argument. If we allocate an Id for every occurance that’s a lot of redundant allocations that make the AST representation larger, and affects compiler performance.</p>
+<p>For example, if I have this expression:</p>
+<pre><code>f x + f y</code></pre>
+<p>A naive representation of this would be</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">App</span>
+  (<span class="dt">App</span>
+     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="fu">=</span> <span class="dv">2</span> })
+     (<span class="dt">App</span>
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))
+  (<span class="dt">App</span>
+     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })
+     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> }))</code></pre></div>
+<p>Here for every occurance of <code>f</code> we have a new <code>Id</code>, and these <code>Id</code>s all have the same arity. This is two <code>Id</code> heap objects used for the same identifier.</p>
+<p>A more efficient representation would be</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> f <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span> } <span class="kw">in</span>
+<span class="dt">App</span>
+  (<span class="dt">App</span>
+     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="fu">=</span> <span class="dv">2</span> })
+     (<span class="dt">App</span>
+        (<span class="dt">IdE</span> f)
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))
+  (<span class="dt">App</span>
+     (<span class="dt">IdE</span> f)
+     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> }))</code></pre></div>
+<p>Here we only have one heap object for <code>f</code>, and all uses refer to that one object.</p>
+<p>This is actually not hard to fix: we maintain a map from <code>Id</code> names to the actual <code>Id</code>s. When we see a <code>let</code> we add the LHS to the map. When we see an identifier we lookup. Easy.</p>
+<h2 id="problem-2-invalidating-the-information-during-transformations">Problem 2: invalidating the information during transformations</h2>
+<p>Suppose I want to implement a pass that drops unused bindings. For example:</p>
+<pre><code>let f = let a = e1
+         in \x . e2
+ in f z + f t</code></pre>
+<p>Here if <code>e2</code> doesn’t use <code>a</code> I want to drop the binding:</p>
+<pre><code>let f = \x . e2
+ in f z + f t</code></pre>
+<p>The AST for the original program is:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Let</span>
+  <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> }
+  (<span class="dt">Let</span>
+     <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;a&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> }
+     <span class="fu">&lt;</span>e1<span class="fu">&gt;</span>
+     (<span class="dt">Lam</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;x&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> } <span class="fu">&lt;</span>e2<span class="fu">&gt;</span>))
+  (<span class="dt">App</span>
+     (<span class="dt">App</span>
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="fu">=</span> <span class="dv">2</span> })
+        (<span class="dt">App</span>
+           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })
+           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))
+     (<span class="dt">App</span>
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))</code></pre></div>
+<p>Here’s a naive implementation of this pass:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
+dropUnusedBindings <span class="fu">=</span> snd <span class="fu">.</span> go Set.empty
+  <span class="kw">where</span>
+    go free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
+
+      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
+        (Set.insert (idName id) free_vars, e0)
+
+      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
+        (free_vars, e0)
+
+      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span>
+        bimap (Set.delete (idName arg)) (<span class="dt">Lam</span> arg)
+              (go free_vars body)
+
+      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span>
+        <span class="kw">let</span>
+          (free1, e1') <span class="fu">=</span> go free_vars e1
+          (free2, e2') <span class="fu">=</span> go free_vars e2
+        <span class="kw">in</span>
+          (Set.union free1 free2, <span class="dt">App</span> e1' e2')
+
+      <span class="dt">IfE</span> e1 e2 <span class="ot">-&gt;</span>
+        <span class="kw">let</span>
+          (free1, e1') <span class="fu">=</span> go free_vars e1
+          (free2, e2') <span class="fu">=</span> go free_vars e2
+          (free3, e3') <span class="fu">=</span> go free_vars e3
+        <span class="kw">in</span>
+          (Set.unions [free1, free2, free3], <span class="dt">IfE</span> e1' e2' e3')
+
+      <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span>
+        <span class="kw">let</span>
+          (free1, e1') <span class="fu">=</span> first (Set.delete (idName bndr)) (go free_vars e1)
+          (free2, e2') <span class="fu">=</span> go free_vars e2
+        <span class="kw">in</span>
+          <span class="kw">if</span> Set.member (idName bndr) free2
+            <span class="kw">then</span> (Set.delete (idName bndr) (Set.union free1 free2),
+                  <span class="dt">Let</span> (updateIdArity bndr e1') e1' e2')
+            <span class="kw">else</span> (free2, e2')
+
+<span class="ot">updateIdArity ::</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Id</span>
+updateIdArity id rhs <span class="fu">=</span> id{ idArity <span class="fu">=</span> countLambdas rhs }
+
+<span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+countLambdas (<span class="dt">Lam</span> _ rhs) <span class="fu">=</span> <span class="dv">1</span> <span class="fu">+</span> countLambdas rhs
+countLambdas _ <span class="fu">=</span> <span class="dv">0</span></code></pre></div>
+<p>The problem with this pass is that it changes arity of binders, but doesn’t update the <code>idArity</code>s of occurances. Here’s what I get if I run this over the original AST:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Let</span>
+  <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">1</span> }
+  (<span class="dt">Lam</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;x&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> } <span class="fu">&lt;</span>e2<span class="fu">&gt;</span>)
+  (<span class="dt">App</span>
+     (<span class="dt">App</span>
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="fu">=</span> <span class="dv">2</span> })
+        (<span class="dt">App</span>
+           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })
+           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))
+     (<span class="dt">App</span>
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))</code></pre></div>
+<p>Note how <code>f</code>, which was not a lambda binder previously, became a lambda binder with arity 1. The pass correctly updated <code>f</code>’s <code>idArity</code> in the binder position, but it did not update it in the occurances! Indeed, in this representation it’s not easy to do this efficiently.</p>
+<p>Even if we solved the first problem and had only one closure for <code>f</code>, the <code>updateIdArity</code> step in this pass allocates a new <code>Id</code> and loses sharing. So we would end up with something like:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> f <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span> } <span class="kw">in</span>
+<span class="dt">Let</span>
+  <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">1</span> }
+  (<span class="dt">Lam</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;x&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> } <span class="fu">&lt;</span>e2<span class="fu">&gt;</span>)
+  (<span class="dt">App</span>
+     (<span class="dt">App</span>
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="fu">=</span> <span class="dv">2</span> })
+        (<span class="dt">App</span>
+           (<span class="dt">IdE</span> f)
+           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))
+     (<span class="dt">App</span>
+        (<span class="dt">IdE</span> f)
+        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))</code></pre></div>
+<p>The arity of <code>f</code> in the use sites are still wrong, and we lost sharing.</p>
+<h2 id="knot-tying">Knot-tying</h2>
+<p>Knot-tying is a way of solving both of these in one step. I find it quite hard to explain in words so I’ll show the code (only the interesting bits):</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
+dropUnusedBindings <span class="fu">=</span>
+    snd <span class="fu">.</span> go Map.empty Set.empty
+  <span class="kw">where</span>
+<span class="ot">    go ::</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
+    go binders free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
+
+      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
+        (Set.insert (idName id) free_vars, <span class="dt">IdE</span> (fromMaybe id (Map.lookup (idName id) binders)))
+
+      <span class="dt">Let</span> bndr<span class="fu">@</span><span class="dt">Id</span>{ idName <span class="fu">=</span> bndr_name } e1 e2 <span class="ot">-&gt;</span>
+        <span class="kw">let</span>
+          bndr' <span class="fu">=</span> updateIdArity bndr e1'
+          binders' <span class="fu">=</span> Map.insert bndr_name bndr' binders
+          (free1, e1') <span class="fu">=</span> first (Set.delete bndr_name) (go binders' free_vars e1)
+          (free2, e2') <span class="fu">=</span> go binders' free_vars e2
+        <span class="kw">in</span>
+          <span class="kw">if</span> Set.member bndr_name free2
+            <span class="kw">then</span> (Set.delete bndr_name (Set.union free1 free2),
+                  <span class="dt">Let</span> bndr' e1' e2')
+            <span class="kw">else</span> (free2, e2')
+
+      <span class="fu">...</span></code></pre></div>
+<p>The differences from the original version:</p>
+<ul>
+<li><p>We now pass around a “binders” map that maps identifier names to actual <code>Id</code>s. This is used to common-up uses of identifiers with one shared heap object with correct arity info.</p></li>
+<li><p>In <code>IdE</code> case we now do lookup on this map, and replace the <code>Id</code> with the shared <code>Id</code> with correct arity info from the map.</p></li>
+<li><p>The tricky bit is the <code>Let</code> case where we have a cyclic group of let bindings. <code>binders'</code> is the binder map with <code>bndr</code> with correct arity information. However to be able to generate that map we first need to process <code>e1</code>, and while processing <code>e1</code> we want to replace any occurances of <code>bndr</code> with correct <code>Id</code> too! This gives us the cyclic bindings:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell">bndr' <span class="fu">=</span> updateIdArity bndr e1'
+binders' <span class="fu">=</span> Map.insert bndr_name bndr' binders
+(<span class="fu">...</span>, e1') <span class="fu">=</span> <span class="fu">...</span> (go binders' free_vars e1)</code></pre></div></li>
+</ul>
+<p>This technique relies heavily on lazy evaluation. In the original example the AST is not recursive, but suppose we also want to record RHSs of let binders in <code>Id</code>s, to be used for inlining:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
+  { <span class="fu">...</span>
+  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
+    <span class="co">-- ^ RHS of a let binding, used for inlining</span>
+  }</code></pre></div>
+<p>Now once we implement sharing (solving problem 1) ASTs with recursive definitions will become cyclic. A simple example:</p>
+<pre><code>let fac = \x . if x then x * fac (x - 1) else 1 in fac 5</code></pre>
+<p>This will be represented as something like</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell">pgm <span class="fu">=</span> <span class="dt">Let</span> fac_id rhs body
+  <span class="kw">where</span>
+    fac_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;fac&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }
+    rhs <span class="fu">=</span> <span class="dt">Lam</span> x_id (<span class="dt">IfE</span> (<span class="dt">IdE</span> x_id)
+                        (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> star_id) (<span class="dt">IdE</span> x_id))
+                             (<span class="dt">App</span> (<span class="dt">IdE</span> fac_id) (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> minus_id) (<span class="dt">IdE</span> x_id))
+                                                    (<span class="dt">IntE</span> <span class="dv">1</span>))))
+                                  (<span class="dt">IntE</span> <span class="dv">1</span>))
+    body <span class="fu">=</span> <span class="dt">App</span> (<span class="dt">IdE</span> fac_id) (<span class="dt">IntE</span> <span class="dv">5</span>)
+
+    x_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;x&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
+    plus_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;+&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
+    star_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;*&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
+    minus_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;-&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }</code></pre></div>
+<p>Here <code>fac_id</code> refers to <code>rhs</code>, which refers to <code>fac_id</code>, forming a cycle.</p>
+<p>The knot-tying implementation of <code>dropUnusedBindings</code> works even in cases like this. We just need to update <code>updateIdArity</code> to update the unfolding, when it’s available:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">updateIdArity ::</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Id</span>
+updateIdArity id rhs <span class="fu">=</span>
+    id{ idArity <span class="fu">=</span> countLambdas rhs
+      , idUnfolding <span class="fu">=</span> idUnfolding id <span class="fu">$&gt;</span> rhs }</code></pre></div>
+<p>This is a bit hard to try, but if I implement a <code>Show</code> instance for <code>Id</code> that doesn’t print the unfolding (to avoid looping), make <code>fac_id</code>’s arity <code>0</code>, and call <code>dropUnusedBindings</code> this is the AST I get:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Let</span>
+  (<span class="dt">Id</span> <span class="st">&quot;fac&quot;</span> <span class="dv">1</span>)
+  (<span class="dt">Lam</span>
+     (<span class="dt">Id</span> <span class="st">&quot;x&quot;</span> <span class="dv">0</span>)
+     (<span class="dt">IfE</span>
+        (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;x&quot;</span> <span class="dv">0</span>))
+        (<span class="dt">App</span>
+           (<span class="dt">App</span> (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;*&quot;</span> <span class="dv">2</span>)) (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;x&quot;</span> <span class="dv">0</span>)))
+           (<span class="dt">App</span>
+              (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;fac&quot;</span> <span class="dv">1</span>))
+              (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;-&quot;</span> <span class="dv">2</span>)) (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;x&quot;</span> <span class="dv">0</span>))) (<span class="dt">IntE</span> <span class="dv">1</span>))))
+        (<span class="dt">IntE</span> <span class="dv">1</span>)))
+  (<span class="dt">App</span> (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;fac&quot;</span> <span class="dv">1</span>)) (<span class="dt">IntE</span> <span class="dv">5</span>))</code></pre></div>
+<p>All uses of <code>fac</code> have correct arity! Similarly I can do something hacky like this in GHCi to check that the unfolding has correct arity for uses of <code>fac</code> too:</p>
+<pre><code>ghci&gt; let Let lhs _ _ = dropUnusedBindings pgm
+ghci&gt; putStrLn (ppShow (idUnfolding lhs))
+Just
+  (Lam
+     (Id &quot;x&quot; 0)
+     (IfE
+        (IdE (Id &quot;x&quot; 0))
+        (App
+           (App (IdE (Id &quot;*&quot; 2)) (IdE (Id &quot;x&quot; 0)))
+           (App
+              (IdE (Id &quot;fac&quot; 1))
+              (App (App (IdE (Id &quot;-&quot; 2)) (IdE (Id &quot;x&quot; 0))) (IntE 1))))
+        (IntE 1)))</code></pre>
+<p>Nice!</p>
+<h2 id="or-is-it">… or is it?</h2>
+<p>The main problem with this technique is that it’s very difficult to understand. Even after working on different knot-tying code in GHC and implementing my own knot-tying passes, the recursive let bindings in the <code>Let</code> case above is still mind-boggling to me.</p>
+<p>Secondly, it’s really hard to reason about the evaluation order of things in knot-tying code. You might think that this shouldn’t be an issue in a purely functional implementation, but in my experience any non-trivial compiler pass, even when implemented in a purely functional style, still needs debugging. Even if it’s not buggy, you may want to trace the evaluation and print a few things to understand how the code works.</p>
+<p>Knot-tying code makes this, which should be absolutely trivial in any reasonable code base, very difficult. If you end up evaluating just the right places with your print statements you end looping. For example, here’s our AST with a few bang patterns:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Expr</span>
+  <span class="fu">=</span> <span class="dt">IdE</span> <span class="fu">!</span><span class="dt">Id</span>
+  <span class="fu">|</span> <span class="dt">IntE</span> <span class="dt">Int</span>
+  <span class="fu">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">App</span> <span class="fu">!</span><span class="dt">Expr</span> <span class="fu">!</span><span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="fu">!</span><span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+
+<span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
+  {<span class="ot"> idName ::</span> <span class="dt">String</span>
+  ,<span class="ot"> idArity ::</span> <span class="fu">!</span><span class="dt">Int</span>
+  }</code></pre></div>
+<p>If you run the same program above using this AST definition you’ll see that the pass now loops. Note that I’ve removed the <code>idUnfolding</code> field just to demonstrate that this doesn’t happen because we have a loop in the AST.</p>
+<p>It’s even more frustrating when what you’re debugging is a loop. You add a few prints, and scratch your head thinking why none of your prints are working even though the algorithm is clearly looping. What’s really happening is that the code is indeed looping, but for a different reason…</p>
+<p>Finally, because making things more strict potentially breaks things, knot-tying makes fixing some memory leaks very hard. For example, we may have many passes on our AST, one of them being our knot-tying pass. Some of these passes may be very leaky, and instead of adding strict applications or bang patterns to dozens of places, we may want to add bangs to only a few places in the AST. But that, as demonstrated above, causes our knot-tying pass to loop.</p>
+<h2 id="opinions">Opinions</h2>
+<p>GHC makes use of knot-tying extensively, which has always been one of the pain points for me since my first days contributing to GHC. I vaguely remember, I was a graduate student at Indiana University at the time, making my first contributions to GHC. I remember finding it refreshing to be able to simply do <code>idType</code> and get type of an identifier in GHC, as opposed to using a symbol table, which I’d been doing in some of the other compilers I worked on in the past.</p>
+<p>At the same time, I was constantly confused that my simple print statements added in some front-end pass makes the compiler loop. I had no idea what could be the reason. I had no idea that the thing I found so refreshing is also the reason why debugging and tracing were so much harder.</p>
+<p>Suffice it to say, I don’t like knot-tying. If I had to use knot-tying in my project I’d probably reconsider how I represent my data instead. For example, if we simply used an unique number for our identifiers and maintained a symbol table to map the unique numbers to actual <code>Id</code>s then we wouldn’t have cycles for recursive functions in the AST and wouldn’t need knot-tying. Updating something about an <code>Id</code> would be a simple update in the symbol table.</p>
+<details>
+<p><summary>Full code</summary></p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE BangPatterns #-}</span>
+
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import</span> <span class="dt">Control.DeepSeq</span>
+<span class="kw">import</span> <span class="dt">Data.Bifunctor</span>
+<span class="kw">import</span> <span class="dt">Data.Functor</span>
+<span class="kw">import</span> <span class="dt">Data.Maybe</span>
+<span class="kw">import</span> <span class="dt">Debug.Trace</span>
+<span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (id)
+<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span>
+<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span>
+<span class="kw">import</span> <span class="dt">Text.Show.Pretty</span>
+
+<span class="co">{-</span>
+<span class="co">data Expr</span>
+<span class="co">  = IdE !Id</span>
+<span class="co">  | IntE Int</span>
+<span class="co">  | Lam Id Expr</span>
+<span class="co">  | App !Expr !Expr</span>
+<span class="co">  | IfE Expr !Expr Expr</span>
+<span class="co">  | Let Id Expr Expr</span>
+<span class="co">  | Placeholder String</span>
+<span class="co">  deriving (Show)</span>
+
+<span class="co">data Id = Id</span>
+<span class="co">  { idName :: String</span>
+<span class="co">    -- ^ Unique name of the identifier</span>
+<span class="co">  , idArity :: !Int</span>
+<span class="co">    -- ^ Arity of a lambda. 0 for non-lambdas.</span>
+<span class="co">  }</span>
+<span class="co">-}</span>
+
+<span class="kw">data</span> <span class="dt">Expr</span>
+  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">Id</span>
+  <span class="fu">|</span> <span class="dt">IntE</span> <span class="dt">Int</span>
+  <span class="fu">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">Placeholder</span> <span class="dt">String</span>
+  <span class="kw">deriving</span> (<span class="dt">Show</span>)
+
+<span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
+  {<span class="ot"> idName ::</span> <span class="dt">String</span>
+    <span class="co">-- ^ Unique name of the identifier</span>
+  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span>
+    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
+  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
+    <span class="co">-- ^ RHS of a binder, used for inlining</span>
+  }
+
+<span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Id</span> <span class="kw">where</span>
+
+  show (<span class="dt">Id</span> name arity _) <span class="fu">=</span> <span class="st">&quot;(Id &quot;</span> <span class="fu">++</span> show name <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> show arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+
+<span class="co">{-</span>
+<span class="co">f_id = Id { idName = &quot;f&quot;, idArity = 0 }</span>
+<span class="co">a_id = Id { idName = &quot;a&quot;, idArity = 0 }</span>
+<span class="co">x_id = Id { idName = &quot;x&quot;, idArity = 0 }</span>
+<span class="co">z_id = Id { idName = &quot;z&quot;, idArity = 0 }</span>
+<span class="co">t_id = Id { idName = &quot;t&quot;, idArity = 0 }</span>
+<span class="co">plus_id = Id { idName = &quot;+&quot;, idArity = 2 }</span>
+
+
+<span class="co">f_x_plus_f_y = (App (App (IdE plus_id) (App (IdE f_id) (IdE z_id)))</span>
+<span class="co">                     (App (IdE f_id) (IdE t_id)))</span>
+
+<span class="co">ast1 = Let f_id (Let a_id (Placeholder &quot;e1&quot;) (Lam x_id (Placeholder &quot;e2&quot;))) f_x_plus_f_y</span>
+
+<span class="co">ast2 = Let a_id (Placeholder &quot;e1&quot;)</span>
+<span class="co">           (Let f_id (Lam x_id (Placeholder &quot;e2&quot;))</span>
+<span class="co">                     f_x_plus_f_y)</span>
+<span class="co">-}</span>
+
+<span class="ot">updateIdArity ::</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Id</span>
+updateIdArity id rhs <span class="fu">=</span>
+  id{ idArity <span class="fu">=</span> countLambdas rhs,
+      idUnfolding <span class="fu">=</span> idUnfolding id <span class="fu">$&gt;</span> rhs }
+
+<span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+countLambdas (<span class="dt">Lam</span> _ rhs) <span class="fu">=</span> <span class="dv">1</span> <span class="fu">+</span> countLambdas rhs
+countLambdas _ <span class="fu">=</span> <span class="dv">0</span>
+
+<span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
+dropUnusedBindings <span class="fu">=</span>
+    snd <span class="fu">.</span> go Map.empty Set.empty
+  <span class="kw">where</span>
+<span class="ot">    go ::</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
+    go binders free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
+
+      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
+        (Set.insert (idName id) free_vars, <span class="dt">IdE</span> (fromMaybe id (Map.lookup (idName id) binders)))
+
+      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
+        (free_vars, e0)
+
+      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span>
+        bimap (Set.delete (idName arg)) (<span class="dt">Lam</span> arg)
+              (go binders free_vars body)
+
+      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span>
+        <span class="kw">let</span>
+          (free1, e1') <span class="fu">=</span> go binders free_vars e1
+          (free2, e2') <span class="fu">=</span> go binders free_vars e2
+        <span class="kw">in</span>
+          (Set.union free1 free2, <span class="dt">App</span> e1' e2')
+
+      <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span>
+        <span class="kw">let</span>
+          (free1, e1') <span class="fu">=</span> go binders free_vars e1
+          (free2, e2') <span class="fu">=</span> go binders free_vars e2
+          (free3, e3') <span class="fu">=</span> go binders free_vars e3
+        <span class="kw">in</span>
+          (Set.unions [free1, free2, free3], <span class="dt">IfE</span> e1' e2' e3')
+
+      <span class="dt">Let</span> bndr<span class="fu">@</span><span class="dt">Id</span>{ idName <span class="fu">=</span> bndr_name } e1 e2 <span class="ot">-&gt;</span>
+        <span class="kw">let</span>
+          bndr' <span class="fu">=</span> updateIdArity bndr e1'
+          binders' <span class="fu">=</span> Map.insert bndr_name bndr' binders
+          (free1, e1') <span class="fu">=</span> first (Set.delete bndr_name) (go binders' free_vars e1)
+          (free2, e2') <span class="fu">=</span> go binders' free_vars e2
+        <span class="kw">in</span>
+          <span class="kw">if</span> Set.member bndr_name free2
+            <span class="kw">then</span> (Set.delete bndr_name (Set.union free1 free2),
+                  <span class="dt">Let</span> bndr' e1' e2')
+            <span class="kw">else</span> (free2, e2')
+
+      <span class="dt">Placeholder</span>{} <span class="ot">-&gt;</span>
+        (free_vars, e0)
+
+pgm <span class="fu">=</span> <span class="dt">Let</span> fac_id rhs body
+  <span class="kw">where</span>
+    fac_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;fac&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }
+    rhs <span class="fu">=</span> <span class="dt">Lam</span> x_id (<span class="dt">IfE</span> (<span class="dt">IdE</span> x_id) (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> star_id) (<span class="dt">IdE</span> x_id))
+                                        (<span class="dt">App</span> (<span class="dt">IdE</span> fac_id)
+                                             (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> minus_id) (<span class="dt">IdE</span> x_id)) (<span class="dt">IntE</span> <span class="dv">1</span>))))
+                                   (<span class="dt">IntE</span> <span class="dv">1</span>))
+    body <span class="fu">=</span> <span class="dt">App</span> (<span class="dt">IdE</span> fac_id) (<span class="dt">IntE</span> <span class="dv">5</span>)
+
+    x_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;x&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
+    plus_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;+&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
+    star_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;*&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
+    minus_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;-&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
+
+main <span class="fu">=</span> putStrLn (ppShow (dropUnusedBindings pgm))</code></pre></div>
+</details>
+<p>Thanks to Oleg Grenrus for reading a draft of this.</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
