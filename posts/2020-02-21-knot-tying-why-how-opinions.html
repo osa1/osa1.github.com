@@ -228,7 +228,6 @@ binders' <span class="fu">=</span> Map.insert bndr_name bndr' binders
     body <span class="fu">=</span> <span class="dt">App</span> (<span class="dt">IdE</span> fac_id) (<span class="dt">IntE</span> <span class="dv">5</span>)
 
     x_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;x&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
-    plus_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;+&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
     star_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;*&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
     minus_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;-&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }</code></pre></div>
 <p>Here <code>fac_id</code> refers to <code>rhs</code>, which refers to <code>fac_id</code>, forming a cycle.</p>
@@ -291,18 +290,22 @@ Just
 <p>Suffice it to say, I don’t like knot-tying. If I had to use knot-tying in my project I’d probably reconsider how I represent my data instead. For example, if we simply used an unique number for our identifiers and maintained a symbol table to map the unique numbers to actual <code>Id</code>s then we wouldn’t have cycles for recursive functions in the AST and wouldn’t need knot-tying. Updating something about an <code>Id</code> would be a simple update in the symbol table.</p>
 <details>
 <p><summary>Full code</summary></p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE BangPatterns #-}</span>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Tried with GHC 8.6.4</span>
+
+<span class="ot">{-# OPTIONS_GHC -Wall #-}</span>
 
 <span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-<span class="kw">import</span> <span class="dt">Control.DeepSeq</span>
 <span class="kw">import</span> <span class="dt">Data.Bifunctor</span>
 <span class="kw">import</span> <span class="dt">Data.Functor</span>
 <span class="kw">import</span> <span class="dt">Data.Maybe</span>
-<span class="kw">import</span> <span class="dt">Debug.Trace</span>
 <span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (id)
+
+<span class="co">-- containers-0.6</span>
 <span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span>
 <span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span>
+
+<span class="co">-- pretty-show-1.10</span>
 <span class="kw">import</span> <span class="dt">Text.Show.Pretty</span>
 
 <span class="co">{-</span>
@@ -344,7 +347,6 @@ Just
   }
 
 <span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Id</span> <span class="kw">where</span>
-
   show (<span class="dt">Id</span> name arity _) <span class="fu">=</span> <span class="st">&quot;(Id &quot;</span> <span class="fu">++</span> show name <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> show arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
 
 <span class="co">{-</span>
@@ -422,6 +424,7 @@ dropUnusedBindings <span class="fu">=</span>
       <span class="dt">Placeholder</span>{} <span class="ot">-&gt;</span>
         (free_vars, e0)
 
+<span class="ot">pgm ::</span> <span class="dt">Expr</span>
 pgm <span class="fu">=</span> <span class="dt">Let</span> fac_id rhs body
   <span class="kw">where</span>
     fac_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;fac&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }
@@ -432,10 +435,10 @@ pgm <span class="fu">=</span> <span class="dt">Let</span> fac_id rhs body
     body <span class="fu">=</span> <span class="dt">App</span> (<span class="dt">IdE</span> fac_id) (<span class="dt">IntE</span> <span class="dv">5</span>)
 
     x_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;x&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
-    plus_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;+&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
     star_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;*&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
     minus_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;-&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
 
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> putStrLn (ppShow (dropUnusedBindings pgm))</code></pre></div>
 </details>
 <p>Thanks to Oleg Grenrus for reading a draft of this.</p>
