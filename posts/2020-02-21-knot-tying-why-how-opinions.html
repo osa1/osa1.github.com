@@ -47,7 +47,7 @@
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> (<span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span>, idArity <span class="fu">=</span> <span class="dv">3</span> })) (<span class="dt">IntE</span> <span class="dv">1</span>)) (<span class="dt">IntE</span> <span class="dv">2</span>)</code></pre></div>
 <p>I can simply use the <code>idArity</code> field to see the arity of the function being applied. It doesn’t get any simpler than this.</p>
 <h2 id="problem-1-redundant-allocations">Problem 1: redundant allocations</h2>
-<p>In a program we usually have many references to a single Id, whether it’s for a top-level function or an argument. If we allocate an Id for every occurance that’s a lot of redundant allocations that make the AST representation larger, and affects compiler performance.</p>
+<p>In a program we usually have many references to a single Id, whether it’s for a top-level function or an argument. If we allocate an Id for every occurrence that’s a lot of redundant allocations that make the AST representation larger, and affects compiler performance.</p>
 <p>For example, if I have this expression:</p>
 <pre><code>f x + f y</code></pre>
 <p>A naive representation of this would be</p>
@@ -60,7 +60,7 @@
   (<span class="dt">App</span>
      (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })
      (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> }))</code></pre></div>
-<p>Here for every occurance of <code>f</code> we have a new <code>Id</code>, and these <code>Id</code>s all have the same arity. This is two <code>Id</code> heap objects used for the same identifier.</p>
+<p>Here for every occurrence of <code>f</code> we have a new <code>Id</code>, and these <code>Id</code>s all have the same arity. This is two <code>Id</code> heap objects used for the same identifier.</p>
 <p>A more efficient representation would be</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> f <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span> } <span class="kw">in</span>
 <span class="dt">App</span>
@@ -145,7 +145,7 @@ updateIdArity id rhs <span class="fu">=</span> id{ idArity <span class="fu">=</s
 <span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
 countLambdas (<span class="dt">Lam</span> _ rhs) <span class="fu">=</span> <span class="dv">1</span> <span class="fu">+</span> countLambdas rhs
 countLambdas _ <span class="fu">=</span> <span class="dv">0</span></code></pre></div>
-<p>The problem with this pass is that it changes arity of binders, but doesn’t update the <code>idArity</code>s of occurances. Here’s what I get if I run this over the original AST:</p>
+<p>The problem with this pass is that it changes arity of binders, but doesn’t update the <code>idArity</code>s of occurrences. Here’s what I get if I run this over the original AST:</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Let</span>
   <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">1</span> }
   (<span class="dt">Lam</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;x&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> } <span class="fu">&lt;</span>e2<span class="fu">&gt;</span>)
@@ -158,7 +158,7 @@ countLambdas _ <span class="fu">=</span> <span class="dv">0</span></code></pre><
      (<span class="dt">App</span>
         (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })
         (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))</code></pre></div>
-<p>Note how <code>f</code>, which was not a lambda binder previously, became a lambda binder with arity 1. The pass correctly updated <code>f</code>’s <code>idArity</code> in the binder position, but it did not update it in the occurances! Indeed, in this representation it’s not easy to do this efficiently.</p>
+<p>Note how <code>f</code>, which was not a lambda binder previously, became a lambda binder with arity 1. The pass correctly updated <code>f</code>’s <code>idArity</code> in the binder position, but it did not update it in the occurrences! Indeed, in this representation it’s not easy to do this efficiently.</p>
 <p>Even if we solved the first problem and had only one closure for <code>f</code>, the <code>updateIdArity</code> step in this pass allocates a new <code>Id</code> and loses sharing. So we would end up with something like:</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> f <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;f&quot;</span>, idArity <span class="fu">=</span> <span class="dv">0</span> } <span class="kw">in</span>
 <span class="dt">Let</span>
@@ -203,7 +203,7 @@ dropUnusedBindings <span class="fu">=</span>
 <ul>
 <li><p>We now pass around a “binders” map that maps identifier names to actual <code>Id</code>s. This is used to common-up uses of identifiers with one shared heap object with correct arity info.</p></li>
 <li><p>In <code>IdE</code> case we now do lookup on this map, and replace the <code>Id</code> with the shared <code>Id</code> with correct arity info from the map.</p></li>
-<li><p>The tricky bit is the <code>Let</code> case where we have a cyclic group of let bindings. <code>binders'</code> is the binder map with <code>bndr</code> with correct arity information. However to be able to generate that map we first need to process <code>e1</code>, and while processing <code>e1</code> we want to replace any occurances of <code>bndr</code> with correct <code>Id</code> too! This gives us the cyclic bindings:</p>
+<li><p>The tricky bit is the <code>Let</code> case where we have a cyclic group of let bindings. <code>binders'</code> is the binder map with <code>bndr</code> with correct arity information. However to be able to generate that map we first need to process <code>e1</code>, and while processing <code>e1</code> we want to replace any occurrences of <code>bndr</code> with correct <code>Id</code> too! This gives us the cyclic bindings:</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell">bndr' <span class="fu">=</span> updateIdArity bndr e1'
 binders' <span class="fu">=</span> Map.insert bndr_name bndr' binders
 (<span class="fu">...</span>, e1') <span class="fu">=</span> <span class="fu">...</span> (go binders' free_vars e1)</code></pre></div></li>
