@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Knot-tying: two more examples, and an alternative</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+                <span class="menu-item"><a href="https://gitlab.haskell.org/osa1">gitlab</a></span>
+                <span class="menu-item"><a href="../rss.xml">rss</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">Knot-tying: two more examples, and an alternative</h1>
+
+<p><strong>February 27, 2020</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/ghc.html">ghc</a>.</p>
+
+<p>In the <a href="../posts/2020-02-21-knot-tying-why-how-opinions.html">previous post</a> we’ve looked at a representation of expressions in a programming language, what the representation makes easy and where we have to use knot-tying.</p>
+<p>In this post I’m going to give two more examples, using the same expression representation from the previous post, and then talk about how to implement our passes using a different representation, without knot-tying.</p>
+<h2 id="example-attaching-typing-information-to-ids">Example: attaching typing information to Ids</h2>
+<p>Previously we attached arity and unfolding information to <code>Id</code>s. Now suppose that our language is typed, and up to some point our transformations rely on typing information. Similar to arity and unfolding fields we add one more field to <code>Id</code>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
+  { <span class="fu">..</span>
+  ,<span class="ot"> idType ::</span> <span class="dt">Maybe</span> <span class="dt">Type</span>
+  }</code></pre></div>
+<p>The <code>Maybe</code> part is because when we no longer need the types we want to be able to clear the type fields to make the AST smaller. While we have only one heap object per <code>Id</code>, in an average program there’s still a lot of different <code>Id</code>s, and <code>Type</code> representation can get quite large, so this is worthwhile. This makes the working set smaller, which causes less GC work and improves compiler performance.</p>
+<p>In our cyclic AST representation the only way to implement this without losing sharing is with a full-pass over the entire program, using knot-tying. The code is similar to the ones in the previous post.</p>
+<h2 id="example-attaching-unfoldings-to-ids">Example: attaching unfoldings to Ids</h2>
+<p>Remember that in the previous post we represented the AST as:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Expr</span>
+  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">Id</span>
+  <span class="fu">|</span> <span class="dt">IntE</span> <span class="dt">Int</span>
+  <span class="fu">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+
+<span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
+  {<span class="ot"> idName ::</span> <span class="dt">String</span>
+    <span class="co">-- ^ Unique name of the identifier</span>
+  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span>
+    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
+  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
+    <span class="co">-- ^ RHS of a binder, used for inlining</span>
+  }</code></pre></div>
+<p>In this representation if I have a recursive definition like</p>
+<pre><code>let fac = \x . if x then x * fac (x - 1) else 1 in fac 5</code></pre>
+<p>In <code>fac</code> used in lambda body I want to be able to do <code>idUnfolding</code> and get the definition of this lambda. So the lambda refers to the <code>Id</code> for <code>fac</code>, and <code>fac</code> refers to the lambda in its <code>idUnfolding</code> field, forming a cycle.</p>
+<p>In this representation only way to implement this is with knot-tying. An implementation that maintains a map from binders to their RHSs to update unfoldings of <code>Id</code>s in occurrence position does not work, because when we update an occurrence of the binder in its own RHS (i.e. in a recursive <code>let</code>) we end up invalidating the <code>RHS</code> that we’ve added to the map.</p>
+<p>Here’s a knot-tying implementation that adds unfoldings (only the interesting bits):</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
+addUnfoldings <span class="fu">=</span> go M.empty
+  <span class="kw">where</span>
+<span class="ot">    go ::</span> <span class="dt">M.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
+    go ids e <span class="fu">=</span> <span class="kw">case</span> e <span class="kw">of</span>
+
+      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
+        <span class="dt">IdE</span> (fromMaybe id (M.lookup (idName id) ids))
+
+      <span class="dt">Let</span> bndr rhs body <span class="ot">-&gt;</span>
+        <span class="kw">let</span>
+          ids' <span class="fu">=</span> M.insert (idName bndr) bndr' ids
+          rhs' <span class="fu">=</span> go ids' rhs
+          bndr' <span class="fu">=</span> bndr{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs' }
+        <span class="kw">in</span>
+          <span class="dt">Let</span> bndr{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs' } rhs' (go ids' body)
+
+      <span class="fu">...</span></code></pre></div>
+<p>As before we tie the knot in <code>let</code> case and use it in <code>Id</code> case.</p>
+<p>It’s also possible to initialize <code>idUnfolding</code> fields when parsing, using monadic knot-tying (<a href="http://hackage.haskell.org/package/base-4.12.0.0/docs/Control-Monad-Fix.html">MonadFix</a>). Full code is shown at the end of this post, but the interesting bit is when parsing <code>let</code>s and <code>Id</code>s:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parseLet ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
+parseLet <span class="fu">=</span> <span class="kw">do</span>
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span>
+    id_name <span class="ot">&lt;-</span> parseIdName
+    _ <span class="ot">&lt;-</span> char <span class="ch">'='</span>
+
+    (id, rhs) <span class="ot">&lt;-</span> mfix <span class="fu">$</span> \ <span class="fu">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span>
+      modify (Map.insert id_name id_)
+      rhs <span class="ot">&lt;-</span> parseExpr
+      return (<span class="dt">Id</span>{ idName <span class="fu">=</span> id_name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }, rhs)
+
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span>
+    body <span class="ot">&lt;-</span> parseExpr
+    return (<span class="dt">Let</span> id rhs body)
+
+<span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">Id</span>
+parseId' <span class="fu">=</span> <span class="kw">do</span>
+    name <span class="ot">&lt;-</span> parseIdName
+    id_map <span class="ot">&lt;-</span> get
+    <span class="kw">let</span> def <span class="fu">=</span> <span class="dt">Id</span>{ idName <span class="fu">=</span> name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
+    return (fromMaybe def (Map.lookup name id_map))</code></pre></div>
+<p>The idea is very similar. When parsing a <code>let</code> we add a thunk for the binder with correct unfolding to a map. The map is then used when parsing <code>Id</code>s in the RHS and body of the <code>let</code>.</p>
+<h2 id="an-alternative">An alternative</h2>
+<p>A well-known way of associating information with identifiers in a compiler is by using a “symbol table”. Instead of adding information about <code>Id</code>s directly in the <code>Id</code> fields, we maintain a table (or multiple tables) that map <code>Id</code>s to the relevant information. Here’s one way to do this in our language:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Expr</span>
+  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">String</span>
+  <span class="fu">...</span>
+
+<span class="kw">data</span> <span class="dt">IdInfo</span> <span class="fu">=</span> <span class="dt">IdInfo</span>
+  {<span class="ot"> idArity ::</span> <span class="dt">Int</span>
+    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
+  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
+    <span class="co">-- ^ RHS of a binder, used for inlining</span>
+  }
+
+<span class="kw">type</span> <span class="dt">SymTbl</span> <span class="fu">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">IdInfo</span></code></pre></div>
+<p>In this representation we have to refer to the table for <code>idArity</code> or <code>idUnfolding</code>. That’s slightly more work than the previous representation where we could simply use the fields of an <code>Id</code>, but a lot of other things become much simpler and efficient.</p>
+<p>Here’s <code>dropUnusedBindings</code> in this representation (only the interesting bits, full code is at the end of this post):</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> <span class="dt">Expr</span>
+dropUnusedBindings <span class="fu">=</span>
+    fmap snd <span class="fu">.</span> go Set.empty
+  <span class="kw">where</span>
+<span class="ot">    go ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
+    go free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
+
+      <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
+        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
+        <span class="kw">if</span> Set.member bndr free2 <span class="kw">then</span> <span class="kw">do</span>
+          (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
+          setIdArity bndr (countLambdas e1')
+          return (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')
+        <span class="kw">else</span>
+          return (free2, e2')
+
+      <span class="fu">...</span></code></pre></div>
+<p>Our pass is now stateful (updates the symbol table) and written in monadic style. Knot-tying is gone. We update the symbol table after processing a <code>let</code> RHS. Because <code>Id</code>s no longer have the arity information we don’t need to update anything other than the symbol table.</p>
+<p>It’s now trivial to implement <code>addUnfoldings</code>:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
+addUnfoldings e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
+
+    <span class="dt">IdE</span>{} <span class="ot">-&gt;</span>
+      return ()
+
+    <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
+      return ()
+
+    <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span>
+      addUnfoldings body
+
+    <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
+      addUnfoldings e1
+      addUnfoldings e2
+
+    <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span>
+      addUnfoldings e1
+      addUnfoldings e2
+      addUnfoldings e3
+
+    <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
+      addUnfoldings e1
+      addUnfoldings e2
+      setIdUnfolding bndr e1</code></pre></div>
+<p>Doing it during parsing is also trivial, and shown in the full code at the end of this post. Updating typing information when we no longer need them is simply</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dropTypes ::</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
+dropTypes <span class="fu">=</span> modify (Map.map (\id_info <span class="ot">-&gt;</span> id_info{ idType <span class="fu">=</span> <span class="dt">Nothing</span> }))</code></pre></div>
+<p>We could also maintain a separate table for typing information, in which case all we had to do would be to stop using that table.</p>
+<p>Easy!</p>
+<h2 id="final-remarks">Final remarks</h2>
+<p>Cyclic AST representation in a purely functional language necessitates knot-tying and relies on lazy evaluation. A well-known alternative is using symbol tables. It works across languages (does not rely on lazy evaluation) and keeps the code simple.</p>
+<p>Cyclic representations make using the information easier, while symbol tables make updating easier. Code for updating the information is shown above and the previous post. For using the information, compare:</p>
+<pre><code>-- Get the information in a cyclic representation
+... (idUnfolding id) ...
+
+-- Get the information using a symbol table
+arity &lt;- getIdUnfolding id</code></pre>
+<p>To me the monadic version is not too bad in terms of verbosity or convenience, especially because Haskell makes state passing so easy.</p>
+<p>Some of the problems with knot-tying is as explained at the end of the <a href="../posts/2020-02-21-knot-tying-why-how-opinions.html">previous post</a>. What I did not mention in the previous post is the problems with efficiency, which are demonstrated better in this post.</p>
+<ul>
+<li><p>In the “typing information” example, with the cyclic representation I need to copy the entire AST to update every single <code>Id</code> occurrence and binder. With the symbol table I need to update just the table, which is much smaller than the AST.</p></li>
+<li><p>In the unfolding example, with the cyclic representation I again need to copy the entire AST or use <code>MonadFix</code> if I’m doing it in parsing. With a symbol table the pass does not update the AST, only updates the table. If I’m doing it in parsing then I simply add an entry to the table after parsing a <code>let</code>. (full code at the end of this post)</p></li>
+</ul>
+<p>In use sites, <code>getIdArity</code> (a map lookup) does more work than <code>idArity</code> (just follows a pointer). While I don’t have any benchmarks on this, I doubt that this is bad enough to make cyclic representation and knot-tying preferable.</p>
+<p>Examples in these two posts are inspired by GHC:</p>
+<ul>
+<li>GHC keeps information about <code>Id</code>s in an <a href="https://gitlab.haskell.org/ghc/ghc/blob/1b1067d14b656bbbfa7c47f156ec2700c9751549/compiler%2FbasicTypes%2FVar.hs#L251"><code>Id</code> field</a> with type <code>IdInfo</code>.</li>
+<li><a href="https://gitlab.haskell.org/ghc/ghc/blob/1b1067d14b656bbbfa7c47f156ec2700c9751549/compiler%2FbasicTypes%2FIdInfo.hs#L242-275"><code>IdInfo</code></a> type holds information like arity and unfolding.</li>
+<li>For type information <code>Id</code> has another field: <a href="https://gitlab.haskell.org/ghc/ghc/blob/1b1067d14b656bbbfa7c47f156ec2700c9751549/compiler%2FbasicTypes%2FVar.hs#L248"><code>varType</code></a>.</li>
+<li>The process of throwing away information that are no longer needed is called “zapping”. It happens in many places in GHC, one example is the tidying pass (prepares code for interface file generation) that <a href="https://gitlab.haskell.org/ghc/ghc/blob/1b1067d14b656bbbfa7c47f156ec2700c9751549/compiler%2FGHC%2FIface%2FTidy.hs#L1210">zaps unfoldings</a>.</li>
+<li>Knot-tying is used in many places in the compiler, <a href="https://gitlab.haskell.org/ghc/ghc/blob/1b1067d14b656bbbfa7c47f156ec2700c9751549/compiler%2Fmain%2FUpdateCafInfos.hs#L36">here’s an example</a> where we use knot-tying to update <code>IdInfo</code>s with code generator-generated information.</li>
+</ul>
+<p>In the first post I mostly argued that knot-tying makes things more complicated, and in this post I showed that knot-tying is necessary because of the cyclic representation. If we want to do the same without knot-tying we either have to introduce mutable references (e.g. <code>IORef</code>s) in our AST (not shown in this post), or have to use a non-cyclic representation with symbol tables.</p>
+<p>Between these two representations, I think non-cyclic representation with symbol tables is a better choice.</p>
+<details>
+<p><summary>Full code (knot-tying)</summary></p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Tried with GHC 8.6.4</span>
+
+<span class="ot">{-# OPTIONS_GHC -Wall #-}</span>
+
+<span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span>
+<span class="ot">{-# LANGUAGE FlexibleInstances #-}</span>
+
+<span class="kw">import</span> <span class="dt">Data.List</span>
+<span class="kw">import</span> <span class="dt">Data.Maybe</span>
+<span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (id)
+
+<span class="co">-- mtl-2.2</span>
+<span class="kw">import</span> <span class="dt">Control.Monad.State</span>
+
+<span class="co">-- containers-0.6</span>
+<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span>
+<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span>
+
+<span class="co">-- megaparsec-7.0</span>
+<span class="kw">import</span> <span class="dt">Text.Megaparsec</span> <span class="kw">hiding</span> (<span class="dt">State</span>)
+<span class="kw">import</span> <span class="dt">Text.Megaparsec.Char</span>
+
+<span class="co">-- pretty-show-1.10</span>
+<span class="kw">import</span> <span class="dt">Text.Show.Pretty</span>
+
+<span class="kw">data</span> <span class="dt">Expr</span>
+  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">Id</span>
+  <span class="fu">|</span> <span class="dt">IntE</span> <span class="dt">Int</span>
+  <span class="fu">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="kw">deriving</span> (<span class="dt">Show</span>)
+
+<span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
+  {<span class="ot"> idName ::</span> <span class="dt">String</span>
+    <span class="co">-- ^ Unique name of the identifier</span>
+  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span>
+    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
+  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
+    <span class="co">-- ^ RHS of a binder, used for inlining</span>
+  }
+
+<span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Id</span> <span class="kw">where</span>
+  show (<span class="dt">Id</span> name arity _) <span class="fu">=</span> <span class="st">&quot;(Id &quot;</span> <span class="fu">++</span> show name <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> show arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+
+<span class="co">--------------------------------------------------------------------------------</span>
+<span class="co">-- Initializing unfolding fields in parse time via MonadFix</span>
+
+<span class="kw">type</span> <span class="dt">IdMap</span> <span class="fu">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span>
+
+<span class="kw">type</span> <span class="dt">Parser</span> <span class="fu">=</span> <span class="dt">ParsecT</span> <span class="dt">String</span> <span class="dt">String</span> (<span class="dt">State</span> <span class="dt">IdMap</span>)
+
+<span class="ot">parseExpr ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
+parseExpr <span class="fu">=</span> <span class="kw">do</span>
+    exprs <span class="ot">&lt;-</span> some <span class="fu">$</span>
+      choice <span class="fu">$</span>
+      map (\p <span class="ot">-&gt;</span> p <span class="fu">&lt;*</span> space)
+        [ parseParens, parseIf, parseLam, parseInt,
+          parseLet, try parseId ]
+    return (foldl1' <span class="dt">App</span> exprs)
+
+parseParens, parseIf, parseLam, parseInt,
+  parseLet,<span class="ot"> parseId ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
+
+parseParens <span class="fu">=</span> <span class="kw">do</span>
+    _ <span class="ot">&lt;-</span> char <span class="ch">'('</span>
+    space
+    expr <span class="ot">&lt;-</span> parseExpr
+    _ <span class="ot">&lt;-</span> char <span class="ch">')'</span>
+    return expr
+
+parseIf <span class="fu">=</span> <span class="kw">do</span>
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;if&quot;</span>
+    space
+    condE <span class="ot">&lt;-</span> parseExpr
+
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;then&quot;</span>
+    space
+    thenE <span class="ot">&lt;-</span> parseExpr
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;else&quot;</span>
+    space
+    elseE <span class="ot">&lt;-</span> parseExpr
+    return (<span class="dt">IfE</span> condE thenE elseE)
+
+parseLam <span class="fu">=</span> <span class="kw">do</span>
+    _ <span class="ot">&lt;-</span> char <span class="ch">'\\'</span>
+    space
+    id <span class="ot">&lt;-</span> parseId'
+    space
+    _ <span class="ot">&lt;-</span> char <span class="ch">'.'</span>
+    space
+    body <span class="ot">&lt;-</span> parseExpr
+    return (<span class="dt">Lam</span> id body)
+
+parseInt <span class="fu">=</span> <span class="kw">do</span>
+    chars <span class="ot">&lt;-</span> some digitChar
+    return (<span class="dt">IntE</span> (read chars))
+
+parseLet <span class="fu">=</span> <span class="kw">do</span>
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span>
+    space
+    id_name <span class="ot">&lt;-</span> parseIdName
+    space
+    _ <span class="ot">&lt;-</span> char <span class="ch">'='</span>
+    space
+
+    (id, rhs) <span class="ot">&lt;-</span> mfix <span class="fu">$</span> \ <span class="fu">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span>
+      modify (Map.insert id_name id_)
+      rhs <span class="ot">&lt;-</span> parseExpr
+      return (<span class="dt">Id</span>{ idName <span class="fu">=</span> id_name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }, rhs)
+
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span>
+    space
+    body <span class="ot">&lt;-</span> parseExpr
+    return (<span class="dt">Let</span> id rhs body)
+
+parseId <span class="fu">=</span> <span class="dt">IdE</span> <span class="fu">&lt;$&gt;</span> parseId'
+
+<span class="ot">kws ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span>
+kws <span class="fu">=</span> Set.fromList [<span class="st">&quot;if&quot;</span>, <span class="st">&quot;then&quot;</span>, <span class="st">&quot;else&quot;</span>, <span class="st">&quot;let&quot;</span>, <span class="st">&quot;in&quot;</span>]
+
+<span class="ot">parseIdName ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
+parseIdName <span class="fu">=</span> <span class="kw">do</span>
+    name <span class="ot">&lt;-</span> some letterChar
+    guard (not (Set.member name kws))
+    return name
+
+<span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">Id</span>
+parseId' <span class="fu">=</span> <span class="kw">do</span>
+    name <span class="ot">&lt;-</span> parseIdName
+    id_map <span class="ot">&lt;-</span> get
+    <span class="kw">let</span> def <span class="fu">=</span> <span class="dt">Id</span>{ idName <span class="fu">=</span> name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
+    return (fromMaybe def (Map.lookup name id_map))
+
+<span class="ot">testPgm ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
+testPgm pgm <span class="fu">=</span>
+    <span class="kw">case</span> evalState (runParserT parseExpr <span class="st">&quot;&quot;</span> pgm) Map.empty <span class="kw">of</span>
+      <span class="dt">Left</span> (<span class="ot">err_bundle ::</span> <span class="dt">ParseErrorBundle</span> <span class="dt">String</span> <span class="dt">String</span>) <span class="ot">-&gt;</span>
+        error (errorBundlePretty err_bundle)
+      <span class="dt">Right</span> expr <span class="ot">-&gt;</span>
+        expr
+
+<span class="kw">instance</span> <span class="dt">ShowErrorComponent</span> [<span class="dt">Char</span>] <span class="kw">where</span>
+    showErrorComponent x <span class="fu">=</span> x
+
+<span class="co">--------------------------------------------------------------------------------</span>
+<span class="co">-- Initializing unfoldings with knot-tying</span>
+
+<span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
+addUnfoldings <span class="fu">=</span> go Map.empty
+  <span class="kw">where</span>
+<span class="ot">    go ::</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
+    go ids e <span class="fu">=</span> <span class="kw">case</span> e <span class="kw">of</span>
+
+      <span class="co">-- Interesting bits ------------------------------------------------------</span>
+      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
+        <span class="dt">IdE</span> (fromMaybe id (Map.lookup (idName id) ids))
+
+      <span class="dt">Let</span> bndr rhs body <span class="ot">-&gt;</span>
+        <span class="kw">let</span>
+          ids' <span class="fu">=</span> Map.insert (idName bndr) bndr' ids
+          rhs' <span class="fu">=</span> go ids' rhs
+          bndr' <span class="fu">=</span> bndr{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs' }
+        <span class="kw">in</span>
+          <span class="dt">Let</span> bndr{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs' } rhs' (go ids' body)
+      <span class="co">--------------------------------------------------------------------------</span>
+
+      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
+        e
+
+      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span>
+        <span class="dt">Lam</span> arg (go ids body)
+
+      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span>
+        <span class="dt">App</span> (go ids e1) (go ids e2)
+
+      <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span>
+        <span class="dt">IfE</span> (go ids e1) (go ids e2) (go ids e3)</code></pre></div>
+</details>
+<details>
+<p><summary>Full code (symbol table)</summary></p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Tried with GHC 8.6.4</span>
+
+<span class="ot">{-# OPTIONS_GHC -Wall #-}</span>
+
+<span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span>
+<span class="ot">{-# LANGUAGE FlexibleInstances #-}</span>
+
+<span class="kw">import</span> <span class="dt">Data.List</span>
+<span class="kw">import</span> <span class="dt">Data.Maybe</span>
+<span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (id)
+
+<span class="co">-- mtl-2.2</span>
+<span class="kw">import</span> <span class="dt">Control.Monad.State</span>
+
+<span class="co">-- containers-0.6</span>
+<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span>
+<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span>
+
+<span class="co">-- megaparsec-7.0</span>
+<span class="kw">import</span> <span class="dt">Text.Megaparsec</span> <span class="kw">hiding</span> (<span class="dt">State</span>)
+<span class="kw">import</span> <span class="dt">Text.Megaparsec.Char</span>
+
+<span class="co">-- pretty-show-1.10</span>
+<span class="kw">import</span> <span class="dt">Text.Show.Pretty</span>
+
+<span class="kw">import</span> <span class="dt">Debug.Trace</span>
+
+<span class="kw">data</span> <span class="dt">Expr</span>
+  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">String</span>
+  <span class="fu">|</span> <span class="dt">IntE</span> <span class="dt">Int</span>
+  <span class="fu">|</span> <span class="dt">Lam</span> <span class="dt">String</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="fu">|</span> <span class="dt">Let</span> <span class="dt">String</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
+  <span class="kw">deriving</span> (<span class="dt">Show</span>)
+
+<span class="kw">data</span> <span class="dt">IdInfo</span> <span class="fu">=</span> <span class="dt">IdInfo</span>
+  {<span class="ot"> idArity ::</span> <span class="dt">Int</span>
+    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
+  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
+    <span class="co">-- ^ RHS of a binder, used for inlining</span>
+  ,<span class="ot"> idType ::</span> <span class="dt">Maybe</span> <span class="dt">Type</span>
+    <span class="co">-- ^ Type of the id.</span>
+  }
+
+<span class="kw">data</span> <span class="dt">Type</span> <span class="fu">=</span> <span class="dt">Type</span> <span class="co">-- Assume a large type</span>
+
+<span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">IdInfo</span> <span class="kw">where</span>
+  show (<span class="dt">IdInfo</span> arity _ _) <span class="fu">=</span> <span class="st">&quot;(IdInfo &quot;</span> <span class="fu">++</span> show arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+
+<span class="kw">type</span> <span class="dt">SymTbl</span> <span class="fu">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">IdInfo</span>
+
+<span class="ot">getIdInfo ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Maybe</span> <span class="dt">IdInfo</span>)
+getIdInfo id <span class="fu">=</span>
+    Map.lookup id <span class="fu">&lt;$&gt;</span> get
+
+<span class="ot">setIdArity ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
+setIdArity id arity <span class="fu">=</span> modify (Map.alter alter id)
+  <span class="kw">where</span>
+    alter <span class="dt">Nothing</span> <span class="fu">=</span>
+      <span class="dt">Just</span> <span class="dt">IdInfo</span>{ idArity <span class="fu">=</span> arity, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span>, idType <span class="fu">=</span> <span class="dt">Nothing</span> }
+    alter (<span class="dt">Just</span> id_info) <span class="fu">=</span>
+      <span class="dt">Just</span> id_info{ idArity <span class="fu">=</span> arity }
+
+<span class="ot">setIdUnfolding ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
+setIdUnfolding id unfolding <span class="fu">=</span> modify (Map.alter alter id)
+  <span class="kw">where</span>
+    alter <span class="dt">Nothing</span> <span class="fu">=</span>
+      <span class="dt">Just</span> <span class="dt">IdInfo</span>{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> unfolding, idArity <span class="fu">=</span> <span class="dv">0</span>, idType <span class="fu">=</span> <span class="dt">Nothing</span> }
+    alter (<span class="dt">Just</span> id_info) <span class="fu">=</span>
+      <span class="dt">Just</span> id_info{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> unfolding }
+
+<span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+countLambdas (<span class="dt">Lam</span> _ rhs) <span class="fu">=</span> <span class="dv">1</span> <span class="fu">+</span> countLambdas rhs
+countLambdas _ <span class="fu">=</span> <span class="dv">0</span>
+
+<span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> <span class="dt">Expr</span>
+dropUnusedBindings <span class="fu">=</span>
+    fmap snd <span class="fu">.</span> go Set.empty
+  <span class="kw">where</span>
+<span class="ot">    go ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
+    go free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
+
+      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
+        return (Set.insert id free_vars, e0)
+
+      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
+        return (free_vars, e0)
+
+      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span> <span class="kw">do</span>
+        (free_vars', body') <span class="ot">&lt;-</span> go free_vars body
+        return (Set.delete arg free_vars', <span class="dt">Lam</span> arg body')
+
+      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
+        (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
+        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
+        return (Set.union free1 free2, <span class="dt">App</span> e1' e2')
+
+      <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span>
+        (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
+        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
+        (free3, e3') <span class="ot">&lt;-</span> go free_vars e3
+        return (Set.unions [free1, free2, free3], <span class="dt">IfE</span> e1' e2' e3')
+
+      <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
+        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
+        <span class="kw">if</span> Set.member bndr free2 <span class="kw">then</span> <span class="kw">do</span>
+          (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
+          trace (ppShow e1') (return ())
+          setIdArity bndr (countLambdas e1')
+          return (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')
+        <span class="kw">else</span>
+          return (free2, e2')
+
+<span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
+addUnfoldings e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
+
+    <span class="dt">IdE</span>{} <span class="ot">-&gt;</span>
+      return ()
+
+    <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
+      return ()
+
+    <span class="dt">Lam</span> _ body <span class="ot">-&gt;</span>
+      addUnfoldings body
+
+    <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
+      addUnfoldings e1
+      addUnfoldings e2
+
+    <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span>
+      addUnfoldings e1
+      addUnfoldings e2
+      addUnfoldings e3
+
+    <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
+      addUnfoldings e1
+      addUnfoldings e2
+      setIdUnfolding bndr e1
+
+<span class="ot">dropTypes ::</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
+dropTypes <span class="fu">=</span> modify (Map.map (\id_info <span class="ot">-&gt;</span> id_info{ idType <span class="fu">=</span> <span class="dt">Nothing</span> }))
+
+<span class="ot">pgm ::</span> <span class="dt">Expr</span>
+pgm <span class="fu">=</span> <span class="dt">Let</span> <span class="st">&quot;fac&quot;</span> rhs body
+  <span class="kw">where</span>
+    rhs <span class="fu">=</span> <span class="dt">Lam</span> <span class="st">&quot;x&quot;</span> (<span class="dt">IfE</span> (<span class="dt">IdE</span> <span class="st">&quot;x&quot;</span>) (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;*&quot;</span>) (<span class="dt">IdE</span> <span class="st">&quot;x&quot;</span>))
+                                      (<span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;fac&quot;</span>)
+                                           (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;-&quot;</span>) (<span class="dt">IdE</span> <span class="st">&quot;x&quot;</span>)) (<span class="dt">IntE</span> <span class="dv">1</span>))))
+                                 (<span class="dt">IntE</span> <span class="dv">1</span>))
+    body <span class="fu">=</span> <span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;fac&quot;</span>) (<span class="dt">IntE</span> <span class="dv">5</span>)
+
+<span class="co">--------------------------------------------------------------------------------</span>
+<span class="co">-- Initializing unfolding fields in parse time, the boring way</span>
+
+<span class="kw">type</span> <span class="dt">Parser</span> <span class="fu">=</span> <span class="dt">ParsecT</span> <span class="dt">String</span> <span class="dt">String</span> (<span class="dt">State</span> <span class="dt">SymTbl</span>)
+
+<span class="ot">parseExpr ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
+parseExpr <span class="fu">=</span> <span class="kw">do</span>
+    exprs <span class="ot">&lt;-</span> some <span class="fu">$</span>
+      choice <span class="fu">$</span>
+      map (\p <span class="ot">-&gt;</span> p <span class="fu">&lt;*</span> space)
+        [ parseParens, parseIf, parseLam, parseInt,
+          parseLet, try parseId ]
+    return (foldl1' <span class="dt">App</span> exprs)
+
+parseParens, parseIf, parseLam, parseInt,
+  parseLet,<span class="ot"> parseId ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
+
+parseParens <span class="fu">=</span> <span class="kw">do</span>
+    _ <span class="ot">&lt;-</span> char <span class="ch">'('</span>
+    space
+    expr <span class="ot">&lt;-</span> parseExpr
+    _ <span class="ot">&lt;-</span> char <span class="ch">')'</span>
+    return expr
+
+parseIf <span class="fu">=</span> <span class="kw">do</span>
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;if&quot;</span>
+    space
+    condE <span class="ot">&lt;-</span> parseExpr
+
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;then&quot;</span>
+    space
+    thenE <span class="ot">&lt;-</span> parseExpr
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;else&quot;</span>
+    space
+    elseE <span class="ot">&lt;-</span> parseExpr
+    return (<span class="dt">IfE</span> condE thenE elseE)
+
+parseLam <span class="fu">=</span> <span class="kw">do</span>
+    _ <span class="ot">&lt;-</span> char <span class="ch">'\\'</span>
+    space
+    id <span class="ot">&lt;-</span> parseId'
+    space
+    _ <span class="ot">&lt;-</span> char <span class="ch">'.'</span>
+    space
+    body <span class="ot">&lt;-</span> parseExpr
+    return (<span class="dt">Lam</span> id body)
+
+parseInt <span class="fu">=</span> <span class="kw">do</span>
+    chars <span class="ot">&lt;-</span> some digitChar
+    return (<span class="dt">IntE</span> (read chars))
+
+parseLet <span class="fu">=</span> <span class="kw">do</span>
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span>
+    space
+    id <span class="ot">&lt;-</span> parseId'
+    space
+    _ <span class="ot">&lt;-</span> char <span class="ch">'='</span>
+    space
+    rhs <span class="ot">&lt;-</span> parseExpr
+    _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span>
+    space
+    body <span class="ot">&lt;-</span> parseExpr
+    lift (setIdUnfolding id rhs)
+    return (<span class="dt">Let</span> id rhs body)
+
+parseId <span class="fu">=</span> <span class="dt">IdE</span> <span class="fu">&lt;$&gt;</span> parseId'
+
+<span class="ot">kws ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span>
+kws <span class="fu">=</span> Set.fromList [<span class="st">&quot;if&quot;</span>, <span class="st">&quot;then&quot;</span>, <span class="st">&quot;else&quot;</span>, <span class="st">&quot;let&quot;</span>, <span class="st">&quot;in&quot;</span>]
+
+<span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
+parseId' <span class="fu">=</span> <span class="kw">do</span>
+    name <span class="ot">&lt;-</span> some letterChar
+    guard (not (Set.member name kws))
+    return name
+
+<span class="ot">testPgm ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
+testPgm pgm <span class="fu">=</span>
+    <span class="kw">case</span> evalState (runParserT parseExpr <span class="st">&quot;&quot;</span> pgm) Map.empty <span class="kw">of</span>
+      <span class="dt">Left</span> (<span class="ot">err_bundle ::</span> <span class="dt">ParseErrorBundle</span> <span class="dt">String</span> <span class="dt">String</span>) <span class="ot">-&gt;</span>
+        error (errorBundlePretty err_bundle)
+      <span class="dt">Right</span> expr <span class="ot">-&gt;</span>
+        expr
+
+<span class="kw">instance</span> <span class="dt">ShowErrorComponent</span> [<span class="dt">Char</span>] <span class="kw">where</span>
+    showErrorComponent x <span class="fu">=</span> x</code></pre></div>
+</details>
+
+<!--
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+-->
+
+            </div>
+        </div>
+    </body>
+</html>
