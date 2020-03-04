@@ -74,19 +74,24 @@ tok t <span class="fu">=</span> (satisfy <span class="fu">$</span> (<span class=
 <p>Now, when using Parsec, generally there’s no need to separate lexing stage. Because as you can see above, it just makes code more complex, and adds no more flexibility. Instead of writing <code>tok $ Ide &quot;some-identifier&quot;</code>, you can always write <code>ide &quot;some-identifier&quot;</code> with a <code>ide</code> parser.</p>
 <p>Still, I think understanding how to make this helps for at least two reasons. First, now you can work on any streams, not just character streams using Parsec’s <code>Char</code> token. And second, writing lexers can still help in some situations, like parsing indentation-based grammars. In that case, you can generate indent-dedent tokens in lexing stage, and make parser code more clean because it will be less <em>context-dependent</em> (I never tried that with Parsec, though) .</p>
 
-<!--
-
 <hr />
-<div id="disqus_thread"></div>
-<script type="text/javascript">
-    (function() {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'https://osa1.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
 
--->
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
 
             </div>
         </div>

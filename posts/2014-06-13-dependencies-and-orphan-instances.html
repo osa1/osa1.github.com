@@ -27,19 +27,24 @@
 <p>I want to add <code>StackValue a =&gt; StackValue [a]</code> instance in hslua, but that breaks Pandoc because it implements that instance without using a newtype(an orphan instance) and hslua dependency upper bound is specified as <code>&lt; 0.4</code>.</p>
 <p>Good news is that bergmark at Freenode #haskell told me that now it’s possible to change dependency ranges on Hackage without pushing a new version, so there’s an easy fix that’ll keep package working.</p>
 
-<!--
-
 <hr />
-<div id="disqus_thread"></div>
-<script type="text/javascript">
-    (function() {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'https://osa1.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
 
--->
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
 
             </div>
         </div>

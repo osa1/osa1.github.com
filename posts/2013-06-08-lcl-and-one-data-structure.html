@@ -45,19 +45,24 @@
 <p>Still, I don’t think adding C/C++ containers in Lua is completely pointless. Significant memory savings may be possible with C/C++ containers. For example, 32 flags can be held in a 32bit integer in C/C++, but to do this in Lua, you need to use a double for every flag, and a table. A double is 8 bytes in my 64bit machine. And with 32 flags it costs you 32*8 = 256 bytes. In C/C++ you can have it with only 4 bytes.</p>
 <p>There may be also performance advantages for really complex algorithms, but I don’t have a particular example in mind.</p>
 
-<!--
-
 <hr />
-<div id="disqus_thread"></div>
-<script type="text/javascript">
-    (function() {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'https://osa1.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
 
--->
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
 
             </div>
         </div>

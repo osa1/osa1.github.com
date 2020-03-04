@@ -87,19 +87,24 @@ map f (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class
 <p>A thunk is still constructed in the runtime, but it’s evaluated <em>before</em> the <code>&lt;body&gt;</code> is evaluated. So this code fails before <code>&lt;body&gt;</code> is evaluated, and if we evaluate <code>&lt;body&gt;</code> it means that <code>a</code> is not bottom and doesn’t have bottoms.</p>
 <p>This is another potential improvement over the <code>-XStrict</code>. For more details and some optimizations see <a href="https://mail.haskell.org/pipermail/ghc-devs/2015-October/010175.html">this ghc-devs thread</a>.</p>
 
-<!--
-
 <hr />
-<div id="disqus_thread"></div>
-<script type="text/javascript">
-    (function() {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'https://osa1.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
 
--->
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
 
             </div>
         </div>

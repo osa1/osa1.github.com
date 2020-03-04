@@ -44,19 +44,24 @@ let loadFuzzy _ = do
 <p>Add this code to your global ghci config file (<code>~/.ghci</code>) or your project-wide <code>.ghci</code> (at the project root).</p>
 <p>Only problem here is the <code>process</code> dependency: when you use <code>stack repl</code> or <code>cabal repl</code>, <code>process</code> won’t be importable in GHCi unless the project you’re loading into GHCi already has it as a dependency. One solution is to pass <code>-package process</code> to <code>cabal repl</code> or <code>--ghci-options=&quot;-package process&quot;</code> to <code>stack repl</code>. Because <code>process</code> is distributed with GHC this will always work.</p>
 
-<!--
-
 <hr />
-<div id="disqus_thread"></div>
-<script type="text/javascript">
-    (function() {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'https://osa1.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
 
--->
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
 
             </div>
         </div>
