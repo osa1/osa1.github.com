@@ -8,8 +8,17 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2020-02-27T00:00:00Z</updated>
+    <updated>2020-03-25T00:00:00Z</updated>
     <entry>
+    <title>New blog post published on Well-Typed's blog</title>
+    <link href="http://osa1.net/posts/2020-03-25-new-blog-post.html" />
+    <id>http://osa1.net/posts/2020-03-25-new-blog-post.html</id>
+    <published>2020-03-25T00:00:00Z</published>
+    <updated>2020-03-25T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I recently published a new post on <a href="http://blog.well-typed.com/">Well-Typed’s blog</a>: <a href="https://twitter.com/welltyped/status/1242765765658447873">“The problem with adding functions to compact regions”</a>.</p>
+<p>It’s also shared on <a href="https://twitter.com/welltyped/status/1242765765658447873">Twitter</a> and <a href="https://www.reddit.com/r/haskell/comments/foob2l/the_problem_with_adding_functions_to_compact/">/r/haskell</a>. If you have any questions/comments feel free to ping me in any of these places, or add a comment below!</p>]]></summary>
+</entry>
+<entry>
     <title>Knot-tying: two more examples, and an alternative</title>
     <link href="http://osa1.net/posts/2020-02-27-knot-tying-an-alternative.html" />
     <id>http://osa1.net/posts/2020-02-27-knot-tying-an-alternative.html</id>
@@ -2043,109 +2052,6 @@ Task failed
 Performing 7
 Slow task done (7)</code></pre>
 <p>The whole code that randomly generates resources and tasks and then runs them is <a href="https://gist.github.com/osa1/e7416f6a0f299f88f275bb8d56a31da3">here</a>. It uses quite a lot of dependencies because it was extracted from a larger program, and I’m too lazy to make it smaller and simpler. I provided a <code>stack.yaml</code> so hopefully it’s still not too hard to run.</p>]]></summary>
-</entry>
-<entry>
-    <title>Enable these two flags in GHC 8.2</title>
-    <link href="http://osa1.net/posts/2017-07-15-two-flags.html" />
-    <id>http://osa1.net/posts/2017-07-15-two-flags.html</id>
-    <published>2017-07-15T00:00:00Z</published>
-    <updated>2017-07-15T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>As usual, the next major GHC release will be <a href="https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.2.1#Releasehighlights">pretty great</a>. It’ll come with a bunch of new features that I can’t wait to start using, and I’ve contributed to three of the new features<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, but what excites me the most is not any of these features. I’m most excited about the improved <code>-Werror</code> flag.</p>
-<p>The summary is that with GHC 8.2 we’ll be able to promote some warnings into errors, without making <em>all warnings</em> errors (which is how <code>-Werror</code> worked pre-8.2). With this we can finally fix some of the Haskell 2010 warts.</p>
-<hr />
-<p>By the beginning of this year I moved from academia to industry. I was writing Haskell in academia, and I’m still writing Haskell, but the environment, tasks, and constraints are quite different, so the way I write Haskell changed quite a lot during this transition.</p>
-<p>What I realized that some of the problems with Haskell 2010 are actually worse than I had previously thought.</p>
-<h2 id="problem-1-initializing-records-without-initializing-all-of-its-fields">Problem 1: Initializing records without initializing all of its fields</h2>
-<p><a href="https://www.haskell.org/onlinereport/haskell2010/haskellch3.html#x8-520003.15.2">Haskell 2010</a> says that when initializing records using labels, fields not mentioned are initialized as bottoms.</p>
-<p>I just can’t fathom how Haskell 2010 people thought this is a good idea. In Haskell we constantly rely on compile-time errors to refactor our code. A common workflow is this: you update your data types, and follow the type errors to adapt your code to the changes. Quite often your program works as expected after this. I did this countless times during my career as a Haskell programmer, and I’m trying to improve GHC to <a href="https://github.com/ghc-proposals/ghc-proposals/pull/43">make this workflow even more efficient</a>.</p>
-<p>The problem is this “feature” breaks this workflow, because adding a new field to a type no longer generates a compile error. It generates a warning, but that’s not good enough because (1) not all projects have <code>-Wall</code> enabled (2) not all projects are warning-free, which means new warnings sometimes go unnoticed (this happens in our code base all the time).</p>
-<p>Indeed, even very experienced Haskellers release buggy code because of this. For example, warp-3.2.10 added a new field (<code>connFree</code>) to one of its types (<code>Connection</code>), and for some reason only the minor version was bumped (3.2.9 to 3.2.10, which is probably wrong according to <a href="https://pvp.haskell.org/">PVP</a> because the type was exported). The problem was warp-tls-3.2.2 had 3.3 as warp upper bound, so it compiled fine against warp-3.2.10, even though it didn’t initialize the field. This caused bugs in our system, which we thankfully discovered in our test environment rather than on production. The fix was <a href="https://github.com/yesodweb/wai/commit/b63ec0e865cf91af4143416adaf430969ba0ebb5#diff-44ce89cb2a54be5e525d74b83901f561R348">easy</a>, but the damage was done (the buggy warp-tls-3.2.2 is still on Hackage).</p>
-<h2 id="problem-2-non-exhaustive-pattern-matching">Problem 2: Non-exhaustive pattern matching</h2>
-<p>While I can’t find any mention to exhaustiveness of pattern matching in Haskell 2010, it clearly covers the case where patterns do not cover all values when defining <a href="https://www.haskell.org/onlinereport/haskell2010/haskellch3.html#x8-610003.17.3">formal semantics of pattern matching</a> (see case (b)). You only realize that this is a bad idea when (1) your code is not warning-free so new warnings sometimes go unnoticed and (2) you can’t promote individual warnings to errors. This again breaks the workflow I mentioned above, and makes code reviews much harder.</p>
-<hr />
-<p>The solution that GHC 8.2 brings is we can now make these two warnings errors, using <code>-Werror=missing-fields -Werror=incomplete-patterns</code>. There’s still one problem though, the error message is not good enough. Suppose we had this code:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">module</span> <span class="dt">Lib</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">data</span> <span class="dt">Rec</span> <span class="fu">=</span> <span class="dt">Rec</span> {<span class="ot"> f1 ::</span> <span class="dt">Int</span>,<span class="ot"> f2 ::</span> <span class="dt">Int</span> }</a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">data</span> <span class="dt">S</span> <span class="fu">=</span> <span class="dt">C1</span> <span class="dt">Int</span> <span class="fu">|</span> <span class="dt">C2</span> <span class="dt">Int</span></a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="co">-- incomplete pattern</span></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8">sInt s <span class="fu">=</span> <span class="kw">case</span> s <span class="kw">of</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9">           <span class="dt">C1</span> i <span class="ot">-&gt;</span> i</a>
-<a class="sourceLine" id="cb1-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb1-11" data-line-number="11"><span class="co">-- missing field</span></a>
-<a class="sourceLine" id="cb1-12" data-line-number="12">initRec <span class="fu">=</span> <span class="dt">Rec</span> { f1 <span class="fu">=</span> <span class="dv">1</span> }</a></code></pre></div>
-<p>Compile this with <code>ghc -Wall</code> and you get:</p>
-<pre><code>[1 of 1] Compiling Lib              ( test.hs, test.o )
-
-test.hs:11:1: warning: [-Wmissing-signatures]
-    Top-level binding with no type signature: sInt :: S -&gt; Int
-   |
-11 | sInt s = case s of
-   | ^^^^
-
-test.hs:11:10: warning: [-Wincomplete-patterns]
-    Pattern match(es) are non-exhaustive
-    In a case alternative: Patterns not matched: (C2 _)
-   |
-11 | sInt s = case s of
-   |          ^^^^^^^^^...
-
-test.hs:15:1: warning: [-Wmissing-signatures]
-    Top-level binding with no type signature: initRec :: Rec
-   |
-15 | initRec = Rec { f1 = 1 }
-   | ^^^^^^^
-
-test.hs:15:11: warning: [-Wmissing-fields]
-    • Fields of ‘Rec’ not initialised: f2
-    • In the expression: Rec {f1 = 1}
-      In an equation for ‘initRec’: initRec = Rec {f1 = 1}
-   |
-15 | initRec = Rec { f1 = 1 }
-   |           ^^^^^^^^^^^^^^</code></pre>
-<p>We only care about missing fields and incomplete patterns, so with GHC 8.2 we compile this with <code>ghc -Wall -Werror=missing-fields -Werror=incomplete-patterns</code>, which generates the same warnings, but the process exits with non-zero, and prints these extra lines:</p>
-<pre><code>&lt;no location info&gt;: error:
-Failing due to -Werror.</code></pre>
-<p>This is not too useful, because if you get dozens of warnings there’s basically no way of knowing which of those warnings caused this error. One alternative is to disable <code>-Wall</code> and only use <code>-Werror</code>s. That way you know that the warnings you’re seeing are actually errors.</p>
-<p>Still, this is not entirely satisfactory, because even though we don’t cause our build to fail when we have warnings, they’re still sometimes useful to see (for example, name shadowing warnings often catches accidental loops). So to improve this I recently <a href="https://phabricator.haskell.org/D3709">submitted a patch</a>, which is merged, but unfortunately won’t make it to GHC 8.2 (hopefully we’ll see it in GHC 8.4). With that patch when you have both <code>-Wall</code> and some <code>-Werror</code>s, you see this instead:</p>
-<pre><code>[1 of 1] Compiling Lib              ( test.hs, test.o )
-
-test.hs:11:1: warning: [-Wmissing-signatures]
-    Top-level binding with no type signature: sInt :: S -&gt; Int
-   |
-11 | sInt s = case s of
-   | ^^^^
-
-test.hs:11:10: error: [-Wincomplete-patterns, -Werror=incomplete-patterns]
-    Pattern match(es) are non-exhaustive
-    In a case alternative: Patterns not matched: (C2 _)
-   |
-11 | sInt s = case s of
-   |          ^^^^^^^^^...
-
-test.hs:15:1: warning: [-Wmissing-signatures]
-    Top-level binding with no type signature: initRec :: Rec
-   |
-15 | initRec = Rec { f1 = 1 }
-   | ^^^^^^^
-
-test.hs:15:11: error: [-Wmissing-fields, -Werror=missing-fields]
-    • Fields of ‘Rec’ not initialised: f2
-    • In the expression: Rec {f1 = 1}
-      In an equation for ‘initRec’: initRec = Rec {f1 = 1}
-   |
-15 | initRec = Rec { f1 = 1 }
-   |           ^^^^^^^^^^^^^^</code></pre>
-<p>Much better!</p>
-<p>This is probably not as exciting to many people as, say, new features like compact regions or join points, but I think this will significantly improve “refactor types, folow type error, repeat” style workflows and make code reviews much easier.</p>
-<section class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>I discovered and reported <a href="https://ghc.haskell.org/trac/ghc/ticket/10598">#10598</a> two years ago, which led to <code>-XDerivingStrategies</code> work, I was involved in the <a href="http://ezyang.com/papers/ezyang15-cnf.pdf">Compact regions paper</a>, and I implemented <a href="https://phabricator.haskell.org/D2259">unboxed sums</a> during my time at MSR Cambridge last summer.<a href="#fnref1" class="footnote-back">↩</a></p></li>
-</ol>
-</section>]]></summary>
 </entry>
 
 </feed>
