@@ -25,7 +25,7 @@
 <p>Being able so specify conditions in gdb breakpoints is quite useful. For example, if I’m interested in <code>mmap(NULL, ...)</code> calls I can do</p>
 <pre><code>break mmap if addr == 0</code></pre>
 <p>and gdb doesn’t break on <code>mmap</code> when the <code>addr == 0</code> condition doesn’t hold.</p>
-<p>I’ve used this many times to great, effect but it’s not always sufficient, sometimes I need to break not when a variable or argument has a specific value but the function is called (directly or indirectly) from another function. For example, when debugging a GHC RTS issue I sometimes want to inspect <code>mmap</code> calls made by the garbage collector.</p>
+<p>I’ve used this many times to great effect, but it’s not always sufficient, sometimes I need to break not when a variable or argument has a specific value but the function is called (directly or indirectly) from another function. For example, when debugging a GHC RTS issue I sometimes want to inspect <code>mmap</code> calls made by the garbage collector.</p>
 <p>As far as I know this is not possible using the standard <code>break</code> syntax, but gdb provides a <a href="https://sourceware.org/gdb/onlinedocs/gdb/Python-API.html">Python API</a> that allows setting breakpoints with conditions implemented in Python. Using this API it’s takes a few lines to implement this:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> FrameBp(gdb.Breakpoint):
     <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, spec, <span class="op">*</span>args, frame<span class="op">=</span><span class="va">None</span>, <span class="op">**</span>kwargs):
