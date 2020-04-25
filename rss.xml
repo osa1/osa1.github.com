@@ -8,8 +8,52 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2020-03-25T00:00:00Z</updated>
+    <updated>2020-04-25T00:00:00Z</updated>
     <entry>
+    <title>gdb breakpoints with conditions on backtrace</title>
+    <link href="http://osa1.net/posts/2020-04-25-breakpoint-backtrace-conditionals.html" />
+    <id>http://osa1.net/posts/2020-04-25-breakpoint-backtrace-conditionals.html</id>
+    <published>2020-04-25T00:00:00Z</published>
+    <updated>2020-04-25T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Being able so specify conditions in gdb breakpoints is quite useful. For example, if I’m interested in <code>mmap(NULL, ...)</code> calls I can do</p>
+<pre><code>break mmap if addr == 0</code></pre>
+<p>and gdb doesn’t break on <code>mmap</code> when the <code>addr == 0</code> condition doesn’t hold.</p>
+<p>I’ve used this many times to great, effect but it’s not always sufficient, sometimes I need to break not when a variable or argument has a specific value but the function is called (directly or indirectly) from another function. For example, when debugging a GHC RTS issue I sometimes want to inspect <code>mmap</code> calls made by the garbage collector.</p>
+<p>As far as I know this is not possible using the standard <code>break</code> syntax, but gdb provides a <a href="https://sourceware.org/gdb/onlinedocs/gdb/Python-API.html">Python API</a> that allows setting breakpoints with conditions implemented in Python. Using this API it’s takes a few lines to implement this:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">class</span> FrameBp(gdb.Breakpoint):</a>
+<a class="sourceLine" id="cb2-2" title="2">    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, spec, <span class="op">*</span>args, frame<span class="op">=</span><span class="va">None</span>, <span class="op">**</span>kwargs):</a>
+<a class="sourceLine" id="cb2-3" title="3">        <span class="va">self</span>.frame <span class="op">=</span> frame</a>
+<a class="sourceLine" id="cb2-4" title="4">        <span class="bu">super</span>(FrameBp, <span class="va">self</span>).<span class="fu">__init__</span>(spec, <span class="op">*</span>args, <span class="op">**</span>kwargs)</a>
+<a class="sourceLine" id="cb2-5" title="5"></a>
+<a class="sourceLine" id="cb2-6" title="6">    <span class="kw">def</span> stop (<span class="va">self</span>):</a>
+<a class="sourceLine" id="cb2-7" title="7">        frame <span class="op">=</span> gdb.selected_frame().older()</a>
+<a class="sourceLine" id="cb2-8" title="8"></a>
+<a class="sourceLine" id="cb2-9" title="9">        <span class="cf">while</span> frame:</a>
+<a class="sourceLine" id="cb2-10" title="10">            <span class="cf">if</span> frame.name() <span class="op">==</span> <span class="va">self</span>.frame:</a>
+<a class="sourceLine" id="cb2-11" title="11">                <span class="cf">return</span> <span class="va">True</span></a>
+<a class="sourceLine" id="cb2-12" title="12"></a>
+<a class="sourceLine" id="cb2-13" title="13">            frame <span class="op">=</span> frame.older()</a>
+<a class="sourceLine" id="cb2-14" title="14"></a>
+<a class="sourceLine" id="cb2-15" title="15">        <span class="cf">return</span> <span class="va">False</span></a></code></pre></div>
+<p>When calling the constructor the first argument is the breakpoint specifier, which is basically the part after <code>break ...</code> in gdb’s break command. The <code>frame</code> argument is the function we look for before actually breaking. We only break if the function exists in the backtrace. Here’s an example use:</p>
+<pre><code>&gt;&gt;&gt; python FrameBp(&quot;mmap&quot;, frame=&quot;GarbageCollect&quot;)
+Breakpoint 1 at 0x7f3366243f00: file ../sysdeps/unix/sysv/linux/mmap64.c, line 44.</code></pre>
+<p>This will only break on <code>mmap</code> if the backtrace has <code>GarbageCollect</code> at some point. An example backtrace when the breakpoint is hit:</p>
+<pre><code>Breakpoint 1, __GI___mmap64 (addr=0x4200200000, len=1048576, prot=3, flags=50, fd=-1, offset=0) at ../sysdeps/unix/sysv/linux/mmap64.c:44
+44        if (offset &amp; MMAP_OFF_MASK)
+
+&gt;&gt;&gt; bt
+#0  __GI___mmap64 (addr=0x4200200000, len=1048576, prot=3, flags=50, fd=-1, offset=0) at ../sysdeps/unix/sysv/linux/mmap64.c:44
+
+...
+
+#19 0x0000000003022c83 in GarbageCollect (collect_gen=0, do_heap_census=false, deadlock_detect=false, gc_type=0, cap=0x37ef500
+&lt;MainCapability&gt;, idle_cap=0x0) at rts/sm/GC.c:449
+
+...</code></pre>
+<p>With some effort you could probably turn this into a proper gdb command and run it without the <code>python ...</code> part, but so far this works good enough for me.</p>]]></summary>
+</entry>
+<entry>
     <title>New blog post published on Well-Typed's blog</title>
     <link href="http://osa1.net/posts/2020-03-25-new-blog-post.html" />
     <id>http://osa1.net/posts/2020-03-25-new-blog-post.html</id>
@@ -1986,34 +2030,6 @@ call fib_rqh_info(R2) args: 24, res: 0, upd: 24;</code></pre>
 <li id="fn2"><p>Correction: Wadler was the first one to write about it in 1987, but Lennart Augustsson came up with this solution around 1981, and <a href="https://www.reddit.com/r/haskell/comments/852jfc/three_runtime_optimizations_done_by_ghcs_gc/dvuwtl0/">according him</a> David Turner came up with the solution even before him.<a href="#fnref2" class="footnote-back">↩</a></p></li>
 </ol>
 </section>]]></summary>
-</entry>
-<entry>
-    <title>Fuzzy module loading in GHCi</title>
-    <link href="http://osa1.net/posts/2017-10-26-ghc-fuzzy-module-loading.html" />
-    <id>http://osa1.net/posts/2017-10-26-ghc-fuzzy-module-loading.html</id>
-    <published>2017-10-26T00:00:00Z</published>
-    <updated>2017-10-26T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p><a href="https://downloads.haskell.org/~ghc/8.2.1/docs/html/users_guide/ghci.html#ghci-cmd-:def">A GHCi macro</a> is just a function of type <code>String -&gt; IO String</code>. The argument is parameter of the macro, and return value is evaluated by GHCi as a command.</p>
-<p>Using this and the <a href="http://hackage.haskell.org/package/process"><code>process</code></a> library we can implement a fuzzy module loader that works inside ghci:</p>
-<p><img src="/images/fuzzy_ghci_load.gif" /></p>
-<p>(sorry for the gif quality)</p>
-<p>Here I’m using <a href="https://github.com/junegunn/fzf">fzf</a> as the fuzzy file finder. Code for defining the macro:</p>
-<pre><code>import System.IO (withFile, IOMode (WriteMode))
-import System.Process (runProcess, waitForProcess)
-
-:{
-let loadFuzzy _ = do
-      let f = &quot;/tmp/fzf_out&quot;
-      withFile f WriteMode $ \h -&gt; do
-        p &lt;- runProcess &quot;fzf&quot; [] Nothing Nothing Nothing (Just h) Nothing
-        _ &lt;- waitForProcess p
-        out &lt;- readFile f
-        return (&quot;:load &quot; ++ init out)
-:}
-
-:def l loadFuzzy</code></pre>
-<p>Add this code to your global ghci config file (<code>~/.ghci</code>) or your project-wide <code>.ghci</code> (at the project root).</p>
-<p>Only problem here is the <code>process</code> dependency: when you use <code>stack repl</code> or <code>cabal repl</code>, <code>process</code> won’t be importable in GHCi unless the project you’re loading into GHCi already has it as a dependency. One solution is to pass <code>-package process</code> to <code>cabal repl</code> or <code>--ghci-options=&quot;-package process&quot;</code> to <code>stack repl</code>. Because <code>process</code> is distributed with GHC this will always work.</p>]]></summary>
 </entry>
 
 </feed>
