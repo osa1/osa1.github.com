@@ -54,26 +54,26 @@
     <summary type="html"><![CDATA[<p>Let’s say we want to get nth visited element in depth-first traversal of a tree. Doing this is almost too easy in a language with statements(all imperative languages, some functional ones): Just run the depth-first traversal algorithm with explicit stack, and use <code>return</code> when you visit nth node.</p>
 <p>In an expression language(Haskell, some Lisp languages) this is somewhat tricky.</p>
 <p>Since I almost always prefer simplest possible solution of a problem, this would be my first attempt in a real-world situation:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Tree</span> a</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">    <span class="fu">=</span> <span class="dt">Branch</span> [<span class="dt">Tree</span> a]</a>
-<a class="sourceLine" id="cb1-3" data-line-number="3">    <span class="fu">|</span> <span class="dt">Leaf</span> a</a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]</a>
-<a class="sourceLine" id="cb1-6" data-line-number="6">toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> concatMap toList bs</a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> [a]</a>
-<a class="sourceLine" id="cb1-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="ot">dfsNth ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</a>
-<a class="sourceLine" id="cb1-10" data-line-number="10">dfsNth tree n <span class="fu">=</span> listToMaybe <span class="fu">.</span> drop n <span class="fu">$</span> toList tree</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">data</span> <span class="dt">Tree</span> a</a>
+<a class="sourceLine" id="cb1-2" title="2">    <span class="fu">=</span> <span class="dt">Branch</span> [<span class="dt">Tree</span> a]</a>
+<a class="sourceLine" id="cb1-3" title="3">    <span class="fu">|</span> <span class="dt">Leaf</span> a</a>
+<a class="sourceLine" id="cb1-4" title="4"></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]</a>
+<a class="sourceLine" id="cb1-6" title="6">toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> <span class="fu">concatMap</span> toList bs</a>
+<a class="sourceLine" id="cb1-7" title="7">toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> [a]</a>
+<a class="sourceLine" id="cb1-8" title="8"></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="ot">dfsNth ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</a>
+<a class="sourceLine" id="cb1-10" title="10">dfsNth tree n <span class="fu">=</span> listToMaybe <span class="fu">.</span> <span class="fu">drop</span> n <span class="fu">$</span> toList tree</a></code></pre></div>
 <p>One concern about this function may be that the complexity of list generation. It’s hard to predict complexity of this function, but traversing the whole tree just to get first element of it would be costly anyway.</p>
 <p>But thanks to lazy evaluation, this function still not very bad. Because only required parts of the intermediate list will be generated. To see why you can do two things: 1) Just place some <code>Debug.Trace.trace</code> calls in <code>toList</code> function and see how many times a leaf node is visited and 2) evaluate this function by hand and observe unevaluated thunks.</p>
 <p>Let’s just do the first one, since it’s easier:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]</a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> concatMap toList bs</a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> trace <span class="st">&quot;leaf node visited&quot;</span> [a]</a>
-<a class="sourceLine" id="cb2-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="fu">...</span></a>
-<a class="sourceLine" id="cb2-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb2-7" data-line-number="7">testTree <span class="fu">=</span> <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">1</span>, <span class="dt">Leaf</span> <span class="dv">2</span> ], <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">3</span> ], <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">4</span> ] ] ] ]</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="ot">toList ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]</a>
+<a class="sourceLine" id="cb2-2" title="2">toList (<span class="dt">Branch</span> bs) <span class="fu">=</span> <span class="fu">concatMap</span> toList bs</a>
+<a class="sourceLine" id="cb2-3" title="3">toList (<span class="dt">Leaf</span> a)    <span class="fu">=</span> trace <span class="st">&quot;leaf node visited&quot;</span> [a]</a>
+<a class="sourceLine" id="cb2-4" title="4"></a>
+<a class="sourceLine" id="cb2-5" title="5"><span class="fu">...</span></a>
+<a class="sourceLine" id="cb2-6" title="6"></a>
+<a class="sourceLine" id="cb2-7" title="7">testTree <span class="fu">=</span> <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">1</span>, <span class="dt">Leaf</span> <span class="dv">2</span> ], <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">3</span> ], <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Branch</span> [ <span class="dt">Leaf</span> <span class="dv">4</span> ] ] ] ]</a></code></pre></div>
 <pre><code>ghci&gt; dfsNth testTree 0
 leaf node visited
 Just 1
@@ -91,54 +91,54 @@ leaf node visited
 Nothing</code></pre>
 <hr />
 <p>Other solutions are still worth exploring. When I think of “returning in the middle of a function” in Haskell, I always think <code>Either</code>. It’s monad definition is a great fit for this:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">instance</span> <span class="dt">Monad</span> (<span class="dt">Either</span> e) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">    return        <span class="fu">=</span> <span class="dt">Right</span></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">    <span class="dt">Left</span>  l <span class="fu">&gt;&gt;=</span> _ <span class="fu">=</span> <span class="dt">Left</span> l</a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">    <span class="dt">Right</span> r <span class="fu">&gt;&gt;=</span> k <span class="fu">=</span> k r</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">instance</span> <span class="dt">Monad</span> (<span class="dt">Either</span> e) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb4-2" title="2">    <span class="fu">return</span>        <span class="fu">=</span> <span class="dt">Right</span></a>
+<a class="sourceLine" id="cb4-3" title="3">    <span class="dt">Left</span>  l <span class="fu">&gt;&gt;=</span> _ <span class="fu">=</span> <span class="dt">Left</span> l</a>
+<a class="sourceLine" id="cb4-4" title="4">    <span class="dt">Right</span> r <span class="fu">&gt;&gt;=</span> k <span class="fu">=</span> k r</a></code></pre></div>
 <p>So when <code>Left data</code> used in monadic bind(<code>&gt;&gt;=</code>), second parameter just ignored and <code>Left data</code> is returned. Just like returning in the middle of a function in imperative setting, by ignoring rest of statements.</p>
 <p>Using monad instance of Either, we can easily implement our function:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="ot">dfsNth&#39; ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">dfsNth&#39; tree n <span class="fu">=</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">    <span class="kw">case</span> iter tree n <span class="kw">of</span></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">      <span class="dt">Left</span> a  <span class="ot">-&gt;</span> <span class="dt">Just</span> a</a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">      <span class="dt">Right</span> i <span class="ot">-&gt;</span> <span class="dt">Nothing</span></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="ot">    iter ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> a <span class="dt">Int</span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">    iter (<span class="dt">Branch</span> []) n     <span class="fu">=</span> return n</a>
-<a class="sourceLine" id="cb5-9" data-line-number="9">    iter (<span class="dt">Branch</span> (b<span class="fu">:</span>bs)) n <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10">      n&#39; <span class="ot">&lt;-</span> iter b n</a>
-<a class="sourceLine" id="cb5-11" data-line-number="11">      iter (<span class="dt">Branch</span> bs) n&#39;</a>
-<a class="sourceLine" id="cb5-12" data-line-number="12">    iter (<span class="dt">Leaf</span> a) <span class="dv">0</span> <span class="fu">=</span> <span class="dt">Left</span> a</a>
-<a class="sourceLine" id="cb5-13" data-line-number="13">    iter <span class="dt">Leaf</span>{}   n <span class="fu">=</span> return (n <span class="fu">-</span> <span class="dv">1</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="ot">dfsNth&#39; ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a</a>
+<a class="sourceLine" id="cb5-2" title="2">dfsNth&#39; tree n <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-3" title="3">    <span class="kw">case</span> iter tree n <span class="kw">of</span></a>
+<a class="sourceLine" id="cb5-4" title="4">      <span class="dt">Left</span> a  <span class="ot">-&gt;</span> <span class="dt">Just</span> a</a>
+<a class="sourceLine" id="cb5-5" title="5">      <span class="dt">Right</span> i <span class="ot">-&gt;</span> <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb5-6" title="6">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb5-7" title="7"><span class="ot">    iter ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> a <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb5-8" title="8">    iter (<span class="dt">Branch</span> []) n     <span class="fu">=</span> <span class="fu">return</span> n</a>
+<a class="sourceLine" id="cb5-9" title="9">    iter (<span class="dt">Branch</span> (b<span class="fu">:</span>bs)) n <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb5-10" title="10">      n&#39; <span class="ot">&lt;-</span> iter b n</a>
+<a class="sourceLine" id="cb5-11" title="11">      iter (<span class="dt">Branch</span> bs) n&#39;</a>
+<a class="sourceLine" id="cb5-12" title="12">    iter (<span class="dt">Leaf</span> a) <span class="dv">0</span> <span class="fu">=</span> <span class="dt">Left</span> a</a>
+<a class="sourceLine" id="cb5-13" title="13">    iter <span class="dt">Leaf</span>{}   n <span class="fu">=</span> <span class="fu">return</span> (n <span class="fu">-</span> <span class="dv">1</span>)</a></code></pre></div>
 <p>It works exactly like our first implementation, but without generating an intermediate list.</p>
 <h2 id="exceptions-and-either-monad">Exceptions and Either monad</h2>
 <p>If I were using OCaml, I’d probably implement this function using an exception.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">exception</span> NonLocal <span class="kw">of</span> <span class="dt">int</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="kw">type</span> &#39;a tree =</a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">  | Branch <span class="kw">of</span> (&#39;a tree) <span class="dt">list</span></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5">  | Leaf   <span class="kw">of</span> &#39;a</a>
-<a class="sourceLine" id="cb6-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7"><span class="kw">let</span> dfs_nth tree n =</a>
-<a class="sourceLine" id="cb6-8" data-line-number="8">  <span class="kw">let</span> <span class="kw">rec</span> iter tree n =</a>
-<a class="sourceLine" id="cb6-9" data-line-number="9">    <span class="kw">match</span> tree <span class="kw">with</span></a>
-<a class="sourceLine" id="cb6-10" data-line-number="10">    | Branch [] -&gt;</a>
-<a class="sourceLine" id="cb6-11" data-line-number="11">        n</a>
-<a class="sourceLine" id="cb6-12" data-line-number="12">    | Branch (b :: bs) -&gt;</a>
-<a class="sourceLine" id="cb6-13" data-line-number="13">        iter (Branch bs) (iter b n)</a>
-<a class="sourceLine" id="cb6-14" data-line-number="14">    | Leaf a -&gt;</a>
-<a class="sourceLine" id="cb6-15" data-line-number="15">        <span class="kw">if</span> n = <span class="dv">0</span> <span class="kw">then</span> <span class="dt">raise</span> (NonLocal a) <span class="kw">else</span> n - <span class="dv">1</span></a>
-<a class="sourceLine" id="cb6-16" data-line-number="16">  <span class="kw">in</span></a>
-<a class="sourceLine" id="cb6-17" data-line-number="17">  <span class="kw">try</span></a>
-<a class="sourceLine" id="cb6-18" data-line-number="18">    iter tree n;</a>
-<a class="sourceLine" id="cb6-19" data-line-number="19">    <span class="dt">None</span></a>
-<a class="sourceLine" id="cb6-20" data-line-number="20">  <span class="kw">with</span></a>
-<a class="sourceLine" id="cb6-21" data-line-number="21">    | NonLocal a -&gt; <span class="dt">Some</span> a</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">exception</span> NonLocal <span class="kw">of</span> <span class="dt">int</span></a>
+<a class="sourceLine" id="cb6-2" title="2"></a>
+<a class="sourceLine" id="cb6-3" title="3"><span class="kw">type</span> &#39;a tree =</a>
+<a class="sourceLine" id="cb6-4" title="4">  | Branch <span class="kw">of</span> (&#39;a tree) <span class="dt">list</span></a>
+<a class="sourceLine" id="cb6-5" title="5">  | Leaf   <span class="kw">of</span> &#39;a</a>
+<a class="sourceLine" id="cb6-6" title="6"></a>
+<a class="sourceLine" id="cb6-7" title="7"><span class="kw">let</span> dfs_nth tree n =</a>
+<a class="sourceLine" id="cb6-8" title="8">  <span class="kw">let</span> <span class="kw">rec</span> iter tree n =</a>
+<a class="sourceLine" id="cb6-9" title="9">    <span class="kw">match</span> tree <span class="kw">with</span></a>
+<a class="sourceLine" id="cb6-10" title="10">    | Branch [] -&gt;</a>
+<a class="sourceLine" id="cb6-11" title="11">        n</a>
+<a class="sourceLine" id="cb6-12" title="12">    | Branch (b :: bs) -&gt;</a>
+<a class="sourceLine" id="cb6-13" title="13">        iter (Branch bs) (iter b n)</a>
+<a class="sourceLine" id="cb6-14" title="14">    | Leaf a -&gt;</a>
+<a class="sourceLine" id="cb6-15" title="15">        <span class="kw">if</span> n = <span class="dv">0</span> <span class="kw">then</span> <span class="dt">raise</span> (NonLocal a) <span class="kw">else</span> n - <span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-16" title="16">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb6-17" title="17">  <span class="kw">try</span></a>
+<a class="sourceLine" id="cb6-18" title="18">    iter tree n;</a>
+<a class="sourceLine" id="cb6-19" title="19">    <span class="dt">None</span></a>
+<a class="sourceLine" id="cb6-20" title="20">  <span class="kw">with</span></a>
+<a class="sourceLine" id="cb6-21" title="21">    | NonLocal a -&gt; <span class="dt">Some</span> a</a></code></pre></div>
 <p>An interesting thing to realize here is that this solution is very similar to our Haskell solution. In Haskell, Either is an instance of <code>MonadError</code>:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">instance</span> <span class="dt">Error</span> e <span class="ot">=&gt;</span> <span class="dt">MonadError</span> e (<span class="dt">Either</span> e) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">    throwError             <span class="fu">=</span> <span class="dt">Left</span></a>
-<a class="sourceLine" id="cb7-3" data-line-number="3">    <span class="dt">Left</span>  l <span class="ot">`catchError`</span> h <span class="fu">=</span> h l</a>
-<a class="sourceLine" id="cb7-4" data-line-number="4">    <span class="dt">Right</span> r <span class="ot">`catchError`</span> _ <span class="fu">=</span> <span class="dt">Right</span> r</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">instance</span> <span class="dt">Error</span> e <span class="ot">=&gt;</span> <span class="dt">MonadError</span> e (<span class="dt">Either</span> e) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb7-2" title="2">    throwError             <span class="fu">=</span> <span class="dt">Left</span></a>
+<a class="sourceLine" id="cb7-3" title="3">    <span class="dt">Left</span>  l <span class="ot">`catchError`</span> h <span class="fu">=</span> h l</a>
+<a class="sourceLine" id="cb7-4" title="4">    <span class="dt">Right</span> r <span class="ot">`catchError`</span> _ <span class="fu">=</span> <span class="dt">Right</span> r</a></code></pre></div>
 <p>This means if you replace <code>Left</code>s with <code>throwError</code> (just like <code>raise</code> in OCaml code), you have a similar solution with OCaml.</p>
 <p>This doesn’t mean exceptions are same thing as Either types in functional programming. There are just too many differences that I won’t delve into in this post. With an exception, you can return from arbitrary deep contexts(ie. function calls), which is not easily possible with Either types. This is why exceptions sometimes referred as <em>non-local returns</em>.</p>
 <p>We discussed this stuff over OCaml IRC channel, and smart people over there gave me some really good insights about non-local returns and exceptions. I’ll probably delve into details in another blog post. I’m especially interested in functional solutions that we can have in Haskell.</p>
@@ -171,19 +171,19 @@ Nothing</code></pre>
     <summary type="html"><![CDATA[<p>Bu yazı birkaç gün önce attığım bir mail aslında. Acele ile yazılmış bir yazı olmasına rağmen epey uzun oldu ve maili yazmaya başlamadan önce kafamda karmaşık bir şekilde duran bazı fikirleri toparlamamda yardımcı oldu. Pek kimsenin işine yarayacağını tahmin etmesem de, yine de buraya koyuyorum. Küçük bazı düzenlemeler yaptım. Eklemeler ise yazının en altına yazıldı. Kodlar OCaml dilinde yazıldı.</p>
 <hr />
 <p>Üzerinde çalıştığım dilin tip sistemi hakkında<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">type</span> ty =</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">  | ...</a>
-<a class="sourceLine" id="cb1-3" data-line-number="3">  | TRow <span class="kw">of</span> tyrow</a>
-<a class="sourceLine" id="cb1-4" data-line-number="4">  | ...</a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="kw">type</span> fieldty =</a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">  | Pre ty</a>
-<a class="sourceLine" id="cb1-8" data-line-number="8">  | Btm <span class="co">(* Abs ismi lambda abstractionlarda kullanildi *)</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="kw">type</span> tyrow =</a>
-<a class="sourceLine" id="cb1-11" data-line-number="11">  | EmptyRow</a>
-<a class="sourceLine" id="cb1-12" data-line-number="12">  | Row (id * ty * ..<span class="dv">1</span>..)</a>
-<a class="sourceLine" id="cb1-13" data-line-number="13">  | ..<span class="dv">2</span>..</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">type</span> ty =</a>
+<a class="sourceLine" id="cb1-2" title="2">  | ...</a>
+<a class="sourceLine" id="cb1-3" title="3">  | TRow <span class="kw">of</span> tyrow</a>
+<a class="sourceLine" id="cb1-4" title="4">  | ...</a>
+<a class="sourceLine" id="cb1-5" title="5"></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="kw">type</span> fieldty =</a>
+<a class="sourceLine" id="cb1-7" title="7">  | Pre ty</a>
+<a class="sourceLine" id="cb1-8" title="8">  | Btm <span class="co">(* Abs ismi lambda abstractionlarda kullanildi *)</span></a>
+<a class="sourceLine" id="cb1-9" title="9"></a>
+<a class="sourceLine" id="cb1-10" title="10"><span class="kw">type</span> tyrow =</a>
+<a class="sourceLine" id="cb1-11" title="11">  | EmptyRow</a>
+<a class="sourceLine" id="cb1-12" title="12">  | Row (id * ty * ..<span class="dv">1</span>..)</a>
+<a class="sourceLine" id="cb1-13" title="13">  | ..<span class="dv">2</span>..</a></code></pre></div>
 <p>1 ve 2 boşluklarını doldurmamız gerekiyor. Sorunlar şunlar:</p>
 <p>1 kısmına yazdığımız tip, sadece yine kendi tipiyle(yani <code>TRow</code> ile) unify etmek zorunda(ilk bakışta <code>tyrow</code> yazmak mantıklı gibi geliyor ama bu yüzden değil).</p>
 <p>2 kısmına yazdığımız constructor polymorphic row’u temsil edecek. Burada ben ilk başta aslında row değişkenlerini tamamen yok sayıp, recordlar extensible mı değil mi diye bir boolean flag tutayım demiştim. Fakat sorun, recordlar rowları paylaşabiliyorlar, örneğin şöyle bir fonksiyonda <code>\r -&gt; r.x = 10</code> tip <code>{r/x} -&gt; {x:int|r/x}</code> oluyor, başka bir yerde bu <code>r</code> kullanılabilir(parametre olarak verilen record başka yerlerde kullanıldığında fonksiyonun dönüş değeri olan recordın row değişkeni ile aynı row değişkenine sahip birden fazla record oluyor). Dolayısıyla bir değişken olmak zorunda.</p>
@@ -197,44 +197,44 @@ Nothing</code></pre>
 <p>Bu sayede farklı kindlarda type variablelar için aynı fonksiyonları kullanabilirim, sürekli kind bilgisini de taşırım. En son substitution veya unification yaparken, kindların korunup korunmadığını kontrol ederim ve normal type değişkeni yerine row type yazılmamasını sağlarım veya unification sırasında hata alırım.</p>
 <p>–</p>
 <p>Kindlarla beraber tipleri şu şekilde tanımlayabiliyoruz(yaklaşık olarak, henüz programı yazmadım)</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">type</span> kind =</a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">  | KStar                 <span class="co">(* kind of term types *)</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">  | KRow                  <span class="co">(* kind of row types *)</span></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">  | KArr <span class="kw">of</span> (kind * kind) <span class="co">(* kind of type constructors *)</span></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="kw">type</span> ty =</a>
-<a class="sourceLine" id="cb2-7" data-line-number="7">  | TCon <span class="kw">of</span> tycon     <span class="co">(* constant *)</span></a>
-<a class="sourceLine" id="cb2-8" data-line-number="8">  | TVar <span class="kw">of</span> tyvar     <span class="co">(* type variable *)</span></a>
-<a class="sourceLine" id="cb2-9" data-line-number="9">  | TApp <span class="kw">of</span> (ty * ty)</a>
-<a class="sourceLine" id="cb2-10" data-line-number="10">      <span class="co">(* type application, to be well-typed</span></a>
-<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">         kind of first ty should be KArr (k2, k)</span></a>
-<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">         and second ty should be k2 *)</span></a>
-<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="kw">and</span> tyvar = (tyvarlink <span class="dt">ref</span> * kind)</a>
-<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="kw">and</span> tyvarlink =</a>
-<a class="sourceLine" id="cb2-15" data-line-number="15">  | NoLink <span class="kw">of</span> id <span class="co">(* just a type variable *)</span></a>
-<a class="sourceLine" id="cb2-16" data-line-number="16">  | LinkTo <span class="kw">of</span> ty <span class="co">(* equated to a ty *)</span></a>
-<a class="sourceLine" id="cb2-17" data-line-number="17"><span class="kw">and</span> tycon = (id * kind) <span class="co">(* kind should be always KStar *)</span></a>
-<a class="sourceLine" id="cb2-18" data-line-number="18"></a>
-<a class="sourceLine" id="cb2-19" data-line-number="19"><span class="kw">let</span> t_int        = TCon (<span class="st">&quot;int&quot;</span>,  KStar)</a>
-<a class="sourceLine" id="cb2-20" data-line-number="20"><span class="kw">let</span> t_bool       = TCon (<span class="st">&quot;bool&quot;</span>, KStar)</a>
-<a class="sourceLine" id="cb2-21" data-line-number="21"><span class="kw">let</span> t_unit       = TCon (<span class="st">&quot;unit&quot;</span>, KStar)</a>
-<a class="sourceLine" id="cb2-22" data-line-number="22"><span class="kw">let</span> t_list       = TCon (<span class="st">&quot;[]&quot;</span>,   KArr (KStar, KStar))</a>
-<a class="sourceLine" id="cb2-23" data-line-number="23"><span class="kw">let</span> t_ref        = TCon (<span class="st">&quot;ref&quot;</span>,  KArr (KStar, KStar))</a>
-<a class="sourceLine" id="cb2-24" data-line-number="24"><span class="kw">let</span> t_arr        = TCon (<span class="st">&quot;-&gt;&quot;</span>,   KArr (KStar, KArr (KStar, KStar)))</a>
-<a class="sourceLine" id="cb2-25" data-line-number="25"><span class="kw">let</span> t_empty_row  = TCon (<span class="st">&quot;&lt;|&gt;&quot;</span>,  KRow)</a>
-<a class="sourceLine" id="cb2-26" data-line-number="26"><span class="kw">let</span> t_row_ext    = TCon (<span class="st">&quot;&lt;+&gt;&quot;</span>,  KArr (KStar, KArr (KRow, KRow)))</a>
-<a class="sourceLine" id="cb2-27" data-line-number="27"><span class="kw">let</span> t_rec_const  = TCon (<span class="st">&quot;{_}&quot;</span>,  KArr (KRow, KStar))</a>
-<a class="sourceLine" id="cb2-28" data-line-number="28"></a>
-<a class="sourceLine" id="cb2-29" data-line-number="29"><span class="co">(* type of {r1} *)</span></a>
-<a class="sourceLine" id="cb2-30" data-line-number="30"><span class="kw">let</span> rp1 = TApp (t_rec_const, TVar (<span class="dt">ref</span> (NoLink <span class="st">&quot;r1&quot;</span>), KRow))</a>
-<a class="sourceLine" id="cb2-31" data-line-number="31"></a>
-<a class="sourceLine" id="cb2-32" data-line-number="32"><span class="co">(* type of {r1} -&gt; {_:int|r1} *)</span></a>
-<a class="sourceLine" id="cb2-33" data-line-number="33"><span class="kw">let</span> f   = TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), rp1))</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">type</span> kind =</a>
+<a class="sourceLine" id="cb2-2" title="2">  | KStar                 <span class="co">(* kind of term types *)</span></a>
+<a class="sourceLine" id="cb2-3" title="3">  | KRow                  <span class="co">(* kind of row types *)</span></a>
+<a class="sourceLine" id="cb2-4" title="4">  | KArr <span class="kw">of</span> (kind * kind) <span class="co">(* kind of type constructors *)</span></a>
+<a class="sourceLine" id="cb2-5" title="5"></a>
+<a class="sourceLine" id="cb2-6" title="6"><span class="kw">type</span> ty =</a>
+<a class="sourceLine" id="cb2-7" title="7">  | TCon <span class="kw">of</span> tycon     <span class="co">(* constant *)</span></a>
+<a class="sourceLine" id="cb2-8" title="8">  | TVar <span class="kw">of</span> tyvar     <span class="co">(* type variable *)</span></a>
+<a class="sourceLine" id="cb2-9" title="9">  | TApp <span class="kw">of</span> (ty * ty)</a>
+<a class="sourceLine" id="cb2-10" title="10">      <span class="co">(* type application, to be well-typed</span></a>
+<a class="sourceLine" id="cb2-11" title="11"><span class="co">         kind of first ty should be KArr (k2, k)</span></a>
+<a class="sourceLine" id="cb2-12" title="12"><span class="co">         and second ty should be k2 *)</span></a>
+<a class="sourceLine" id="cb2-13" title="13"><span class="kw">and</span> tyvar = (tyvarlink <span class="dt">ref</span> * kind)</a>
+<a class="sourceLine" id="cb2-14" title="14"><span class="kw">and</span> tyvarlink =</a>
+<a class="sourceLine" id="cb2-15" title="15">  | NoLink <span class="kw">of</span> id <span class="co">(* just a type variable *)</span></a>
+<a class="sourceLine" id="cb2-16" title="16">  | LinkTo <span class="kw">of</span> ty <span class="co">(* equated to a ty *)</span></a>
+<a class="sourceLine" id="cb2-17" title="17"><span class="kw">and</span> tycon = (id * kind) <span class="co">(* kind should be always KStar *)</span></a>
+<a class="sourceLine" id="cb2-18" title="18"></a>
+<a class="sourceLine" id="cb2-19" title="19"><span class="kw">let</span> t_int        = TCon (<span class="st">&quot;int&quot;</span>,  KStar)</a>
+<a class="sourceLine" id="cb2-20" title="20"><span class="kw">let</span> t_bool       = TCon (<span class="st">&quot;bool&quot;</span>, KStar)</a>
+<a class="sourceLine" id="cb2-21" title="21"><span class="kw">let</span> t_unit       = TCon (<span class="st">&quot;unit&quot;</span>, KStar)</a>
+<a class="sourceLine" id="cb2-22" title="22"><span class="kw">let</span> t_list       = TCon (<span class="st">&quot;[]&quot;</span>,   KArr (KStar, KStar))</a>
+<a class="sourceLine" id="cb2-23" title="23"><span class="kw">let</span> t_ref        = TCon (<span class="st">&quot;ref&quot;</span>,  KArr (KStar, KStar))</a>
+<a class="sourceLine" id="cb2-24" title="24"><span class="kw">let</span> t_arr        = TCon (<span class="st">&quot;-&gt;&quot;</span>,   KArr (KStar, KArr (KStar, KStar)))</a>
+<a class="sourceLine" id="cb2-25" title="25"><span class="kw">let</span> t_empty_row  = TCon (<span class="st">&quot;&lt;|&gt;&quot;</span>,  KRow)</a>
+<a class="sourceLine" id="cb2-26" title="26"><span class="kw">let</span> t_row_ext    = TCon (<span class="st">&quot;&lt;+&gt;&quot;</span>,  KArr (KStar, KArr (KRow, KRow)))</a>
+<a class="sourceLine" id="cb2-27" title="27"><span class="kw">let</span> t_rec_const  = TCon (<span class="st">&quot;{_}&quot;</span>,  KArr (KRow, KStar))</a>
+<a class="sourceLine" id="cb2-28" title="28"></a>
+<a class="sourceLine" id="cb2-29" title="29"><span class="co">(* type of {r1} *)</span></a>
+<a class="sourceLine" id="cb2-30" title="30"><span class="kw">let</span> rp1 = TApp (t_rec_const, TVar (<span class="dt">ref</span> (NoLink <span class="st">&quot;r1&quot;</span>), KRow))</a>
+<a class="sourceLine" id="cb2-31" title="31"></a>
+<a class="sourceLine" id="cb2-32" title="32"><span class="co">(* type of {r1} -&gt; {_:int|r1} *)</span></a>
+<a class="sourceLine" id="cb2-33" title="33"><span class="kw">let</span> f   = TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), rp1))</a></code></pre></div>
 <p>En sonraki iki tanım örnek olsun diyeydi.</p>
 <p>Karmaşık olduğunun farkındayım ama 1) bu tip sistemi implementasyonları için standard yol gibi geldi bana(çok fazla makalede kind sistemlerinden bahsediliyor) 2) diğer türlü de daha az karmaşık değil gibi.<a href="#fn5" class="footnote-ref" id="fnref5"><sup>5</sup></a></p>
 <p>Burda mesela <code>TApp</code> oluşturan bir yardımcı fonksiyon oluştururuz ve kindları kontrol eder, uyumlu mu diye, bir miktar daha kolaylaşır. Yardımcı fonksiyonlarla işi kolaylaştırabiliriz diye düşünüyorum yani.</p>
 <p>Bu örnekde <code>rp1</code> yerine mesela <code>{a:bool}</code> (yani <code>TApp (TApp (t_rec_ext, bool_ty), t_empty_row)</code>) yazarsak:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb3-1" data-line-number="1">TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), TApp (TApp (t_rec_ext, bool_ty), t_empty_row)))</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><a class="sourceLine" id="cb3-1" title="1">TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), TApp (TApp (t_rec_ext, bool_ty), t_empty_row)))</a></code></pre></div>
 <p>Bana gayet temiz bir şekilde <code>{x:int, a:bool}</code> elde ettik gibi geliyor ve tek yaptığımız yerine yazmak oldu. ( bu sunumda labelların atlandığının farkındayım, tam olarak labelları nasıl bu sisteme entegre ederim düşünmedim )</p>
 <p>Diğer türlü yapılamaz mı, tabii ki yapılabilir ve ben zaten çok yaklaşmıştım. Fakat çirkin olmayan bir yolu yok. Kod içerisinde şöyle kısımlar olmak <em>zorunda</em> gibi: “implementasyonum doğru olduğuna göre bu type variable record ile unify edilmiş olacak, exhaustive olmayan pattern matching yap”. Mesela tüm row değişkenler bir record’a unify edilimş olacak, ben pattern matching ile fieldları alacağım kendi recordıma ekleyeceğim vs.<a href="#fn6" class="footnote-ref" id="fnref6"><sup>6</sup></a></p>
 <p>Ama kindler ile yaptığımda bu gibi durumlar olmayacak, ben <code>TApp</code>’lar ile typelar oluşturacağım, kind preserving substitutionlar, generalizationlar, instantiationlar yapılacağından, her zaman row tiplerim well-formed olmuş olacak ben hiçbir kontrol yapmadan <code>TApp</code>’ler oluşturmaya başlayacağım.</p>

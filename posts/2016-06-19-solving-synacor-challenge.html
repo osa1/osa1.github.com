@@ -210,7 +210,7 @@
 <div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> search(start_range : <span class="dt">u16</span>, end_range : <span class="dt">u16</span>) -&gt; <span class="dt">Option</span>&lt;<span class="dt">u16</span>&gt; <span class="op">{</span>
     <span class="kw">for</span> i <span class="kw">in</span> start_range .. end_range <span class="op">{</span>
         <span class="co">// println!(&quot;i = {}&quot;, i);</span>
-        <span class="kw">let</span> <span class="kw">mut</span> tbl = HashMap::new();
+        <span class="kw">let</span> <span class="kw">mut</span> tbl = <span class="pp">HashMap::</span>new();
         <span class="kw">let</span> ret = f_memo(<span class="dv">4</span>, <span class="dv">1</span>, i, &amp;<span class="kw">mut</span> tbl);
         <span class="kw">if</span> ret.<span class="dv">0</span> == <span class="dv">6</span> <span class="op">{</span>
             <span class="pp">println!</span>(<span class="st">&quot;Found an answer: {:?} {}&quot;</span>, ret, i);
@@ -228,7 +228,7 @@
     <span class="kw">for</span> i <span class="kw">in</span> <span class="dv">0</span> .. n <span class="op">{</span>
         <span class="kw">let</span> range_start = increment * (i <span class="kw">as</span> <span class="dt">u16</span>);
         <span class="kw">let</span> range_end   = increment * ((i <span class="kw">as</span> <span class="dt">u16</span>) + <span class="dv">1</span>) + <span class="dv">1</span>;
-        threads.push(thread::Builder::new().stack_size(<span class="dv">1000000000</span>).spawn(<span class="kw">move</span> || <span class="op">{</span>
+        threads.push(<span class="pp">thread::Builder::</span>new().stack_size(<span class="dv">1000000000</span>).spawn(<span class="kw">move</span> || <span class="op">{</span>
             search(range_start, range_end)
         <span class="op">}</span>).unwrap());
     <span class="op">}</span>

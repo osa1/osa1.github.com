@@ -52,7 +52,7 @@ currentNode (<span class="dt">Zipper</span> _ n _) <span class="fu">=</span> n</
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">go ::</span> <span class="dt">Ord</span> c <span class="ot">=&gt;</span> c <span class="ot">-&gt;</span> <span class="dt">Zipper</span> c <span class="ot">-&gt;</span> <span class="dt">Zipper</span> c
 go c zip<span class="fu">@</span>(<span class="dt">Zipper</span> vNodes trie<span class="fu">@</span>(<span class="dt">Node</span> _ nodeMap) cs) <span class="fu">=</span>
   <span class="kw">case</span> cnode <span class="kw">of</span>
-    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> zip
+    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">zip</span>
     <span class="dt">Just</span> x  <span class="ot">-&gt;</span> <span class="dt">Zipper</span> (trie<span class="fu">:</span>vNodes) x (c<span class="fu">:</span>cs)
   <span class="kw">where</span> cnode <span class="fu">=</span> Map.lookup c nodeMap</code></pre></div>
 <p>Buraya dikkat, gitmek istediğim karakteri şu anki root’un mapinden arıyorum, eğer o karaktere ait bir node yoksa kaldığım yerde kalıyorum(bu davranış isteğe bağlı, hata da verilebilir mesela), eğer varsa, şu anda bulunduğum node’u daha önce gezilmiş nodeların bulunduğu listeye bağlıyorum(kesikli okların olduğu liste), gittiğim karakteri de daha önce gezilmiş karakterler listesine ekliyorum, ve bulduğum node yeni root nodeum olacak şekilde yeni bir Zipper oluşturuyorum.</p>

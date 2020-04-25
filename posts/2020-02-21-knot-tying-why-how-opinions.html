@@ -100,12 +100,12 @@
         (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="fu">=</span> <span class="dv">0</span> })))</code></pre></div>
 <p>Here’s a naive implementation of this pass:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
-dropUnusedBindings <span class="fu">=</span> snd <span class="fu">.</span> go Set.empty
+dropUnusedBindings <span class="fu">=</span> <span class="fu">snd</span> <span class="fu">.</span> go Set.empty
   <span class="kw">where</span>
     go free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
 
-      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
-        (Set.insert (idName id) free_vars, e0)
+      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span>
+        (Set.insert (idName <span class="fu">id</span>) free_vars, e0)
 
       <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
         (free_vars, e0)
@@ -140,7 +140,7 @@ dropUnusedBindings <span class="fu">=</span> snd <span class="fu">.</span> go Se
             <span class="kw">else</span> (free2, e2')
 
 <span class="ot">updateIdArity ::</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Id</span>
-updateIdArity id rhs <span class="fu">=</span> id{ idArity <span class="fu">=</span> countLambdas rhs }
+updateIdArity <span class="fu">id</span> rhs <span class="fu">=</span> <span class="fu">id</span>{ idArity <span class="fu">=</span> countLambdas rhs }
 
 <span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
 countLambdas (<span class="dt">Lam</span> _ rhs) <span class="fu">=</span> <span class="dv">1</span> <span class="fu">+</span> countLambdas rhs
@@ -178,13 +178,13 @@ countLambdas _ <span class="fu">=</span> <span class="dv">0</span></code></pre><
 <p>Knot-tying is a way of solving both of these in one step. I find it quite hard to explain in words so I’ll show the code (only the interesting bits):</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
 dropUnusedBindings <span class="fu">=</span>
-    snd <span class="fu">.</span> go Map.empty Set.empty
+    <span class="fu">snd</span> <span class="fu">.</span> go Map.empty Set.empty
   <span class="kw">where</span>
 <span class="ot">    go ::</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
     go binders free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
 
-      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
-        (Set.insert (idName id) free_vars, <span class="dt">IdE</span> (fromMaybe id (Map.lookup (idName id) binders)))
+      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span>
+        (Set.insert (idName <span class="fu">id</span>) free_vars, <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (Map.lookup (idName <span class="fu">id</span>) binders)))
 
       <span class="dt">Let</span> bndr<span class="fu">@</span><span class="dt">Id</span>{ idName <span class="fu">=</span> bndr_name } e1 e2 <span class="ot">-&gt;</span>
         <span class="kw">let</span>
@@ -233,9 +233,9 @@ binders' <span class="fu">=</span> Map.insert bndr_name bndr' binders
 <p>Here <code>fac_id</code> refers to <code>rhs</code>, which refers to <code>fac_id</code>, forming a cycle.</p>
 <p>The knot-tying implementation of <code>dropUnusedBindings</code> works even in cases like this. We just need to update <code>updateIdArity</code> to update the unfolding, when it’s available:</p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">updateIdArity ::</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Id</span>
-updateIdArity id rhs <span class="fu">=</span>
-    id{ idArity <span class="fu">=</span> countLambdas rhs
-      , idUnfolding <span class="fu">=</span> idUnfolding id <span class="fu">$&gt;</span> rhs }</code></pre></div>
+updateIdArity <span class="fu">id</span> rhs <span class="fu">=</span>
+    <span class="fu">id</span>{ idArity <span class="fu">=</span> countLambdas rhs
+      , idUnfolding <span class="fu">=</span> idUnfolding <span class="fu">id</span> <span class="fu">$&gt;</span> rhs }</code></pre></div>
 <p>This is a bit hard to try, but if I implement a <code>Show</code> instance for <code>Id</code> that doesn’t print the unfolding (to avoid looping), make <code>fac_id</code>’s arity <code>0</code>, and call <code>dropUnusedBindings</code> this is the AST I get:</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Let</span>
   (<span class="dt">Id</span> <span class="st">&quot;fac&quot;</span> <span class="dv">1</span>)
@@ -347,7 +347,7 @@ Just
   }
 
 <span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Id</span> <span class="kw">where</span>
-  show (<span class="dt">Id</span> name arity _) <span class="fu">=</span> <span class="st">&quot;(Id &quot;</span> <span class="fu">++</span> show name <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> show arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+  <span class="fu">show</span> (<span class="dt">Id</span> name arity _) <span class="fu">=</span> <span class="st">&quot;(Id &quot;</span> <span class="fu">++</span> <span class="fu">show</span> name <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> <span class="fu">show</span> arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
 
 <span class="co">{-</span>
 <span class="co">f_id = Id { idName = &quot;f&quot;, idArity = 0 }</span>
@@ -369,9 +369,9 @@ Just
 <span class="co">-}</span>
 
 <span class="ot">updateIdArity ::</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Id</span>
-updateIdArity id rhs <span class="fu">=</span>
-  id{ idArity <span class="fu">=</span> countLambdas rhs,
-      idUnfolding <span class="fu">=</span> idUnfolding id <span class="fu">$&gt;</span> rhs }
+updateIdArity <span class="fu">id</span> rhs <span class="fu">=</span>
+  <span class="fu">id</span>{ idArity <span class="fu">=</span> countLambdas rhs,
+      idUnfolding <span class="fu">=</span> idUnfolding <span class="fu">id</span> <span class="fu">$&gt;</span> rhs }
 
 <span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
 countLambdas (<span class="dt">Lam</span> _ rhs) <span class="fu">=</span> <span class="dv">1</span> <span class="fu">+</span> countLambdas rhs
@@ -379,13 +379,13 @@ countLambdas _ <span class="fu">=</span> <span class="dv">0</span>
 
 <span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
 dropUnusedBindings <span class="fu">=</span>
-    snd <span class="fu">.</span> go Map.empty Set.empty
+    <span class="fu">snd</span> <span class="fu">.</span> go Map.empty Set.empty
   <span class="kw">where</span>
 <span class="ot">    go ::</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
     go binders free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
 
-      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
-        (Set.insert (idName id) free_vars, <span class="dt">IdE</span> (fromMaybe id (Map.lookup (idName id) binders)))
+      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span>
+        (Set.insert (idName <span class="fu">id</span>) free_vars, <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (Map.lookup (idName <span class="fu">id</span>) binders)))
 
       <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
         (free_vars, e0)
@@ -439,7 +439,7 @@ pgm <span class="fu">=</span> <span class="dt">Let</span> fac_id rhs body
     minus_id <span class="fu">=</span> <span class="dt">Id</span> { idName <span class="fu">=</span> <span class="st">&quot;-&quot;</span>, idArity <span class="fu">=</span> <span class="dv">2</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> putStrLn (ppShow (dropUnusedBindings pgm))</code></pre></div>
+main <span class="fu">=</span> <span class="fu">putStrLn</span> (ppShow (dropUnusedBindings pgm))</code></pre></div>
 </details>
 <p>Thanks to Oleg Grenrus for reading a draft of this.</p>
 

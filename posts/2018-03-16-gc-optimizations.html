@@ -77,16 +77,16 @@ main <span class="fu">=</span> <span class="kw">do</span>
     <span class="co">-- let lst = [ 17 .. 32 ] -- enable this on the second run</span>
 
     <span class="co">-- evaluate the list</span>
-    lst <span class="ot">`seqIntList`</span> return ()
+    lst <span class="ot">`seqIntList`</span> <span class="fu">return</span> ()
 
     <span class="co">-- collect any thunks, do the optimization if possible, update stats</span>
     performMajorGC
 
     rts_stats <span class="ot">&lt;-</span> getRTSStats
-    putStrLn (<span class="st">&quot;Live data: &quot;</span> <span class="fu">++</span> show (gcdetails_live_bytes (gc rts_stats)) <span class="fu">++</span> <span class="st">&quot; bytes&quot;</span>)
+    <span class="fu">putStrLn</span> (<span class="st">&quot;Live data: &quot;</span> <span class="fu">++</span> <span class="fu">show</span> (gcdetails_live_bytes (gc rts_stats)) <span class="fu">++</span> <span class="st">&quot; bytes&quot;</span>)
 
     <span class="co">-- to make sure our list won't be collected</span>
-    lst <span class="ot">`seqIntList`</span> return ()</code></pre></div>
+    lst <span class="ot">`seqIntList`</span> <span class="fu">return</span> ()</code></pre></div>
 <p>Run it with:</p>
 <pre><code>ghc eq.hs -rtsopts -O0 &amp;&amp; ./eq +RTS -T</code></pre>
 <p>On the second run, disable the first list and enable the second one. You’ll see this output:</p>
@@ -122,13 +122,13 @@ fib n <span class="fu">=</span> fib (n<span class="fu">-</span><span class="dv">
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
-    i <span class="ot">&lt;-</span> readLn
-    print (fib i)</code></pre></div>
+    i <span class="ot">&lt;-</span> <span class="fu">readLn</span>
+    <span class="fu">print</span> (fib i)</code></pre></div>
 <p>in STG level we get this function:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell">sat_s31Q <span class="fu">=</span>
     \r [i_s31O]
         <span class="kw">let</span> { sat_s31P <span class="fu">=</span> \u [] fib_rqh i_s31O;
-        } <span class="kw">in</span>  print <span class="fu">$</span>fShowInt sat_s31P;</code></pre></div>
+        } <span class="kw">in</span>  <span class="fu">print</span> <span class="fu">$</span>fShowInt sat_s31P;</code></pre></div>
 <p>Here <code>fib_rqh</code> is the <code>fib</code> function, and <code>sat_s31P</code> is the thunk for <code>fib i</code>. First let’s take a look at how this thunk is evaluated in the use site: (Cmm syntax)</p>
 <pre><code>I64[Sp - 16] = stg_upd_frame_info;
 P64[Sp - 8] = _s31P::P64;

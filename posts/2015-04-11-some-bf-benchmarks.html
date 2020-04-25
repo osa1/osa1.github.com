@@ -30,59 +30,59 @@
 pypy example5.py   bench.b   15.57s user 0.01s system 99% cpu 15.597 total
 python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</code></pre>
 <p>The Lua implementation started with this:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> mainloop<span class="ot">(</span>program<span class="ot">,</span> bracket_map<span class="ot">,</span> dispatch_fn<span class="ot">)</span>
-    <span class="kw">local</span> pc <span class="ot">=</span> <span class="dv">1</span>
-    <span class="kw">local</span> tape <span class="ot">=</span> <span class="ot">{</span><span class="dv">0</span><span class="ot">}</span>
-    <span class="kw">local</span> tape_pos <span class="ot">=</span> <span class="dv">1</span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> mainloop<span class="op">(</span>program<span class="op">,</span> bracket_map<span class="op">,</span> dispatch_fn<span class="op">)</span>
+    <span class="kw">local</span> pc <span class="op">=</span> <span class="dv">1</span>
+    <span class="kw">local</span> tape <span class="op">=</span> <span class="op">{</span><span class="dv">0</span><span class="op">}</span>
+    <span class="kw">local</span> tape_pos <span class="op">=</span> <span class="dv">1</span>
 
     <span class="kw">local</span> code
-    <span class="kw">while</span> pc <span class="ot">&lt;=</span> <span class="ot">#</span>program <span class="kw">do</span>
-        code <span class="ot">=</span> program<span class="ot">[</span>pc<span class="ot">]</span>
-        <span class="kw">if</span> code <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span>
-            tape_pos <span class="ot">=</span> tape_pos <span class="ot">+</span> <span class="dv">1</span>
-            <span class="kw">if</span> <span class="ot">#</span>tape <span class="ot">&lt;</span> tape_pos <span class="kw">then</span>
-                <span class="fu">table.insert</span><span class="ot">(</span>tape<span class="ot">,</span> <span class="dv">0</span><span class="ot">)</span>
-            <span class="kw">end</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span>
-            tape_pos <span class="ot">=</span> tape_pos <span class="ot">-</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span>
-            tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">=</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span>
-            tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">=</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">-</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span>
-            <span class="fu">io.write</span><span class="ot">(</span><span class="fu">string.char</span><span class="ot">(</span>tape<span class="ot">[</span>tape_pos<span class="ot">]))</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">and</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">==</span> <span class="dv">0</span> <span class="kw">then</span>
-            pc <span class="ot">=</span> bracket_map<span class="ot">[</span>pc<span class="ot">]</span>
-        <span class="kw">elseif</span> code <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">and</span> tape<span class="ot">[</span>tape_pos<span class="ot">]</span> <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">then</span>
-            pc <span class="ot">=</span> bracket_map<span class="ot">[</span>pc<span class="ot">]</span>
-        <span class="kw">end</span>
-        pc <span class="ot">=</span> pc <span class="ot">+</span> <span class="dv">1</span>
-    <span class="kw">end</span>
-<span class="kw">end</span></code></pre></div>
+    <span class="cf">while</span> pc <span class="op">&lt;=</span> <span class="op">#</span>program <span class="cf">do</span>
+        code <span class="op">=</span> program<span class="op">[</span>pc<span class="op">]</span>
+        <span class="cf">if</span> code <span class="op">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="cf">then</span>
+            tape_pos <span class="op">=</span> tape_pos <span class="op">+</span> <span class="dv">1</span>
+            <span class="cf">if</span> <span class="op">#</span>tape <span class="op">&lt;</span> tape_pos <span class="cf">then</span>
+                <span class="fu">table.insert</span><span class="op">(</span>tape<span class="op">,</span> <span class="dv">0</span><span class="op">)</span>
+            <span class="cf">end</span>
+        <span class="cf">elseif</span> code <span class="op">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="cf">then</span>
+            tape_pos <span class="op">=</span> tape_pos <span class="op">-</span> <span class="dv">1</span>
+        <span class="cf">elseif</span> code <span class="op">==</span> <span class="st">&quot;+&quot;</span> <span class="cf">then</span>
+            tape<span class="op">[</span>tape_pos<span class="op">]</span> <span class="op">=</span> tape<span class="op">[</span>tape_pos<span class="op">]</span> <span class="op">+</span> <span class="dv">1</span>
+        <span class="cf">elseif</span> code <span class="op">==</span> <span class="st">&quot;-&quot;</span> <span class="cf">then</span>
+            tape<span class="op">[</span>tape_pos<span class="op">]</span> <span class="op">=</span> tape<span class="op">[</span>tape_pos<span class="op">]</span> <span class="op">-</span> <span class="dv">1</span>
+        <span class="cf">elseif</span> code <span class="op">==</span> <span class="st">&quot;.&quot;</span> <span class="cf">then</span>
+            <span class="fu">io.write</span><span class="op">(</span><span class="fu">string.char</span><span class="op">(</span>tape<span class="op">[</span>tape_pos<span class="op">]))</span>
+        <span class="cf">elseif</span> code <span class="op">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">and</span> tape<span class="op">[</span>tape_pos<span class="op">]</span> <span class="op">==</span> <span class="dv">0</span> <span class="cf">then</span>
+            pc <span class="op">=</span> bracket_map<span class="op">[</span>pc<span class="op">]</span>
+        <span class="cf">elseif</span> code <span class="op">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">and</span> tape<span class="op">[</span>tape_pos<span class="op">]</span> <span class="op">~=</span> <span class="dv">0</span> <span class="cf">then</span>
+            pc <span class="op">=</span> bracket_map<span class="op">[</span>pc<span class="op">]</span>
+        <span class="cf">end</span>
+        pc <span class="op">=</span> pc <span class="op">+</span> <span class="dv">1</span>
+    <span class="cf">end</span>
+<span class="cf">end</span></code></pre></div>
 <p>I’m not sure how many reasonable different implementations one can come up with, given that the language is this small. Still, there are some optimizations that we can do and I’ve tried some of them. Here are some things I tried:</p>
 <ul>
 <li>I tried replacing one character strings with ASCII code equivalents. Since Lua doesn’t have character constants, I thought this may give us a few instructions per branch. But results were just the same.</li>
 <li>I tried replacing table getters and setters with <code>rawget</code> and <code>rawset</code>s. Nothing changed. Apparently it’s not worth the effort unless you have a metatable for your table.</li>
 <li><p>I tried generating a huge “if-then-else” statement for <code>bracket_map</code>, and used it as a jump table kind of thing. Here’s the code:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> gen_dispatch_fn<span class="ot">(</span>bracket_map<span class="ot">,</span> fun_name<span class="ot">)</span>
-    <span class="kw">local</span> first <span class="ot">=</span> <span class="kw">true</span>
-    <span class="kw">local</span> acc <span class="ot">=</span> <span class="ot">{}</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;function &quot;</span> <span class="ot">..</span> fun_name <span class="ot">..</span> <span class="st">&quot;(arg)</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="kw">for</span> k<span class="ot">,</span>v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>bracket_map<span class="ot">)</span> <span class="kw">do</span>
-        <span class="kw">if</span> first <span class="kw">then</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    if arg == &quot;</span> <span class="ot">..</span> k <span class="ot">..</span> <span class="st">&quot; then</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-            first <span class="ot">=</span> <span class="kw">false</span>
-        <span class="kw">else</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    elseif arg == &quot;</span> <span class="ot">..</span> k <span class="ot">..</span> <span class="st">&quot; then</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-        <span class="kw">end</span>
-        <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;        return &quot;</span> <span class="ot">..</span> v <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="kw">end</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    else</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;        error(</span><span class="ot">\&quot;</span><span class="st">invalid arg: </span><span class="ot">\&quot;</span><span class="st"> .. arg)</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;    end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>acc<span class="ot">,</span> <span class="st">&quot;end</span><span class="ot">\n</span><span class="st">&quot;</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>acc<span class="ot">)</span>
-<span class="kw">end</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> gen_dispatch_fn<span class="op">(</span>bracket_map<span class="op">,</span> fun_name<span class="op">)</span>
+    <span class="kw">local</span> first <span class="op">=</span> <span class="kw">true</span>
+    <span class="kw">local</span> acc <span class="op">=</span> <span class="op">{}</span>
+    <span class="fu">table.insert</span><span class="op">(</span>acc<span class="op">,</span> <span class="st">&quot;function &quot;</span> <span class="op">..</span> fun_name <span class="op">..</span> <span class="st">&quot;(arg)</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span>
+    <span class="cf">for</span> k<span class="op">,</span>v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">(</span>bracket_map<span class="op">)</span> <span class="cf">do</span>
+        <span class="cf">if</span> first <span class="cf">then</span>
+            <span class="fu">table.insert</span><span class="op">(</span>acc<span class="op">,</span> <span class="st">&quot;    if arg == &quot;</span> <span class="op">..</span> k <span class="op">..</span> <span class="st">&quot; then</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span>
+            first <span class="op">=</span> <span class="kw">false</span>
+        <span class="cf">else</span>
+            <span class="fu">table.insert</span><span class="op">(</span>acc<span class="op">,</span> <span class="st">&quot;    elseif arg == &quot;</span> <span class="op">..</span> k <span class="op">..</span> <span class="st">&quot; then</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span>
+        <span class="cf">end</span>
+        <span class="fu">table.insert</span><span class="op">(</span>acc<span class="op">,</span> <span class="st">&quot;        return &quot;</span> <span class="op">..</span> v <span class="op">..</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span>
+    <span class="cf">end</span>
+    <span class="fu">table.insert</span><span class="op">(</span>acc<span class="op">,</span> <span class="st">&quot;    else</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span>
+    <span class="fu">table.insert</span><span class="op">(</span>acc<span class="op">,</span> <span class="st">&quot;        error(</span><span class="sc">\&quot;</span><span class="st">invalid arg: </span><span class="sc">\&quot;</span><span class="st"> .. arg)</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span>
+    <span class="fu">table.insert</span><span class="op">(</span>acc<span class="op">,</span> <span class="st">&quot;    end</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span>
+    <span class="fu">table.insert</span><span class="op">(</span>acc<span class="op">,</span> <span class="st">&quot;end</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span>
+    <span class="cf">return</span> <span class="fu">table.concat</span><span class="op">(</span>acc<span class="op">)</span>
+<span class="cf">end</span></code></pre></div>
 <p>I loaded this code using standard <code>load()</code> function. This also didn’t work. The reason is that, even if this is faster(which is probably not always the case), profiling showed that interpreter spents only 4% of the time for <code>bracket_map</code> lookups. So if this implementation only slightly faster, it just can’t make a big difference.</p></li>
 </ul>
 <p>Profiling output revealed that, 85% of the time spent on fetching the next instruction:</p>
@@ -105,73 +105,73 @@ python example5.py bench.b  597.34s user 0.04s system 99% cpu 9:57.87 total</cod
 <pre><code>luajit example_lua.lua bench.b  34.41s user 0.00s system 99% cpu 34.442 total</code></pre>
 <p>The fact that PyPy did better job than LuaJIT here is surprising and impressive. It seems like RPython and PyPy is doing a very good job here.</p>
 <p>Since I already started gradually compiling things, I thought why not go further and compile everything. Here’s a simple BF to Lua compiler:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> compile<span class="ot">(</span>str<span class="ot">)</span>
-    <span class="kw">local</span> pgm <span class="ot">=</span> <span class="ot">{}</span>
-    <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">[[</span>
-<span class="st">function pgm()</span>
-<span class="st">    local tape = {0}</span>
-<span class="st">    local tape_pos = 1</span>
-<span class="st">]]</span><span class="ot">)</span>
+<div class="sourceCode" id="cb6"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> compile<span class="op">(</span>str<span class="op">)</span>
+    <span class="kw">local</span> pgm <span class="op">=</span> <span class="op">{}</span>
+    <span class="fu">table.insert</span><span class="op">(</span>pgm<span class="op">,</span> <span class="vs">[[</span>
+<span class="vs">function pgm()</span>
+<span class="vs">    local tape = {0}</span>
+<span class="vs">    local tape_pos = 1</span>
+<span class="vs">]])</span>
 
-    <span class="kw">local</span> adv <span class="ot">=</span> <span class="st">[[</span>
-<span class="st">    tape_pos = tape_pos + 1</span>
-<span class="st">    if #tape &lt; tape_pos then</span>
-<span class="st">        table.insert(tape, 0)</span>
-<span class="st">    end</span>
-<span class="st">]]</span>
-    <span class="kw">local</span> <span class="kw">function</span> dev<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape_pos = tape_pos - &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> inc<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] + &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
-    <span class="kw">local</span> <span class="kw">function</span> dec<span class="ot">(</span>i<span class="ot">)</span> <span class="kw">return</span> <span class="st">&quot;    tape[tape_pos] = tape[tape_pos] - &quot;</span> <span class="ot">..</span> i <span class="ot">..</span> <span class="st">&quot;</span><span class="ot">\n</span><span class="st">&quot;</span> <span class="kw">end</span>
-    <span class="kw">local</span> out  <span class="ot">=</span> <span class="st">&quot;    io.write(string.char(tape[tape_pos]))</span><span class="ot">\n</span><span class="st">&quot;</span>
-    <span class="kw">local</span> inp  <span class="ot">=</span> <span class="st">&quot;&quot;</span> <span class="do">-- no need for this</span>
-    <span class="kw">local</span> jmpF <span class="ot">=</span> <span class="st">&quot;    while tape[tape_pos] ~= 0 do</span><span class="ot">\n</span><span class="st">&quot;</span>
-    <span class="kw">local</span> jmpB <span class="ot">=</span> <span class="st">&quot;    if tape[tape_pos] == 0 then break end end</span><span class="ot">\n</span><span class="st">&quot;</span>
+<span class="vs">    local adv = [[</span>
+<span class="vs">    tape_pos = tape_pos + 1</span>
+<span class="vs">    if #tape &lt; tape_pos then</span>
+<span class="vs">        table.insert(tape, 0)</span>
+<span class="vs">    end</span>
+<span class="vs">]]</span>
+<span class="vs">    local function dev(i) return &quot;    tape_pos = tape_pos - &quot; .. i .. &quot;\n&quot; end</span>
+<span class="vs">    local function inc(i) return &quot;    tape[tape_pos] = tape[tape_pos] + &quot; .. i .. &quot;\n&quot; end</span>
+<span class="vs">    local function dec(i) return &quot;    tape[tape_pos] = tape[tape_pos] - &quot; .. i .. &quot;\n&quot; end</span>
+<span class="vs">    local out  = &quot;    io.write(string.char(tape[tape_pos]))\n&quot;</span>
+<span class="vs">    local inp  = &quot;&quot; -- no need for this</span>
+<span class="vs">    local jmpF = &quot;    while tape[tape_pos] ~= 0 do\n&quot;</span>
+<span class="vs">    local jmpB = &quot;    if tape[tape_pos] == 0 then break end end\n&quot;</span>
 
-    <span class="do">-- these are used to combine consecutive same instructions</span>
-    <span class="kw">local</span> devs <span class="ot">=</span> <span class="dv">0</span>
-    <span class="kw">local</span> incs <span class="ot">=</span> <span class="dv">0</span>
-    <span class="kw">local</span> decs <span class="ot">=</span> <span class="dv">0</span>
+<span class="vs">    -- these are used to combine consecutive same instructions</span>
+<span class="vs">    local devs = 0</span>
+<span class="vs">    local incs = 0</span>
+<span class="vs">    local decs = 0</span>
 
-    <span class="kw">local</span> indent <span class="ot">=</span> <span class="dv">0</span><span class="ot">;</span>
+<span class="vs">    local indent = 0;</span>
 
-    <span class="kw">for</span> i<span class="ot">=</span><span class="dv">1</span><span class="ot">,</span> <span class="ot">#</span>str <span class="kw">do</span>
-        <span class="kw">local</span> char <span class="ot">=</span> <span class="fu">string.char</span><span class="ot">(</span><span class="fu">string.byte</span><span class="ot">(</span>str<span class="ot">,</span> i<span class="ot">))</span>
+<span class="vs">    for i=1, #str do</span>
+<span class="vs">        local char = string.char(string.byte(str, i))</span>
 
-        <span class="kw">if</span> devs <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">and</span> char <span class="ot">~=</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> dev<span class="ot">(</span>devs<span class="ot">)))</span>
-            devs <span class="ot">=</span> <span class="dv">0</span>
-        <span class="kw">elseif</span> incs <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">and</span> char <span class="ot">~=</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> inc<span class="ot">(</span>incs<span class="ot">)))</span>
-            incs <span class="ot">=</span> <span class="dv">0</span>
-        <span class="kw">elseif</span> decs <span class="ot">~=</span> <span class="dv">0</span> <span class="kw">and</span> char <span class="ot">~=</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> dec<span class="ot">(</span>decs<span class="ot">)))</span>
-            decs <span class="ot">=</span> <span class="dv">0</span>
-        <span class="kw">end</span>
+<span class="vs">        if devs ~= 0 and char ~= &quot;&lt;&quot; then</span>
+<span class="vs">            table.insert(pgm, indent_lines(indent, dev(devs)))</span>
+<span class="vs">            devs = 0</span>
+<span class="vs">        elseif incs ~= 0 and char ~= &quot;+&quot; then</span>
+<span class="vs">            table.insert(pgm, indent_lines(indent, inc(incs)))</span>
+<span class="vs">            incs = 0</span>
+<span class="vs">        elseif decs ~= 0 and char ~= &quot;-&quot; then</span>
+<span class="vs">            table.insert(pgm, indent_lines(indent, dec(decs)))</span>
+<span class="vs">            decs = 0</span>
+<span class="vs">        end</span>
 
-        <span class="kw">if</span> char <span class="ot">==</span> <span class="st">&quot;&gt;&quot;</span> <span class="kw">then</span> <span class="do">-- 62</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> adv<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;&lt;&quot;</span> <span class="kw">then</span> <span class="do">-- 60</span>
-            devs <span class="ot">=</span> devs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;+&quot;</span> <span class="kw">then</span> <span class="do">-- 43</span>
-            incs <span class="ot">=</span> incs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;-&quot;</span> <span class="kw">then</span> <span class="do">-- 45</span>
-            decs <span class="ot">=</span> decs <span class="ot">+</span> <span class="dv">1</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;.&quot;</span> <span class="kw">then</span> <span class="do">-- 46</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> out<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;,&quot;</span> <span class="kw">then</span> <span class="do">-- 44</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> inp<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;[&quot;</span> <span class="kw">then</span> <span class="do">-- 91</span>
-            indent <span class="ot">=</span> indent <span class="ot">+</span> <span class="dv">4</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpF<span class="ot">))</span>
-        <span class="kw">elseif</span> char <span class="ot">==</span> <span class="st">&quot;]&quot;</span> <span class="kw">then</span> <span class="do">-- 93</span>
-            indent <span class="ot">=</span> indent <span class="ot">-</span> <span class="dv">4</span>
-            <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> indent_lines<span class="ot">(</span>indent<span class="ot">,</span> jmpB<span class="ot">))</span>
-        <span class="kw">end</span>
-    <span class="kw">end</span>
+<span class="vs">        if char == &quot;&gt;&quot; then -- 62</span>
+<span class="vs">            table.insert(pgm, indent_lines(indent, adv))</span>
+<span class="vs">        elseif char == &quot;&lt;&quot; then -- 60</span>
+<span class="vs">            devs = devs + 1</span>
+<span class="vs">        elseif char == &quot;+&quot; then -- 43</span>
+<span class="vs">            incs = incs + 1</span>
+<span class="vs">        elseif char == &quot;-&quot; then -- 45</span>
+<span class="vs">            decs = decs + 1</span>
+<span class="vs">        elseif char == &quot;.&quot; then -- 46</span>
+<span class="vs">            table.insert(pgm, indent_lines(indent, out))</span>
+<span class="vs">        elseif char == &quot;,&quot; then -- 44</span>
+<span class="vs">            table.insert(pgm, indent_lines(indent, inp))</span>
+<span class="vs">        elseif char == &quot;[&quot; then -- 91</span>
+<span class="vs">            indent = indent + 4</span>
+<span class="vs">            table.insert(pgm, indent_lines(indent, jmpF))</span>
+<span class="vs">        elseif char == &quot;]&quot; then -- 93</span>
+<span class="vs">            indent = indent - 4</span>
+<span class="vs">            table.insert(pgm, indent_lines(indent, jmpB))</span>
+<span class="vs">        end</span>
+<span class="vs">    end</span>
 
-    <span class="fu">table.insert</span><span class="ot">(</span>pgm<span class="ot">,</span> <span class="st">&quot;end&quot;</span><span class="ot">)</span>
-    <span class="kw">return</span> <span class="fu">table.concat</span><span class="ot">(</span>pgm<span class="ot">)</span>
-<span class="kw">end</span></code></pre></div>
+<span class="vs">    table.insert(pgm, &quot;end&quot;)</span>
+<span class="vs">    return table.concat(pgm)</span>
+<span class="vs">end</span></code></pre></div>
 <p>One thing to note here is that loops in BF programs correspond to loops in generated Lua. There’s another way to implement this compiler and it might turn out to be more efficient, but I didn’t try it. (see BF-to-C compiler below) Also, I’m merging some instructions together. This has significant performance impact, but it’s also necessary because if the generated code is too big, both PUC-Lua and LuaJIT is rejecting to load it. (this is documented, but the limit is not specified)</p>
 <p>Results:</p>
 <pre><code>luajit example_lua.lua bench.b  0.53s user 0.00s system 99% cpu 0.532 total</code></pre>

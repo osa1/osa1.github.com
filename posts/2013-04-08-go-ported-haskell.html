@@ -35,7 +35,7 @@
 <span class="ot">say ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 say s <span class="fu">=</span> forM_ [<span class="dv">1</span><span class="fu">..</span><span class="dv">5</span>] <span class="fu">$</span> \ _ <span class="ot">-&gt;</span> <span class="kw">do</span>
   threadDelay <span class="dv">100000</span>
-  putStrLn s
+  <span class="fu">putStrLn</span> s
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
@@ -48,7 +48,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <span class="kw">import</span> <span class="dt">Control.Concurrent</span>
 
 <span class="ot">sum' ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Chan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-sum' ints chan <span class="fu">=</span> writeChan chan (sum ints)
+sum' ints chan <span class="fu">=</span> writeChan chan (<span class="fu">sum</span> ints)
 <span class="co">-- alternative, `pointfree` style: </span>
 <span class="co">-- sum' = flip writeChan . sum</span>
 
@@ -56,12 +56,12 @@ sum' ints chan <span class="fu">=</span> writeChan chan (sum ints)
 main <span class="fu">=</span> <span class="kw">do</span>
   <span class="kw">let</span> lst <span class="fu">=</span> [<span class="dv">7</span>, <span class="dv">2</span>, <span class="dv">8</span>, <span class="fu">-</span><span class="dv">9</span>, <span class="dv">4</span>, <span class="dv">0</span>]
   chan <span class="ot">&lt;-</span> newChan
-  <span class="kw">let</span> (l1, l2) <span class="fu">=</span> splitAt (floor <span class="fu">$</span> fromIntegral (length lst) <span class="fu">/</span> <span class="dv">2</span>) lst
+  <span class="kw">let</span> (l1, l2) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">floor</span> <span class="fu">$</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> lst) <span class="fu">/</span> <span class="dv">2</span>) lst
   forkIO <span class="fu">$</span> sum' l1 chan
   forkIO <span class="fu">$</span> sum' l2 chan
   x <span class="ot">&lt;-</span> readChan chan
   y <span class="ot">&lt;-</span> readChan chan
-  putStrLn <span class="fu">$</span> unwords [ show x, show y, show <span class="fu">$</span> x <span class="fu">+</span> y ]</code></pre></div>
+  <span class="fu">putStrLn</span> <span class="fu">$</span> <span class="fu">unwords</span> [ <span class="fu">show</span> x, <span class="fu">show</span> y, <span class="fu">show</span> <span class="fu">$</span> x <span class="fu">+</span> y ]</code></pre></div>
 <h3 id="buffered-channels"><a href="http://tour.golang.org/#64">64 - Buffered Channels</a></h3>
 <p>This is where porting started getting tricky. Haskell channels are basically linked lists, and do not have length or size. In order to get a similar effect, I created a new channel type:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span>
@@ -76,13 +76,13 @@ main <span class="fu">=</span> <span class="kw">do</span>
 newBChan bufsize <span class="fu">=</span> <span class="kw">do</span>
   chan <span class="ot">&lt;-</span> newChan
   bvar <span class="ot">&lt;-</span> newMVar <span class="dv">0</span>
-  return <span class="dt">BChan</span>{chan<span class="fu">=</span>chan, size<span class="fu">=</span>bvar, limit<span class="fu">=</span>bufsize}
+  <span class="fu">return</span> <span class="dt">BChan</span>{chan<span class="fu">=</span>chan, size<span class="fu">=</span>bvar, limit<span class="fu">=</span>bufsize}
 
 <span class="ot">readBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
 readBChan <span class="dt">BChan</span>{chan, size, limit} <span class="fu">=</span> <span class="kw">do</span>
   ret <span class="ot">&lt;-</span> readChan chan
-  modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> return (i<span class="fu">-</span><span class="dv">1</span>)
-  return ret
+  modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">-</span><span class="dv">1</span>)
+  <span class="fu">return</span> ret
 
 <span class="ot">writeBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 writeBChan bchan<span class="fu">@</span><span class="dt">BChan</span>{chan, size, limit} val <span class="fu">=</span> <span class="kw">do</span>
@@ -92,7 +92,7 @@ writeBChan bchan<span class="fu">@</span><span class="dt">BChan</span>{chan, siz
       threadDelay <span class="dv">100000</span>
       writeBChan bchan val
     <span class="kw">else</span> <span class="kw">do</span>
-      modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> return (i<span class="fu">+</span><span class="dv">1</span>)
+      modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">+</span><span class="dv">1</span>)
       writeChan chan val
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
@@ -102,10 +102,10 @@ main <span class="fu">=</span> <span class="kw">do</span>
   writeBChan chan <span class="dv">2</span>
 
   v1 <span class="ot">&lt;-</span> readBChan chan
-  print v1
+  <span class="fu">print</span> v1
 
   v2 <span class="ot">&lt;-</span> readBChan chan
-  print v2</code></pre></div>
+  <span class="fu">print</span> v2</code></pre></div>
 <p>Here one difference is that Haskell doesn’t fail with a “deadlock!!” error when an extra <code>writeBChan</code> operation is added(or one of them is removed), but just waits forever(like in a <em>real</em> deadlock :-P ). I wonder whether there is a way to get an exception like that, it’s awesome.</p>
 <h3 id="range-and-close"><a href="http://tour.golang.org/#65">65 - Range and Close</a></h3>
 <p>Same as above, Haskell channels are not working like Go channels. I had to simulate Go channels’ behavior.</p>
@@ -124,34 +124,34 @@ newCChan <span class="fu">=</span> liftM <span class="dt">CChan</span> (newMVar 
 <span class="ot">readCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Maybe</span> a)
 readCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span> <span class="kw">do</span>
   (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
-  <span class="kw">if</span> <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="fu">&amp;&amp;</span> not closed <span class="ot">-&gt;</span> <span class="kw">do</span>
+  <span class="kw">if</span> <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="fu">&amp;&amp;</span> <span class="fu">not</span> closed <span class="ot">-&gt;</span> <span class="kw">do</span>
          putMVar mvar (contents, size, closed)
          readCChan (<span class="dt">CChan</span> mvar)
      <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
          putMVar mvar (contents, size, closed)
-         return <span class="dt">Nothing</span>
-     <span class="fu">|</span> otherwise <span class="ot">-&gt;</span> <span class="kw">do</span>
-         <span class="kw">let</span> r <span class="fu">=</span> head contents
-         putMVar mvar (tail contents, size<span class="fu">-</span><span class="dv">1</span>, closed)
-         return <span class="fu">$</span> <span class="dt">Just</span> r
+         <span class="fu">return</span> <span class="dt">Nothing</span>
+     <span class="fu">|</span> <span class="fu">otherwise</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+         <span class="kw">let</span> r <span class="fu">=</span> <span class="fu">head</span> contents
+         putMVar mvar (<span class="fu">tail</span> contents, size<span class="fu">-</span><span class="dv">1</span>, closed)
+         <span class="fu">return</span> <span class="fu">$</span> <span class="dt">Just</span> r
 
 <span class="ot">writeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 writeCChan (<span class="dt">CChan</span> mvar) val <span class="fu">=</span> <span class="kw">do</span>
   (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
   <span class="kw">if</span> closed
-    <span class="kw">then</span> error <span class="st">&quot;writing to a closed chan&quot;</span>
+    <span class="kw">then</span> <span class="fu">error</span> <span class="st">&quot;writing to a closed chan&quot;</span>
     <span class="kw">else</span> putMVar mvar (val <span class="fu">:</span> contents, size<span class="fu">+</span><span class="dv">1</span>, closed)
 
 <span class="ot">forChan_ ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 forChan_ cchan f <span class="fu">=</span> <span class="kw">do</span>
   v <span class="ot">&lt;-</span> readCChan cchan
   <span class="kw">case</span> v <span class="kw">of</span>
-    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> return ()
+    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">return</span> ()
     <span class="dt">Just</span> v' <span class="ot">-&gt;</span> f v' <span class="fu">&gt;&gt;</span> forChan_ cchan f
 
 <span class="ot">closeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 closeCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span>
-    modifyMVar_ mvar <span class="fu">$</span> \(contents, size, closed) <span class="ot">-&gt;</span> return (contents, size, <span class="dt">True</span>)
+    modifyMVar_ mvar <span class="fu">$</span> \(contents, size, closed) <span class="ot">-&gt;</span> <span class="fu">return</span> (contents, size, <span class="dt">True</span>)
 
 <span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">CChan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 fib i chan <span class="fu">=</span> <span class="kw">do</span>
@@ -166,7 +166,7 @@ fib i chan <span class="fu">=</span> <span class="kw">do</span>
 main <span class="fu">=</span> <span class="kw">do</span>
   chan <span class="ot">&lt;-</span> newCChan
   forkIO <span class="fu">$</span> fib <span class="dv">10</span> chan
-  forChan_ chan print</code></pre></div>
+  forChan_ chan <span class="fu">print</span></code></pre></div>
 <p>This example still doesn’t quite work like Go code. This is because I used a stack instead of a queue. It should be trivial to fix this code though.</p>
 <h3 id="select-and-67---default-selection"><a href="http://tour.golang.org/#66">66 - Select</a> and <a href="http://tour.golang.org/#67">67 - Default Selection</a></h3>
 <p>Now this is hard. In 66, example program listens multiple channels, and runs some code when any of the channels is ready. If multiple channels are ready at the same time, one of them is chosen randomly. 67 is similar, only difference is when none of the channels are ready, some default action is taken.</p>

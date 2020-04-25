@@ -41,7 +41,7 @@
   }
 
 <span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Resource</span> <span class="kw">where</span>
-  show <span class="fu">=</span> T.unpack <span class="fu">.</span> _resourceName</code></pre></div>
+  <span class="fu">show</span> <span class="fu">=</span> T.unpack <span class="fu">.</span> _resourceName</code></pre></div>
 <p><code>_resourceName</code> is just a string to be used for tracing program execution.</p>
 <p>A <code>Unique</code> is an integer that can be used in at most one resource:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Unique</span> <span class="fu">=</span> <span class="dt">Unique</span> <span class="dt">Int</span>
@@ -51,7 +51,7 @@
   (<span class="fu">==</span>) <span class="fu">=</span> (<span class="fu">==</span>) <span class="ot">`on`</span> _resourceId
 
 <span class="kw">instance</span> <span class="dt">Ord</span> <span class="dt">Resource</span> <span class="kw">where</span>
-  compare <span class="fu">=</span> comparing _resourceId</code></pre></div>
+  <span class="fu">compare</span> <span class="fu">=</span> comparing _resourceId</code></pre></div>
 <p>A task that requires exclusive access to a subset of all resources can be implemented using <code>withResources</code>:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">withResources ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> m () <span class="ot">-&gt;</span> m ()
 withResources locks a <span class="fu">=</span> acquire_locks (S.toList locks)
@@ -66,27 +66,27 @@ withResources locks a <span class="fu">=</span> acquire_locks (S.toList locks)
 <p>Note that when all tasks are implemented using this function a deadlock won’t occur: resources are ordered, and <code>S.toList</code> generates a sorted list, which in turn causes <code>acquire_locks</code> to take locks in order, effectively implementing <a href="https://en.wikipedia.org/wiki/Dining_philosophers_problem">Dijkstra’s resource hierarchy solution to the dining philosophers problem</a>.</p>
 <p>Here are three task generators:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Task</span> <span class="fu">=</span> <span class="dt">Task</span>
-  {<span class="ot"> runTask ::</span> forall m <span class="fu">.</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> m () }
+  {<span class="ot"> runTask ::</span> <span class="kw">forall</span> m <span class="fu">.</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> m () }
 
 <span class="ot">mkFastTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
 mkFastTask i res <span class="fu">=</span>
     <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
-      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i))
+      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i))
       threadDelay (<span class="dv">500</span><span class="ot"> ::</span> <span class="dt">Milliseconds</span>)
-      logDebug (<span class="st">&quot;Fast task done (&quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i) <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)
+      logDebug (<span class="st">&quot;Fast task done (&quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i) <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)
 
 <span class="ot">mkSlowTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
 mkSlowTask i res <span class="fu">=</span>
     <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
-      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i))
+      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i))
       threadDelay (<span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Seconds</span>)
-      logDebug (<span class="st">&quot;Slow task done (&quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i) <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)
+      logDebug (<span class="st">&quot;Slow task done (&quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i) <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)
 
 <span class="ot">mkCrashingTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
 mkCrashingTask i res <span class="fu">=</span>
     <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
-      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (show i))
-      error <span class="st">&quot;task failed&quot;</span></code></pre></div>
+      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i))
+      <span class="fu">error</span> <span class="st">&quot;task failed&quot;</span></code></pre></div>
 <p>Integer arguments are just for tracing task execution in program output. <code>mkFastTask</code> generates a task that takes 500 milliseconds to run. <code>mkSlowTask</code> generates a task that takes 3 seconds. <code>mkCrashingTask</code> makes a task that throws an exception, demonstrating that we release resources properly on exceptions.</p>
 <p>Finally, the scheduler just spawns tasks using <code>forkIO</code> or <code>async</code>:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">schedule ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m, <span class="dt">Forall</span> (<span class="dt">Pure</span> m)) <span class="ot">=&gt;</span> [<span class="dt">Task</span>] <span class="ot">-&gt;</span> m ()

@@ -49,12 +49,12 @@
   <span class="cf">if</span> (amount == <span class="dv">0</span>)
     <span class="cf">return</span> <span class="dv">0</span>;
 
-  <span class="dt">int</span> result = <span class="dv">-1</span>;
+  <span class="dt">int</span> result = -<span class="dv">1</span>;
 
   <span class="cf">for</span> (<span class="dt">unsigned</span> coin : coins) {
     <span class="cf">if</span> (amount &gt;= coin) {
       <span class="dt">int</span> r = findMinCoin(coins, amount - coin) + <span class="dv">1</span>;
-      <span class="cf">if</span> (result == <span class="dv">-1</span> || r &lt; result)
+      <span class="cf">if</span> (result == -<span class="dv">1</span> || r &lt; result)
         result = r;
     }
   }
@@ -78,7 +78,7 @@
 <p>Örnek implementasyon şöyle:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> findMinCoin(vector&lt;<span class="dt">int</span>&gt; table, <span class="at">const</span> vector&lt;<span class="dt">unsigned</span>&gt; &amp;coins, <span class="dt">unsigned</span> amount)
 {
-  <span class="cf">if</span> (table[amount] != <span class="dv">-1</span>)
+  <span class="cf">if</span> (table[amount] != -<span class="dv">1</span>)
     <span class="co">// problem daha onceden cozulmus, cevaba tablodan bak</span>
     <span class="cf">return</span> table[amount];
 
@@ -86,7 +86,7 @@
   <span class="cf">for</span> (<span class="dt">unsigned</span> coin : coins) {
     <span class="cf">if</span> (amount &gt;= coin) {
       <span class="dt">int</span> r = <span class="dv">1</span> + findMinCoin(table, coins, amount - coin);
-      <span class="cf">if</span> (table[amount] == <span class="dv">-1</span> || r &lt; table[amount])
+      <span class="cf">if</span> (table[amount] == -<span class="dv">1</span> || r &lt; table[amount])
         table[amount] = r;
     }
   }
@@ -99,7 +99,7 @@
   <span class="cf">for</span> (<span class="dt">unsigned</span> coin : coins)
     <span class="cf">if</span> (amount &gt;= coin &amp;&amp;
         (tbl[amount - coin] + <span class="dv">1</span> &lt; tbl[amount]
-         || tbl[amount] == <span class="dv">-1</span>))
+         || tbl[amount] == -<span class="dv">1</span>))
       tbl[amount] = tbl[amount - coin] + <span class="dv">1</span>;
 }</code></pre></div>
 <p>Daha sonra bu tablodan gerekli elemana bakarak cevabı öğrenmiş oluruz. Bu şekilde bir çözüm dinamik programlamanın doğasını bize daha iyi gösteriyor. Dinamik programlama temelde tablolamaya dayanıyor.</p>
@@ -125,16 +125,16 @@ Cevap: ceb</code></pre>
 <p>Bu çözümün Haskell implementasyonu şu şekilde: (sadelik açısından bu kısım C++ ile yazılmadı, dinamik programlama hali C++ ile verilecek)</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">solve ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
 solve s1 s2
-  <span class="fu">|</span> null s1 <span class="fu">||</span> null s2 <span class="fu">=</span> <span class="st">&quot;&quot;</span>
+  <span class="fu">|</span> <span class="fu">null</span> s1 <span class="fu">||</span> <span class="fu">null</span> s2 <span class="fu">=</span> <span class="st">&quot;&quot;</span>
 solve s1 s2 <span class="fu">=</span>
-    <span class="kw">let</span> (h1, t1) <span class="fu">=</span> splitAt (length s1 <span class="fu">-</span> <span class="dv">1</span>) s1
-        (h2, t2) <span class="fu">=</span> splitAt (length s2 <span class="fu">-</span> <span class="dv">1</span>) s2
+    <span class="kw">let</span> (h1, t1) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">length</span> s1 <span class="fu">-</span> <span class="dv">1</span>) s1
+        (h2, t2) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">length</span> s2 <span class="fu">-</span> <span class="dv">1</span>) s2
      <span class="kw">in</span> <span class="kw">if</span> t1 <span class="fu">==</span> t1 
           <span class="kw">then</span> solve h1 h2 <span class="fu">++</span> t1
           <span class="kw">else</span>
             <span class="kw">let</span> result1  <span class="fu">=</span> solve h1 s2
                 result2  <span class="fu">=</span> solve s1 h2
-             <span class="kw">in</span> <span class="kw">if</span> length result1 <span class="fu">&gt;</span> length result2
+             <span class="kw">in</span> <span class="kw">if</span> <span class="fu">length</span> result1 <span class="fu">&gt;</span> <span class="fu">length</span> result2
                   <span class="kw">then</span> result1
                   <span class="kw">else</span> result2</code></pre></div>
 <p>Çözümün kompleksliğini düşünelim: Birbirine eşit olmayan M ve N uzunluğunda iki string düşünelim, M ve N - 1 uzunluğunda, M - 1 ve N uzunluğunda ve M - 1, N - 1 uzunluğunda stringler için özyineli çağrılar yapılacak. Her birinden yine 3 farklı özyineli çağrı ve toplamda M + N seviyede her seviyede 3 çağrı yapılacağından O((M + N) ^ 3) kompleksliğinde bir algoritmamız olur.</p>
@@ -200,15 +200,15 @@ solve s1 s2 <span class="fu">=</span>
   <span class="at">const</span> us endIdx   = idx - min;
 
   <span class="cf">for</span> (us i = startIdx; i &lt;= endIdx; i++) {
-    <span class="cf">if</span> (tblBlacks[i] != <span class="dv">-1</span>) {
+    <span class="cf">if</span> (tblBlacks[i] != -<span class="dv">1</span>) {
       us cost = tblBlacks[i] + sumInclusive(colBlacks, i + <span class="dv">1</span>, idx);
-      <span class="cf">if</span> (tblWhites[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblWhites[idx]))
+      <span class="cf">if</span> (tblWhites[idx] == -<span class="dv">1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblWhites[idx]))
         tblWhites[idx] = cost;
     }
 
-    <span class="cf">if</span> (tblWhites[i] != <span class="dv">-1</span>) {
+    <span class="cf">if</span> (tblWhites[i] != -<span class="dv">1</span>) {
       us cost = tblWhites[i] + sumInclusive(colWhites, i + <span class="dv">1</span>, idx);
-      <span class="cf">if</span> (tblBlacks[idx] == <span class="dv">-1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblBlacks[idx]))
+      <span class="cf">if</span> (tblBlacks[idx] == -<span class="dv">1</span> || cost &lt; <span class="kw">static_cast</span>&lt;us&gt;(tblBlacks[idx]))
         tblBlacks[idx] = cost;
     }
   }
@@ -224,7 +224,7 @@ solve s1 s2 <span class="fu">=</span>
   <span class="cf">if</span> (offset &gt;= <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(ppl.size()))
     <span class="cf">return</span> ppl[lastElem];
 
-  <span class="cf">if</span> (tbl(lastElem, offset) != <span class="dv">-1</span>)
+  <span class="cf">if</span> (tbl(lastElem, offset) != -<span class="dv">1</span>)
     <span class="cf">return</span> tbl(lastElem, offset);
 
   <span class="dt">int</span> tmp[<span class="dv">3</span>];

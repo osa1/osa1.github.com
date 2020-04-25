@@ -92,7 +92,7 @@ var <span class="fu">=</span> <span class="dt">Var</span>
 abst <span class="fu">=</span> <span class="dt">Abst</span>
 <span class="ot">app ::</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span>
 app <span class="fu">=</span> <span class="dt">App</span>
-anyTerm <span class="fu">=</span> id</code></pre></div>
+anyTerm <span class="fu">=</span> <span class="fu">id</span></code></pre></div>
 <p>Now I’m omitting some parts without explaining since this post is already long enough. But the point should be clear by now. Let’s see this in action:</p>
 <pre><code>ghci&gt; abst [(abst [var &quot;p1&quot;] (anyTerm (var &quot;p1&quot;)))] (anyTerm (var &quot;somevar&quot;))
 
@@ -118,8 +118,8 @@ anyTerm <span class="fu">=</span> id</code></pre></div>
 <p>The worst part of GADTs is that you can’t use <code>deriving</code> clause in data type declaration(can anyone explain why?). In my case, that means I have to write some big amounts of code just to be able to print out the data for debugging purposes. For instance, I had to write some repetitive code like this:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Show</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>
     <span class="fu">...</span>
-    show (<span class="dt">Lambda</span> params ret body) <span class="fu">=</span> <span class="st">&quot;(lambda (&quot;</span> <span class="fu">++</span> unwords (map show params) <span class="fu">++</span> <span class="st">&quot;) : &quot;</span> <span class="fu">++</span> show ret <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> unwords (map show body) <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
-    show (<span class="dt">If</span> ifE thenE elseE) <span class="fu">=</span> <span class="st">&quot;(&quot;</span> <span class="fu">++</span> intercalate <span class="st">&quot;,&quot;</span> [show ifE, show thenE, show elseE] <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+    <span class="fu">show</span> (<span class="dt">Lambda</span> params ret body) <span class="fu">=</span> <span class="st">&quot;(lambda (&quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> params) <span class="fu">++</span> <span class="st">&quot;) : &quot;</span> <span class="fu">++</span> <span class="fu">show</span> ret <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> body) <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+    <span class="fu">show</span> (<span class="dt">If</span> ifE thenE elseE) <span class="fu">=</span> <span class="st">&quot;(&quot;</span> <span class="fu">++</span> intercalate <span class="st">&quot;,&quot;</span> [<span class="fu">show</span> ifE, <span class="fu">show</span> thenE, <span class="fu">show</span> elseE] <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
     <span class="co">-- same repetitive code for each data constructor, it's really pain when the syntax grows bigger and when you frequently make some changes on it.</span></code></pre></div>
 <p>I also had to write same amount of code just to be able to run tests on my parser(ie. I need to compare hand-written syntax tree with parser generated syntax tree).</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Eq</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>

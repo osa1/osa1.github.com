@@ -52,21 +52,21 @@
     c()</code></pre></div>
 <p>This prints same wrong output as with JavaScript.</p>
 <p>Lua, my favorite dynamic language, does great:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="ot">=</span> <span class="ot">{}</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="op">=</span> <span class="op">{}</span>
 
-<span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">({</span> <span class="st">&quot;foo&quot;</span><span class="ot">,</span> <span class="st">&quot;bar&quot;</span><span class="ot">,</span> <span class="st">&quot;baz&quot;</span> <span class="ot">})</span> <span class="kw">do</span>
-    <span class="kw">local</span> say <span class="ot">=</span> <span class="st">&quot;say &quot;</span> <span class="ot">..</span> v
-    <span class="fu">table.insert</span><span class="ot">(</span>callbacks<span class="ot">,</span> <span class="kw">function</span> <span class="ot">()</span> <span class="fu">print</span><span class="ot">(</span>say<span class="ot">)</span> <span class="kw">end</span><span class="ot">)</span>
-<span class="kw">end</span>
+<span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">({</span> <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> <span class="op">})</span> <span class="cf">do</span>
+    <span class="kw">local</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">..</span> v
+    <span class="fu">table.insert</span><span class="op">(</span>callbacks<span class="op">,</span> <span class="kw">function</span> <span class="op">()</span> <span class="fu">print</span><span class="op">(</span>say<span class="op">)</span> <span class="cf">end</span><span class="op">)</span>
+<span class="cf">end</span>
 
-<span class="kw">for</span> _<span class="ot">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="ot">(</span>callbacks<span class="ot">)</span> <span class="kw">do</span>
-    v<span class="ot">()</span>
-<span class="kw">end</span></code></pre></div>
+<span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">(</span>callbacks<span class="op">)</span> <span class="cf">do</span>
+    v<span class="op">()</span>
+<span class="cf">end</span></code></pre></div>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
 
-main <span class="fu">=</span> sequence_ callbacks
-  <span class="kw">where</span> callbacks <span class="fu">=</span> map (putStrLn <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre></div>
+main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
+  <span class="kw">where</span> callbacks <span class="fu">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre></div>
 <p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
 <p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
 <p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
@@ -113,21 +113,21 @@ main <span class="fu">=</span> sequence_ callbacks
 
 <span class="kw">import</span> <span class="dt">Data.IORef</span>
 
-printFromRef r <span class="fu">=</span> putStrLn <span class="fu">=&lt;&lt;</span> readIORef r
+printFromRef r <span class="fu">=</span> <span class="fu">putStrLn</span> <span class="fu">=&lt;&lt;</span> readIORef r
 
 mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
     ref <span class="ot">&lt;-</span> newIORef w
     r   <span class="ot">&lt;-</span> iter ref ws
-    return <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
-  <span class="kw">where</span> iter ref []     <span class="fu">=</span> return []
+    <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
+  <span class="kw">where</span> iter ref []     <span class="fu">=</span> <span class="fu">return</span> []
         iter ref (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
           writeIORef ref w
           cs <span class="ot">&lt;-</span> iter ref ws
-          return <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
+          <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
 
 main <span class="fu">=</span> <span class="kw">do</span>
   callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
-  sequence_ callbacks</code></pre></div>
+  <span class="fu">sequence_</span> callbacks</code></pre></div>
 <p>The reason this code is that long is because we need to create and pass references explicitly.</p>
 <section class="footnotes">
 <hr />

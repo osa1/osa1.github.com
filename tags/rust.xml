@@ -21,15 +21,15 @@
 <p>It turns out if you’re getting a weird borrow checker error about something not living long enough to be dropped you can sometimes fix it by adding more semicolons.</p>
 <p>The error message itself is weird because intuitively you’d think that for something to be dropped it should first become dead, but the error message says something like “<code>x</code> dropped here while still borrowed”. Because the variable is not dropped explicitly by the user, this error message is actually complaining about compiler’s behavior not being consistent in itself.</p>
 <p>Here’s an example:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">use</span> std::sync::Arc;</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">use</span> std::sync::Mutex;</a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">fn</span> main() <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-5" data-line-number="5">    <span class="kw">let</span> s: Arc&lt;Mutex&lt;<span class="dt">i32</span>&gt;&gt; = Arc::new(Mutex::new(<span class="dv">0</span>));</a>
-<a class="sourceLine" id="cb1-6" data-line-number="6">    <span class="kw">match</span> s.lock().unwrap() <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">        _ =&gt; <span class="op">{}</span></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">use</span> <span class="pp">std::sync::</span>Arc;</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">use</span> <span class="pp">std::sync::</span>Mutex;</a>
+<a class="sourceLine" id="cb1-3" title="3"></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="kw">fn</span> main() <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-5" title="5">    <span class="kw">let</span> s: Arc&lt;Mutex&lt;<span class="dt">i32</span>&gt;&gt; = <span class="pp">Arc::</span>new(<span class="pp">Mutex::</span>new(<span class="dv">0</span>));</a>
+<a class="sourceLine" id="cb1-6" title="6">    <span class="kw">match</span> s.lock().unwrap() <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-7" title="7">        _ =&gt; <span class="op">{}</span></a>
+<a class="sourceLine" id="cb1-8" title="8">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="op">}</span></a></code></pre></div>
 <p>This fails to compile with:</p>
 <pre><code>error[E0597]: `s` does not live long enough
  --&gt; src/main.rs:9:1
@@ -47,33 +47,33 @@
 <h1 id="match-expression-keeps-values-alive-longer-than-necessary">2. <code>match</code> expression keeps values alive longer than necessary</h1>
 <p>This problem is kind of special. All other problems mentioned in this series were about borrow checker being too strict. This one is different: it causes runtime bugs.</p>
 <p><code>match</code> expression keeps the value to be examined (sometimes called <code>scrutinee</code> in Haskell land) alive longer than necessary. Because alive values are not dropped, if you rely on dynamic borrow checks in the scrutinee and in the branches, your checks fail. Here’s an example:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">use</span> std::sync::Arc;</a>
-<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="kw">use</span> std::sync::Mutex;</a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="kw">struct</span> S(<span class="dt">i32</span>);</a>
-<a class="sourceLine" id="cb3-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="kw">impl</span> S <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-7" data-line-number="7">    <span class="kw">pub</span> <span class="kw">fn</span> get_int(&amp;<span class="kw">self</span>) -&gt; <span class="dt">i32</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8">        <span class="kw">self</span>.<span class="dv">0</span></a>
-<a class="sourceLine" id="cb3-9" data-line-number="9">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb3-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb3-11" data-line-number="11">    <span class="kw">pub</span> <span class="kw">fn</span> set_int(&amp;<span class="kw">mut</span> <span class="kw">self</span>, i: <span class="dt">i32</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-12" data-line-number="12">        <span class="kw">self</span>.<span class="dv">0</span> = i;</a>
-<a class="sourceLine" id="cb3-13" data-line-number="13">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb3-14" data-line-number="14"><span class="op">}</span></a>
-<a class="sourceLine" id="cb3-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb3-16" data-line-number="16"><span class="kw">fn</span> main() <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-17" data-line-number="17">    <span class="kw">let</span> s = Arc::new(Mutex::new(S(<span class="dv">0</span>)));</a>
-<a class="sourceLine" id="cb3-18" data-line-number="18">    <span class="kw">match</span> s.lock().unwrap().get_int() <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-19" data-line-number="19">        i =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-20" data-line-number="20">            s.lock().unwrap().set_int(i);</a>
-<a class="sourceLine" id="cb3-21" data-line-number="21">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb3-22" data-line-number="22">    <span class="op">}</span>;</a>
-<a class="sourceLine" id="cb3-23" data-line-number="23"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">use</span> <span class="pp">std::sync::</span>Arc;</a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="kw">use</span> <span class="pp">std::sync::</span>Mutex;</a>
+<a class="sourceLine" id="cb3-3" title="3"></a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="kw">struct</span> S(<span class="dt">i32</span>);</a>
+<a class="sourceLine" id="cb3-5" title="5"></a>
+<a class="sourceLine" id="cb3-6" title="6"><span class="kw">impl</span> S <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-7" title="7">    <span class="kw">pub</span> <span class="kw">fn</span> get_int(&amp;<span class="kw">self</span>) -&gt; <span class="dt">i32</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-8" title="8">        <span class="kw">self</span>.<span class="dv">0</span></a>
+<a class="sourceLine" id="cb3-9" title="9">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb3-10" title="10"></a>
+<a class="sourceLine" id="cb3-11" title="11">    <span class="kw">pub</span> <span class="kw">fn</span> set_int(&amp;<span class="kw">mut</span> <span class="kw">self</span>, i: <span class="dt">i32</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-12" title="12">        <span class="kw">self</span>.<span class="dv">0</span> = i;</a>
+<a class="sourceLine" id="cb3-13" title="13">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb3-14" title="14"><span class="op">}</span></a>
+<a class="sourceLine" id="cb3-15" title="15"></a>
+<a class="sourceLine" id="cb3-16" title="16"><span class="kw">fn</span> main() <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-17" title="17">    <span class="kw">let</span> s = <span class="pp">Arc::</span>new(<span class="pp">Mutex::</span>new(S(<span class="dv">0</span>)));</a>
+<a class="sourceLine" id="cb3-18" title="18">    <span class="kw">match</span> s.lock().unwrap().get_int() <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-19" title="19">        i =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-20" title="20">            s.lock().unwrap().set_int(i);</a>
+<a class="sourceLine" id="cb3-21" title="21">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb3-22" title="22">    <span class="op">}</span>;</a>
+<a class="sourceLine" id="cb3-23" title="23"><span class="op">}</span></a></code></pre></div>
 <p>(notice how I use a redundant semicolon after the match expression, to fix #1)</p>
 <p>Even though <code>get_int()</code> returns in <code>i32</code> as a value, not a reference, the <code>MutexGuard</code> returned by <code>Mutex::lock()</code> is kept alive in the branches of this <code>match</code> expression, so the second <code>Mutex::lock()</code> call causes a deadlock. Solution? Use a <code>let</code> expression:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">let</span> x = s.lock().unwrap().get_x();</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="kw">match</span> x <span class="op">{</span> ... <span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">let</span> x = s.lock().unwrap().get_x();</a>
+<a class="sourceLine" id="cb4-2" title="2"><span class="kw">match</span> x <span class="op">{</span> ... <span class="op">}</span></a></code></pre></div>
 <p>This problem makes <code>match &lt;expr&gt; { ... }</code> less useful than <code>let x = &lt;expr&gt;; match x { ... }</code>.</p>
 <p><a href="https://github.com/rust-lang/rust/issues/38355">#38355</a> reported this issue on Dec 14, 2016, but no progress towards a solution has been made so far.</p>]]></summary>
 </entry>
@@ -89,34 +89,34 @@
 <h1 id="self-borrows-all-of-its-fields"><code>self</code> borrows all of its fields</h1>
 <p>This is a problem that happened in pretty much every single Rust program I’ve ever written. In a method, you can’t borrow some fields, and call another <code>&amp;mut self</code> method. This is because methods borrow the whole <code>self</code>, so you get an error saying that you can’t borrow <code>self</code> twice.</p>
 <p>As an example, imagine writing a compiler. For some reason you want to collect all the variables defined in a scope, and then generate fresh variables for those. You may do something like this:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">struct</span> FreshGen <span class="op">{</span> <span class="co">/* abstract */</span> <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">struct</span> Var <span class="op">{</span> <span class="co">/* abstract */</span> <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">impl</span> FreshGen <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-6" data-line-number="6">    <span class="kw">fn</span> fresh(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; Var <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">        <span class="pp">unimplemented!</span>()</a>
-<a class="sourceLine" id="cb1-8" data-line-number="8">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="op">}</span></a>
-<a class="sourceLine" id="cb1-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb1-11" data-line-number="11"><span class="kw">struct</span> Compiler <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-12" data-line-number="12">    fresh_gen: FreshGen,</a>
-<a class="sourceLine" id="cb1-13" data-line-number="13">    vars_in_scope: <span class="dt">Vec</span>&lt;Var&gt;,</a>
-<a class="sourceLine" id="cb1-14" data-line-number="14"><span class="op">}</span></a>
-<a class="sourceLine" id="cb1-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb1-16" data-line-number="16"><span class="kw">impl</span> Compiler <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-17" data-line-number="17">    <span class="kw">fn</span> fresh(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; Var <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-18" data-line-number="18">        <span class="kw">self</span>.fresh_gen.fresh()</a>
-<a class="sourceLine" id="cb1-19" data-line-number="19">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb1-21" data-line-number="21">    <span class="kw">fn</span> gen_locals(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-22" data-line-number="22">        <span class="kw">let</span> <span class="kw">mut</span> fresh_vars = <span class="pp">vec!</span><span class="op">[]</span>;</a>
-<a class="sourceLine" id="cb1-23" data-line-number="23">        <span class="kw">for</span> var <span class="kw">in</span> <span class="kw">self</span>.vars_in_scope.iter() <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-24" data-line-number="24">            fresh_vars.push(<span class="kw">self</span>.fresh());</a>
-<a class="sourceLine" id="cb1-25" data-line-number="25">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-26" data-line-number="26">        <span class="co">// use fresh_vars</span></a>
-<a class="sourceLine" id="cb1-27" data-line-number="27">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-28" data-line-number="28"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">struct</span> FreshGen <span class="op">{</span> <span class="co">/* abstract */</span> <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-2" title="2"></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="kw">struct</span> Var <span class="op">{</span> <span class="co">/* abstract */</span> <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-4" title="4"></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="kw">impl</span> FreshGen <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-6" title="6">    <span class="kw">fn</span> fresh(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; Var <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-7" title="7">        <span class="pp">unimplemented!</span>()</a>
+<a class="sourceLine" id="cb1-8" title="8">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="op">}</span></a>
+<a class="sourceLine" id="cb1-10" title="10"></a>
+<a class="sourceLine" id="cb1-11" title="11"><span class="kw">struct</span> Compiler <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-12" title="12">    fresh_gen: FreshGen,</a>
+<a class="sourceLine" id="cb1-13" title="13">    vars_in_scope: <span class="dt">Vec</span>&lt;Var&gt;,</a>
+<a class="sourceLine" id="cb1-14" title="14"><span class="op">}</span></a>
+<a class="sourceLine" id="cb1-15" title="15"></a>
+<a class="sourceLine" id="cb1-16" title="16"><span class="kw">impl</span> Compiler <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-17" title="17">    <span class="kw">fn</span> fresh(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; Var <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-18" title="18">        <span class="kw">self</span>.fresh_gen.fresh()</a>
+<a class="sourceLine" id="cb1-19" title="19">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-20" title="20"></a>
+<a class="sourceLine" id="cb1-21" title="21">    <span class="kw">fn</span> gen_locals(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-22" title="22">        <span class="kw">let</span> <span class="kw">mut</span> fresh_vars = <span class="pp">vec!</span><span class="op">[]</span>;</a>
+<a class="sourceLine" id="cb1-23" title="23">        <span class="kw">for</span> var <span class="kw">in</span> <span class="kw">self</span>.vars_in_scope.iter() <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-24" title="24">            fresh_vars.push(<span class="kw">self</span>.fresh());</a>
+<a class="sourceLine" id="cb1-25" title="25">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-26" title="26">        <span class="co">// use fresh_vars</span></a>
+<a class="sourceLine" id="cb1-27" title="27">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-28" title="28"><span class="op">}</span></a></code></pre></div>
 <p>Can you see any problems here? When I compile this with nightly 11/9/2016, I get this annoying error message:</p>
 <pre><code>error[E0502]: cannot borrow `*self` as mutable because `self.vars_in_scope` is also borrowed as immutable
   --&gt; &lt;anon&gt;:24:29
@@ -221,186 +221,186 @@ while workset is not empty:
 [6067] Ret [] -- end of function at 6027 --   return;
                                          -- }</code></pre>
 <p>I added next to each instruction how they would look like in a C-like language. It’s hard to understand what’s going on. So to experiment with it I implement it in Rust. Since registers are shared in each call, I use shared state in my initial implementation:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="at">#[</span>inline<span class="at">]</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="kw">fn</span> add(i1 : <span class="dt">u16</span>, i2 : <span class="dt">u16</span>) -&gt; <span class="dt">u16</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">    (i1 + i2) % <span class="dv">32768</span></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="op">}</span></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="at">#[</span>derive<span class="at">(</span><span class="bu">Debug</span><span class="at">)]</span></a>
-<a class="sourceLine" id="cb2-7" data-line-number="7"><span class="kw">struct</span> FnState <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-8" data-line-number="8">    reg0  : <span class="dt">u16</span>,</a>
-<a class="sourceLine" id="cb2-9" data-line-number="9">    reg1  : <span class="dt">u16</span>,</a>
-<a class="sourceLine" id="cb2-10" data-line-number="10">    reg7  : <span class="dt">u16</span>,</a>
-<a class="sourceLine" id="cb2-11" data-line-number="11">    stack : <span class="dt">Vec</span>&lt;<span class="dt">u16</span>&gt;,</a>
-<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="op">}</span></a>
-<a class="sourceLine" id="cb2-13" data-line-number="13"></a>
-<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="kw">impl</span> FnState <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-15" data-line-number="15">    <span class="kw">fn</span> init(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; FnState <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-16" data-line-number="16">        FnState <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-17" data-line-number="17">            reg0: reg0,</a>
-<a class="sourceLine" id="cb2-18" data-line-number="18">            reg1: reg1,</a>
-<a class="sourceLine" id="cb2-19" data-line-number="19">            reg7: reg7,</a>
-<a class="sourceLine" id="cb2-20" data-line-number="20">            stack: <span class="dt">Vec</span>::new(),</a>
-<a class="sourceLine" id="cb2-21" data-line-number="21">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb2-22" data-line-number="22">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb2-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb2-24" data-line-number="24">    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-25" data-line-number="25">        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-26" data-line-number="26">            <span class="kw">self</span>.reg0 = add(<span class="kw">self</span>.reg1, <span class="dv">1</span>);</a>
-<a class="sourceLine" id="cb2-27" data-line-number="27">            <span class="kw">return</span>;</a>
-<a class="sourceLine" id="cb2-28" data-line-number="28">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb2-29" data-line-number="29">        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-30" data-line-number="30">            <span class="co">// self.reg0 = add(self.reg0, 32767);</span></a>
-<a class="sourceLine" id="cb2-31" data-line-number="31">            <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb2-32" data-line-number="32">            <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg7;</a>
-<a class="sourceLine" id="cb2-33" data-line-number="33">            <span class="kw">self</span>.f();</a>
-<a class="sourceLine" id="cb2-34" data-line-number="34">            <span class="kw">return</span>;</a>
-<a class="sourceLine" id="cb2-35" data-line-number="35">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb2-36" data-line-number="36">        <span class="kw">self</span>.stack.push(<span class="kw">self</span>.reg0);</a>
-<a class="sourceLine" id="cb2-37" data-line-number="37">        <span class="co">// self.reg1 = add(self.reg1, 32767);</span></a>
-<a class="sourceLine" id="cb2-38" data-line-number="38">        <span class="kw">self</span>.reg1 -= <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb2-39" data-line-number="39">        <span class="kw">self</span>.f();</a>
-<a class="sourceLine" id="cb2-40" data-line-number="40">        <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg0;</a>
-<a class="sourceLine" id="cb2-41" data-line-number="41">        <span class="kw">self</span>.reg0 = <span class="kw">self</span>.stack.pop().unwrap();</a>
-<a class="sourceLine" id="cb2-42" data-line-number="42">        <span class="co">// self.reg0 = add(self.reg0, 32767);</span></a>
-<a class="sourceLine" id="cb2-43" data-line-number="43">        <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb2-44" data-line-number="44">        <span class="kw">self</span>.f();</a>
-<a class="sourceLine" id="cb2-45" data-line-number="45">        <span class="kw">return</span>;</a>
-<a class="sourceLine" id="cb2-46" data-line-number="46">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb2-47" data-line-number="47"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb2-1" title="1"><span class="at">#[</span>inline<span class="at">]</span></a>
+<a class="sourceLine" id="cb2-2" title="2"><span class="kw">fn</span> add(i1 : <span class="dt">u16</span>, i2 : <span class="dt">u16</span>) -&gt; <span class="dt">u16</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-3" title="3">    (i1 + i2) % <span class="dv">32768</span></a>
+<a class="sourceLine" id="cb2-4" title="4"><span class="op">}</span></a>
+<a class="sourceLine" id="cb2-5" title="5"></a>
+<a class="sourceLine" id="cb2-6" title="6"><span class="at">#[</span>derive<span class="at">(</span><span class="bu">Debug</span><span class="at">)]</span></a>
+<a class="sourceLine" id="cb2-7" title="7"><span class="kw">struct</span> FnState <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-8" title="8">    reg0  : <span class="dt">u16</span>,</a>
+<a class="sourceLine" id="cb2-9" title="9">    reg1  : <span class="dt">u16</span>,</a>
+<a class="sourceLine" id="cb2-10" title="10">    reg7  : <span class="dt">u16</span>,</a>
+<a class="sourceLine" id="cb2-11" title="11">    stack : <span class="dt">Vec</span>&lt;<span class="dt">u16</span>&gt;,</a>
+<a class="sourceLine" id="cb2-12" title="12"><span class="op">}</span></a>
+<a class="sourceLine" id="cb2-13" title="13"></a>
+<a class="sourceLine" id="cb2-14" title="14"><span class="kw">impl</span> FnState <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-15" title="15">    <span class="kw">fn</span> init(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; FnState <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-16" title="16">        FnState <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-17" title="17">            reg0: reg0,</a>
+<a class="sourceLine" id="cb2-18" title="18">            reg1: reg1,</a>
+<a class="sourceLine" id="cb2-19" title="19">            reg7: reg7,</a>
+<a class="sourceLine" id="cb2-20" title="20">            stack: <span class="dt">Vec</span>::new(),</a>
+<a class="sourceLine" id="cb2-21" title="21">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb2-22" title="22">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb2-23" title="23"></a>
+<a class="sourceLine" id="cb2-24" title="24">    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-25" title="25">        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-26" title="26">            <span class="kw">self</span>.reg0 = add(<span class="kw">self</span>.reg1, <span class="dv">1</span>);</a>
+<a class="sourceLine" id="cb2-27" title="27">            <span class="kw">return</span>;</a>
+<a class="sourceLine" id="cb2-28" title="28">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb2-29" title="29">        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-30" title="30">            <span class="co">// self.reg0 = add(self.reg0, 32767);</span></a>
+<a class="sourceLine" id="cb2-31" title="31">            <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb2-32" title="32">            <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg7;</a>
+<a class="sourceLine" id="cb2-33" title="33">            <span class="kw">self</span>.f();</a>
+<a class="sourceLine" id="cb2-34" title="34">            <span class="kw">return</span>;</a>
+<a class="sourceLine" id="cb2-35" title="35">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb2-36" title="36">        <span class="kw">self</span>.stack.push(<span class="kw">self</span>.reg0);</a>
+<a class="sourceLine" id="cb2-37" title="37">        <span class="co">// self.reg1 = add(self.reg1, 32767);</span></a>
+<a class="sourceLine" id="cb2-38" title="38">        <span class="kw">self</span>.reg1 -= <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb2-39" title="39">        <span class="kw">self</span>.f();</a>
+<a class="sourceLine" id="cb2-40" title="40">        <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg0;</a>
+<a class="sourceLine" id="cb2-41" title="41">        <span class="kw">self</span>.reg0 = <span class="kw">self</span>.stack.pop().unwrap();</a>
+<a class="sourceLine" id="cb2-42" title="42">        <span class="co">// self.reg0 = add(self.reg0, 32767);</span></a>
+<a class="sourceLine" id="cb2-43" title="43">        <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb2-44" title="44">        <span class="kw">self</span>.f();</a>
+<a class="sourceLine" id="cb2-45" title="45">        <span class="kw">return</span>;</a>
+<a class="sourceLine" id="cb2-46" title="46">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb2-47" title="47"><span class="op">}</span></a></code></pre></div>
 <p>Now, this function grows really fast. Even for very small inputs it takes minutes to compute. I try to think some well-known functions that grow very fast. Ackermann comes to my mind and I check the Wiki page. Indeed, this looks quite similar, but the third argument makes it different than Ackermann. In any case, it doesn’t really matter for the solution.</p>
 <p>So the problem is coming up with a <code>reg7</code> in this code so that <code>f(4, 1, reg7)</code> returns <code>6</code>. For that I need to implement a search but this is basically impossible with this slow function. I start simplifying the function a little bit. My first attempt:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">impl</span> FnState <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3">        <span class="co">// When reg0 hits zero, restart it from reg1 + 1</span></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-5" data-line-number="5">            <span class="kw">self</span>.reg0 = add(<span class="kw">self</span>.reg1, <span class="dv">1</span>);</a>
-<a class="sourceLine" id="cb3-6" data-line-number="6">            <span class="kw">return</span>;</a>
-<a class="sourceLine" id="cb3-7" data-line-number="7">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb3-9" data-line-number="9">        <span class="co">// When reg1 hits zero, decrement reg0, restart reg1 from reg7</span></a>
-<a class="sourceLine" id="cb3-10" data-line-number="10">        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb3-11" data-line-number="11">            <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb3-12" data-line-number="12">            <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg7;</a>
-<a class="sourceLine" id="cb3-13" data-line-number="13">            <span class="kw">self</span>.f();</a>
-<a class="sourceLine" id="cb3-14" data-line-number="14">            <span class="kw">return</span>;</a>
-<a class="sourceLine" id="cb3-15" data-line-number="15">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb3-16" data-line-number="16"></a>
-<a class="sourceLine" id="cb3-17" data-line-number="17">        <span class="kw">let</span> save_reg0 = <span class="kw">self</span>.reg0;</a>
-<a class="sourceLine" id="cb3-18" data-line-number="18"></a>
-<a class="sourceLine" id="cb3-19" data-line-number="19">        <span class="kw">self</span>.reg1 -= <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb3-20" data-line-number="20">        <span class="kw">self</span>.f();</a>
-<a class="sourceLine" id="cb3-21" data-line-number="21">        <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg0;</a>
-<a class="sourceLine" id="cb3-22" data-line-number="22"></a>
-<a class="sourceLine" id="cb3-23" data-line-number="23">        <span class="kw">self</span>.reg0 = save_reg0;</a>
-<a class="sourceLine" id="cb3-24" data-line-number="24">        <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb3-25" data-line-number="25"></a>
-<a class="sourceLine" id="cb3-26" data-line-number="26">        <span class="kw">self</span>.f();</a>
-<a class="sourceLine" id="cb3-27" data-line-number="27">        <span class="kw">return</span>;</a>
-<a class="sourceLine" id="cb3-28" data-line-number="28">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb3-29" data-line-number="29"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">impl</span> FnState <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-2" title="2">    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-3" title="3">        <span class="co">// When reg0 hits zero, restart it from reg1 + 1</span></a>
+<a class="sourceLine" id="cb3-4" title="4">        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-5" title="5">            <span class="kw">self</span>.reg0 = add(<span class="kw">self</span>.reg1, <span class="dv">1</span>);</a>
+<a class="sourceLine" id="cb3-6" title="6">            <span class="kw">return</span>;</a>
+<a class="sourceLine" id="cb3-7" title="7">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb3-8" title="8"></a>
+<a class="sourceLine" id="cb3-9" title="9">        <span class="co">// When reg1 hits zero, decrement reg0, restart reg1 from reg7</span></a>
+<a class="sourceLine" id="cb3-10" title="10">        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb3-11" title="11">            <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb3-12" title="12">            <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg7;</a>
+<a class="sourceLine" id="cb3-13" title="13">            <span class="kw">self</span>.f();</a>
+<a class="sourceLine" id="cb3-14" title="14">            <span class="kw">return</span>;</a>
+<a class="sourceLine" id="cb3-15" title="15">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb3-16" title="16"></a>
+<a class="sourceLine" id="cb3-17" title="17">        <span class="kw">let</span> save_reg0 = <span class="kw">self</span>.reg0;</a>
+<a class="sourceLine" id="cb3-18" title="18"></a>
+<a class="sourceLine" id="cb3-19" title="19">        <span class="kw">self</span>.reg1 -= <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb3-20" title="20">        <span class="kw">self</span>.f();</a>
+<a class="sourceLine" id="cb3-21" title="21">        <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg0;</a>
+<a class="sourceLine" id="cb3-22" title="22"></a>
+<a class="sourceLine" id="cb3-23" title="23">        <span class="kw">self</span>.reg0 = save_reg0;</a>
+<a class="sourceLine" id="cb3-24" title="24">        <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb3-25" title="25"></a>
+<a class="sourceLine" id="cb3-26" title="26">        <span class="kw">self</span>.f();</a>
+<a class="sourceLine" id="cb3-27" title="27">        <span class="kw">return</span>;</a>
+<a class="sourceLine" id="cb3-28" title="28">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb3-29" title="29"><span class="op">}</span></a></code></pre></div>
 <p>This version doesn’t use an explicit stack, instead uses a temporary in the call frame. This works because in the original version each push corresponds to a pop done in the same call frame.</p>
 <p>It’s still too complicated. I keep simplifying.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">fn</span> f(<span class="kw">mut</span> reg0 : <span class="dt">u16</span>, <span class="kw">mut</span> reg1 : <span class="dt">u16</span>, <span class="kw">mut</span> reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">        reg0 = add(reg1, <span class="dv">1</span>);</a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">        <span class="kw">return</span> (reg0, reg1);</a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb4-7" data-line-number="7">    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-8" data-line-number="8">        reg0 -= <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb4-9" data-line-number="9">        reg1 = reg7;</a>
-<a class="sourceLine" id="cb4-10" data-line-number="10">        <span class="kw">return</span> f(reg0, reg1, reg7);</a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb4-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">    <span class="kw">let</span> save_reg0 = reg0;</a>
-<a class="sourceLine" id="cb4-14" data-line-number="14">    reg1 -= <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb4-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb4-16" data-line-number="16">    <span class="kw">let</span> (reg0_, reg1_) = f(reg0, reg1, reg7);</a>
-<a class="sourceLine" id="cb4-17" data-line-number="17">    reg0 = reg0_;</a>
-<a class="sourceLine" id="cb4-18" data-line-number="18">    reg1 = reg1_;</a>
-<a class="sourceLine" id="cb4-19" data-line-number="19"></a>
-<a class="sourceLine" id="cb4-20" data-line-number="20">    reg1 = reg0;</a>
-<a class="sourceLine" id="cb4-21" data-line-number="21"></a>
-<a class="sourceLine" id="cb4-22" data-line-number="22">    reg0 = save_reg0;</a>
-<a class="sourceLine" id="cb4-23" data-line-number="23">    reg0 -= <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb4-24" data-line-number="24"></a>
-<a class="sourceLine" id="cb4-25" data-line-number="25">    <span class="kw">return</span> f(reg0, reg1, reg7);</a>
-<a class="sourceLine" id="cb4-26" data-line-number="26"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">fn</span> f(<span class="kw">mut</span> reg0 : <span class="dt">u16</span>, <span class="kw">mut</span> reg1 : <span class="dt">u16</span>, <span class="kw">mut</span> reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-2" title="2">    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-3" title="3">        reg0 = add(reg1, <span class="dv">1</span>);</a>
+<a class="sourceLine" id="cb4-4" title="4">        <span class="kw">return</span> (reg0, reg1);</a>
+<a class="sourceLine" id="cb4-5" title="5">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb4-6" title="6"></a>
+<a class="sourceLine" id="cb4-7" title="7">    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-8" title="8">        reg0 -= <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb4-9" title="9">        reg1 = reg7;</a>
+<a class="sourceLine" id="cb4-10" title="10">        <span class="kw">return</span> f(reg0, reg1, reg7);</a>
+<a class="sourceLine" id="cb4-11" title="11">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb4-12" title="12"></a>
+<a class="sourceLine" id="cb4-13" title="13">    <span class="kw">let</span> save_reg0 = reg0;</a>
+<a class="sourceLine" id="cb4-14" title="14">    reg1 -= <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb4-15" title="15"></a>
+<a class="sourceLine" id="cb4-16" title="16">    <span class="kw">let</span> (reg0_, reg1_) = f(reg0, reg1, reg7);</a>
+<a class="sourceLine" id="cb4-17" title="17">    reg0 = reg0_;</a>
+<a class="sourceLine" id="cb4-18" title="18">    reg1 = reg1_;</a>
+<a class="sourceLine" id="cb4-19" title="19"></a>
+<a class="sourceLine" id="cb4-20" title="20">    reg1 = reg0;</a>
+<a class="sourceLine" id="cb4-21" title="21"></a>
+<a class="sourceLine" id="cb4-22" title="22">    reg0 = save_reg0;</a>
+<a class="sourceLine" id="cb4-23" title="23">    reg0 -= <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb4-24" title="24"></a>
+<a class="sourceLine" id="cb4-25" title="25">    <span class="kw">return</span> f(reg0, reg1, reg7);</a>
+<a class="sourceLine" id="cb4-26" title="26"><span class="op">}</span></a></code></pre></div>
 <p>This version doesn’t have any shared mutable state. At this point I realize that it may be possible to remove internal mutable state too:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">fn</span> f(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">        <span class="kw">return</span> (add(reg1, <span class="dv">1</span>), reg1);</a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">        <span class="kw">return</span> f(reg0 - <span class="dv">1</span>, reg7, reg7);</a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb5-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10">    <span class="kw">let</span> (reg1, _) = f(reg0, reg1 - <span class="dv">1</span>, reg7);</a>
-<a class="sourceLine" id="cb5-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb5-12" data-line-number="12">    <span class="kw">return</span> f(reg0 - <span class="dv">1</span>, reg1, reg7);</a>
-<a class="sourceLine" id="cb5-13" data-line-number="13"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">fn</span> f(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb5-2" title="2">    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb5-3" title="3">        <span class="kw">return</span> (add(reg1, <span class="dv">1</span>), reg1);</a>
+<a class="sourceLine" id="cb5-4" title="4">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb5-5" title="5"></a>
+<a class="sourceLine" id="cb5-6" title="6">    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb5-7" title="7">        <span class="kw">return</span> f(reg0 - <span class="dv">1</span>, reg7, reg7);</a>
+<a class="sourceLine" id="cb5-8" title="8">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb5-9" title="9"></a>
+<a class="sourceLine" id="cb5-10" title="10">    <span class="kw">let</span> (reg1, _) = f(reg0, reg1 - <span class="dv">1</span>, reg7);</a>
+<a class="sourceLine" id="cb5-11" title="11"></a>
+<a class="sourceLine" id="cb5-12" title="12">    <span class="kw">return</span> f(reg0 - <span class="dv">1</span>, reg1, reg7);</a>
+<a class="sourceLine" id="cb5-13" title="13"><span class="op">}</span></a></code></pre></div>
 <p>Now, this is a function I can read and understand. One advantage of this version is that this could be easily memoized:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">fn</span> f_memo(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>, memo : &amp;<span class="kw">mut</span> HashMap&lt;(<span class="dt">u16</span>, <span class="dt">u16</span>), (<span class="dt">u16</span>, <span class="dt">u16</span>)&gt;) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">    <span class="kw">if</span> <span class="kw">let</span> <span class="cn">Some</span>(ret) = memo.get(&amp;(reg0, reg1)) <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">        <span class="kw">return</span> *ret;</a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7">        <span class="kw">let</span> ret = (add(reg1, <span class="dv">1</span>), reg1);</a>
-<a class="sourceLine" id="cb6-8" data-line-number="8">        memo.insert((reg0, reg1), ret);</a>
-<a class="sourceLine" id="cb6-9" data-line-number="9">        <span class="kw">return</span> ret;</a>
-<a class="sourceLine" id="cb6-10" data-line-number="10">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb6-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb6-12" data-line-number="12">    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-13" data-line-number="13">        <span class="kw">let</span> ret = f_memo(reg0 - <span class="dv">1</span>, reg7, reg7, memo);</a>
-<a class="sourceLine" id="cb6-14" data-line-number="14">        memo.insert((reg0, reg1), ret);</a>
-<a class="sourceLine" id="cb6-15" data-line-number="15">        <span class="kw">return</span> ret;</a>
-<a class="sourceLine" id="cb6-16" data-line-number="16">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb6-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb6-18" data-line-number="18">    <span class="co">// careful there</span></a>
-<a class="sourceLine" id="cb6-19" data-line-number="19">    <span class="kw">let</span> (reg1_new, _) = f_memo(reg0, reg1 - <span class="dv">1</span>, reg7, memo);</a>
-<a class="sourceLine" id="cb6-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb6-21" data-line-number="21">    <span class="kw">let</span> ret = f_memo(reg0 - <span class="dv">1</span>, reg1_new, reg7, memo);</a>
-<a class="sourceLine" id="cb6-22" data-line-number="22">    memo.insert((reg0, reg1), ret);</a>
-<a class="sourceLine" id="cb6-23" data-line-number="23">    <span class="kw">return</span> ret;</a>
-<a class="sourceLine" id="cb6-24" data-line-number="24"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">fn</span> f_memo(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>, memo : &amp;<span class="kw">mut</span> HashMap&lt;(<span class="dt">u16</span>, <span class="dt">u16</span>), (<span class="dt">u16</span>, <span class="dt">u16</span>)&gt;) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-2" title="2">    <span class="kw">if</span> <span class="kw">let</span> <span class="cn">Some</span>(ret) = memo.get(&amp;(reg0, reg1)) <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-3" title="3">        <span class="kw">return</span> *ret;</a>
+<a class="sourceLine" id="cb6-4" title="4">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb6-5" title="5"></a>
+<a class="sourceLine" id="cb6-6" title="6">    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-7" title="7">        <span class="kw">let</span> ret = (add(reg1, <span class="dv">1</span>), reg1);</a>
+<a class="sourceLine" id="cb6-8" title="8">        memo.insert((reg0, reg1), ret);</a>
+<a class="sourceLine" id="cb6-9" title="9">        <span class="kw">return</span> ret;</a>
+<a class="sourceLine" id="cb6-10" title="10">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb6-11" title="11"></a>
+<a class="sourceLine" id="cb6-12" title="12">    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-13" title="13">        <span class="kw">let</span> ret = f_memo(reg0 - <span class="dv">1</span>, reg7, reg7, memo);</a>
+<a class="sourceLine" id="cb6-14" title="14">        memo.insert((reg0, reg1), ret);</a>
+<a class="sourceLine" id="cb6-15" title="15">        <span class="kw">return</span> ret;</a>
+<a class="sourceLine" id="cb6-16" title="16">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb6-17" title="17"></a>
+<a class="sourceLine" id="cb6-18" title="18">    <span class="co">// careful there</span></a>
+<a class="sourceLine" id="cb6-19" title="19">    <span class="kw">let</span> (reg1_new, _) = f_memo(reg0, reg1 - <span class="dv">1</span>, reg7, memo);</a>
+<a class="sourceLine" id="cb6-20" title="20"></a>
+<a class="sourceLine" id="cb6-21" title="21">    <span class="kw">let</span> ret = f_memo(reg0 - <span class="dv">1</span>, reg1_new, reg7, memo);</a>
+<a class="sourceLine" id="cb6-22" title="22">    memo.insert((reg0, reg1), ret);</a>
+<a class="sourceLine" id="cb6-23" title="23">    <span class="kw">return</span> ret;</a>
+<a class="sourceLine" id="cb6-24" title="24"><span class="op">}</span></a></code></pre></div>
 <p>This version is super fast when compared to the original version. I feel like I can just search the whole space in a few hours. I start the search and as it searches through the search space I start wondering about how to further improve it. I think, why not split search space into pieces and search in parallel?</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">fn</span> search(start_range : <span class="dt">u16</span>, end_range : <span class="dt">u16</span>) -&gt; <span class="dt">Option</span>&lt;<span class="dt">u16</span>&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">    <span class="kw">for</span> i <span class="kw">in</span> start_range .. end_range <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-3" data-line-number="3">        <span class="co">// println!(&quot;i = {}&quot;, i);</span></a>
-<a class="sourceLine" id="cb7-4" data-line-number="4">        <span class="kw">let</span> <span class="kw">mut</span> tbl = HashMap::new();</a>
-<a class="sourceLine" id="cb7-5" data-line-number="5">        <span class="kw">let</span> ret = f_memo(<span class="dv">4</span>, <span class="dv">1</span>, i, &amp;<span class="kw">mut</span> tbl);</a>
-<a class="sourceLine" id="cb7-6" data-line-number="6">        <span class="kw">if</span> ret.<span class="dv">0</span> == <span class="dv">6</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-7" data-line-number="7">            <span class="pp">println!</span>(<span class="st">&quot;Found an answer: {:?} {}&quot;</span>, ret, i);</a>
-<a class="sourceLine" id="cb7-8" data-line-number="8">            <span class="kw">return</span> <span class="cn">Some</span>(i);</a>
-<a class="sourceLine" id="cb7-9" data-line-number="9">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb7-10" data-line-number="10">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb7-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb7-12" data-line-number="12">    <span class="cn">None</span></a>
-<a class="sourceLine" id="cb7-13" data-line-number="13"><span class="op">}</span></a>
-<a class="sourceLine" id="cb7-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb7-15" data-line-number="15"><span class="kw">fn</span> search_in_parallel(n : <span class="dt">i32</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-16" data-line-number="16">    <span class="kw">let</span> increment = <span class="dt">u16</span>::MAX / (n <span class="kw">as</span> <span class="dt">u16</span>);</a>
-<a class="sourceLine" id="cb7-17" data-line-number="17">    <span class="kw">let</span> <span class="kw">mut</span> threads = <span class="dt">Vec</span>::with_capacity(n <span class="kw">as</span> <span class="dt">usize</span>);</a>
-<a class="sourceLine" id="cb7-18" data-line-number="18"></a>
-<a class="sourceLine" id="cb7-19" data-line-number="19">    <span class="kw">for</span> i <span class="kw">in</span> <span class="dv">0</span> .. n <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-20" data-line-number="20">        <span class="kw">let</span> range_start = increment * (i <span class="kw">as</span> <span class="dt">u16</span>);</a>
-<a class="sourceLine" id="cb7-21" data-line-number="21">        <span class="kw">let</span> range_end   = increment * ((i <span class="kw">as</span> <span class="dt">u16</span>) + <span class="dv">1</span>) + <span class="dv">1</span>;</a>
-<a class="sourceLine" id="cb7-22" data-line-number="22">        threads.push(thread::Builder::new().stack_size(<span class="dv">1000000000</span>).spawn(<span class="kw">move</span> || <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-23" data-line-number="23">            search(range_start, range_end)</a>
-<a class="sourceLine" id="cb7-24" data-line-number="24">        <span class="op">}</span>).unwrap());</a>
-<a class="sourceLine" id="cb7-25" data-line-number="25">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb7-26" data-line-number="26"></a>
-<a class="sourceLine" id="cb7-27" data-line-number="27">    <span class="kw">for</span> thread <span class="kw">in</span> threads <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-28" data-line-number="28">        thread.join();</a>
-<a class="sourceLine" id="cb7-29" data-line-number="29">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb7-30" data-line-number="30"><span class="op">}</span></a>
-<a class="sourceLine" id="cb7-31" data-line-number="31"></a>
-<a class="sourceLine" id="cb7-32" data-line-number="32"><span class="kw">fn</span> main() <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-33" data-line-number="33">    search_in_parallel(<span class="dv">8</span>);</a>
-<a class="sourceLine" id="cb7-34" data-line-number="34"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">fn</span> search(start_range : <span class="dt">u16</span>, end_range : <span class="dt">u16</span>) -&gt; <span class="dt">Option</span>&lt;<span class="dt">u16</span>&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-2" title="2">    <span class="kw">for</span> i <span class="kw">in</span> start_range .. end_range <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-3" title="3">        <span class="co">// println!(&quot;i = {}&quot;, i);</span></a>
+<a class="sourceLine" id="cb7-4" title="4">        <span class="kw">let</span> <span class="kw">mut</span> tbl = <span class="pp">HashMap::</span>new();</a>
+<a class="sourceLine" id="cb7-5" title="5">        <span class="kw">let</span> ret = f_memo(<span class="dv">4</span>, <span class="dv">1</span>, i, &amp;<span class="kw">mut</span> tbl);</a>
+<a class="sourceLine" id="cb7-6" title="6">        <span class="kw">if</span> ret.<span class="dv">0</span> == <span class="dv">6</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-7" title="7">            <span class="pp">println!</span>(<span class="st">&quot;Found an answer: {:?} {}&quot;</span>, ret, i);</a>
+<a class="sourceLine" id="cb7-8" title="8">            <span class="kw">return</span> <span class="cn">Some</span>(i);</a>
+<a class="sourceLine" id="cb7-9" title="9">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb7-10" title="10">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb7-11" title="11"></a>
+<a class="sourceLine" id="cb7-12" title="12">    <span class="cn">None</span></a>
+<a class="sourceLine" id="cb7-13" title="13"><span class="op">}</span></a>
+<a class="sourceLine" id="cb7-14" title="14"></a>
+<a class="sourceLine" id="cb7-15" title="15"><span class="kw">fn</span> search_in_parallel(n : <span class="dt">i32</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-16" title="16">    <span class="kw">let</span> increment = <span class="dt">u16</span>::MAX / (n <span class="kw">as</span> <span class="dt">u16</span>);</a>
+<a class="sourceLine" id="cb7-17" title="17">    <span class="kw">let</span> <span class="kw">mut</span> threads = <span class="dt">Vec</span>::with_capacity(n <span class="kw">as</span> <span class="dt">usize</span>);</a>
+<a class="sourceLine" id="cb7-18" title="18"></a>
+<a class="sourceLine" id="cb7-19" title="19">    <span class="kw">for</span> i <span class="kw">in</span> <span class="dv">0</span> .. n <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-20" title="20">        <span class="kw">let</span> range_start = increment * (i <span class="kw">as</span> <span class="dt">u16</span>);</a>
+<a class="sourceLine" id="cb7-21" title="21">        <span class="kw">let</span> range_end   = increment * ((i <span class="kw">as</span> <span class="dt">u16</span>) + <span class="dv">1</span>) + <span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb7-22" title="22">        threads.push(<span class="pp">thread::Builder::</span>new().stack_size(<span class="dv">1000000000</span>).spawn(<span class="kw">move</span> || <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-23" title="23">            search(range_start, range_end)</a>
+<a class="sourceLine" id="cb7-24" title="24">        <span class="op">}</span>).unwrap());</a>
+<a class="sourceLine" id="cb7-25" title="25">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb7-26" title="26"></a>
+<a class="sourceLine" id="cb7-27" title="27">    <span class="kw">for</span> thread <span class="kw">in</span> threads <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-28" title="28">        thread.join();</a>
+<a class="sourceLine" id="cb7-29" title="29">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb7-30" title="30"><span class="op">}</span></a>
+<a class="sourceLine" id="cb7-31" title="31"></a>
+<a class="sourceLine" id="cb7-32" title="32"><span class="kw">fn</span> main() <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-33" title="33">    search_in_parallel(<span class="dv">8</span>);</a>
+<a class="sourceLine" id="cb7-34" title="34"><span class="op">}</span></a></code></pre></div>
 <p>This parallel search takes a couple of seconds until it prints:</p>
 <pre><code>Found an answer: (6, 5) 25734</code></pre>
 <p>So <code>25734</code> returns 6! This is the R8 value we were looking for.</p>
@@ -423,50 +423,50 @@ while workset is not empty:
 <p>It’s types that borrow, not values, and that makes sense. If you have an <code>Option&lt;&amp;'a T&gt;</code> where <code>'a</code> is coming from some other variable <code>x</code>, 1) <code>x</code> needs to live longer than this <code>Option</code> value 2) you can’t borrow <code>x</code> mutably while keeping the <code>Option</code> in scope (or the other way around, you can’t borrow <code>Option</code> mutably while keeping <code>x</code> in scope).</p>
 <p>This makes sense because in compile time, given an <code>Option&lt;&amp;'a T&gt;</code>, you can’t make any assumptions on <code>Option</code>’s actual value. Since <code>Some</code> constructor of the <code>Option</code> type will borrow the <code>T</code> here, you just have to assume that values of this type always borrow <code>T</code> (and that’s why we have <code>&amp;'a</code> in the type).</p>
 <p>The problem is that it’s sometimes possible to do some local reasoning, and not doing that is too restrictive. Suppose you have this:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">struct</span> ListOfThings <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">    list : <span class="dt">Vec</span>&lt;Thing&gt;,</a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="op">}</span></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">struct</span> Thing <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-6" data-line-number="6">    name : <span class="dt">String</span>,</a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">    <span class="co">// other fields here -- this is expensive to copy!</span></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="op">}</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="kw">impl</span> Thing <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-11" data-line-number="11">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{}</span></a>
-<a class="sourceLine" id="cb1-12" data-line-number="12"><span class="op">}</span></a>
-<a class="sourceLine" id="cb1-13" data-line-number="13"></a>
-<a class="sourceLine" id="cb1-14" data-line-number="14"><span class="kw">impl</span> ListOfThings <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-15" data-line-number="15">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-16" data-line-number="16">        <span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-17" data-line-number="17">            <span class="cn">None</span> =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-18" data-line-number="18">                <span class="kw">self</span>.init_thing(name.to_owned());</a>
-<a class="sourceLine" id="cb1-19" data-line-number="19">                <span class="kw">self</span>.do_something(name)</a>
-<a class="sourceLine" id="cb1-20" data-line-number="20">            <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb1-21" data-line-number="21">            <span class="cn">Some</span>(t) =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-22" data-line-number="22">                t.do_something()</a>
-<a class="sourceLine" id="cb1-23" data-line-number="23">            <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb1-24" data-line-number="24">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-25" data-line-number="25">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-26" data-line-number="26"></a>
-<a class="sourceLine" id="cb1-27" data-line-number="27">    <span class="kw">fn</span> find_thing_mut&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) -&gt; <span class="dt">Option</span>&lt;&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> Thing&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-28" data-line-number="28">        <span class="kw">self</span>.list.iter_mut().find(|t| t.name.as_str() == name)</a>
-<a class="sourceLine" id="cb1-29" data-line-number="29">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-30" data-line-number="30"></a>
-<a class="sourceLine" id="cb1-31" data-line-number="31">    <span class="kw">fn</span> init_thing(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : <span class="dt">String</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-32" data-line-number="32">        <span class="kw">self</span>.list.push(Thing <span class="op">{</span> name: name <span class="op">}</span>)</a>
-<a class="sourceLine" id="cb1-33" data-line-number="33">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb1-34" data-line-number="34"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">struct</span> ListOfThings <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-2" title="2">    list : <span class="dt">Vec</span>&lt;Thing&gt;,</a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="op">}</span></a>
+<a class="sourceLine" id="cb1-4" title="4"></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="kw">struct</span> Thing <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-6" title="6">    name : <span class="dt">String</span>,</a>
+<a class="sourceLine" id="cb1-7" title="7">    <span class="co">// other fields here -- this is expensive to copy!</span></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="op">}</span></a>
+<a class="sourceLine" id="cb1-9" title="9"></a>
+<a class="sourceLine" id="cb1-10" title="10"><span class="kw">impl</span> Thing <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-11" title="11">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{}</span></a>
+<a class="sourceLine" id="cb1-12" title="12"><span class="op">}</span></a>
+<a class="sourceLine" id="cb1-13" title="13"></a>
+<a class="sourceLine" id="cb1-14" title="14"><span class="kw">impl</span> ListOfThings <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-15" title="15">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-16" title="16">        <span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-17" title="17">            <span class="cn">None</span> =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-18" title="18">                <span class="kw">self</span>.init_thing(name.to_owned());</a>
+<a class="sourceLine" id="cb1-19" title="19">                <span class="kw">self</span>.do_something(name)</a>
+<a class="sourceLine" id="cb1-20" title="20">            <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb1-21" title="21">            <span class="cn">Some</span>(t) =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-22" title="22">                t.do_something()</a>
+<a class="sourceLine" id="cb1-23" title="23">            <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb1-24" title="24">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-25" title="25">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-26" title="26"></a>
+<a class="sourceLine" id="cb1-27" title="27">    <span class="kw">fn</span> find_thing_mut&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) -&gt; <span class="dt">Option</span>&lt;&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> Thing&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-28" title="28">        <span class="kw">self</span>.list.iter_mut().find(|t| t.name.as_str() == name)</a>
+<a class="sourceLine" id="cb1-29" title="29">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-30" title="30"></a>
+<a class="sourceLine" id="cb1-31" title="31">    <span class="kw">fn</span> init_thing(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : <span class="dt">String</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb1-32" title="32">        <span class="kw">self</span>.list.push(Thing <span class="op">{</span> name: name <span class="op">}</span>)</a>
+<a class="sourceLine" id="cb1-33" title="33">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb1-34" title="34"><span class="op">}</span></a></code></pre></div>
 <p>The important part is this expression:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">    <span class="cn">None</span> =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">        <span class="kw">self</span>.init_thing(name.to_owned());</a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">        <span class="kw">self</span>.do_something(name)</a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">    <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">    <span class="cn">Some</span>(t) =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb2-7" data-line-number="7">        t.do_something()</a>
-<a class="sourceLine" id="cb2-8" data-line-number="8">    <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">match</span> <span class="kw">self</span>.find_thing_mut(name) <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-2" title="2">    <span class="cn">None</span> =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-3" title="3">        <span class="kw">self</span>.init_thing(name.to_owned());</a>
+<a class="sourceLine" id="cb2-4" title="4">        <span class="kw">self</span>.do_something(name)</a>
+<a class="sourceLine" id="cb2-5" title="5">    <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb2-6" title="6">    <span class="cn">Some</span>(t) =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-7" title="7">        t.do_something()</a>
+<a class="sourceLine" id="cb2-8" title="8">    <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb2-9" title="9"><span class="op">}</span></a></code></pre></div>
 <p>The error we get is:</p>
 <pre><code>&lt;anon&gt;:18:17: 18:21 error: cannot borrow `*self` as mutable more than once at a time [E0499]
 &lt;anon&gt;:18                 self.init_thing(name.to_owned());
@@ -498,33 +498,33 @@ while workset is not empty:
                   ^</code></pre>
 <p><code>find_thing_mut()</code> really needs to return a ref, because <code>Thing</code> is expensive to copy. The problem is since <code>None</code> has type <code>Option&lt;&amp;'a mut Thing&gt;</code> where <code>a</code> is the lifetime of <code>self</code>, we can’t call a <code>&amp;mut self</code> when that <code>None</code> is in scope. This is annoying and could be improved by doing some local reasoning. In our case, since we know that <code>None</code> can’t borrow anything (it doesn’t have any references), we could refine our information about currently borrwed values, and let this compile.</p>
 <p>There are a couple of solutions. One half-solution is to use something like standard <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry"><code>HashMap</code>’s <code>entry()</code></a>. Imagine doing something like:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">use</span> std::collections::hash_map::HashMap;</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3"><span class="kw">struct</span> ListOfThings <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">    list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,</a>
-<a class="sourceLine" id="cb4-5" data-line-number="5"><span class="op">}</span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="kw">struct</span> Thing <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-8" data-line-number="8">    field1 : <span class="dt">i32</span>,</a>
-<a class="sourceLine" id="cb4-9" data-line-number="9">    <span class="co">// other fields here -- this is expensive to copy!</span></a>
-<a class="sourceLine" id="cb4-10" data-line-number="10"><span class="op">}</span></a>
-<a class="sourceLine" id="cb4-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb4-12" data-line-number="12"><span class="kw">impl</span> Thing <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{}</span></a>
-<a class="sourceLine" id="cb4-14" data-line-number="14"><span class="op">}</span></a>
-<a class="sourceLine" id="cb4-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb4-16" data-line-number="16"><span class="kw">impl</span> ListOfThings <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-17" data-line-number="17">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-18" data-line-number="18">        <span class="kw">match</span> <span class="kw">self</span>.list.get_mut(name) <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-19" data-line-number="19">            <span class="cn">None</span> =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-20" data-line-number="20">                <span class="kw">self</span>.list.insert(name.to_owned(), Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);</a>
-<a class="sourceLine" id="cb4-21" data-line-number="21">            <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb4-22" data-line-number="22">            <span class="cn">Some</span>(t) =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb4-23" data-line-number="23">                t.do_something();</a>
-<a class="sourceLine" id="cb4-24" data-line-number="24">            <span class="op">}</span></a>
-<a class="sourceLine" id="cb4-25" data-line-number="25">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb4-26" data-line-number="26">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb4-27" data-line-number="27"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">use</span> <span class="pp">std::collections::hash_map::</span>HashMap;</a>
+<a class="sourceLine" id="cb4-2" title="2"></a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="kw">struct</span> ListOfThings <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-4" title="4">    list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,</a>
+<a class="sourceLine" id="cb4-5" title="5"><span class="op">}</span></a>
+<a class="sourceLine" id="cb4-6" title="6"></a>
+<a class="sourceLine" id="cb4-7" title="7"><span class="kw">struct</span> Thing <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-8" title="8">    field1 : <span class="dt">i32</span>,</a>
+<a class="sourceLine" id="cb4-9" title="9">    <span class="co">// other fields here -- this is expensive to copy!</span></a>
+<a class="sourceLine" id="cb4-10" title="10"><span class="op">}</span></a>
+<a class="sourceLine" id="cb4-11" title="11"></a>
+<a class="sourceLine" id="cb4-12" title="12"><span class="kw">impl</span> Thing <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-13" title="13">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{}</span></a>
+<a class="sourceLine" id="cb4-14" title="14"><span class="op">}</span></a>
+<a class="sourceLine" id="cb4-15" title="15"></a>
+<a class="sourceLine" id="cb4-16" title="16"><span class="kw">impl</span> ListOfThings <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-17" title="17">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-18" title="18">        <span class="kw">match</span> <span class="kw">self</span>.list.get_mut(name) <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-19" title="19">            <span class="cn">None</span> =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-20" title="20">                <span class="kw">self</span>.list.insert(name.to_owned(), Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);</a>
+<a class="sourceLine" id="cb4-21" title="21">            <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb4-22" title="22">            <span class="cn">Some</span>(t) =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb4-23" title="23">                t.do_something();</a>
+<a class="sourceLine" id="cb4-24" title="24">            <span class="op">}</span></a>
+<a class="sourceLine" id="cb4-25" title="25">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb4-26" title="26">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb4-27" title="27"><span class="op">}</span></a></code></pre></div>
 <p>The error we get:</p>
 <pre><code>&lt;anon&gt;:20:17: 20:26 error: cannot borrow `self.list` as mutable more than once at a time [E0499]
 &lt;anon&gt;:20                 self.list.insert(name.to_owned(), Thing { field1: 123 });
@@ -541,82 +541,82 @@ while workset is not empty:
 &lt;anon&gt;:25         }
                   ^</code></pre>
 <p>This is exactly the same error we got before. The solution is to use <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry">the <code>Entry</code> API</a>:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">use</span> std::collections::hash_map::<span class="op">{</span>HashMap, Entry<span class="op">}</span>;</a>
-<a class="sourceLine" id="cb6-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="kw">struct</span> ListOfThings <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">    list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,</a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="op">}</span></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7"><span class="kw">struct</span> Thing <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-8" data-line-number="8">    field1 : <span class="dt">i32</span>,</a>
-<a class="sourceLine" id="cb6-9" data-line-number="9">    <span class="co">// other fields here -- this is expensive to copy!</span></a>
-<a class="sourceLine" id="cb6-10" data-line-number="10"><span class="op">}</span></a>
-<a class="sourceLine" id="cb6-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb6-12" data-line-number="12"><span class="kw">impl</span> Thing <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-13" data-line-number="13">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{}</span></a>
-<a class="sourceLine" id="cb6-14" data-line-number="14"><span class="op">}</span></a>
-<a class="sourceLine" id="cb6-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb6-16" data-line-number="16"><span class="kw">impl</span> ListOfThings <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-17" data-line-number="17">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-18" data-line-number="18">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-19" data-line-number="19">            Entry::Vacant(ve) =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-20" data-line-number="20">                ve.insert(Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);</a>
-<a class="sourceLine" id="cb6-21" data-line-number="21">            <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb6-22" data-line-number="22">            Entry::Occupied(<span class="kw">mut</span> oe) =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-23" data-line-number="23">                oe.get_mut().do_something();</a>
-<a class="sourceLine" id="cb6-24" data-line-number="24">            <span class="op">}</span></a>
-<a class="sourceLine" id="cb6-25" data-line-number="25">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb6-26" data-line-number="26">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb6-27" data-line-number="27"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">use</span> <span class="pp">std::collections::hash_map::</span><span class="op">{</span>HashMap, Entry<span class="op">}</span>;</a>
+<a class="sourceLine" id="cb6-2" title="2"></a>
+<a class="sourceLine" id="cb6-3" title="3"><span class="kw">struct</span> ListOfThings <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-4" title="4">    list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,</a>
+<a class="sourceLine" id="cb6-5" title="5"><span class="op">}</span></a>
+<a class="sourceLine" id="cb6-6" title="6"></a>
+<a class="sourceLine" id="cb6-7" title="7"><span class="kw">struct</span> Thing <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-8" title="8">    field1 : <span class="dt">i32</span>,</a>
+<a class="sourceLine" id="cb6-9" title="9">    <span class="co">// other fields here -- this is expensive to copy!</span></a>
+<a class="sourceLine" id="cb6-10" title="10"><span class="op">}</span></a>
+<a class="sourceLine" id="cb6-11" title="11"></a>
+<a class="sourceLine" id="cb6-12" title="12"><span class="kw">impl</span> Thing <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-13" title="13">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{}</span></a>
+<a class="sourceLine" id="cb6-14" title="14"><span class="op">}</span></a>
+<a class="sourceLine" id="cb6-15" title="15"></a>
+<a class="sourceLine" id="cb6-16" title="16"><span class="kw">impl</span> ListOfThings <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-17" title="17">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-18" title="18">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-19" title="19">            <span class="pp">Entry::</span>Vacant(ve) =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-20" title="20">                ve.insert(Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);</a>
+<a class="sourceLine" id="cb6-21" title="21">            <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb6-22" title="22">            <span class="pp">Entry::</span>Occupied(<span class="kw">mut</span> oe) =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb6-23" title="23">                oe.get_mut().do_something();</a>
+<a class="sourceLine" id="cb6-24" title="24">            <span class="op">}</span></a>
+<a class="sourceLine" id="cb6-25" title="25">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb6-26" title="26">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb6-27" title="27"><span class="op">}</span></a></code></pre></div>
 <p>Some things to note here:</p>
 <ol type="1">
 <li><p>We had to give ownership of the key to the lookup function (<code>HashMap::entry()</code>). This potentially means copying a value just to lookup. Ideally we’d only need to do this when inserting to the map. <code>HashMap::get()</code> doesn’t have this problem.</p></li>
 <li><p>I said “half-solution” because this doesn’t really make the original code working. See how I removed a line in the first case in my <code>HashMap</code>-based implementation. If I change the first case to this:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb7-1" data-line-number="1">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">            Entry::Vacant(ve) =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb7-3" data-line-number="3">                ve.insert(Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);</a>
-<a class="sourceLine" id="cb7-4" data-line-number="4">                <span class="kw">self</span>.do_something(name)</a>
-<a class="sourceLine" id="cb7-5" data-line-number="5">            <span class="op">}</span>,</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb7-1" title="1">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-2" title="2">            <span class="pp">Entry::</span>Vacant(ve) =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb7-3" title="3">                ve.insert(Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);</a>
+<a class="sourceLine" id="cb7-4" title="4">                <span class="kw">self</span>.do_something(name)</a>
+<a class="sourceLine" id="cb7-5" title="5">            <span class="op">}</span>,</a></code></pre></div>
 <p>It’d still fail as <code>Entry</code> keeps a reference to <code>self</code>. Of course you could always do things like:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb8-1" data-line-number="1">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span></a>
-<a class="sourceLine" id="cb8-2" data-line-number="2">            Entry::Vacant(ve) =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">                <span class="kw">let</span> <span class="kw">mut</span> thing = Thing <span class="op">{</span> field1 : <span class="dv">123</span> <span class="op">}</span>;</a>
-<a class="sourceLine" id="cb8-4" data-line-number="4">                thing.do_something();</a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">                ve.insert(thing);</a>
-<a class="sourceLine" id="cb8-6" data-line-number="6">            <span class="op">}</span>,</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb8-1" title="1">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span></a>
+<a class="sourceLine" id="cb8-2" title="2">            <span class="pp">Entry::</span>Vacant(ve) =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb8-3" title="3">                <span class="kw">let</span> <span class="kw">mut</span> thing = Thing <span class="op">{</span> field1 : <span class="dv">123</span> <span class="op">}</span>;</a>
+<a class="sourceLine" id="cb8-4" title="4">                thing.do_something();</a>
+<a class="sourceLine" id="cb8-5" title="5">                ve.insert(thing);</a>
+<a class="sourceLine" id="cb8-6" title="6">            <span class="op">}</span>,</a></code></pre></div>
 <p>Which works, but that’s quite different from our original program. Note that if we still had a method like <code>init_thing()</code> and has to pass <code>Entry</code> to that, it’d still fail with same error message. So yeah, not quite a solution.</p></li>
 </ol>
 <p>The solution I use is this:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">impl</span> ListOfThings <span class="op">{</span></a>
-<a class="sourceLine" id="cb9-2" data-line-number="2">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb9-3" data-line-number="3">        <span class="kw">let</span> thing : <span class="dt">Option</span>&lt;*<span class="kw">mut</span> Thing&gt; = <span class="kw">self</span>.find_thing_mut(name).map(|t| (t <span class="kw">as</span> *<span class="kw">mut</span> _));</a>
-<a class="sourceLine" id="cb9-4" data-line-number="4">        <span class="kw">match</span> thing <span class="op">{</span></a>
-<a class="sourceLine" id="cb9-5" data-line-number="5">            <span class="cn">None</span> =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb9-6" data-line-number="6">                <span class="kw">self</span>.init_thing(name.to_owned());</a>
-<a class="sourceLine" id="cb9-7" data-line-number="7">                <span class="kw">self</span>.do_something(name)</a>
-<a class="sourceLine" id="cb9-8" data-line-number="8">            <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb9-9" data-line-number="9">            <span class="cn">Some</span>(t) =&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb9-10" data-line-number="10">                <span class="kw">unsafe</span> <span class="op">{</span> (*t).do_something() <span class="op">}</span></a>
-<a class="sourceLine" id="cb9-11" data-line-number="11">            <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb9-12" data-line-number="12">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb9-13" data-line-number="13">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb9-14" data-line-number="14"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">impl</span> ListOfThings <span class="op">{</span></a>
+<a class="sourceLine" id="cb9-2" title="2">    <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb9-3" title="3">        <span class="kw">let</span> thing : <span class="dt">Option</span>&lt;*<span class="kw">mut</span> Thing&gt; = <span class="kw">self</span>.find_thing_mut(name).map(|t| (t <span class="kw">as</span> *<span class="kw">mut</span> _));</a>
+<a class="sourceLine" id="cb9-4" title="4">        <span class="kw">match</span> thing <span class="op">{</span></a>
+<a class="sourceLine" id="cb9-5" title="5">            <span class="cn">None</span> =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb9-6" title="6">                <span class="kw">self</span>.init_thing(name.to_owned());</a>
+<a class="sourceLine" id="cb9-7" title="7">                <span class="kw">self</span>.do_something(name)</a>
+<a class="sourceLine" id="cb9-8" title="8">            <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb9-9" title="9">            <span class="cn">Some</span>(t) =&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb9-10" title="10">                <span class="kw">unsafe</span> <span class="op">{</span> (*t).do_something() <span class="op">}</span></a>
+<a class="sourceLine" id="cb9-11" title="11">            <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb9-12" title="12">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb9-13" title="13">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb9-14" title="14"><span class="op">}</span></a></code></pre></div>
 <p>(missing parts are the same as the original code),</p>
 <p>I basically work around the borrow checker by using a raw pointer and an <code>unsafe</code> block, and hope that my <code>.map()</code> will be compiled as a no-op.</p>
 <h1 id="references-to-self-in-method-values">2. References to self in method values</h1>
 <p>A code like this fails if the method is mutable in self: <code>self.f(self.x)</code>. As a running example:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw">struct</span> Widget <span class="op">{</span></a>
-<a class="sourceLine" id="cb10-2" data-line-number="2">    pos_x : <span class="dt">i32</span>,</a>
-<a class="sourceLine" id="cb10-3" data-line-number="3">    pos_y : <span class="dt">i32</span>,</a>
-<a class="sourceLine" id="cb10-4" data-line-number="4"><span class="op">}</span></a>
-<a class="sourceLine" id="cb10-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="kw">impl</span> Widget <span class="op">{</span></a>
-<a class="sourceLine" id="cb10-7" data-line-number="7">    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></a>
-<a class="sourceLine" id="cb10-8" data-line-number="8">        <span class="kw">self</span>.draw_at(<span class="kw">self</span>.pos_x, <span class="kw">self</span>.pos_y);</a>
-<a class="sourceLine" id="cb10-9" data-line-number="9">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb10-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb10-11" data-line-number="11">    <span class="kw">pub</span> <span class="kw">fn</span> draw_at(&amp;<span class="kw">mut</span> <span class="kw">self</span>, pos_x : <span class="dt">i32</span>, pos_y : <span class="dt">i32</span>) <span class="op">{}</span></a>
-<a class="sourceLine" id="cb10-12" data-line-number="12"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">struct</span> Widget <span class="op">{</span></a>
+<a class="sourceLine" id="cb10-2" title="2">    pos_x : <span class="dt">i32</span>,</a>
+<a class="sourceLine" id="cb10-3" title="3">    pos_y : <span class="dt">i32</span>,</a>
+<a class="sourceLine" id="cb10-4" title="4"><span class="op">}</span></a>
+<a class="sourceLine" id="cb10-5" title="5"></a>
+<a class="sourceLine" id="cb10-6" title="6"><span class="kw">impl</span> Widget <span class="op">{</span></a>
+<a class="sourceLine" id="cb10-7" title="7">    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></a>
+<a class="sourceLine" id="cb10-8" title="8">        <span class="kw">self</span>.draw_at(<span class="kw">self</span>.pos_x, <span class="kw">self</span>.pos_y);</a>
+<a class="sourceLine" id="cb10-9" title="9">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb10-10" title="10"></a>
+<a class="sourceLine" id="cb10-11" title="11">    <span class="kw">pub</span> <span class="kw">fn</span> draw_at(&amp;<span class="kw">mut</span> <span class="kw">self</span>, pos_x : <span class="dt">i32</span>, pos_y : <span class="dt">i32</span>) <span class="op">{}</span></a>
+<a class="sourceLine" id="cb10-12" title="12"><span class="op">}</span></a></code></pre></div>
 <p>These are the errors:</p>
 <pre><code>&lt;anon&gt;:8:22: 8:32 error: cannot use `self.pos_x` because it was mutably borrowed [E0503]
 &lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
@@ -631,40 +631,40 @@ while workset is not empty:
 &lt;anon&gt;:8         self.draw_at(self.pos_x, self.pos_y);
                  ^~~~</code></pre>
 <p>Basically the method itself (<code>self.draw_at</code>) borrows <code>self</code> mutably, and since arguments are evaluated <em>after</em> the function in a function application, we get this borrow checker error. The solution is simple in this case:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw">let</span> pos_x = <span class="kw">self</span>.pos_x;</a>
-<a class="sourceLine" id="cb12-2" data-line-number="2"><span class="kw">let</span> pos_y = <span class="kw">self</span>.pos_y;</a>
-<a class="sourceLine" id="cb12-3" data-line-number="3"><span class="kw">self</span>.draw_at(pos_x, pos_y);</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">let</span> pos_x = <span class="kw">self</span>.pos_x;</a>
+<a class="sourceLine" id="cb12-2" title="2"><span class="kw">let</span> pos_y = <span class="kw">self</span>.pos_y;</a>
+<a class="sourceLine" id="cb12-3" title="3"><span class="kw">self</span>.draw_at(pos_x, pos_y);</a></code></pre></div>
 <h1 id="variables-that-live-across-loops">3. Variables that live across loops</h1>
 <p>Suppose you have a loop that internally calls some <code>&amp;mut self</code> methods, and when it returns, it returns something with a reference to <code>&amp;self</code>. Something like:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">pub</span> <span class="kw">struct</span> TUI <span class="op">{</span></a>
-<a class="sourceLine" id="cb13-2" data-line-number="2">    field1: <span class="dt">i32</span>,</a>
-<a class="sourceLine" id="cb13-3" data-line-number="3"><span class="op">}</span></a>
-<a class="sourceLine" id="cb13-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb13-5" data-line-number="5"><span class="kw">pub</span> <span class="kw">enum</span> TUIRet&lt;<span class="ot">&#39;a</span>&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb13-6" data-line-number="6">    Abort,</a>
-<a class="sourceLine" id="cb13-7" data-line-number="7">    KeyHandled,</a>
-<a class="sourceLine" id="cb13-8" data-line-number="8">    Input(&amp;<span class="ot">&#39;a</span> <span class="dt">str</span>),</a>
-<a class="sourceLine" id="cb13-9" data-line-number="9"><span class="op">}</span></a>
-<a class="sourceLine" id="cb13-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb13-11" data-line-number="11"><span class="kw">impl</span> TUI <span class="op">{</span></a>
-<a class="sourceLine" id="cb13-12" data-line-number="12">    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">&#39;a</span>&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb13-13" data-line-number="13">        <span class="kw">loop</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb13-14" data-line-number="14">            <span class="kw">self</span>.draw();</a>
-<a class="sourceLine" id="cb13-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb13-16" data-line-number="16">            <span class="kw">match</span> <span class="kw">self</span>.keypressed() <span class="op">{</span></a>
-<a class="sourceLine" id="cb13-17" data-line-number="17">                ret @ TUIRet::Abort =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb13-18" data-line-number="18">                ret @ TUIRet::Input(_) =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,</a>
-<a class="sourceLine" id="cb13-19" data-line-number="19">                _ =&gt; <span class="op">{}</span>,</a>
-<a class="sourceLine" id="cb13-20" data-line-number="20">            <span class="op">}</span></a>
-<a class="sourceLine" id="cb13-21" data-line-number="21">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb13-22" data-line-number="22">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb13-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb13-24" data-line-number="24">    <span class="kw">pub</span> <span class="kw">fn</span> keypressed(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet <span class="op">{</span></a>
-<a class="sourceLine" id="cb13-25" data-line-number="25">        <span class="pp">panic!</span>()</a>
-<a class="sourceLine" id="cb13-26" data-line-number="26">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb13-27" data-line-number="27"></a>
-<a class="sourceLine" id="cb13-28" data-line-number="28">    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">self</span>) <span class="op">{}</span></a>
-<a class="sourceLine" id="cb13-29" data-line-number="29"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">pub</span> <span class="kw">struct</span> TUI <span class="op">{</span></a>
+<a class="sourceLine" id="cb13-2" title="2">    field1: <span class="dt">i32</span>,</a>
+<a class="sourceLine" id="cb13-3" title="3"><span class="op">}</span></a>
+<a class="sourceLine" id="cb13-4" title="4"></a>
+<a class="sourceLine" id="cb13-5" title="5"><span class="kw">pub</span> <span class="kw">enum</span> TUIRet&lt;<span class="ot">&#39;a</span>&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb13-6" title="6">    Abort,</a>
+<a class="sourceLine" id="cb13-7" title="7">    KeyHandled,</a>
+<a class="sourceLine" id="cb13-8" title="8">    Input(&amp;<span class="ot">&#39;a</span> <span class="dt">str</span>),</a>
+<a class="sourceLine" id="cb13-9" title="9"><span class="op">}</span></a>
+<a class="sourceLine" id="cb13-10" title="10"></a>
+<a class="sourceLine" id="cb13-11" title="11"><span class="kw">impl</span> TUI <span class="op">{</span></a>
+<a class="sourceLine" id="cb13-12" title="12">    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">&#39;a</span>&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb13-13" title="13">        <span class="kw">loop</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb13-14" title="14">            <span class="kw">self</span>.draw();</a>
+<a class="sourceLine" id="cb13-15" title="15"></a>
+<a class="sourceLine" id="cb13-16" title="16">            <span class="kw">match</span> <span class="kw">self</span>.keypressed() <span class="op">{</span></a>
+<a class="sourceLine" id="cb13-17" title="17">                ret @ <span class="pp">TUIRet::</span>Abort =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb13-18" title="18">                ret @ <span class="pp">TUIRet::</span>Input(_) =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,</a>
+<a class="sourceLine" id="cb13-19" title="19">                _ =&gt; <span class="op">{}</span>,</a>
+<a class="sourceLine" id="cb13-20" title="20">            <span class="op">}</span></a>
+<a class="sourceLine" id="cb13-21" title="21">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb13-22" title="22">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb13-23" title="23"></a>
+<a class="sourceLine" id="cb13-24" title="24">    <span class="kw">pub</span> <span class="kw">fn</span> keypressed(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet <span class="op">{</span></a>
+<a class="sourceLine" id="cb13-25" title="25">        <span class="pp">panic!</span>()</a>
+<a class="sourceLine" id="cb13-26" title="26">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb13-27" title="27"></a>
+<a class="sourceLine" id="cb13-28" title="28">    <span class="kw">pub</span> <span class="kw">fn</span> draw(&amp;<span class="kw">self</span>) <span class="op">{}</span></a>
+<a class="sourceLine" id="cb13-29" title="29"><span class="op">}</span></a></code></pre></div>
 <p>Can you see what could go wrong here? Here’s the error:</p>
 <pre><code>&lt;anon&gt;:18:13: 18:17 error: cannot borrow `*self` as immutable because it is also borrowed as mutable [E0502]
 &lt;anon&gt;:18             self.draw();
@@ -694,12 +694,12 @@ while workset is not empty:
 &lt;anon&gt;:26     }
               ^</code></pre>
 <p>This is probably the worst of all. The weird part is that this works:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb15-1" data-line-number="1">    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">&#39;a</span>&gt; <span class="op">{</span></a>
-<a class="sourceLine" id="cb15-2" data-line-number="2">        <span class="kw">loop</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb15-3" data-line-number="3">            <span class="kw">self</span>.draw();</a>
-<a class="sourceLine" id="cb15-4" data-line-number="4">            <span class="kw">return</span> <span class="kw">self</span>.keypressed();</a>
-<a class="sourceLine" id="cb15-5" data-line-number="5">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb15-6" data-line-number="6">    <span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode rust"><code class="sourceCode rust"><a class="sourceLine" id="cb15-1" title="1">    <span class="kw">pub</span> <span class="kw">fn</span> idle_loop&lt;<span class="ot">&#39;a</span>&gt;(&amp;<span class="ot">&#39;a</span> <span class="kw">mut</span> <span class="kw">self</span>) -&gt; TUIRet&lt;<span class="ot">&#39;a</span>&gt; <span class="op">{</span></a>
+<a class="sourceLine" id="cb15-2" title="2">        <span class="kw">loop</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb15-3" title="3">            <span class="kw">self</span>.draw();</a>
+<a class="sourceLine" id="cb15-4" title="4">            <span class="kw">return</span> <span class="kw">self</span>.keypressed();</a>
+<a class="sourceLine" id="cb15-5" title="5">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb15-6" title="6">    <span class="op">}</span></a></code></pre></div>
 <p>Only solution I could find here was to remove the references to <code>self</code>, by just copying the value to <code>Input</code>. This unfortunately means more redundant copying.</p>]]></summary>
 </entry>
 

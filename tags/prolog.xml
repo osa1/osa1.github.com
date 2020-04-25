@@ -39,23 +39,23 @@
 <p>I will not formally define the type system here, but I think it can be seen as a simple Damas-Hindley-Milner style type system.</p>
 <p>This implementation basically embeds type definitions in Prolog. This is what makes this implementation simple. You can always implement a fully-featured type system in Prolog just like you can do it in any other language. What I’m trying to show here that it’s very simple to do when there is a way to implement types as rules in Prolog.</p>
 <p>Here’s knowledge base of types:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb1-1" data-line-number="1">nat(o)<span class="kw">.</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">nat(s(<span class="dt">N</span>)) <span class="kw">:-</span> nat(<span class="dt">N</span>)<span class="kw">.</span></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4">bool(<span class="kw">true</span>)<span class="kw">.</span></a>
-<a class="sourceLine" id="cb1-5" data-line-number="5">bool(<span class="kw">false</span>)<span class="kw">.</span></a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">type(<span class="dt">A</span><span class="kw">,</span> nat) <span class="kw">:-</span> nat(<span class="dt">A</span>)<span class="kw">,</span> <span class="kw">!.</span></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8">type(<span class="dt">A</span><span class="kw">,</span> bool) <span class="kw">:-</span> bool(<span class="dt">A</span>)<span class="kw">,</span> <span class="kw">!.</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9">type(id<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">A</span>)) <span class="kw">:-</span> <span class="kw">!.</span></a>
-<a class="sourceLine" id="cb1-10" data-line-number="10">type(add<span class="kw">,</span> arrow(nat<span class="kw">,</span> arrow(nat<span class="kw">,</span> nat))) <span class="kw">:-</span> <span class="kw">!.</span></a>
-<a class="sourceLine" id="cb1-11" data-line-number="11">type(not<span class="kw">,</span> arrow(bool<span class="kw">,</span> bool)) <span class="kw">:-</span> <span class="kw">!.</span></a>
-<a class="sourceLine" id="cb1-12" data-line-number="12">type(const<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> arrow(<span class="dt">_</span><span class="kw">,</span> <span class="dt">A</span>)))<span class="kw">.</span></a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb1-1" title="1">nat(o)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb1-2" title="2">nat(s(<span class="dt">N</span>)) <span class="kw">:-</span> nat(<span class="dt">N</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb1-3" title="3"></a>
+<a class="sourceLine" id="cb1-4" title="4">bool(<span class="kw">true</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb1-5" title="5">bool(<span class="kw">false</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb1-6" title="6"></a>
+<a class="sourceLine" id="cb1-7" title="7">type(<span class="dt">A</span><span class="kw">,</span> nat) <span class="kw">:-</span> nat(<span class="dt">A</span>)<span class="kw">,</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-8" title="8">type(<span class="dt">A</span><span class="kw">,</span> bool) <span class="kw">:-</span> bool(<span class="dt">A</span>)<span class="kw">,</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-9" title="9">type(id<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">A</span>)) <span class="kw">:-</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-10" title="10">type(add<span class="kw">,</span> arrow(nat<span class="kw">,</span> arrow(nat<span class="kw">,</span> nat))) <span class="kw">:-</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-11" title="11">type(not<span class="kw">,</span> arrow(bool<span class="kw">,</span> bool)) <span class="kw">:-</span> <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb1-12" title="12">type(const<span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> arrow(<span class="dt">_</span><span class="kw">,</span> <span class="dt">A</span>)))<span class="kw">.</span></a></code></pre></div>
 <p>Implementing type definitions as rules in a Prolog system is what makes this implementation simple. Here <code>id</code> is a function with type <code>forall a. a -&gt; a</code>, <code>add</code> is <code>nat -&gt; nat</code>, <code>not</code> is <code>bool -&gt; bool</code>, and <code>const</code> is <code>forall a b. a -&gt; b -&gt; a</code>.</p>
 <p>Type checking of function applications is also simple:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb2-1" data-line-number="1">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">R</span>))<span class="kw">,</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span></a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb2-1" title="1">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb2-2" title="2">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">R</span>))<span class="kw">,</span></a>
+<a class="sourceLine" id="cb2-3" title="3">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span></a></code></pre></div>
 <p>And we’re done. This much code is enough for type checking polymorphic functions. Here are some examples:</p>
 <pre><code>?- type(app(id, false), T).
 T = bool.
@@ -79,53 +79,53 @@ T = bool.
 T = bool.</code></pre>
 <p>One major limitation of this implementation is that there is no way to implement monomorphic functions. To do this, we should somehow have two different kinds of Prolog variables, one for polymorphic variables and one for monomorphic ones.</p>
 <p>Since there’s no way to directly express this in Prolog, I had to extend this code with a typing environment. In the implementation above, if parameter of a function is an atom and not a variable, then it’s looked in a global environment.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb4-1" data-line-number="1">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">    <span class="dt">var</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% polymorphic parameter</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">    <span class="dt">R</span> <span class="kw">=</span> <span class="dt">B</span><span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6">    <span class="kw">!.</span></a>
-<a class="sourceLine" id="cb4-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb4-8" data-line-number="8">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
-<a class="sourceLine" id="cb4-9" data-line-number="9">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-10" data-line-number="10">    <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span></a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">    get_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-12" data-line-number="12">    <span class="co">% type already exists in environment</span></a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">    <span class="kw">!,</span></a>
-<a class="sourceLine" id="cb4-14" data-line-number="14">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-15" data-line-number="15">    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-16" data-line-number="16">    <span class="kw">!.</span></a>
-<a class="sourceLine" id="cb4-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb4-18" data-line-number="18">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
-<a class="sourceLine" id="cb4-19" data-line-number="19">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-20" data-line-number="20">    <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span></a>
-<a class="sourceLine" id="cb4-21" data-line-number="21">    <span class="co">% type doesn&#39;t exist in environment</span></a>
-<a class="sourceLine" id="cb4-22" data-line-number="22">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-23" data-line-number="23">    add_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-24" data-line-number="24">    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb4-25" data-line-number="25">    <span class="kw">!.</span></a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb4-1" title="1">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb4-2" title="2">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-3" title="3">    <span class="dt">var</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% polymorphic parameter</span></a>
+<a class="sourceLine" id="cb4-4" title="4">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-5" title="5">    <span class="dt">R</span> <span class="kw">=</span> <span class="dt">B</span><span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-6" title="6">    <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb4-7" title="7"></a>
+<a class="sourceLine" id="cb4-8" title="8">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb4-9" title="9">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-10" title="10">    <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span></a>
+<a class="sourceLine" id="cb4-11" title="11">    get_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-12" title="12">    <span class="co">% type already exists in environment</span></a>
+<a class="sourceLine" id="cb4-13" title="13">    <span class="kw">!,</span></a>
+<a class="sourceLine" id="cb4-14" title="14">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeA</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-15" title="15">    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-16" title="16">    <span class="kw">!.</span></a>
+<a class="sourceLine" id="cb4-17" title="17"></a>
+<a class="sourceLine" id="cb4-18" title="18">type(app(<span class="dt">F</span><span class="kw">,</span> <span class="dt">P</span>)<span class="kw">,</span> <span class="dt">R</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb4-19" title="19">    type(<span class="dt">F</span><span class="kw">,</span> arrow(<span class="dt">A</span><span class="kw">,</span> <span class="dt">B</span>))<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-20" title="20">    <span class="dt">atom</span>(<span class="dt">A</span>)<span class="kw">,</span> <span class="co">% monomorphic parameter</span></a>
+<a class="sourceLine" id="cb4-21" title="21">    <span class="co">% type doesn&#39;t exist in environment</span></a>
+<a class="sourceLine" id="cb4-22" title="22">    type(<span class="dt">P</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-23" title="23">    add_type(types<span class="kw">,</span> <span class="dt">A</span><span class="kw">,</span> <span class="dt">TypeP</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-24" title="24">    type_in_env(<span class="dt">B</span><span class="kw">,</span> <span class="dt">R</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb4-25" title="25">    <span class="kw">!.</span></a></code></pre></div>
 <p>First rule is for polymorphic parameters, only difference from the first code is <code>var(A)</code>, which ensures the parameter type is a variable.</p>
 <p>Second rule does a similar check, but this time to ensure the parameter is an atom and not a variable. After that, type of this parameter is looked from an environment and checked against it. The third rule is when a type is not found in the environment. In that case, a new type is added to the environment.</p>
 <p>Note that first cut is required in second rule. Because otherwise, when a type checking fails, third rule would be executed and a new type would be added to the environment.</p>
 <p>Here are environment operations:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb5-1" data-line-number="1">init_state(<span class="dt">Name</span>) <span class="kw">:-</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">    empty_assoc(<span class="dt">A</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">    nb_setval(<span class="dt">Name</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">add_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">    put_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">    nb_setval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">.</span></a>
-<a class="sourceLine" id="cb5-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10">get_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span></a>
-<a class="sourceLine" id="cb5-11" data-line-number="11">    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span></a>
-<a class="sourceLine" id="cb5-12" data-line-number="12">    get_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span>)<span class="kw">.</span></a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb5-1" title="1">init_state(<span class="dt">Name</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb5-2" title="2">    empty_assoc(<span class="dt">A</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb5-3" title="3">    nb_setval(<span class="dt">Name</span><span class="kw">,</span> <span class="dt">A</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb5-4" title="4"></a>
+<a class="sourceLine" id="cb5-5" title="5">add_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb5-6" title="6">    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb5-7" title="7">    put_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb5-8" title="8">    nb_setval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">NewState</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb5-9" title="9"></a>
+<a class="sourceLine" id="cb5-10" title="10">get_type(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">TermName</span><span class="kw">,</span> <span class="dt">Type</span>) <span class="kw">:-</span></a>
+<a class="sourceLine" id="cb5-11" title="11">    nb_getval(<span class="dt">SName</span><span class="kw">,</span> <span class="dt">State</span>)<span class="kw">,</span></a>
+<a class="sourceLine" id="cb5-12" title="12">    get_assoc(<span class="dt">TermName</span><span class="kw">,</span> <span class="dt">State</span><span class="kw">,</span> <span class="dt">Type</span>)<span class="kw">.</span></a></code></pre></div>
 <p>Environment operations get a environment name to keep the state local. ie. you can be sure your state is local if name of the state is not used somewhere else :-)</p>
 <p>This helper is used to get type of a term when term is an atom, and it’s type is available in environment. Otherwise it returns the term itself.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb6-1" data-line-number="1">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>) <span class="kw">:-</span> get_type(types<span class="kw">,</span> <span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>)<span class="kw">.</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T</span>)<span class="kw">.</span></a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb6-1" title="1">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>) <span class="kw">:-</span> get_type(types<span class="kw">,</span> <span class="dt">T</span><span class="kw">,</span> <span class="dt">T1</span>)<span class="kw">.</span></a>
+<a class="sourceLine" id="cb6-2" title="2">type_in_env(<span class="dt">T</span><span class="kw">,</span> <span class="dt">T</span>)<span class="kw">.</span></a></code></pre></div>
 <p>An example monomorphic function rule:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb7-1" data-line-number="1">type(mono_id<span class="kw">,</span> arrow(mono_id__a<span class="kw">,</span> mono_id__a)) <span class="kw">:-</span> <span class="kw">!.</span></a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode prolog"><code class="sourceCode prolog"><a class="sourceLine" id="cb7-1" title="1">type(mono_id<span class="kw">,</span> arrow(mono_id__a<span class="kw">,</span> mono_id__a)) <span class="kw">:-</span> <span class="kw">!.</span></a></code></pre></div>
 <p>It should be guaranteed by the programmer that <code>mono_id__a</code> atom is only used for <code>mono_id</code> function.</p>
 <p>Here are some examples for checking monomorphic functions(others work as before):</p>
 <pre><code>?- init_state(types).

@@ -55,7 +55,7 @@
     {<span class="ot"> _heist ::</span> <span class="dt">Snaplet</span> (<span class="dt">Heist</span> <span class="dt">App</span>)
     }
 
-makeLenses ''<span class="dt">App</span>
+makeLenses '<span class="dt">'App</span>
 
 <span class="kw">instance</span> <span class="dt">HasHeist</span> <span class="dt">App</span> <span class="kw">where</span>
     heistLens <span class="fu">=</span> subSnaplet heist</code></pre></div>
@@ -67,14 +67,14 @@ makeLenses ''<span class="dt">App</span>
 <div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell">makeSnaplet
 <span class="ot">  ::</span> <span class="dt">T.Text</span>                  <span class="co">-- ^ Default ID of the Snaplet, I have no idea where is this used.</span>
      <span class="ot">-&gt;</span> <span class="dt">T.Text</span>               <span class="co">-- ^ Description of the Snaplet, again, no idea where is this used.</span>
-     <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IO</span> FilePath)  <span class="co">-- ^ Root folder for Snaplet's filesystem content. In case your Snaplet works on files.</span>
+     <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IO</span> <span class="dt">FilePath</span>)  <span class="co">-- ^ Root folder for Snaplet's filesystem content. In case your Snaplet works on files.</span>
      <span class="ot">-&gt;</span> <span class="dt">Initializer</span> b v v    <span class="co">-- ^ Initializer for the Snaplet.</span>
      <span class="ot">-&gt;</span> <span class="dt">SnapletInit</span> b v      <span class="co">-- ^ SnapletInit is an opaque type for internal use. It's needed for embedding our snaplet to other snaplets.</span></code></pre></div>
 <p>We’re nesting Heist snaplet provided by <code>Snap.Snaplet.Heist</code> from <code>snap</code> package</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">   h <span class="ot">&lt;-</span> nestSnaplet <span class="st">&quot;&quot;</span> heist <span class="fu">$</span> heistInit <span class="st">&quot;templates&quot;</span></code></pre></div>
 <p>self explanatory, see definition below</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">   addRoutes routes
-   return <span class="fu">$</span> <span class="dt">App</span> h
+   <span class="fu">return</span> <span class="fu">$</span> <span class="dt">App</span> h
  <span class="kw">where</span>
 <span class="ot">   routes ::</span> [(<span class="dt">B.ByteString</span>, <span class="dt">Handler</span> <span class="dt">App</span> <span class="dt">App</span> ())]</code></pre></div>
 <p>routes are how we handle requests. <code>Handler</code> type takes 3 arguments, but I’m yet to figure out what do these arguments mean. I guess these are same as arguments in <code>SnapletInit</code> type, except the last one is for return values of Handler functions.</p>
@@ -96,7 +96,7 @@ mainHandler <span class="fu">=</span> <span class="kw">do</span>
 userForm <span class="fu">=</span> <span class="dt">User</span>
     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="dt">Nothing</span>
     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="dt">Nothing</span>)
-    <span class="fu">&lt;*&gt;</span> pure <span class="dv">0</span>
+    <span class="fu">&lt;*&gt;</span> <span class="fu">pure</span> <span class="dv">0</span>
   <span class="kw">where</span>
 <span class="ot">    validateEmail ::</span> <span class="dt">T.Text</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
     validateEmail <span class="fu">=</span> isJust <span class="fu">.</span> T.find (<span class="fu">==</span> <span class="ch">'@'</span>)</code></pre></div>

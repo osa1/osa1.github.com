@@ -26,64 +26,64 @@
 <p>Dildeki tek veri yapısı tablolar. Arrayler, mapler, modüller ve dil ile gelen tüm yapılar direkt olarak tablo. Bir veri yapısı yazmak istediğiniz de de tabloları kullanmak zorundasınız. Nasıl Python’da herşey nesneyse, Lua’da da <em>neredeyse</em> herşey tablo<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a> Sınıflarla sağlanan bir nesne tabanlı programlama desteği yok. Ama çok basit ve güzel bir özellik sayesinde, multiple inheritance bile sağlayabiliyorsunuz.</p>
 <p>Tüm tablolara <code>metatable</code> denilen bir tablo atayabiliyorsunuz. Bu metatablolar(ne diyeyim bilemedim bunlara) tablolar operatörlerle işleme sokulduğunda çağırılacak fonksiyonları tutuyorlar. Örneğin bir tablonun metatablosu <code>__add</code> gibi bir fonksiyona sahipse, bu tabloyu toplama işlemine sokabiliyoruz. Aynı <a href="http://docs.python.org/reference/datamodel.html#object.__add__">Python’daki <code>__add__</code> methodu</a> gibi. Eğer tabloda olmayan bir değer erişmek istersek de, benzer bir şekilde metatablodaki <code>__index</code> fonksiyonuna, eğer tabloda olmayan bir değer eklemeye çalışırsak(mevcut bir değeri değiştirme değil de farklı anahtara sahip bir değer ekleme yani) da <code>__newindex</code> fonksiyonu çağırılıyor. Bunlar aynı Python’daki <a href="http://docs.python.org/reference/datamodel.html#object.__getattr__"><code>__getattr__</code></a> ve <a href="http://docs.python.org/reference/datamodel.html#object.__setattr__"><code>__setattr__</code></a> gibiler.</p>
 <p>Bugün yazdığım uygulamada şöyle bir sorun yaşadım. <em>Rect</em> adlı bir tablo tutuyorum ve bu tabloyu metatablo olarak kullanan başka tablolar oluşturuyorum. Sanki <em>Rect</em> diye bir sınıfım varmış da nesneler oluşturuyormuşum gibi. Bir yerden sonra bu tablonun implementasyonunda ciddi bir değişiklik yapıyorum ve <code>x</code> ve <code>y</code> özellikleri yerine artık bir <code>center</code> ve <code>angle</code> diye iki özellik ekliyorum. Ama bu tablonun bazı <code>x</code> ve <code>y</code> özelliklerini kullanan fonksiyonlarımı teker teker değiştirmemem gerek. Python konuşanlara bunu şöyle özetleyebiliriz, sınıfımdan iki özellik siliyorum, bunların artık sınıftaki diğer özelliklerden hesaplanması gerek. Ama kodumu refactor etmek istemiyorum. Bu durumda Python’da yapılacak işlem bariz: <code>x</code> ve <code>y</code>yi <a href="http://docs.python.org/library/functions.html#property"><code>property</code></a> decoratorü içerisinde methodlar olarak tanımlamak<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a> Lua’da bunu şöyle yaptım:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua">Rect <span class="ot">=</span> <span class="ot">{</span> centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
-         centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
-         angle <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
-         width <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span>
-         height <span class="ot">=</span> <span class="dv">0</span> <span class="ot">}</span>
-<span class="kw">function</span> Rect_indexfn <span class="ot">(</span>table<span class="ot">,</span> key<span class="ot">)</span>
-    <span class="kw">local</span> f<span class="ot">,</span> o
-    <span class="kw">if</span> key <span class="ot">==</span> <span class="st">'x'</span> <span class="kw">then</span>
-        f <span class="ot">=</span> <span class="fu">math.cos</span>
-        o <span class="ot">=</span> table<span class="ot">.</span>centerx
-    <span class="kw">elseif</span> key <span class="ot">==</span> <span class="st">'y'</span> <span class="kw">then</span>
-        f <span class="ot">=</span> <span class="fu">math.sin</span>
-        o <span class="ot">=</span> table<span class="ot">.</span>centery
-    <span class="kw">end</span>
-    <span class="kw">if</span> f <span class="kw">then</span>
-        <span class="kw">return</span> o<span class="ot">-</span><span class="fu">math.abs</span><span class="ot">(</span>f<span class="ot">(</span><span class="fu">math.rad</span><span class="ot">(</span>table<span class="ot">.</span>angle<span class="ot">)))*</span>math<span class="ot">.</span>pow<span class="ot">(</span>math<span class="ot">.</span>pow<span class="ot">(</span>table<span class="ot">.</span>height<span class="ot">,</span> <span class="dv">2</span><span class="ot">)+</span>math<span class="ot">.</span>pow<span class="ot">(</span>table<span class="ot">.</span>width<span class="ot">,</span> <span class="dv">2</span><span class="ot">),</span> <span class="dv">0.5</span><span class="ot">)/</span><span class="dv">2</span>
-    <span class="kw">end</span>
-<span class="kw">end</span>
-<span class="kw">function</span> Rect:new<span class="ot">()</span>
-    <span class="fu">setmetatable</span><span class="ot">(</span>self<span class="ot">,</span> <span class="ot">{</span> __index <span class="ot">=</span> Rect_indexfn <span class="ot">})</span>
-    <span class="kw">return</span> self
-<span class="kw">end</span>
-a <span class="ot">=</span> Rect<span class="ot">.</span>new<span class="ot">({</span>centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> angle <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> width <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> height <span class="ot">=</span> <span class="dv">8</span><span class="ot">})</span>
-b <span class="ot">=</span> Rect<span class="ot">.</span>new<span class="ot">({</span>centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> angle <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> width <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> height <span class="ot">=</span> <span class="dv">8</span><span class="ot">})</span>
-b<span class="ot">.</span>angle <span class="ot">=</span> <span class="dv">60</span>
-<span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>x<span class="ot">)</span> <span class="do">-- -4.3301270189222</span>
-<span class="fu">print</span><span class="ot">(</span>b<span class="ot">.</span>y<span class="ot">)</span> <span class="do">-- -4.3301270189222</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua">Rect <span class="op">=</span> <span class="op">{</span> centerx <span class="op">=</span> <span class="dv">0</span><span class="op">,</span>
+         centery <span class="op">=</span> <span class="dv">0</span><span class="op">,</span>
+         angle <span class="op">=</span> <span class="dv">0</span><span class="op">,</span>
+         width <span class="op">=</span> <span class="dv">0</span><span class="op">,</span>
+         height <span class="op">=</span> <span class="dv">0</span> <span class="op">}</span>
+<span class="kw">function</span> Rect_indexfn <span class="op">(</span>table<span class="op">,</span> key<span class="op">)</span>
+    <span class="kw">local</span> f<span class="op">,</span> o
+    <span class="cf">if</span> key <span class="op">==</span> <span class="st">'x'</span> <span class="cf">then</span>
+        f <span class="op">=</span> <span class="fu">math.cos</span>
+        o <span class="op">=</span> table<span class="op">.</span>centerx
+    <span class="cf">elseif</span> key <span class="op">==</span> <span class="st">'y'</span> <span class="cf">then</span>
+        f <span class="op">=</span> <span class="fu">math.sin</span>
+        o <span class="op">=</span> table<span class="op">.</span>centery
+    <span class="cf">end</span>
+    <span class="cf">if</span> f <span class="cf">then</span>
+        <span class="cf">return</span> o<span class="op">-</span><span class="fu">math.abs</span><span class="op">(</span>f<span class="op">(</span><span class="fu">math.rad</span><span class="op">(</span>table<span class="op">.</span>angle<span class="op">)))*</span><span class="er">math.pow</span><span class="op">(</span><span class="er">math.pow</span><span class="op">(</span>table<span class="op">.</span>height<span class="op">,</span> <span class="dv">2</span><span class="op">)+</span><span class="er">math.pow</span><span class="op">(</span>table<span class="op">.</span>width<span class="op">,</span> <span class="dv">2</span><span class="op">),</span> <span class="dv">0.5</span><span class="op">)/</span><span class="dv">2</span>
+    <span class="cf">end</span>
+<span class="cf">end</span>
+<span class="kw">function</span> Rect<span class="op">:</span>new<span class="op">()</span>
+    <span class="fu">setmetatable</span><span class="op">(</span>self<span class="op">,</span> <span class="op">{</span> <span class="bu">__index</span> <span class="op">=</span> Rect_indexfn <span class="op">})</span>
+    <span class="cf">return</span> self
+<span class="cf">end</span>
+a <span class="op">=</span> Rect<span class="op">.</span>new<span class="op">({</span>centerx <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> centery <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> angle <span class="op">=</span> <span class="dv">30</span><span class="op">,</span> width <span class="op">=</span> <span class="dv">6</span><span class="op">,</span> height <span class="op">=</span> <span class="dv">8</span><span class="op">})</span>
+b <span class="op">=</span> Rect<span class="op">.</span>new<span class="op">({</span>centerx <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> centery <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> angle <span class="op">=</span> <span class="dv">30</span><span class="op">,</span> width <span class="op">=</span> <span class="dv">6</span><span class="op">,</span> height <span class="op">=</span> <span class="dv">8</span><span class="op">})</span>
+b<span class="op">.</span>angle <span class="op">=</span> <span class="dv">60</span>
+<span class="fu">print</span><span class="op">(</span>a<span class="op">.</span>x<span class="op">)</span> <span class="co">-- -4.3301270189222</span>
+<span class="fu">print</span><span class="op">(</span>b<span class="op">.</span>y<span class="op">)</span> <span class="co">-- -4.3301270189222</span></code></pre></div>
 <p>Tek yaptığım, yeni bir Rect oluşturuğum tablonun metatablosunu daha önceden belirlediğim <code>Rect_indexfn</code> fonksiyonunun <code>__index</code> fonksiyonu olarak tutan bir tablo olarak belirlemek. Bundan ne zaman kendisinin sahip olmadığı bir değere erişilmeye çalışsa, bu fonksiyon çalışarak erişilmek istenen değere göre işlemler yapıyor. Bu arada <code>:</code> ile tanımladığım fonksiyonların aldığı ilk parametre <code>self</code> değerine atanıyor. <code>Rect:new()</code> fonksiyonum hiçbir parametre almıyormuş gibi gözüksede, <code>self</code> adlı bir parametre alıyor yani aslında.</p>
 <p>Şimdi normalde bunu gösterip bitirecektim ama multiple inheritance implementasyonu da o kadar kolay ki atlayamadım:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> Rect:new<span class="ot">(</span>ps<span class="ot">)</span>
-    <span class="do">-- lua'da vararglar biraz sorunlu oldugundan superclasslari</span>
-    <span class="do">-- bir array olarak alacagim. detaylar icin: http://lua-users.org/wiki/VarargTheSecondClassCitizen</span>
-    <span class="kw">local</span> <span class="kw">function</span> indexfn <span class="ot">(</span>table<span class="ot">,</span> key<span class="ot">)</span>
-        <span class="kw">local</span> v <span class="ot">=</span> Rect_indexfn<span class="ot">(</span>table<span class="ot">,</span> key<span class="ot">)</span>
-        <span class="kw">if</span> v <span class="kw">then</span>
-            <span class="kw">return</span> v
-        <span class="kw">end</span>
-        <span class="kw">for</span> i<span class="ot">,</span>v <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span>ps<span class="ot">)</span> <span class="kw">do</span>
-            v <span class="ot">=</span> v<span class="ot">[</span>key<span class="ot">]</span>
-            <span class="kw">if</span> v <span class="kw">then</span>
-                <span class="kw">return</span> v
-            <span class="kw">end</span>
-        <span class="kw">end</span>
-    <span class="kw">end</span>
-    <span class="fu">setmetatable</span><span class="ot">(</span>self<span class="ot">,</span> <span class="ot">{</span> __index <span class="ot">=</span> indexfn <span class="ot">})</span>
-    <span class="kw">return</span> self
-<span class="kw">end</span>
-<span class="do">-- bu ikisi superclass gorevinde</span>
-st1 <span class="ot">=</span> <span class="ot">{</span> attr1 <span class="ot">=</span> <span class="st">&quot;st1 attr1&quot;</span> <span class="ot">}</span>
-st2 <span class="ot">=</span> <span class="ot">{</span> attr1 <span class="ot">=</span> <span class="st">&quot;st2 attr1&quot;</span><span class="ot">,</span> attr2 <span class="ot">=</span> <span class="st">&quot;st2 attr2&quot;</span> <span class="ot">}</span>
-a <span class="ot">=</span> Rect<span class="ot">.</span>new<span class="ot">({</span>centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> angle <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> width <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> height <span class="ot">=</span> <span class="dv">8</span><span class="ot">},</span> <span class="ot">{</span> st1<span class="ot">,</span> st2 <span class="ot">})</span>
-b <span class="ot">=</span> Rect<span class="ot">.</span>new<span class="ot">({</span>centerx <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> centery <span class="ot">=</span> <span class="dv">0</span><span class="ot">,</span> angle <span class="ot">=</span> <span class="dv">30</span><span class="ot">,</span> width <span class="ot">=</span> <span class="dv">6</span><span class="ot">,</span> height <span class="ot">=</span> <span class="dv">8</span><span class="ot">},</span> <span class="ot">{</span> st2 <span class="ot">})</span>
-b<span class="ot">.</span>angle <span class="ot">=</span> <span class="dv">60</span>
-<span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>x<span class="ot">)</span>     <span class="do">-- -4.3301270189222</span>
-<span class="fu">print</span><span class="ot">(</span>b<span class="ot">.</span>y<span class="ot">)</span>     <span class="do">-- -4.3301270189222</span>
-<span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>attr1<span class="ot">)</span> <span class="do">-- st1 attr1</span>
-<span class="fu">print</span><span class="ot">(</span>a<span class="ot">.</span>attr2<span class="ot">)</span> <span class="do">-- st2 attr2</span>
-<span class="fu">print</span><span class="ot">(</span>b<span class="ot">.</span>attr1<span class="ot">)</span> <span class="do">-- st2 attr1</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> Rect<span class="op">:</span>new<span class="op">(</span>ps<span class="op">)</span>
+    <span class="co">-- lua'da vararglar biraz sorunlu oldugundan superclasslari</span>
+    <span class="co">-- bir array olarak alacagim. detaylar icin: http://lua-users.org/wiki/VarargTheSecondClassCitizen</span>
+    <span class="kw">local</span> <span class="kw">function</span> indexfn <span class="op">(</span>table<span class="op">,</span> key<span class="op">)</span>
+        <span class="kw">local</span> v <span class="op">=</span> Rect_indexfn<span class="op">(</span>table<span class="op">,</span> key<span class="op">)</span>
+        <span class="cf">if</span> v <span class="cf">then</span>
+            <span class="cf">return</span> v
+        <span class="cf">end</span>
+        <span class="cf">for</span> i<span class="op">,</span>v <span class="kw">in</span> <span class="fu">ipairs</span><span class="op">(</span>ps<span class="op">)</span> <span class="cf">do</span>
+            v <span class="op">=</span> v<span class="op">[</span>key<span class="op">]</span>
+            <span class="cf">if</span> v <span class="cf">then</span>
+                <span class="cf">return</span> v
+            <span class="cf">end</span>
+        <span class="cf">end</span>
+    <span class="cf">end</span>
+    <span class="fu">setmetatable</span><span class="op">(</span>self<span class="op">,</span> <span class="op">{</span> <span class="bu">__index</span> <span class="op">=</span> indexfn <span class="op">})</span>
+    <span class="cf">return</span> self
+<span class="cf">end</span>
+<span class="co">-- bu ikisi superclass gorevinde</span>
+st1 <span class="op">=</span> <span class="op">{</span> attr1 <span class="op">=</span> <span class="st">&quot;st1 attr1&quot;</span> <span class="op">}</span>
+st2 <span class="op">=</span> <span class="op">{</span> attr1 <span class="op">=</span> <span class="st">&quot;st2 attr1&quot;</span><span class="op">,</span> attr2 <span class="op">=</span> <span class="st">&quot;st2 attr2&quot;</span> <span class="op">}</span>
+a <span class="op">=</span> Rect<span class="op">.</span>new<span class="op">({</span>centerx <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> centery <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> angle <span class="op">=</span> <span class="dv">30</span><span class="op">,</span> width <span class="op">=</span> <span class="dv">6</span><span class="op">,</span> height <span class="op">=</span> <span class="dv">8</span><span class="op">},</span> <span class="op">{</span> st1<span class="op">,</span> st2 <span class="op">})</span>
+b <span class="op">=</span> Rect<span class="op">.</span>new<span class="op">({</span>centerx <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> centery <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> angle <span class="op">=</span> <span class="dv">30</span><span class="op">,</span> width <span class="op">=</span> <span class="dv">6</span><span class="op">,</span> height <span class="op">=</span> <span class="dv">8</span><span class="op">},</span> <span class="op">{</span> st2 <span class="op">})</span>
+b<span class="op">.</span>angle <span class="op">=</span> <span class="dv">60</span>
+<span class="fu">print</span><span class="op">(</span>a<span class="op">.</span>x<span class="op">)</span>     <span class="co">-- -4.3301270189222</span>
+<span class="fu">print</span><span class="op">(</span>b<span class="op">.</span>y<span class="op">)</span>     <span class="co">-- -4.3301270189222</span>
+<span class="fu">print</span><span class="op">(</span>a<span class="op">.</span>attr1<span class="op">)</span> <span class="co">-- st1 attr1</span>
+<span class="fu">print</span><span class="op">(</span>a<span class="op">.</span>attr2<span class="op">)</span> <span class="co">-- st2 attr2</span>
+<span class="fu">print</span><span class="op">(</span>b<span class="op">.</span>attr1<span class="op">)</span> <span class="co">-- st2 attr1</span></code></pre></div>
 <p>Constructoru bu şekilde değiştirdim. <code>__index</code> fonksiyonunun yeni haline bakarsanız, ilk başta <code>Rect_indexfn</code>yi çağırıyor, eğer hala gerekli değerler bulunamıyorsa, soldan itibaren superclassları aramaya başlıyor. Burda ben en basit implementasyonu yapmaya çalıştım, eğer superclasslar da bu şekilde tanımlanmış metatabloya sahiplerse, arama işlemi ilk superclassın superclasslarıyla devam edecek. Kolayca farklı davranışlar tanımlanabilir, tüm algoritma <code>indexfn</code> fonksiyonundan ibaret. Hayal gücünüzce geliştirip, <a href="http://en.wikipedia.org/wiki/Diamond_problem">diamond problem</a> ile karşılaşıp, kendi çözümünüzü uydurabilirsiniz :) .</p>
 <section class="footnotes">
 <hr />

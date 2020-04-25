@@ -47,10 +47,10 @@ run (<span class="dt">Number</span> f)  <span class="fu">=</span> f</code></pre>
 <p><code>run</code> programı çalıştırıp sonucu dönüyor.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">stringOfExp ::</span> <span class="dt">Exp</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
 stringOfExp (<span class="dt">Add</span> e1 e2) <span class="fu">=</span>
-    concat [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; + &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
+    <span class="fu">concat</span> [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; + &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
 stringOfExp (<span class="dt">Mul</span> e1 e2) <span class="fu">=</span>
-    concat [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; * &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
-stringOfExp (<span class="dt">Number</span> f) <span class="fu">=</span> show f</code></pre></div>
+    <span class="fu">concat</span> [ <span class="st">&quot;(&quot;</span>, stringOfExp e1, <span class="st">&quot; * &quot;</span>, stringOfExp e2, <span class="st">&quot;)&quot;</span> ]
+stringOfExp (<span class="dt">Number</span> f) <span class="fu">=</span> <span class="fu">show</span> f</code></pre></div>
 <p><code>stringOfExp</code> ise programın string halini dönüyor. Örnek:</p>
 <pre><code>ghci&gt; let prog1 = Add (Number 10) (Mul (Number 20) (Add (Number 30) (Number 40)))
 ghci&gt; run prog1

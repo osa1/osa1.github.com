@@ -37,7 +37,7 @@ state0 <span class="fu">=</span> (<span class="dv">0</span>, <span class="dv">0<
 addAvg x <span class="fu">=</span> <span class="kw">do</span>
     (count, total) <span class="ot">&lt;-</span> get
     put (count<span class="fu">+</span><span class="dv">1</span>, total<span class="fu">+</span>x)
-    return <span class="fu">$</span> (total<span class="fu">+</span>x) <span class="ot">`div`</span> (count<span class="fu">+</span><span class="dv">1</span>)
+    <span class="fu">return</span> <span class="fu">$</span> (total<span class="fu">+</span>x) <span class="ot">`div`</span> (count<span class="fu">+</span><span class="dv">1</span>)
  
 <span class="ot">test ::</span> <span class="dt">AvgState</span>
 test <span class="fu">=</span> <span class="kw">do</span>
@@ -47,7 +47,7 @@ test <span class="fu">=</span> <span class="kw">do</span>
  
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="kw">do</span>
-    print <span class="fu">$</span> evalState test state0</code></pre></div>
+    <span class="fu">print</span> <span class="fu">$</span> evalState test state0</code></pre></div>
 <p>Here I’m calculating arithmetic average of some integers. <code>type AvgState</code> is my data type representing the sum of the numbers I give and the total count of numbers. Here I don’t write a new monad, instead I use Haskell’s State monad, contained in <code>Control.Monad.State</code> package.</p>
 <p><code>addAvg</code> functions is the main logic. If you look at it, it almost looks like an imperative program, I’m reading some values and changing them by adding them one, and returning a new value(note that I’m not returning any new states, it’s being handled my the monad itself), but still it’s purely functional.</p>
 <p>Now how’s that a DSL? Look at <code>test</code> function and hopefully you’ll see :) .</p>
@@ -64,7 +64,7 @@ msgCmd <span class="fu">=</span> <span class="kw">do</span>
     spaces
     msg <span class="ot">&lt;-</span> many1 anyChar
     eof
-    return <span class="fu">$</span> <span class="dt">MsgCmd</span> chan msg</code></pre></div>
+    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">MsgCmd</span> chan msg</code></pre></div>
 <p>I’m using Parsec’s <code>Parser</code> monads with <code>do</code> notation and it looks almost like Backus–Naur Form. chanName mathes list of letters, ‘-’ character, or digits with at least one element. This is a parser. And then I’m using this parser in my <code>msgCmd</code> parser. It matches a string “msg”, then arbitrary number of spaces, then <code>chanName</code>, then spaces again, and at last any characters.</p>
 
 <hr />

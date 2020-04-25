@@ -31,7 +31,7 @@ fn5  i (<span class="dt">A</span> <span class="fu">:</span> ts) <span class="fu"
 fn5 <span class="fu">!</span>i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts
 fn5  i (<span class="dt">C</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 <span class="dv">0</span> ts</code></pre></div>
 <p>The question is, given these definitions, what does this evaluate to, and why:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 undefined [<span class="dt">C</span>]</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 <span class="fu">undefined</span> [<span class="dt">C</span>]</code></pre></div>
 <p>This question is basically a <code>BangPatterns</code> question. The key point is that a bang pattern <em>first evaluates the value</em> to match, then looks at the pattern. This is from GHC 8.0.1 user manual, <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#bang-patterns-informal">section 9.28.1</a>:</p>
 <blockquote>
 <p>Matching an expression e against a pattern !p is done by first evaluating e (to WHNF) and then matching the result against p.</p>
@@ -42,7 +42,7 @@ fn5  i (<span class="dt">C</span> <span class="fu">:</span> ts) <span class="fu"
 <p>which is not what it really does!</p>
 <hr />
 <p>Before bang patterns, I think this pattern was considered as the standard way of forcing a function argument (mostly used for accumulator arguments):</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell">f acc _ <span class="fu">|</span> acc <span class="ot">`seq`</span> <span class="dt">False</span> <span class="fu">=</span> undefined
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell">f acc _ <span class="fu">|</span> acc <span class="ot">`seq`</span> <span class="dt">False</span> <span class="fu">=</span> <span class="fu">undefined</span>
 f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></div>
 <p>The guard in first equation always fails, but it forces the <code>acc</code> by the time it fails. While this looks bad<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, it compiles to nice code after a case-of-case transformation, and it evaluates <code>acc</code> as first thing to do whenever it’s applied to two arguments.</p>
 <p>Now, with <code>BangPatterns</code>, we get to do this:</p>

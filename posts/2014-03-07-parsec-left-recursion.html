@@ -34,7 +34,7 @@
          <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
 <p>Parsers for non-terminals are easy:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell">plus <span class="fu">=</span> char <span class="ch">'+'</span> <span class="fu">&gt;&gt;</span> spaces
-int  <span class="fu">=</span> fmap (<span class="dt">Int</span> <span class="fu">.</span> read) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre></div>
+int  <span class="fu">=</span> <span class="fu">fmap</span> (<span class="dt">Int</span> <span class="fu">.</span> <span class="fu">read</span>) <span class="fu">$</span> many1 digit <span class="fu">&lt;*</span> spaces</code></pre></div>
 <p>I’m using a set to keep track of already visited parsers:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">MarksSeen</span> <span class="fu">=</span> <span class="dt">S.Set</span> <span class="dt">Int</span>
 
@@ -50,14 +50,14 @@ resetMarks = putState S.empty</code></pre>
 <p>Now the interesting part, <code>add</code> parser marks itself as first thing to do, and calls <code>exp</code> parser. Since <code>exp</code> parser is entry point, this means an indirect recursive call. When same <code>putMark</code> call is made, Parsec runs failure actions instead of going into infinte loop:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell">add <span class="fu">=</span> <span class="kw">do</span>
     putMark <span class="dv">1</span>
-    e1 <span class="ot">&lt;-</span> exp
+    e1 <span class="ot">&lt;-</span> <span class="fu">exp</span>
     resetMarks
     plus
-    e2 <span class="ot">&lt;-</span> exp
+    e2 <span class="ot">&lt;-</span> <span class="fu">exp</span>
     spaces
-    return <span class="fu">$</span> <span class="dt">Add</span> e1 e2
+    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">Add</span> e1 e2
 
-exp <span class="fu">=</span> choice [try add, int]</code></pre></div>
+<span class="fu">exp</span> <span class="fu">=</span> choice [try add, int]</code></pre></div>
 <p><code>resetMarks</code> call is also important, <code>exp</code> has to consume some tokens, so after parsing <code>e1</code>, I’m calling <code>resetMarks</code>.</p>
 <p>Here’s an example call of this parser:</p>
 <pre><code>ghci&gt; runParser exp S.empty &quot;&quot; &quot;1 + 2 + 3 + 4&quot;
@@ -78,14 +78,14 @@ recursion</code></pre></div>
 <p>Whenever I need to write a parser for a grammar like this, I’m thinking for an easier way to parse it. I still couldn’t come up with a solution. Idea I just explained does not solve it, because it parses right-associatively. There is one workaround, but I’m not sure if that results with a parser for same grammar:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell">app <span class="fu">=</span> <span class="kw">do</span>
     putMark <span class="dv">2</span>
-    fn <span class="ot">&lt;-</span> exp
+    fn <span class="ot">&lt;-</span> <span class="fu">exp</span>
     resetMarks
 
     putMark <span class="dv">2</span>
-    as <span class="ot">&lt;-</span> many1 exp
+    as <span class="ot">&lt;-</span> many1 <span class="fu">exp</span>
     resetMarks
 
-    return <span class="fu">$</span> foldl <span class="dt">App</span> fn as
+    <span class="fu">return</span> <span class="fu">$</span> <span class="fu">foldl</span> <span class="dt">App</span> fn as
 
 
 ghci<span class="fu">&gt;</span> runParser pgm S.empty <span class="st">&quot;&quot;</span> <span class="st">&quot;1 2 3 4 + 5 + 6 7&quot;</span>

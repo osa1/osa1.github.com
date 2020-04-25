@@ -17,62 +17,62 @@
     <updated>2018-04-08T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Read about <code>malloc()</code> on Linux in lecture notes and even non-ancient books like The Linux Programming Interface (published on 2010) and you’ll see a lot of mentions to <code>brk()</code> and <code>sbrk()</code> system calls. They then move on to talk about <code>mmap()</code>, and at that point you probably start wondering how they interact.</p>
 <p>The problem is, because <code>mmap()</code> lets you map stuff in your program’s address space, it seems like you can easily break <code>brk</code>/<code>sbrk</code> by mapping stuff right after the current program break. Here’s a program that does exactly that:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="co">// mmap() something right after program break, then increase it by malloc-ing stuff</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;assert.h&gt;</span></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="pp">#include </span><span class="im">&lt;stdint.h&gt;</span></a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="pp">#include </span><span class="im">&lt;sys/mman.h&gt;</span></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="pp">#include </span><span class="im">&lt;unistd.h&gt;</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="dt">int</span> main()</a>
-<a class="sourceLine" id="cb1-11" data-line-number="11">{</a>
-<a class="sourceLine" id="cb1-12" data-line-number="12">    <span class="dt">long</span> page_size = sysconf(_SC_PAGESIZE);</a>
-<a class="sourceLine" id="cb1-13" data-line-number="13">    printf(<span class="st">&quot;Page size:             %ld</span><span class="sc">\n</span><span class="st">&quot;</span>, page_size);</a>
-<a class="sourceLine" id="cb1-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb1-15" data-line-number="15">    <span class="dt">void</span>* brk = sbrk(<span class="dv">0</span>);</a>
-<a class="sourceLine" id="cb1-16" data-line-number="16">    printf(<span class="st">&quot;Current program break: %p</span><span class="sc">\n</span><span class="st">&quot;</span>, brk);</a>
-<a class="sourceLine" id="cb1-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb1-18" data-line-number="18">    <span class="co">// mmap() right after program break</span></a>
-<a class="sourceLine" id="cb1-19" data-line-number="19">    <span class="dt">void</span>* mmap_ret = mmap(</a>
-<a class="sourceLine" id="cb1-20" data-line-number="20">            brk, page_size, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, <span class="dv">-1</span>, <span class="dv">0</span>);</a>
-<a class="sourceLine" id="cb1-21" data-line-number="21">    printf(<span class="st">&quot;mmap() returned:       %p</span><span class="sc">\n</span><span class="st">&quot;</span>, mmap_ret);</a>
-<a class="sourceLine" id="cb1-22" data-line-number="22"></a>
-<a class="sourceLine" id="cb1-23" data-line-number="23">    assert(mmap_ret == brk);</a>
-<a class="sourceLine" id="cb1-24" data-line-number="24"></a>
-<a class="sourceLine" id="cb1-25" data-line-number="25">    <span class="co">// Allocate until brk changes</span></a>
-<a class="sourceLine" id="cb1-26" data-line-number="26">    <span class="dt">void</span>* new_brk = sbrk(<span class="dv">0</span>);</a>
-<a class="sourceLine" id="cb1-27" data-line-number="27">    <span class="dt">void</span>* ret = malloc(page_size);</a>
-<a class="sourceLine" id="cb1-28" data-line-number="28">    <span class="cf">for</span> (;;)</a>
-<a class="sourceLine" id="cb1-29" data-line-number="29">    {</a>
-<a class="sourceLine" id="cb1-30" data-line-number="30">        <span class="cf">if</span> (!ret)</a>
-<a class="sourceLine" id="cb1-31" data-line-number="31">        {</a>
-<a class="sourceLine" id="cb1-32" data-line-number="32">            printf(<span class="st">&quot;malloc() failed</span><span class="sc">\n</span><span class="st">&quot;</span>);</a>
-<a class="sourceLine" id="cb1-33" data-line-number="33">            <span class="cf">break</span>;</a>
-<a class="sourceLine" id="cb1-34" data-line-number="34">        }</a>
-<a class="sourceLine" id="cb1-35" data-line-number="35"></a>
-<a class="sourceLine" id="cb1-36" data-line-number="36">        <span class="cf">if</span> (new_brk != brk)</a>
-<a class="sourceLine" id="cb1-37" data-line-number="37">        {</a>
-<a class="sourceLine" id="cb1-38" data-line-number="38">            printf(<span class="st">&quot;brk changed</span><span class="sc">\n</span><span class="st">&quot;</span>);</a>
-<a class="sourceLine" id="cb1-39" data-line-number="39">            <span class="cf">break</span>;</a>
-<a class="sourceLine" id="cb1-40" data-line-number="40">        }</a>
-<a class="sourceLine" id="cb1-41" data-line-number="41"></a>
-<a class="sourceLine" id="cb1-42" data-line-number="42">        <span class="cf">if</span> (ret &gt; brk)</a>
-<a class="sourceLine" id="cb1-43" data-line-number="43">        {</a>
-<a class="sourceLine" id="cb1-44" data-line-number="44">            printf(<span class="st">&quot;ret &gt; brk</span><span class="sc">\n</span><span class="st">&quot;</span>);</a>
-<a class="sourceLine" id="cb1-45" data-line-number="45">            <span class="cf">break</span>;</a>
-<a class="sourceLine" id="cb1-46" data-line-number="46">        }</a>
-<a class="sourceLine" id="cb1-47" data-line-number="47"></a>
-<a class="sourceLine" id="cb1-48" data-line-number="48">        ret = malloc(page_size);</a>
-<a class="sourceLine" id="cb1-49" data-line-number="49">        new_brk = sbrk(<span class="dv">0</span>);</a>
-<a class="sourceLine" id="cb1-50" data-line-number="50">    }</a>
-<a class="sourceLine" id="cb1-51" data-line-number="51"></a>
-<a class="sourceLine" id="cb1-52" data-line-number="52">    printf(<span class="st">&quot;New brk:               %p</span><span class="sc">\n</span><span class="st">&quot;</span>, new_brk);</a>
-<a class="sourceLine" id="cb1-53" data-line-number="53">    printf(<span class="st">&quot;ret:                   %p</span><span class="sc">\n</span><span class="st">&quot;</span>, ret);</a>
-<a class="sourceLine" id="cb1-54" data-line-number="54"></a>
-<a class="sourceLine" id="cb1-55" data-line-number="55">    <span class="cf">return</span> <span class="dv">0</span>;</a>
-<a class="sourceLine" id="cb1-56" data-line-number="56">}</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb1-1" title="1"><span class="co">// mmap() something right after program break, then increase it by malloc-ing stuff</span></a>
+<a class="sourceLine" id="cb1-2" title="2"></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="pp">#include </span><span class="im">&lt;assert.h&gt;</span></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="pp">#include </span><span class="im">&lt;stdint.h&gt;</span></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></a>
+<a class="sourceLine" id="cb1-7" title="7"><span class="pp">#include </span><span class="im">&lt;sys/mman.h&gt;</span></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="pp">#include </span><span class="im">&lt;unistd.h&gt;</span></a>
+<a class="sourceLine" id="cb1-9" title="9"></a>
+<a class="sourceLine" id="cb1-10" title="10"><span class="dt">int</span> main()</a>
+<a class="sourceLine" id="cb1-11" title="11">{</a>
+<a class="sourceLine" id="cb1-12" title="12">    <span class="dt">long</span> page_size = sysconf(_SC_PAGESIZE);</a>
+<a class="sourceLine" id="cb1-13" title="13">    printf(<span class="st">&quot;Page size:             %ld</span><span class="sc">\n</span><span class="st">&quot;</span>, page_size);</a>
+<a class="sourceLine" id="cb1-14" title="14"></a>
+<a class="sourceLine" id="cb1-15" title="15">    <span class="dt">void</span>* brk = sbrk(<span class="dv">0</span>);</a>
+<a class="sourceLine" id="cb1-16" title="16">    printf(<span class="st">&quot;Current program break: %p</span><span class="sc">\n</span><span class="st">&quot;</span>, brk);</a>
+<a class="sourceLine" id="cb1-17" title="17"></a>
+<a class="sourceLine" id="cb1-18" title="18">    <span class="co">// mmap() right after program break</span></a>
+<a class="sourceLine" id="cb1-19" title="19">    <span class="dt">void</span>* mmap_ret = mmap(</a>
+<a class="sourceLine" id="cb1-20" title="20">            brk, page_size, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, <span class="dv">-1</span>, <span class="dv">0</span>);</a>
+<a class="sourceLine" id="cb1-21" title="21">    printf(<span class="st">&quot;mmap() returned:       %p</span><span class="sc">\n</span><span class="st">&quot;</span>, mmap_ret);</a>
+<a class="sourceLine" id="cb1-22" title="22"></a>
+<a class="sourceLine" id="cb1-23" title="23">    assert(mmap_ret == brk);</a>
+<a class="sourceLine" id="cb1-24" title="24"></a>
+<a class="sourceLine" id="cb1-25" title="25">    <span class="co">// Allocate until brk changes</span></a>
+<a class="sourceLine" id="cb1-26" title="26">    <span class="dt">void</span>* new_brk = sbrk(<span class="dv">0</span>);</a>
+<a class="sourceLine" id="cb1-27" title="27">    <span class="dt">void</span>* ret = malloc(page_size);</a>
+<a class="sourceLine" id="cb1-28" title="28">    <span class="cf">for</span> (;;)</a>
+<a class="sourceLine" id="cb1-29" title="29">    {</a>
+<a class="sourceLine" id="cb1-30" title="30">        <span class="cf">if</span> (!ret)</a>
+<a class="sourceLine" id="cb1-31" title="31">        {</a>
+<a class="sourceLine" id="cb1-32" title="32">            printf(<span class="st">&quot;malloc() failed</span><span class="sc">\n</span><span class="st">&quot;</span>);</a>
+<a class="sourceLine" id="cb1-33" title="33">            <span class="cf">break</span>;</a>
+<a class="sourceLine" id="cb1-34" title="34">        }</a>
+<a class="sourceLine" id="cb1-35" title="35"></a>
+<a class="sourceLine" id="cb1-36" title="36">        <span class="cf">if</span> (new_brk != brk)</a>
+<a class="sourceLine" id="cb1-37" title="37">        {</a>
+<a class="sourceLine" id="cb1-38" title="38">            printf(<span class="st">&quot;brk changed</span><span class="sc">\n</span><span class="st">&quot;</span>);</a>
+<a class="sourceLine" id="cb1-39" title="39">            <span class="cf">break</span>;</a>
+<a class="sourceLine" id="cb1-40" title="40">        }</a>
+<a class="sourceLine" id="cb1-41" title="41"></a>
+<a class="sourceLine" id="cb1-42" title="42">        <span class="cf">if</span> (ret &gt; brk)</a>
+<a class="sourceLine" id="cb1-43" title="43">        {</a>
+<a class="sourceLine" id="cb1-44" title="44">            printf(<span class="st">&quot;ret &gt; brk</span><span class="sc">\n</span><span class="st">&quot;</span>);</a>
+<a class="sourceLine" id="cb1-45" title="45">            <span class="cf">break</span>;</a>
+<a class="sourceLine" id="cb1-46" title="46">        }</a>
+<a class="sourceLine" id="cb1-47" title="47"></a>
+<a class="sourceLine" id="cb1-48" title="48">        ret = malloc(page_size);</a>
+<a class="sourceLine" id="cb1-49" title="49">        new_brk = sbrk(<span class="dv">0</span>);</a>
+<a class="sourceLine" id="cb1-50" title="50">    }</a>
+<a class="sourceLine" id="cb1-51" title="51"></a>
+<a class="sourceLine" id="cb1-52" title="52">    printf(<span class="st">&quot;New brk:               %p</span><span class="sc">\n</span><span class="st">&quot;</span>, new_brk);</a>
+<a class="sourceLine" id="cb1-53" title="53">    printf(<span class="st">&quot;ret:                   %p</span><span class="sc">\n</span><span class="st">&quot;</span>, ret);</a>
+<a class="sourceLine" id="cb1-54" title="54"></a>
+<a class="sourceLine" id="cb1-55" title="55">    <span class="cf">return</span> <span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb1-56" title="56">}</a></code></pre></div>
 <p>So we read the program break, <code>mmap()</code> stuff right after it, then <code>malloc()</code> page-sized space until the program break changes. The idea is if we actually increment the program break, we’ll end up re-using <code>mmap()</code>d area.</p>
 <p>Of course this does not happen. If you run this, you’ll see something like:</p>
 <pre><code>Page size:             4096
@@ -83,10 +83,10 @@ New brk:               0x1efb000
 ret:                   0x7fdb72d8f010</code></pre>
 <p>So the <code>malloc()</code> implementation doesn’t care about program break at all, instead it uses <code>mmap()</code>, probably with <code>NULL</code> as the <code>addr</code> parameter, to get a fresh location in the address space.</p>
 <p>Of course this is all obvious if you’re already familiar with this stuff. <code>sbrk()</code> just can’t work with <code>mmap()</code>. Try adding these lines to the program above, right before the return statement:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb3-1" data-line-number="1">    <span class="co">// Try to increment program break manually</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">    <span class="dt">void</span>* sbrk_ret = sbrk(page_size);</a>
-<a class="sourceLine" id="cb3-3" data-line-number="3">    printf(<span class="st">&quot;sbrk_ret:              %p</span><span class="sc">\n</span><span class="st">&quot;</span>, sbrk_ret);</a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">    printf(<span class="st">&quot;New brk:               %p</span><span class="sc">\n</span><span class="st">&quot;</span>, sbrk(<span class="dv">0</span>));</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb3-1" title="1">    <span class="co">// Try to increment program break manually</span></a>
+<a class="sourceLine" id="cb3-2" title="2">    <span class="dt">void</span>* sbrk_ret = sbrk(page_size);</a>
+<a class="sourceLine" id="cb3-3" title="3">    printf(<span class="st">&quot;sbrk_ret:              %p</span><span class="sc">\n</span><span class="st">&quot;</span>, sbrk_ret);</a>
+<a class="sourceLine" id="cb3-4" title="4">    printf(<span class="st">&quot;New brk:               %p</span><span class="sc">\n</span><span class="st">&quot;</span>, sbrk(<span class="dv">0</span>));</a></code></pre></div>
 <p>You’ll see that <code>sbrk()</code> returns something like <code>0xffffffffffffffff</code> ( <code>(void*)-1</code> ) and the program break does not change.</p>
 <p>Really what confused me is all these over-simplified lecture notes and book chapters.</p>]]></summary>
 </entry>
@@ -98,27 +98,27 @@ ret:                   0x7fdb72d8f010</code></pre>
     <updated>2013-12-30T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>It’s been long time since I wrote an interesting post but I still don’t have anything interesting and short enough for me to explain in a blog post. Anyway, here’s a fun C compile time assertion trick that I found in libSDL 2 codebase:</p>
 <p>In C we have <code>typedef</code> which can be used for defining type synonyms. This code:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">typedef</span> <span class="dt">int</span> test;</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">typedef</span> <span class="dt">int</span> test;</a></code></pre></div>
 <p>Defines <code>test</code> as type synonym for int, and then you can replace <code>int</code>s in variable declarations with <code>test</code>.</p>
 <p>Interestingly, you can also use illegal type names for typedefs, like this:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">10</span>];</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">10</span>];</a></code></pre></div>
 <p>This is funny, because you can’t use <code>foo[10]</code> as type of a variable, so I don’t understand why this syntax is allowed. I think the reason is that a <code>typedef</code> is just like declaration and shares same syntax with it, so this is allowed. Still, this declaration looks pretty useless to me.</p>
 <p>Anyway, apparently there are some other interesting uses of <code>typedef</code>s. This code:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">typedef</span> <span class="dt">int</span> foo[-<span class="dv">1</span>];</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">typedef</span> <span class="dt">int</span> foo[-<span class="dv">1</span>];</a></code></pre></div>
 <p>fails with:</p>
 <pre><code>test.c:13:17: error: &#39;foo&#39; declared as an array with a negative size
 typedef int foo[-1];
                 ^~</code></pre>
 <p>Furthermore, there are some expression-like C syntax that are actually evaluated at compile time<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>. For example:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">3-4</span>];</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">3-4</span>];</a></code></pre></div>
 <p>Here <code>3-4</code> looks like an expression, but it’s actually evaluated at compile-time and thus this code fails with same error as above.</p>
 <p>Using this two tricks, we can have some kind of compile-time assertions, like libSDL people use:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="pp">#define COMPILE_TIME_ASSERT(name, x) \</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="pp">  typedef int dummy_ ## name[(x) * 2 - 1]</span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="kw">typedef</span> <span class="dt">uint16_t</span> Uint16;</a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">COMPILE_TIME_ASSERT(uint16, <span class="kw">sizeof</span>(Uint16) == <span class="dv">2</span>);</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb6-1" title="1"><span class="pp">#define COMPILE_TIME_ASSERT(name, x) \</span></a>
+<a class="sourceLine" id="cb6-2" title="2"><span class="pp">  typedef int dummy_ ## name[(x) * 2 - 1]</span></a>
+<a class="sourceLine" id="cb6-3" title="3"></a>
+<a class="sourceLine" id="cb6-4" title="4"><span class="kw">typedef</span> <span class="dt">uint16_t</span> Uint16;</a>
+<a class="sourceLine" id="cb6-5" title="5"></a>
+<a class="sourceLine" id="cb6-6" title="6">COMPILE_TIME_ASSERT(uint16, <span class="kw">sizeof</span>(Uint16) == <span class="dv">2</span>);</a></code></pre></div>
 <p>This code checks in compile time if <code>Uint16</code> really represents 2 bytes in memory and it fails to compile if it doesn’t. Interesting part here is that <code>(x) * 2 - 1</code> expression evaluated at compile-time.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
 <section class="footnotes">
 <hr />

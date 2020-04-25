@@ -57,18 +57,18 @@
 <p>Monadic code is really not special in any sense. When talking about the semantics we should see through the syntactic sugar. Say we have this:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> a <span class="ot">&lt;-</span> m1
    b <span class="ot">&lt;-</span> m2 a
-   return (a <span class="fu">+</span> b)</code></pre></div>
+   <span class="fu">return</span> (a <span class="fu">+</span> b)</code></pre></div>
 <p>This is really just a syntactic sugar for:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell">m1 <span class="fu">&gt;&gt;=</span> (\a <span class="ot">-&gt;</span> m2 a <span class="fu">&gt;&gt;=</span> (\b <span class="ot">-&gt;</span> return (a <span class="fu">+</span> b)))</code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell">m1 <span class="fu">&gt;&gt;=</span> (\a <span class="ot">-&gt;</span> m2 a <span class="fu">&gt;&gt;=</span> (\b <span class="ot">-&gt;</span> <span class="fu">return</span> (a <span class="fu">+</span> b)))</code></pre></div>
 <p>With <code>-XStrict</code>, function arguments <code>a</code> and <code>b</code> and all the arguments of <code>&gt;&gt;=</code> and <code>return</code> will be strict. This makes the whole code strict. In this code this means that <code>m1</code> will be evaluated before <code>m2 a</code> is evaluated, and <code>return</code>s return value will be strict etc.</p>
 <h3 id="what-about-list-comprehensions-and-infinite-listsstreams">What about list comprehensions and infinite lists(streams)?</h3>
 <p>A list comprehension like <code>[1..]</code> is again a syntactic sugar. It’s expanded form is <code>enumFrom 1</code>. <code>enumFrom</code>’s type is <code>Enum a =&gt; a -&gt; [a]</code>. Let’s say we’re using <code>Enum Int</code> here. Since the instance is defined in <code>base</code>, and lists are also defined in <code>base</code>, this code will still work. However, if we compile <code>base</code> with <code>-XStrict</code>, this code loops because the standard list type will become strict.</p>
 <p>In practice we would probably define strict and lazy lists separately to have the laziness when we need.</p>
 <h3 id="what-about-higher-order-functions">What about higher-order functions?</h3>
 <p>Since we don’t distinguish strict and lazy functions in type level, when we have a higher-order functions it may seem like we’d loose the guarantees. But this is not the case, at least not in general. Suppose we have this:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell">map<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
-map _ []       <span class="fu">=</span> []
-map f (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class="fu">:</span> map f xs</code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">map</span><span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
+<span class="fu">map</span> _ []       <span class="fu">=</span> []
+<span class="fu">map</span> f (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class="fu">:</span> <span class="fu">map</span> f xs</code></pre></div>
 <p>This is compiled with <code>-XStrict</code>. Now suppose we pass a function <code>f</code> which is lazy in it’s argument. Since <code>(:)</code> is strict in this code, we’ll still evaluate the <code>f x</code> before returning. Our guarantee that the list won’t be bottom and won’t have bottom still holds.</p>
 <p>See also the paper <a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/strict-core/tacc-hs09.pdf">“Types are calling conventions”</a>.</p>
 <h3 id="haskells-denotational-semantics-says-that-lifted-types-have-bottoms">Haskell’s denotational semantics says that lifted types have bottoms</h3>

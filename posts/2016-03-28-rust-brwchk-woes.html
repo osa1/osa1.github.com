@@ -102,7 +102,7 @@
                   ^</code></pre>
 <p><code>find_thing_mut()</code> really needs to return a ref, because <code>Thing</code> is expensive to copy. The problem is since <code>None</code> has type <code>Option&lt;&amp;'a mut Thing&gt;</code> where <code>a</code> is the lifetime of <code>self</code>, we can’t call a <code>&amp;mut self</code> when that <code>None</code> is in scope. This is annoying and could be improved by doing some local reasoning. In our case, since we know that <code>None</code> can’t borrow anything (it doesn’t have any references), we could refine our information about currently borrwed values, and let this compile.</p>
 <p>There are a couple of solutions. One half-solution is to use something like standard <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry"><code>HashMap</code>’s <code>entry()</code></a>. Imagine doing something like:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::HashMap;
+<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> <span class="pp">std::collections::hash_map::</span>HashMap;
 
 <span class="kw">struct</span> ListOfThings <span class="op">{</span>
     list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,
@@ -145,7 +145,7 @@
 &lt;anon&gt;:25         }
                   ^</code></pre>
 <p>This is exactly the same error we got before. The solution is to use <a href="http://doc.rust-lang.org/nightly/std/collections/struct.HashMap.html#method.entry">the <code>Entry</code> API</a>:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> std::collections::hash_map::<span class="op">{</span>HashMap, Entry<span class="op">}</span>;
+<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">use</span> <span class="pp">std::collections::hash_map::</span><span class="op">{</span>HashMap, Entry<span class="op">}</span>;
 
 <span class="kw">struct</span> ListOfThings <span class="op">{</span>
     list : HashMap&lt;<span class="dt">String</span>, Thing&gt;,
@@ -163,10 +163,10 @@
 <span class="kw">impl</span> ListOfThings <span class="op">{</span>
     <span class="kw">fn</span> do_something(&amp;<span class="kw">mut</span> <span class="kw">self</span>, name : &amp;<span class="dt">str</span>) <span class="op">{</span>
         <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span>
-            Entry::Vacant(ve) =&gt; <span class="op">{</span>
+            <span class="pp">Entry::</span>Vacant(ve) =&gt; <span class="op">{</span>
                 ve.insert(Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);
             <span class="op">}</span>,
-            Entry::Occupied(<span class="kw">mut</span> oe) =&gt; <span class="op">{</span>
+            <span class="pp">Entry::</span>Occupied(<span class="kw">mut</span> oe) =&gt; <span class="op">{</span>
                 oe.get_mut().do_something();
             <span class="op">}</span>
         <span class="op">}</span>
@@ -177,13 +177,13 @@
 <li><p>We had to give ownership of the key to the lookup function (<code>HashMap::entry()</code>). This potentially means copying a value just to lookup. Ideally we’d only need to do this when inserting to the map. <code>HashMap::get()</code> doesn’t have this problem.</p></li>
 <li><p>I said “half-solution” because this doesn’t really make the original code working. See how I removed a line in the first case in my <code>HashMap</code>-based implementation. If I change the first case to this:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span>
-            Entry::Vacant(ve) =&gt; <span class="op">{</span>
+            <span class="pp">Entry::</span>Vacant(ve) =&gt; <span class="op">{</span>
                 ve.insert(Thing <span class="op">{</span> field1: <span class="dv">123</span> <span class="op">}</span>);
                 <span class="kw">self</span>.do_something(name)
             <span class="op">}</span>,</code></pre></div>
 <p>It’d still fail as <code>Entry</code> keeps a reference to <code>self</code>. Of course you could always do things like:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode rust"><code class="sourceCode rust">        <span class="kw">match</span> <span class="kw">self</span>.list.entry(name.to_owned()) <span class="op">{</span>
-            Entry::Vacant(ve) =&gt; <span class="op">{</span>
+            <span class="pp">Entry::</span>Vacant(ve) =&gt; <span class="op">{</span>
                 <span class="kw">let</span> <span class="kw">mut</span> thing = Thing <span class="op">{</span> field1 : <span class="dv">123</span> <span class="op">}</span>;
                 thing.do_something();
                 ve.insert(thing);
@@ -256,8 +256,8 @@
             <span class="kw">self</span>.draw();
 
             <span class="kw">match</span> <span class="kw">self</span>.keypressed() <span class="op">{</span>
-                ret @ TUIRet::Abort =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,
-                ret @ TUIRet::Input(_) =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,
+                ret @ <span class="pp">TUIRet::</span>Abort =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,
+                ret @ <span class="pp">TUIRet::</span>Input(_) =&gt; <span class="op">{</span> <span class="kw">return</span> ret; <span class="op">}</span>,
                 _ =&gt; <span class="op">{}</span>,
             <span class="op">}</span>
         <span class="op">}</span>

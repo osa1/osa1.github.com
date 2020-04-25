@@ -61,8 +61,8 @@ addUnfoldings <span class="fu">=</span> go M.empty
 <span class="ot">    go ::</span> <span class="dt">M.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
     go ids e <span class="fu">=</span> <span class="kw">case</span> e <span class="kw">of</span>
 
-      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
-        <span class="dt">IdE</span> (fromMaybe id (M.lookup (idName id) ids))
+      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span>
+        <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (M.lookup (idName <span class="fu">id</span>) ids))
 
       <span class="dt">Let</span> bndr rhs body <span class="ot">-&gt;</span>
         <span class="kw">let</span>
@@ -81,21 +81,21 @@ parseLet <span class="fu">=</span> <span class="kw">do</span>
     id_name <span class="ot">&lt;-</span> parseIdName
     _ <span class="ot">&lt;-</span> char <span class="ch">'='</span>
 
-    (id, rhs) <span class="ot">&lt;-</span> mfix <span class="fu">$</span> \ <span class="fu">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span>
+    (<span class="fu">id</span>, rhs) <span class="ot">&lt;-</span> mfix <span class="fu">$</span> \ <span class="fu">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span>
       modify (Map.insert id_name id_)
       rhs <span class="ot">&lt;-</span> parseExpr
-      return (<span class="dt">Id</span>{ idName <span class="fu">=</span> id_name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }, rhs)
+      <span class="fu">return</span> (<span class="dt">Id</span>{ idName <span class="fu">=</span> id_name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }, rhs)
 
     _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span>
     body <span class="ot">&lt;-</span> parseExpr
-    return (<span class="dt">Let</span> id rhs body)
+    <span class="fu">return</span> (<span class="dt">Let</span> <span class="fu">id</span> rhs body)
 
 <span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">Id</span>
 parseId' <span class="fu">=</span> <span class="kw">do</span>
     name <span class="ot">&lt;-</span> parseIdName
     id_map <span class="ot">&lt;-</span> get
     <span class="kw">let</span> def <span class="fu">=</span> <span class="dt">Id</span>{ idName <span class="fu">=</span> name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
-    return (fromMaybe def (Map.lookup name id_map))</code></pre></div>
+    <span class="fu">return</span> (fromMaybe def (Map.lookup name id_map))</code></pre></div>
 <p>The idea is very similar. When parsing a <code>let</code> we add a thunk for the binder with correct unfolding to a map. The map is then used when parsing <code>Id</code>s in the RHS and body of the <code>let</code>.</p>
 <h2 id="an-alternative">An alternative</h2>
 <p>A well-known way of associating information with identifiers in a compiler is by using a “symbol table”. Instead of adding information about <code>Id</code>s directly in the <code>Id</code> fields, we maintain a table (or multiple tables) that map <code>Id</code>s to the relevant information. Here’s one way to do this in our language:</p>
@@ -115,7 +115,7 @@ parseId' <span class="fu">=</span> <span class="kw">do</span>
 <p>Here’s <code>dropUnusedBindings</code> in this representation (only the interesting bits, full code is at the end of this post):</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> <span class="dt">Expr</span>
 dropUnusedBindings <span class="fu">=</span>
-    fmap snd <span class="fu">.</span> go Set.empty
+    <span class="fu">fmap</span> <span class="fu">snd</span> <span class="fu">.</span> go Set.empty
   <span class="kw">where</span>
 <span class="ot">    go ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
     go free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
@@ -125,9 +125,9 @@ dropUnusedBindings <span class="fu">=</span>
         <span class="kw">if</span> Set.member bndr free2 <span class="kw">then</span> <span class="kw">do</span>
           (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
           setIdArity bndr (countLambdas e1')
-          return (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')
+          <span class="fu">return</span> (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')
         <span class="kw">else</span>
-          return (free2, e2')
+          <span class="fu">return</span> (free2, e2')
 
       <span class="fu">...</span></code></pre></div>
 <p>Our pass is now stateful (updates the symbol table) and written in monadic style. Knot-tying is gone. We update the symbol table after processing a <code>let</code> RHS. Because <code>Id</code>s no longer have the arity information we don’t need to update anything other than the symbol table.</p>
@@ -136,10 +136,10 @@ dropUnusedBindings <span class="fu">=</span>
 addUnfoldings e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
 
     <span class="dt">IdE</span>{} <span class="ot">-&gt;</span>
-      return ()
+      <span class="fu">return</span> ()
 
     <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
-      return ()
+      <span class="fu">return</span> ()
 
     <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span>
       addUnfoldings body
@@ -233,7 +233,7 @@ arity &lt;- getIdUnfolding id</code></pre>
   }
 
 <span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Id</span> <span class="kw">where</span>
-  show (<span class="dt">Id</span> name arity _) <span class="fu">=</span> <span class="st">&quot;(Id &quot;</span> <span class="fu">++</span> show name <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> show arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+  <span class="fu">show</span> (<span class="dt">Id</span> name arity _) <span class="fu">=</span> <span class="st">&quot;(Id &quot;</span> <span class="fu">++</span> <span class="fu">show</span> name <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> <span class="fu">show</span> arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
 
 <span class="co">--------------------------------------------------------------------------------</span>
 <span class="co">-- Initializing unfolding fields in parse time via MonadFix</span>
@@ -246,10 +246,10 @@ arity &lt;- getIdUnfolding id</code></pre>
 parseExpr <span class="fu">=</span> <span class="kw">do</span>
     exprs <span class="ot">&lt;-</span> some <span class="fu">$</span>
       choice <span class="fu">$</span>
-      map (\p <span class="ot">-&gt;</span> p <span class="fu">&lt;*</span> space)
+      <span class="fu">map</span> (\p <span class="ot">-&gt;</span> p <span class="fu">&lt;*</span> space)
         [ parseParens, parseIf, parseLam, parseInt,
           parseLet, try parseId ]
-    return (foldl1' <span class="dt">App</span> exprs)
+    <span class="fu">return</span> (foldl1' <span class="dt">App</span> exprs)
 
 parseParens, parseIf, parseLam, parseInt,
   parseLet,<span class="ot"> parseId ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
@@ -259,7 +259,7 @@ parseParens <span class="fu">=</span> <span class="kw">do</span>
     space
     expr <span class="ot">&lt;-</span> parseExpr
     _ <span class="ot">&lt;-</span> char <span class="ch">')'</span>
-    return expr
+    <span class="fu">return</span> expr
 
 parseIf <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> string <span class="st">&quot;if&quot;</span>
@@ -272,21 +272,21 @@ parseIf <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> string <span class="st">&quot;else&quot;</span>
     space
     elseE <span class="ot">&lt;-</span> parseExpr
-    return (<span class="dt">IfE</span> condE thenE elseE)
+    <span class="fu">return</span> (<span class="dt">IfE</span> condE thenE elseE)
 
 parseLam <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> char <span class="ch">'\\'</span>
     space
-    id <span class="ot">&lt;-</span> parseId'
+    <span class="fu">id</span> <span class="ot">&lt;-</span> parseId'
     space
     _ <span class="ot">&lt;-</span> char <span class="ch">'.'</span>
     space
     body <span class="ot">&lt;-</span> parseExpr
-    return (<span class="dt">Lam</span> id body)
+    <span class="fu">return</span> (<span class="dt">Lam</span> <span class="fu">id</span> body)
 
 parseInt <span class="fu">=</span> <span class="kw">do</span>
     chars <span class="ot">&lt;-</span> some digitChar
-    return (<span class="dt">IntE</span> (read chars))
+    <span class="fu">return</span> (<span class="dt">IntE</span> (<span class="fu">read</span> chars))
 
 parseLet <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span>
@@ -296,15 +296,15 @@ parseLet <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> char <span class="ch">'='</span>
     space
 
-    (id, rhs) <span class="ot">&lt;-</span> mfix <span class="fu">$</span> \ <span class="fu">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span>
+    (<span class="fu">id</span>, rhs) <span class="ot">&lt;-</span> mfix <span class="fu">$</span> \ <span class="fu">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span>
       modify (Map.insert id_name id_)
       rhs <span class="ot">&lt;-</span> parseExpr
-      return (<span class="dt">Id</span>{ idName <span class="fu">=</span> id_name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }, rhs)
+      <span class="fu">return</span> (<span class="dt">Id</span>{ idName <span class="fu">=</span> id_name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }, rhs)
 
     _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span>
     space
     body <span class="ot">&lt;-</span> parseExpr
-    return (<span class="dt">Let</span> id rhs body)
+    <span class="fu">return</span> (<span class="dt">Let</span> <span class="fu">id</span> rhs body)
 
 parseId <span class="fu">=</span> <span class="dt">IdE</span> <span class="fu">&lt;$&gt;</span> parseId'
 
@@ -314,21 +314,21 @@ kws <span class="fu">=</span> Set.fromList [<span class="st">&quot;if&quot;</spa
 <span class="ot">parseIdName ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
 parseIdName <span class="fu">=</span> <span class="kw">do</span>
     name <span class="ot">&lt;-</span> some letterChar
-    guard (not (Set.member name kws))
-    return name
+    guard (<span class="fu">not</span> (Set.member name kws))
+    <span class="fu">return</span> name
 
 <span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">Id</span>
 parseId' <span class="fu">=</span> <span class="kw">do</span>
     name <span class="ot">&lt;-</span> parseIdName
     id_map <span class="ot">&lt;-</span> get
     <span class="kw">let</span> def <span class="fu">=</span> <span class="dt">Id</span>{ idName <span class="fu">=</span> name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
-    return (fromMaybe def (Map.lookup name id_map))
+    <span class="fu">return</span> (fromMaybe def (Map.lookup name id_map))
 
 <span class="ot">testPgm ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
 testPgm pgm <span class="fu">=</span>
     <span class="kw">case</span> evalState (runParserT parseExpr <span class="st">&quot;&quot;</span> pgm) Map.empty <span class="kw">of</span>
       <span class="dt">Left</span> (<span class="ot">err_bundle ::</span> <span class="dt">ParseErrorBundle</span> <span class="dt">String</span> <span class="dt">String</span>) <span class="ot">-&gt;</span>
-        error (errorBundlePretty err_bundle)
+        <span class="fu">error</span> (errorBundlePretty err_bundle)
       <span class="dt">Right</span> expr <span class="ot">-&gt;</span>
         expr
 
@@ -345,8 +345,8 @@ addUnfoldings <span class="fu">=</span> go Map.empty
     go ids e <span class="fu">=</span> <span class="kw">case</span> e <span class="kw">of</span>
 
       <span class="co">-- Interesting bits ------------------------------------------------------</span>
-      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
-        <span class="dt">IdE</span> (fromMaybe id (Map.lookup (idName id) ids))
+      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span>
+        <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (Map.lookup (idName <span class="fu">id</span>) ids))
 
       <span class="dt">Let</span> bndr rhs body <span class="ot">-&gt;</span>
         <span class="kw">let</span>
@@ -419,16 +419,16 @@ addUnfoldings <span class="fu">=</span> go Map.empty
 <span class="kw">data</span> <span class="dt">Type</span> <span class="fu">=</span> <span class="dt">Type</span> <span class="co">-- Assume a large type</span>
 
 <span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">IdInfo</span> <span class="kw">where</span>
-  show (<span class="dt">IdInfo</span> arity _ _) <span class="fu">=</span> <span class="st">&quot;(IdInfo &quot;</span> <span class="fu">++</span> show arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
+  <span class="fu">show</span> (<span class="dt">IdInfo</span> arity _ _) <span class="fu">=</span> <span class="st">&quot;(IdInfo &quot;</span> <span class="fu">++</span> <span class="fu">show</span> arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
 
 <span class="kw">type</span> <span class="dt">SymTbl</span> <span class="fu">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">IdInfo</span>
 
 <span class="ot">getIdInfo ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Maybe</span> <span class="dt">IdInfo</span>)
-getIdInfo id <span class="fu">=</span>
-    Map.lookup id <span class="fu">&lt;$&gt;</span> get
+getIdInfo <span class="fu">id</span> <span class="fu">=</span>
+    Map.lookup <span class="fu">id</span> <span class="fu">&lt;$&gt;</span> get
 
 <span class="ot">setIdArity ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
-setIdArity id arity <span class="fu">=</span> modify (Map.alter alter id)
+setIdArity <span class="fu">id</span> arity <span class="fu">=</span> modify (Map.alter alter <span class="fu">id</span>)
   <span class="kw">where</span>
     alter <span class="dt">Nothing</span> <span class="fu">=</span>
       <span class="dt">Just</span> <span class="dt">IdInfo</span>{ idArity <span class="fu">=</span> arity, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span>, idType <span class="fu">=</span> <span class="dt">Nothing</span> }
@@ -436,7 +436,7 @@ setIdArity id arity <span class="fu">=</span> modify (Map.alter alter id)
       <span class="dt">Just</span> id_info{ idArity <span class="fu">=</span> arity }
 
 <span class="ot">setIdUnfolding ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
-setIdUnfolding id unfolding <span class="fu">=</span> modify (Map.alter alter id)
+setIdUnfolding <span class="fu">id</span> unfolding <span class="fu">=</span> modify (Map.alter alter <span class="fu">id</span>)
   <span class="kw">where</span>
     alter <span class="dt">Nothing</span> <span class="fu">=</span>
       <span class="dt">Just</span> <span class="dt">IdInfo</span>{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> unfolding, idArity <span class="fu">=</span> <span class="dv">0</span>, idType <span class="fu">=</span> <span class="dt">Nothing</span> }
@@ -449,50 +449,50 @@ countLambdas _ <span class="fu">=</span> <span class="dv">0</span>
 
 <span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> <span class="dt">Expr</span>
 dropUnusedBindings <span class="fu">=</span>
-    fmap snd <span class="fu">.</span> go Set.empty
+    <span class="fu">fmap</span> <span class="fu">snd</span> <span class="fu">.</span> go Set.empty
   <span class="kw">where</span>
 <span class="ot">    go ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
     go free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
 
-      <span class="dt">IdE</span> id <span class="ot">-&gt;</span>
-        return (Set.insert id free_vars, e0)
+      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span>
+        <span class="fu">return</span> (Set.insert <span class="fu">id</span> free_vars, e0)
 
       <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
-        return (free_vars, e0)
+        <span class="fu">return</span> (free_vars, e0)
 
       <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span> <span class="kw">do</span>
         (free_vars', body') <span class="ot">&lt;-</span> go free_vars body
-        return (Set.delete arg free_vars', <span class="dt">Lam</span> arg body')
+        <span class="fu">return</span> (Set.delete arg free_vars', <span class="dt">Lam</span> arg body')
 
       <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
         (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
         (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
-        return (Set.union free1 free2, <span class="dt">App</span> e1' e2')
+        <span class="fu">return</span> (Set.union free1 free2, <span class="dt">App</span> e1' e2')
 
       <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span>
         (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
         (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
         (free3, e3') <span class="ot">&lt;-</span> go free_vars e3
-        return (Set.unions [free1, free2, free3], <span class="dt">IfE</span> e1' e2' e3')
+        <span class="fu">return</span> (Set.unions [free1, free2, free3], <span class="dt">IfE</span> e1' e2' e3')
 
       <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
         (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
         <span class="kw">if</span> Set.member bndr free2 <span class="kw">then</span> <span class="kw">do</span>
           (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
-          trace (ppShow e1') (return ())
+          trace (ppShow e1') (<span class="fu">return</span> ())
           setIdArity bndr (countLambdas e1')
-          return (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')
+          <span class="fu">return</span> (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')
         <span class="kw">else</span>
-          return (free2, e2')
+          <span class="fu">return</span> (free2, e2')
 
 <span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
 addUnfoldings e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
 
     <span class="dt">IdE</span>{} <span class="ot">-&gt;</span>
-      return ()
+      <span class="fu">return</span> ()
 
     <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
-      return ()
+      <span class="fu">return</span> ()
 
     <span class="dt">Lam</span> _ body <span class="ot">-&gt;</span>
       addUnfoldings body
@@ -532,10 +532,10 @@ pgm <span class="fu">=</span> <span class="dt">Let</span> <span class="st">&quot
 parseExpr <span class="fu">=</span> <span class="kw">do</span>
     exprs <span class="ot">&lt;-</span> some <span class="fu">$</span>
       choice <span class="fu">$</span>
-      map (\p <span class="ot">-&gt;</span> p <span class="fu">&lt;*</span> space)
+      <span class="fu">map</span> (\p <span class="ot">-&gt;</span> p <span class="fu">&lt;*</span> space)
         [ parseParens, parseIf, parseLam, parseInt,
           parseLet, try parseId ]
-    return (foldl1' <span class="dt">App</span> exprs)
+    <span class="fu">return</span> (foldl1' <span class="dt">App</span> exprs)
 
 parseParens, parseIf, parseLam, parseInt,
   parseLet,<span class="ot"> parseId ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
@@ -545,7 +545,7 @@ parseParens <span class="fu">=</span> <span class="kw">do</span>
     space
     expr <span class="ot">&lt;-</span> parseExpr
     _ <span class="ot">&lt;-</span> char <span class="ch">')'</span>
-    return expr
+    <span class="fu">return</span> expr
 
 parseIf <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> string <span class="st">&quot;if&quot;</span>
@@ -558,26 +558,26 @@ parseIf <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> string <span class="st">&quot;else&quot;</span>
     space
     elseE <span class="ot">&lt;-</span> parseExpr
-    return (<span class="dt">IfE</span> condE thenE elseE)
+    <span class="fu">return</span> (<span class="dt">IfE</span> condE thenE elseE)
 
 parseLam <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> char <span class="ch">'\\'</span>
     space
-    id <span class="ot">&lt;-</span> parseId'
+    <span class="fu">id</span> <span class="ot">&lt;-</span> parseId'
     space
     _ <span class="ot">&lt;-</span> char <span class="ch">'.'</span>
     space
     body <span class="ot">&lt;-</span> parseExpr
-    return (<span class="dt">Lam</span> id body)
+    <span class="fu">return</span> (<span class="dt">Lam</span> <span class="fu">id</span> body)
 
 parseInt <span class="fu">=</span> <span class="kw">do</span>
     chars <span class="ot">&lt;-</span> some digitChar
-    return (<span class="dt">IntE</span> (read chars))
+    <span class="fu">return</span> (<span class="dt">IntE</span> (<span class="fu">read</span> chars))
 
 parseLet <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span>
     space
-    id <span class="ot">&lt;-</span> parseId'
+    <span class="fu">id</span> <span class="ot">&lt;-</span> parseId'
     space
     _ <span class="ot">&lt;-</span> char <span class="ch">'='</span>
     space
@@ -585,8 +585,8 @@ parseLet <span class="fu">=</span> <span class="kw">do</span>
     _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span>
     space
     body <span class="ot">&lt;-</span> parseExpr
-    lift (setIdUnfolding id rhs)
-    return (<span class="dt">Let</span> id rhs body)
+    lift (setIdUnfolding <span class="fu">id</span> rhs)
+    <span class="fu">return</span> (<span class="dt">Let</span> <span class="fu">id</span> rhs body)
 
 parseId <span class="fu">=</span> <span class="dt">IdE</span> <span class="fu">&lt;$&gt;</span> parseId'
 
@@ -596,14 +596,14 @@ kws <span class="fu">=</span> Set.fromList [<span class="st">&quot;if&quot;</spa
 <span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
 parseId' <span class="fu">=</span> <span class="kw">do</span>
     name <span class="ot">&lt;-</span> some letterChar
-    guard (not (Set.member name kws))
-    return name
+    guard (<span class="fu">not</span> (Set.member name kws))
+    <span class="fu">return</span> name
 
 <span class="ot">testPgm ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
 testPgm pgm <span class="fu">=</span>
     <span class="kw">case</span> evalState (runParserT parseExpr <span class="st">&quot;&quot;</span> pgm) Map.empty <span class="kw">of</span>
       <span class="dt">Left</span> (<span class="ot">err_bundle ::</span> <span class="dt">ParseErrorBundle</span> <span class="dt">String</span> <span class="dt">String</span>) <span class="ot">-&gt;</span>
-        error (errorBundlePretty err_bundle)
+        <span class="fu">error</span> (errorBundlePretty err_bundle)
       <span class="dt">Right</span> expr <span class="ot">-&gt;</span>
         expr
 

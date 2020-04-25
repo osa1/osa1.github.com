@@ -42,7 +42,7 @@ ide <span class="fu">=</span> <span class="kw">do</span>
     fc  <span class="ot">&lt;-</span> oneOf firstChar
     r   <span class="ot">&lt;-</span> optionMaybe (many <span class="fu">$</span> oneOf rest)
     spaces
-    return <span class="fu">$</span> flip (,) pos <span class="fu">$</span> <span class="kw">case</span> r <span class="kw">of</span>
+    <span class="fu">return</span> <span class="fu">$</span> <span class="fu">flip</span> (,) pos <span class="fu">$</span> <span class="kw">case</span> r <span class="kw">of</span>
                  <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">Ide</span> [fc]
                  <span class="dt">Just</span> s  <span class="ot">-&gt;</span> <span class="dt">Ide</span> <span class="fu">$</span> [fc] <span class="fu">++</span> s
   <span class="kw">where</span> firstChar <span class="fu">=</span> [<span class="ch">'A'</span><span class="fu">..</span><span class="ch">'Z'</span>] <span class="fu">++</span> [<span class="ch">'a'</span><span class="fu">..</span><span class="ch">'z'</span>] <span class="fu">++</span> <span class="st">&quot;_&quot;</span>
@@ -57,19 +57,19 @@ tokenize <span class="fu">=</span> runParser tokens ()</code></pre></div>
 <span class="ot">parseTest  ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> <span class="dt">Parsec</span> [<span class="dt">TokenPos</span>] () a <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 parseTest p s <span class="fu">=</span>
     <span class="kw">case</span> tokenize <span class="st">&quot;test&quot;</span> s <span class="kw">of</span>
-        <span class="dt">Left</span> e    <span class="ot">-&gt;</span> putStrLn <span class="fu">$</span> show e
+        <span class="dt">Left</span> e    <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="fu">$</span> <span class="fu">show</span> e
         <span class="dt">Right</span> ts' <span class="ot">-&gt;</span> P.parseTest p ts'</code></pre></div>
 <p><code>satisfy</code> gets a predicate on token, and return a token parser using Parsec’s <code>tokenPrim</code> function, which takes 3 functions as parameters, one for printing the token(to be used in error reporting), one for updating the current position, and one for returning the result after calling predicate. I adapted this function from Parsec’s string parsers:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">advance ::</span> <span class="dt">SourcePos</span> <span class="ot">-&gt;</span> t <span class="ot">-&gt;</span> [<span class="dt">TokenPos</span>] <span class="ot">-&gt;</span> <span class="dt">SourcePos</span>
 advance _ _ ((_, pos) <span class="fu">:</span> _) <span class="fu">=</span> pos
 advance pos _ [] <span class="fu">=</span> pos
 <span class="ot">satisfy ::</span> (<span class="dt">TokenPos</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Token</span>
-satisfy f <span class="fu">=</span> tokenPrim show
+satisfy f <span class="fu">=</span> tokenPrim <span class="fu">show</span>
                       advance
-                      (\c <span class="ot">-&gt;</span> <span class="kw">if</span> f c <span class="kw">then</span> <span class="dt">Just</span> (fst c) <span class="kw">else</span> <span class="dt">Nothing</span>)</code></pre></div>
+                      (\c <span class="ot">-&gt;</span> <span class="kw">if</span> f c <span class="kw">then</span> <span class="dt">Just</span> (<span class="fu">fst</span> c) <span class="kw">else</span> <span class="dt">Nothing</span>)</code></pre></div>
 <p>Last function, <code>tok</code>, takes a token and returns a token parser:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">tok ::</span> <span class="dt">Token</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Token</span>
-tok t <span class="fu">=</span> (satisfy <span class="fu">$</span> (<span class="fu">==</span> t) <span class="fu">.</span> fst) <span class="fu">&lt;?&gt;</span> show t</code></pre></div>
+tok t <span class="fu">=</span> (satisfy <span class="fu">$</span> (<span class="fu">==</span> t) <span class="fu">.</span> <span class="fu">fst</span>) <span class="fu">&lt;?&gt;</span> <span class="fu">show</span> t</code></pre></div>
 <p><code>.. &lt;?&gt; show t</code> part is required for error reporting. See my <a href="http://stackoverflow.com/questions/12167329/haskell-parsec-error-messages-are-less-helpful-while-using-custom-tokens">SO question</a> for details.</p>
 <p>Now, when using Parsec, generally there’s no need to separate lexing stage. Because as you can see above, it just makes code more complex, and adds no more flexibility. Instead of writing <code>tok $ Ide &quot;some-identifier&quot;</code>, you can always write <code>ide &quot;some-identifier&quot;</code> with a <code>ide</code> parser.</p>
 <p>Still, I think understanding how to make this helps for at least two reasons. First, now you can work on any streams, not just character streams using Parsec’s <code>Char</code> token. And second, writing lexers can still help in some situations, like parsing indentation-based grammars. In that case, you can generate indent-dedent tokens in lexing stage, and make parser code more clean because it will be less <em>context-dependent</em> (I never tried that with Parsec, though) .</p>

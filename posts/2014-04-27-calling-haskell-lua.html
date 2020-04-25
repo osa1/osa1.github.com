@@ -48,10 +48,10 @@
 <p>We have basic Haskell types <code>Int</code>, <code>Double</code>, <code>String</code>, and <code>Bool</code> as instances. Other types are for more advanced use, for example, <code>Ptr a</code> is used for <code>userdata</code>(basically any binary data that you want to pass to Lua stack and later get back, see <a href="http://www.lua.org/manual/5.1/manual.html#2.2">reference manual</a> for more details).</p>
 <p>This two functions are instances of <code>LuaImport</code>:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">concat' ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
-concat' s1 s2 <span class="fu">=</span> return <span class="fu">$</span> s1 <span class="fu">++</span> s2
+concat' s1 s2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> s1 <span class="fu">++</span> s2
 
 <span class="ot">pow ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Double</span>
-pow d1 d2 <span class="fu">=</span> return <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre></div>
+pow d1 d2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> d1 <span class="fu">**</span> d2</code></pre></div>
 <p>And we can push this functions to Lua stack using <code>pushhsfunction</code> or directly assign them to a global variable using <code>registerhsfunction</code>. In this post I’ll use register functions:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> <span class="dt">Scripting.Lua</span> <span class="kw">as</span> <span class="dt">Lua</span>
 
@@ -83,16 +83,16 @@ bad argument #1 to '?' (number expected, got string)</code></pre>
         <span class="co">-- arguments are functions, add them to callback queue and return</span>
         <span class="co">-- nothing</span>
         addCallbacks <span class="dv">1</span> args
-        return <span class="dv">0</span>
+        <span class="fu">return</span> <span class="dv">0</span>
       <span class="dt">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span>
         <span class="co">-- error: argument at `errArg` is not a function, return error</span>
         <span class="co">-- string</span>
-        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> show errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
-        return <span class="dv">1</span></code></pre></div>
+        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> <span class="fu">show</span> errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span>
+        <span class="fu">return</span> <span class="dv">1</span></code></pre></div>
 <p>This example program keeps track of passed Lua callbacks in an <code>IORef</code>. Here’s the part that handles getting Lua callbacks from Lua stack:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n max
-  <span class="fu">|</span> n <span class="fu">&gt;</span> max <span class="fu">=</span> return ()
-  <span class="fu">|</span> otherwise <span class="fu">=</span> <span class="kw">do</span>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell">addCallbacks n <span class="fu">max</span>
+  <span class="fu">|</span> n <span class="fu">&gt;</span> <span class="fu">max</span> <span class="fu">=</span> <span class="fu">return</span> ()
+  <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="kw">do</span>
       <span class="co">-- move nth argument to top of the stack</span>
       pushvalue l n
       <span class="co">-- add function reference to registry</span>
@@ -100,17 +100,17 @@ bad argument #1 to '?' (number expected, got string)</code></pre>
       <span class="co">-- add registry index to IORef</span>
       modifyIORef cs (<span class="fu">++</span> [refId])
       <span class="co">-- continue adding other arguments</span>
-      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) max</code></pre></div>
+      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) <span class="fu">max</span></code></pre></div>
 <p>Note how we’re adding the function to the <em>registry</em> and getting it’s index at the <em>registry</em> in Haskell. We can now refer to this functions(e.g. push this function to Lua stack) using this index. Here’s the relevant code:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Call Lua callbacks collected with `addLuaCallbacks`.</span>
 <span class="ot">callLuaCallbacks ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">CInt</span>
 callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
     <span class="fu">...</span>
   <span class="kw">where</span>
-    iter [] <span class="fu">=</span> return ()
+    iter [] <span class="fu">=</span> <span class="fu">return</span> ()
     iter (c <span class="fu">:</span> rest) <span class="fu">=</span> <span class="kw">do</span>
       <span class="fu">...</span>
-      pushinteger l (fromIntegral c)
+      pushinteger l (<span class="fu">fromIntegral</span> c)
       gettable l registryindex
       <span class="co">-- call the callback</span>
       call l <span class="dv">0</span> <span class="dv">1</span>
@@ -123,16 +123,16 @@ callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span>
 <p>This helps making sure that your API usage is correct.</p>
 <h2 id="using-hslua-for-reading-configuration-files-written-in-lua">Using hslua for reading configuration files written in Lua</h2>
 <p>hslua also provides a module for reading configuration files. As an example, using <code>Scripting.Lua.ConfigFile.getNestedAssocLists</code>, you can execute the Lua file given below and get resulting nested table as Haskell <code>[(String, [(String, String)])]</code>:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode lua"><code class="sourceCode lua"> someVal <span class="ot">=</span> <span class="ot">{</span>
-    something <span class="ot">=</span> <span class="ot">{</span>
-       foo <span class="ot">=</span> <span class="st">&quot;aaa&quot;</span><span class="ot">,</span>
-       bar <span class="ot">=</span> <span class="st">&quot;bbb&quot;</span><span class="ot">,</span>
-       baz <span class="ot">=</span> <span class="st">&quot;ccc&quot;</span>
-    <span class="ot">},</span>
-    somethingElse <span class="ot">=</span> <span class="ot">{</span>
-       <span class="ot">...</span>
-    <span class="ot">}</span>
- <span class="ot">}</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode lua"><code class="sourceCode lua"> someVal <span class="op">=</span> <span class="op">{</span>
+    something <span class="op">=</span> <span class="op">{</span>
+       foo <span class="op">=</span> <span class="st">&quot;aaa&quot;</span><span class="op">,</span>
+       bar <span class="op">=</span> <span class="st">&quot;bbb&quot;</span><span class="op">,</span>
+       baz <span class="op">=</span> <span class="st">&quot;ccc&quot;</span>
+    <span class="op">},</span>
+    somethingElse <span class="op">=</span> <span class="op">{</span>
+       <span class="op">...</span>
+    <span class="op">}</span>
+ <span class="op">}</span></code></pre></div>
 <h2 id="running-lua-programs-using-lua-interpreters">Running Lua programs using Lua interpreters</h2>
 <p>In all hslua examples, we needed to create Lua state in Haskell, register Haskell functions inside Haskell and then run Lua files using Lua C API again in Haskell. I think in theory it is also possible to run Lua programs using standard Lua interpreter executables(instead of running the interpreter using Lua C API inside Haskell) and load Haskell functions compiled to <code>*.so</code> shared library files.</p>
 <p>About one year ago, I did something similar using C instead of Haskell. You can see the code <a href="https://github.com/osa1/lcl">here</a>. The library compiled to a <code>.so</code> file and by using Lua’s <code>package.loadlib</code>, you can load functions defined in the <code>.so</code>.</p>

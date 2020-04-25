@@ -70,7 +70,7 @@
 userForm <span class="fu">=</span> <span class="dt">User</span>
     <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="dt">Nothing</span>
     <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="dt">Nothing</span>)
-    <span class="fu">&lt;*&gt;</span> pure <span class="dv">0</span>
+    <span class="fu">&lt;*&gt;</span> <span class="fu">pure</span> <span class="dv">0</span>
   <span class="kw">where</span>
     <span class="co">-- in our example, we don't need to use `m` monad for validation. if we</span>
     <span class="co">-- were to need that, we could use `checkM` instead of `check`, and</span>
@@ -80,12 +80,12 @@ userForm <span class="fu">=</span> <span class="dt">User</span>
 <p>For generating HTML using Heist, we need to maintain <code>HeistState</code> type, which keeps track of information that is needed for rendering templates.</p>
 <p>In the code below, `m’ is called “runtime monad” and represents the monad type that rendering functions operate on. We will see an example use later.</p>
 <p>I’m using <code>ScopedTypeVariables</code> extension to share type parameter <code>m</code> with type declarations in <code>where</code> part. This is only optional, since I could always use <code>let</code> or just inline the <code>heistConfig</code> definition.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">initHeistState ::</span> forall m<span class="fu">.</span> <span class="dt">MonadIO</span> m <span class="ot">=&gt;</span> <span class="dt">IO</span> (<span class="dt">HeistState</span> m)
+<div class="sourceCode" id="cb14"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">initHeistState ::</span> <span class="kw">forall</span> m<span class="fu">.</span> <span class="dt">MonadIO</span> m <span class="ot">=&gt;</span> <span class="dt">IO</span> (<span class="dt">HeistState</span> m)
 initHeistState <span class="fu">=</span> <span class="kw">do</span>
     st <span class="ot">&lt;-</span> runEitherT <span class="fu">$</span> initHeist heistConfig
     <span class="kw">case</span> st <span class="kw">of</span>
-      <span class="dt">Left</span> errors <span class="ot">-&gt;</span> error <span class="fu">$</span> unlines errors
-      <span class="dt">Right</span> state <span class="ot">-&gt;</span> return state
+      <span class="dt">Left</span> errors <span class="ot">-&gt;</span> <span class="fu">error</span> <span class="fu">$</span> <span class="fu">unlines</span> errors
+      <span class="dt">Right</span> state <span class="ot">-&gt;</span> <span class="fu">return</span> state
   <span class="kw">where</span>
 <span class="ot">    heistConfig ::</span> <span class="dt">HeistConfig</span> m
     <span class="co">-- In HeistConfig, we need to specify what load-time, compile-time and</span>
@@ -119,13 +119,13 @@ renderForm hs formView <span class="fu">=</span> <span class="kw">do</span></cod
     <span class="kw">case</span> maybeBuilder <span class="kw">of</span>
       <span class="dt">Nothing</span> <span class="ot">-&gt;</span>
         <span class="co">-- This happens when wrong template name is given to `renderTemplate`.</span>
-        error <span class="st">&quot;template is not rendered&quot;</span>
+        <span class="fu">error</span> <span class="st">&quot;template is not rendered&quot;</span>
       <span class="dt">Just</span> (builder, mimeType) <span class="ot">-&gt;</span> <span class="kw">do</span>
         <span class="co">-- here `builder` has type `Blaze.ByteString.Builder.Builder` from</span>
         <span class="co">-- `blaze-builder` package. It's used to efficiently build</span>
         <span class="co">-- ByteStrings.</span>
         BS.putStrLn (toByteString builder)
-        print mimeType</code></pre></div>
+        <span class="fu">print</span> mimeType</code></pre></div>
 <p>I’m just printing stuff, since this app is mostly for learning purposes.</p>
 <p>In main function, I do three things:</p>
 <ol type="1">
@@ -150,28 +150,28 @@ main <span class="fu">=</span> <span class="kw">do</span>
 
     <span class="co">-- Here the type T.Text comes from first argument of userForm's return</span>
     <span class="co">-- type</span>
-    (formView, maybeUser) <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm (const <span class="fu">$</span> return [])
+    (formView, maybeUser) <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm (<span class="fu">const</span> <span class="fu">$</span> <span class="fu">return</span> [])
 <span class="ot">                               ::</span> <span class="dt">IO</span> (<span class="dt">View</span> <span class="dt">T.Text</span>, <span class="dt">Maybe</span> <span class="dt">User</span>)
-    print maybeUser
+    <span class="fu">print</span> maybeUser
     renderForm hs formView
 
 
     <span class="co">-- Case 2, POST request with invalid email address</span>
-    <span class="kw">let</span> env path <span class="fu">=</span> return <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
+    <span class="kw">let</span> env path <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
                               [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;username&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;testuser&quot;</span>]
                               [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;email&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;invalidemail&quot;</span>]
                               _ <span class="ot">-&gt;</span> []
     (formView', maybeUser') <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm env
-    print maybeUser'
+    <span class="fu">print</span> maybeUser'
     renderForm hs formView'
 
     <span class="co">-- Case 3, POST request with valid email address and username</span>
-    <span class="kw">let</span> env' path <span class="fu">=</span> return <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
+    <span class="kw">let</span> env' path <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> <span class="kw">case</span> path <span class="kw">of</span>
                                [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;username&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;testuser&quot;</span>]
                                [<span class="st">&quot;userform&quot;</span>, <span class="st">&quot;email&quot;</span>] <span class="ot">-&gt;</span> [<span class="dt">TextInput</span> <span class="st">&quot;valid@email.com&quot;</span>]
                                _ <span class="ot">-&gt;</span> []
     (formView'', maybeUser'') <span class="ot">&lt;-</span> postForm <span class="st">&quot;userform&quot;</span> userForm env'
-    print maybeUser''
+    <span class="fu">print</span> maybeUser''
     renderForm hs formView''</code></pre></div>
 <p>Now our program is almost complete, only detail left is the Heist template file. We specified the template path in <code>initHeistState</code> as <code>templates</code> folder, and we’re rendering Heist template named <code>user_form</code> in <code>renderForm</code>. So the template file we need should be <code>templates/user_form.tpl</code>.</p>
 <p>Here’s the template file:</p>

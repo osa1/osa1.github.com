@@ -60,7 +60,7 @@
 <p>Bir kere her nedense bu böyle yapılmamış ve şimdi bu hale getirdiğimizde mevcut kodlardaki tüm <code>return</code>leri <code>pure</code> ile, tüm <code>liftM</code>leri <code>fmap</code> ile, tüm <code>ap</code>ları <code>&lt;*&gt;</code> ile değiştirmek gerekiyor.</p>
 <p>Bu bir de şu anlama geliyor, eğer bir monad yazmışsanız, birkaç satırda bunu applicative functor haline de getirebilirsiniz. Ve bunu yapmanız applicative tarzda programlamak isteyen birine kolaylık sağlamış olur, veya applicativelar üzerinde çalışan fonksiyonları kullanabilirsiniz. X monadında yaptıkları gibi:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Applicative</span> <span class="dt">X</span> <span class="kw">where</span>
-    pure <span class="fu">=</span> return
+    <span class="fu">pure</span> <span class="fu">=</span> <span class="fu">return</span>
     (<span class="fu">&lt;*&gt;</span>) <span class="fu">=</span> ap</code></pre></div>
 <section class="footnotes">
 <hr />

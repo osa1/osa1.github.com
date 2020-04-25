@@ -236,7 +236,7 @@ bumpf2 (<span class="dt">D</span> f1 f2) <span class="fu">=</span> <span class="
    bumpf1 d1
    rv1 <span class="ot">&lt;-</span> readIORef (f1 d1)
    rv2 <span class="ot">&lt;-</span> readIORef (f1 d2)
-   print (rv1 <span class="fu">==</span> rv2)</code></pre></div>
+   <span class="fu">print</span> (rv1 <span class="fu">==</span> rv2)</code></pre></div>
 <p>If <code>D</code> becomes mutable after the <code>UNPACK</code>, this code doesn’t work anymore, because we lose sharing after the functional update in line <code>bumpD2 d1</code>.</p>
 <p>See also <a href="https://ghc.haskell.org/trac/ghc/ticket/7662#comment:3">this discussion</a> for how other compilers improve this.</p>
 

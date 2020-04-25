@@ -44,7 +44,7 @@
         <span class="dt">int</span> r = <span class="dv">0</span>;
         
         <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>(); i++) {
-            r += <span class="bu">Integer</span>.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i+<span class="dv">1</span>)) * <span class="bu">Math</span>.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i<span class="dv">-1</span>);
+            r += <span class="bu">Integer</span>.<span class="fu">parseInt</span>(<span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">substring</span>(i, i+<span class="dv">1</span>)) * <span class="bu">Math</span>.<span class="fu">pow</span>(d, <span class="kw">this</span>.<span class="fu">s</span>.<span class="fu">length</span>()-i-<span class="dv">1</span>);
         }
         
         <span class="kw">return</span> r;
@@ -64,7 +64,7 @@
         }
         r1 += s;
         <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; r1.<span class="fu">length</span>(); i++) {
-            r2 += r1.<span class="fu">substring</span>(r1.<span class="fu">length</span>()-i<span class="dv">-1</span>, r1.<span class="fu">length</span>()-i);
+            r2 += r1.<span class="fu">substring</span>(r1.<span class="fu">length</span>()-i-<span class="dv">1</span>, r1.<span class="fu">length</span>()-i);
         }
         <span class="kw">return</span> r2;
         

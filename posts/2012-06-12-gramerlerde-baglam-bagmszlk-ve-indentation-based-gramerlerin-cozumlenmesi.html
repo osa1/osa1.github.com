@@ -63,7 +63,7 @@ setLexerIndentLevel i <span class="fu">=</span> <span class="dt">Alex</span> <sp
 setIndent input<span class="fu">@</span>(p, _, _, str) i <span class="fu">=</span> <span class="kw">do</span>
     <span class="co">--let !x = unsafePerformIO $ putStrLn str</span>
     lastIndent <span class="ot">&lt;-</span> getLexerIndentLevel
-    currIndent <span class="ot">&lt;-</span> countIndent (drop <span class="dv">1</span> str) <span class="dv">0</span> <span class="co">-- first char is always \n</span>
+    currIndent <span class="ot">&lt;-</span> countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) <span class="dv">0</span> <span class="co">-- first char is always \n</span>
     <span class="kw">if</span> (lastIndent <span class="fu">&lt;</span> currIndent) <span class="kw">then</span>
         <span class="kw">do</span> setLexerIndentLevel currIndent
            mkL (<span class="dt">LTIndent</span> (currIndent <span class="fu">-</span> lastIndent)) input i
@@ -73,24 +73,24 @@ setIndent input<span class="fu">@</span>(p, _, _, str) i <span class="fu">=</spa
     <span class="kw">else</span> alexMonadScan
   <span class="kw">where</span>
     countIndent str total
-        <span class="fu">|</span> take <span class="dv">1</span> str <span class="fu">==</span> <span class="st">&quot;\t&quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">1</span>
-                                  countIndent (drop <span class="dv">1</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
-        <span class="fu">|</span> take <span class="dv">4</span> str <span class="fu">==</span> <span class="st">&quot;    &quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">4</span>
-                                    countIndent (drop <span class="dv">4</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
-        <span class="fu">|</span> otherwise <span class="fu">=</span> return total</code></pre></div>
+        <span class="fu">|</span> <span class="fu">take</span> <span class="dv">1</span> str <span class="fu">==</span> <span class="st">&quot;\t&quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">1</span>
+                                  countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
+        <span class="fu">|</span> <span class="fu">take</span> <span class="dv">4</span> str <span class="fu">==</span> <span class="st">&quot;    &quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">4</span>
+                                    countIndent (<span class="fu">drop</span> <span class="dv">4</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
+        <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="fu">return</span> total</code></pre></div>
 <p>Burda bir problem, aslında bir eşleşmede birden fazla token oluşturamadığımızdan(Alex’in bir kısıtlaması, belki de bir yolu vardır ama ben bulamamışımdır), ben <code>LTDedent</code> adlı bir lexeme oluşturuyorum, burdaki <code>T</code> temporary, yani geçici anlamına geliyor. Çünkü daha sonra token listesinden bu elemanları silip başka tokenlar ekleyeceğim. Bu tokenların her biri ne kadar <em>indent</em> veya <em>dedent</em> olduğunu tutuyor. Yani örneğin bir önceki satıra göre 2 birim dışarı çıkmışsa, <code>LTIndent 2</code> ile bir <code>LexemeClass</code> oluşturuyorum. Daha sonra bunu 2 ayrı <code>LIndent</code>e dönüştürmeliyim ki, dilimin <code>{</code> ve <code>}</code> gibi karakterler kullanan dillerden hiçbir farkı kalmasın(bu arada şimdi farkettim, <code>LTIndent</code> diye bir sınıfa ihtiyacım yok, çünkü zaten bir önceki satırdan daha fazla girintilenmişse kesin olarak bir yeni blok oluşmuştur, bir ara düzeltirim artık :).</p>
 <p><code>runAlex</code> fonksiyonu yardımıyla <code>Lexeme</code> listesini elde ettikten sonra şu şekilde bu tokenları ayrı ayrı girintileme tokenları ile değiştiriyorum(kod tekrarı için kusura bakmayın :P )</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addIndentations ::</span> [<span class="dt">Lexeme</span>] <span class="ot">-&gt;</span> [<span class="dt">Lexeme</span>]
 <span class="co">-- ML style pattern matching for patterns with same cases or maybe view patterns</span>
 <span class="co">-- could be useful here</span>
 addIndentations (lex<span class="fu">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTIndent</span> c) _)<span class="fu">:</span>ls) <span class="fu">=</span>
-    concat [iter lex c, addIndentations ls]
-  <span class="kw">where</span> iter lex c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
-                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LIndent</span> <span class="dt">Nothing</span>)<span class="fu">:</span>(iter lex (c<span class="fu">-</span><span class="dv">1</span>))
+    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]
+  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
+                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LIndent</span> <span class="dt">Nothing</span>)<span class="fu">:</span>(iter <span class="fu">lex</span> (c<span class="fu">-</span><span class="dv">1</span>))
 addIndentations (lex<span class="fu">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTDedent</span> c) _)<span class="fu">:</span>ls) <span class="fu">=</span>
-    concat [iter lex c, addIndentations ls]
-  <span class="kw">where</span> iter lex c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
-                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LDedent</span> <span class="dt">Nothing</span>)<span class="fu">:</span>(iter lex (c<span class="fu">-</span><span class="dv">1</span>))
+    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]
+  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
+                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LDedent</span> <span class="dt">Nothing</span>)<span class="fu">:</span>(iter <span class="fu">lex</span> (c<span class="fu">-</span><span class="dv">1</span>))
 addIndentations (l<span class="fu">:</span>ls) <span class="fu">=</span> l<span class="fu">:</span>(addIndentations ls)
 addIndentations [] <span class="fu">=</span> []</code></pre></div>
 <p>Ve böylece bağlam bağımlı bir grameri, lexing aşamasında basit bir hileyle bağlam bağımsız hale getirmiş oluyoruz. Indentation-based gramerlerde yapılabilecek en mantıklı iş bu gibi. Bağlam bağımlı gramerleri çözümlemek için bilinen çok iyi algoritmalar/kütüphaneler/programlar var ve bu iş lexing aşamasında çok kolay yapılabiliyor.</p>

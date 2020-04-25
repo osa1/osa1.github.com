@@ -399,8 +399,8 @@ $2 = {
 <span class="co">-- In case (b), the constructor's fields themselves play the role</span>
 <span class="co">-- of the SRT.</span>
 staticClosureNeedsLink has_srt <span class="dt">CmmInfoTable</span>{ cit_rep <span class="fu">=</span> smrep }
-  <span class="fu">|</span> isConRep smrep         <span class="fu">=</span> not (isStaticNoCafCon smrep)
-  <span class="fu">|</span> otherwise              <span class="fu">=</span> has_srt <span class="co">-- needsSRT (cit_srt info_tbl)</span></code></pre></div>
+  <span class="fu">|</span> isConRep smrep         <span class="fu">=</span> <span class="fu">not</span> (isStaticNoCafCon smrep)
+  <span class="fu">|</span> <span class="fu">otherwise</span>              <span class="fu">=</span> has_srt <span class="co">-- needsSRT (cit_srt info_tbl)</span></code></pre></div>
 <p>So <code>has_srt</code> is <code>False</code> for this object and <code>idCafInfo</code> of this closure says it’s not caffy.</p>
 <p>Just to make sure this is the problem, I modify the code to treat all top-level closures as caffy. Indeed that fixes the bug.</p>
 <p>CAFness of bindings are decided in <code>hasCafRefs</code> in <code>TidyPgm</code>. Two conditions for CAFness are</p>
