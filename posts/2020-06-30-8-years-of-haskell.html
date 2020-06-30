@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - 8 years of Haskell</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+                <span id="blog-title"><a href="../">osa1</a></span>
+                <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+                <span class="menu-item"><a href="https://gitlab.haskell.org/osa1">gitlab</a></span>
+                <span class="menu-item"><a href="../rss.xml">rss</a></span>
+            </div>
+            <div class="inner">
+                <h1 id="post-title">8 years of Haskell</h1>
+
+<p><strong>June 30, 2020</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/ghc.html">ghc</a>.</p>
+
+<p>21 Jun 2020 was my last day at Well-Typed and as a GHC maintainer/developer. On 22st I joined the programming language team at <a href="https://dfinity.org/">DFINITY</a> to work on the <a href="https://sdk.dfinity.org/docs/language-guide/motoko.html">Motoko programming language</a>.</p>
+<p>Here’s the summary of my 8 years writing Haskell pretty much non-stop:</p>
+<ul>
+<li><p>In 2012 I wrote <a href="https://github.com/osa1/dolap-chat">my first Haskell program</a>, which was a chat server. I was reading <a href="http://book.realworldhaskell.org/">“Real World Haskell”</a> and <a href="http://learnyouahaskell.com/">“Learn You a Haskell for Great Good!”</a> at the time and applying what I learned on this project.</p></li>
+<li><p>In the same year I implemented <a href="https://github.com/osa1/toylisp">my first programming language in Haskell</a>. I don’t remember much about this project, I think it may be just a few extensions over the excellent Haskell tutorial <a href="https://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours">“Write Yourself a Scheme in 48 hours”</a>.</p></li>
+<li><p>Also in 2012 I made a <a href="https://github.com/faylang/fay/commits?author=osa1">few commits</a> to the programming language Fay. This was my first contribution to an open source compiler not written by me.</p></li>
+<li><p>In 2013 I worked on four PL implementations, two of which were implemented from scratch in Haskell: A <a href="https://github.com/osa1/MANTI">Prolog implementation</a> and a <a href="https://github.com/osa1/Shen.hs">K Lambda interpreter</a>.</p>
+<p>The other two projects were: <a href="https://github.com/ozusrl/SubtypedQuotedML">A multi-stage ML-like language written in OCaml</a>, and K Framework (in Java).</p></li>
+<li><p>In 2014 I was accepted to Google Summer of Code to work on <a href="https://osa1.net/posts/2014-06-20-stack-traces-in-ghcjs.html">adding stack traces to GHCJS</a>. The project was successful, and I made <a href="https://github.com/ghcjs/ghcjs/graphs/contributors">88 commits</a> to GHCJS during this period.</p>
+<p>This was my first introduction to GHC. I made only <a href="https://gitlab.haskell.org/ghc/ghc/commit/b3d9636af37cfafbc947b69dff5747065f437804">one commit</a> to GHC during this time, but I started reading the RTS and code generator to be able to implement cost-centre stacks in GHCJS, which taught me a lot.</p></li>
+<li><p>Also in 2014, I briefly worked at a startup where I wrote Haskell.</p></li>
+<li><p>In 2015 I joined Indiana University to do PhD in programming languages. In my first semester I worked on the paper <a href="http://ezyang.com/papers/ezyang15-cnf.pdf">“Efficient Communication and Collection with Compact Normal Forms”</a> which was about a GHC extension. The paper was published the same year at ICFP.</p></li>
+<li><p>In the same year I briefly worked on a <a href="https://github.com/osa1/rho-torrent">torrent client in Haskell</a>.</p></li>
+<li><p>According to git logs, 2015 was the year where I started making some larger commits to GHC. I think I made a few dozen commits that year. What was happening in the background is that I was working on unboxed sums. At Haskell Implementors Workshop in 2015 my advisor gave a presentation on <a href="https://osa1.net/posts/2015-11-13-data-repr-1.html">efficiency of data representation in Haskell</a>. I don’t remember how the story developed, but I think we also talked to a few people at ICFP on how to improve the situation, and one of the idea that came up was unboxed sums. IIRC I started working on it soon after returning from ICFP.</p>
+<p>The first somewhat working version was implemented as a plugin, using lots of unsafe coercions under the hood. It was good enough to run some examples.</p></li>
+<li><p>(In 2015, I also studied various metaprogramming and partial evaluation ideas quite extensively. If you look at my blog posts published in 2015 you’ll see a lot of related blog posts. There are also a few related git repositories in my Github page. I also gave a related talk at HIW 2015.)</p></li>
+<li><p>Early 2016, I don’t remember what I was doing in too much detail. I remember taking an advanced OS class around that time and enjoying it very much. This was also the time where I started to realize that the tools I’m using (mostly GHC) is full of bugs, and are very slow and inefficient. I kept studying program transformation ideas, with the goal of making Haskell “fast”. I also started using C more, partly for the OS class, but also in my hobby projects. For example, the first commit of <a href="https://github.com/osa1/tiny">tiny</a> was made in January 2016 and <a href="https://github.com/osa1/tiny/commit/06accfabf941cb17c7efbb37dc55ed0c33dedc20">the code was in C</a>.</p></li>
+<li><p>In mid-2016 I left Bloomington for Cambridge, UK, for an internship at Microsoft Research with SPJ. We mainly worked on implementing unboxed sums properly in the compiler (instead of as a hacky plugin), but I also did a lot of GHC maintenance work there with supervision of SPJ.</p>
+<p>Unboxed sums was merged <a href="https://gitlab.haskell.org/ghc/ghc/-/commit/714bebff44076061d0a719c4eda2cfd213b7ac3d">during my time at MSR</a>.</p>
+<p>In the rest of the internship I did a lot of reading, did GHC maintenance, and biked around Cambridge.</p></li>
+<li><p>Most importantly, during my time at MSR I realized that I’m no longer interested in academic research. I don’t enjoy writing papers. I don’t feel like pushing a field forward while most of the tools I use every day are badly broken, inefficient, usually both. I started having job interviews while I was in the UK. I visited two companies for interviews, one in London, another one in Cambridge.</p>
+<p>I also emailed my advisor, saying that I don’t want to come back to Bloomington.</p></li>
+<li><p>Job interviews went badly, and I was back at Indiana University. Rest of the 2016 was pretty horrible. I was depressed. I had no interest in research. I still <a href="https://dl.acm.org/doi/pdf/10.1145/2851141.2851142">helped publishing a paper</a>, but I did not enjoy the process.</p>
+<p>I still spent my time somewhat productively. I took enough classes this year to leave IU with a masters degree, instead of empty handed (I was a PhD student, not masters). I also had some good job interviews and met good people from the Haskell community.</p>
+<p>By the end of 2016 I accepted a job offer and left IU to write Haskell for a startup.</p></li>
+<li><p>In 2017 I worked for this startup for a year. I wrote lots of networking and concurrent code, and learned a lot about these topics and exception handling in Haskell. Until this my Haskell experience was mainly in the context of compilers, so this was quite educational for me.</p>
+<p>I left the company at the end of that year to join Well-Typed to work on GHC full-time.</p></li>
+<li><p>My time at Well-Typed was great, but also full of challenges, mainly related to working remotely.</p>
+<p>I worked on GHC between 30 and 40 hours a week (some weeks as little as 24 hours, but no less than that). Few weeks after I joined I started working on <a href="https://osa1.net/posts/2018-10-22-gc-work-presented.html">a new garbage collector</a> with a colleague. When I joined the project there were only type definitions in header files, and almost no code. I implemented the first sequential prototype of the new collector. After that we started collaborating more closely with my colleague while implementing the concurrent version. We found many bugs in both the design and implementation, and sorted out many edge cases during this time. I thoroughly enjoyed working on this project, even though it was clearly the most challenging project I ever worked on.</p>
+<p>After the garbage collector I kept working as a maintainer until I left the company on a Sunday, Jun 21st, 2020. I made my last commit to <a href="https://gitlab.haskell.org/ghc/ghc/-/merge_requests/3478">a merge request</a> that I was working on on 21st.</p></li>
+<li><p>On 22 Jun 2020 I joined <a href="https://dfinity.org/">DFINITY</a> to work on the <a href="https://sdk.dfinity.org/docs/language-guide/motoko.html">Motoko programming language</a>, and this is where the story ends.</p></li>
+</ul>
+<p>At the time of this writing I have 383 commits to GHC and I’m 14th contributor with most commits. It feels bad to leave a project that I liked and contributed so much, but it’s also the right thing to do. After the GC was merged I started spending my time less and less productively, for many reasons, and I had lost my motivation to improve Haskell-the-language and GHC. Perhaps I can write more about these in another post.</p>
+
+<hr />
+
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -128,8 +128,8 @@ c := (fun x -&gt; x+1);
 <p>is not typeable under polymorphic type system, but is well-typed in our system with subtyping. By mapping the calculated type back to our multi-stage language, we got subtyping in the multi-stage language for free.</p>
 <p>Wallace is used as is, without any modifications. But we changed ‘toy’ language for our purposes. We first added some numerical types with subtyping relations. ‘toy’ had a problem that it was generalizing every let bindings, without value restriction. To overcome this problem, we added an extra lambda wrapper in the translator when value restriction is needed. Since our type system already had value restriction, it was trivial to apply the same test to check if an expression is expansive. Expansive expressions are those that may allocate new memory cells. Expansive expressions are not generalized.</p>
 <p>Another problem with ‘toy’ language is that it doesn’t support toplevel declarations, and adding that wasn’t easy. To overcome this without any serious modifications in ‘toy’s source, we collected all well-typed toplevel expressions and declarations, and then generated a <code>let .. in ..</code> chain of toplevel declarations to give ’toy’ type checker. This means for every new toplevel phrase, ‘toy’ now type checks all old expressions too. This may not be efficient but works fine with our purposes, and it was easy to implement.</p>
-<p>Implementing type inference: Implementing a type inference system is hard to do elegantly. One problem is already discussed in my blog (in Turkish)<a href="#fn7" class="footnote-ref" id="fnref7"><sup>7</sup></a>. Every non-trivial type system requires types to be separated into kinds. After that, every type variable will also have kind information and it’s a type error to unify a type variable with wrong kinds. Type applications also checked with the help of kinds.</p>
-<p>Kinds are generally checked at run-time. Type systems with kinds usually lead to a simpler type language. For instance, almost all types mentioned in this text can be represented by this simply type language (code taken from <a href="#fn8" class="footnote-ref" id="fnref8"><sup>8</sup></a>) :</p>
+<p>Implementing type inference: Implementing a type inference system is hard to do elegantly. One problem is already discussed <a href="/posts/2013-02-15-rowlar-kindlar.html">in my blog (in Turkish)</a>. Every non-trivial type system requires types to be separated into kinds. After that, every type variable will also have kind information and it’s a type error to unify a type variable with wrong kinds. Type applications also checked with the help of kinds.</p>
+<p>Kinds are generally checked at run-time. Type systems with kinds usually lead to a simpler type language. For instance, almost all types mentioned in this text can be represented by this simply type language:</p>
 <pre><code>type kind =
   | KStar                 (* kind of term types *)
   | KRow                  (* kind of row types *)
@@ -194,8 +194,6 @@ and recvarlink = tyrec link</code></pre>
 <li id="fn4"><p><a href="http://gallium.inria.fr/~fpottier/wallace/">Wallace</a><a href="#fnref4" class="footnote-back">↩</a></p></li>
 <li id="fn5"><p>Choi, Aktemur, Yi, Tatsuta: Static Analysis of Multi-Staged Programs via Unstaging Translation<a href="#fnref5" class="footnote-back">↩</a></p></li>
 <li id="fn6"><p>Kim, Yi, Calcagno: A Polymorphic Modal Type System for List-Like Multi-Staged Languages<a href="#fnref6" class="footnote-back">↩</a></p></li>
-<li id="fn7"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref7" class="footnote-back">↩</a></p></li>
-<li id="fn8"><p>http://osa1.net/rowlar-kindlar/<a href="#fnref8" class="footnote-back">↩</a></p></li>
 </ol>
 </section>]]></summary>
 </entry>
