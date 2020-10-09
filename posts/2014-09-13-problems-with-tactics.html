@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Problems with tactic generated programs</h1>
 
-<p><strong>September 13, 2014</strong> - Tagged as: <a href="../tags/coq.html">coq</a>, <a href="../tags/en.html">en</a>.</p>
+<p><strong>September 13, 2014</strong> - Tagged as: <a title="All pages tagged 'coq'." href="../tags/coq.html">coq</a>, <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
 
 <p>I never managed to write anything with dependent types in Coq, without using tactics. Pattern matching is never giving enough information in cases to allow me to generate the term I want. <a href="http://adam.chlipala.net/cpdt/">Certified Programming with Dependent Types</a> book describes “Convoy pattern”, which is a way to write dependently typed terms in Coq without using tactics. I later learned that standard <a href="http://coq.inria.fr/distrib/current/refman/Reference-Manual010.html#hevea_tactic87">inversion</a> tactic also uses something like a convoy pattern, except it’s not as fine grained as what a user would write by hand.</p>
 <p>Unfortunately, even after learning about convoy pattern, I’m still not satisfied with what I get when I write dependently typed definitions without using tactics. The reason is that convoy pattern is incredibly ugly and hard to read and understand. Even if I embrace the ugliness, most of the time I have no idea how to use the pattern so that 1) it’s not horribly verbose 2) does what I want.</p>

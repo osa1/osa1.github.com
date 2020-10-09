@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">How I solved the Synacor Challenge</h1>
 
-<p><strong>June 19, 2016</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/rust.html">rust</a>.</p>
+<p><strong>June 19, 2016</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'rust'." href="../tags/rust.html">rust</a>.</p>
 
 <p>It took 4 attempts at various coffee shops in Cambridge/UK (where I’m spending this summer – more on this later) but I finally solved the <a href="https://challenge.synacor.com/">Synacor Challenge</a>. Here’s how I did it.</p>
 <p>WARNING: This post spoils everything! Do not read further if you’re interested in solving it yourself. It’s a lot of fun, so I highly recommend that.</p>
@@ -61,186 +61,186 @@
 [6067] Ret [] -- end of function at 6027 --   return;
                                          -- }</code></pre>
 <p>I added next to each instruction how they would look like in a C-like language. It’s hard to understand what’s going on. So to experiment with it I implement it in Rust. Since registers are shared in each call, I use shared state in my initial implementation:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="at">#[</span>inline<span class="at">]</span>
-<span class="kw">fn</span> add(i1 : <span class="dt">u16</span>, i2 : <span class="dt">u16</span>) -&gt; <span class="dt">u16</span> <span class="op">{</span>
-    (i1 + i2) % <span class="dv">32768</span>
-<span class="op">}</span>
-
-<span class="at">#[</span>derive<span class="at">(</span><span class="bu">Debug</span><span class="at">)]</span>
-<span class="kw">struct</span> FnState <span class="op">{</span>
-    reg0  : <span class="dt">u16</span>,
-    reg1  : <span class="dt">u16</span>,
-    reg7  : <span class="dt">u16</span>,
-    stack : <span class="dt">Vec</span>&lt;<span class="dt">u16</span>&gt;,
-<span class="op">}</span>
-
-<span class="kw">impl</span> FnState <span class="op">{</span>
-    <span class="kw">fn</span> init(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; FnState <span class="op">{</span>
-        FnState <span class="op">{</span>
-            reg0: reg0,
-            reg1: reg1,
-            reg7: reg7,
-            stack: <span class="dt">Vec</span>::new(),
-        <span class="op">}</span>
-    <span class="op">}</span>
-
-    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span>
-        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> <span class="op">{</span>
-            <span class="kw">self</span>.reg0 = add(<span class="kw">self</span>.reg1, <span class="dv">1</span>);
-            <span class="kw">return</span>;
-        <span class="op">}</span>
-        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> <span class="op">{</span>
-            <span class="co">// self.reg0 = add(self.reg0, 32767);</span>
-            <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;
-            <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg7;
-            <span class="kw">self</span>.f();
-            <span class="kw">return</span>;
-        <span class="op">}</span>
-        <span class="kw">self</span>.stack.push(<span class="kw">self</span>.reg0);
-        <span class="co">// self.reg1 = add(self.reg1, 32767);</span>
-        <span class="kw">self</span>.reg1 -= <span class="dv">1</span>;
-        <span class="kw">self</span>.f();
-        <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg0;
-        <span class="kw">self</span>.reg0 = <span class="kw">self</span>.stack.pop().unwrap();
-        <span class="co">// self.reg0 = add(self.reg0, 32767);</span>
-        <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;
-        <span class="kw">self</span>.f();
-        <span class="kw">return</span>;
-    <span class="op">}</span>
-<span class="op">}</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode rust"><code class="sourceCode rust"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="at">#[</span>inline<span class="at">]</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="kw">fn</span> add(i1 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> i2 <span class="op">:</span> <span class="dt">u16</span>) <span class="op">-&gt;</span> <span class="dt">u16</span> <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>    (i1 <span class="op">+</span> i2) <span class="op">%</span> <span class="dv">32768</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="op">}</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a><span class="at">#[</span>derive<span class="at">(</span><span class="bu">Debug</span><span class="at">)]</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a><span class="kw">struct</span> FnState <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>    reg0  <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>    reg1  <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>    reg7  <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>    stack <span class="op">:</span> <span class="dt">Vec</span><span class="op">&lt;</span><span class="dt">u16</span><span class="op">&gt;,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a><span class="op">}</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a><span class="kw">impl</span> FnState <span class="op">{</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a>    <span class="kw">fn</span> init(reg0 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> reg1 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> reg7 <span class="op">:</span> <span class="dt">u16</span>) <span class="op">-&gt;</span> FnState <span class="op">{</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>        FnState <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a>            reg0<span class="op">:</span> reg0<span class="op">,</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a>            reg1<span class="op">:</span> reg1<span class="op">,</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a>            reg7<span class="op">:</span> reg7<span class="op">,</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true"></a>            stack<span class="op">:</span> <span class="dt">Vec</span><span class="pp">::</span>new()<span class="op">,</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true"></a>        <span class="op">}</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true"></a>    <span class="kw">fn</span> f(<span class="op">&amp;</span><span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true"></a>        <span class="kw">if</span> <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true"></a>            <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">=</span> add(<span class="kw">self</span><span class="op">.</span>reg1<span class="op">,</span> <span class="dv">1</span>)<span class="op">;</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true"></a>        <span class="op">}</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true"></a>        <span class="kw">if</span> <span class="kw">self</span><span class="op">.</span>reg1 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true"></a>            <span class="co">// self.reg0 = add(self.reg0, 32767);</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true"></a>            <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true"></a>            <span class="kw">self</span><span class="op">.</span>reg1 <span class="op">=</span> <span class="kw">self</span><span class="op">.</span>reg7<span class="op">;</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true"></a>            <span class="kw">self</span><span class="op">.</span>f()<span class="op">;</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true"></a>        <span class="op">}</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>stack<span class="op">.</span>push(<span class="kw">self</span><span class="op">.</span>reg0)<span class="op">;</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true"></a>        <span class="co">// self.reg1 = add(self.reg1, 32767);</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>reg1 <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>f()<span class="op">;</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>reg1 <span class="op">=</span> <span class="kw">self</span><span class="op">.</span>reg0<span class="op">;</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">=</span> <span class="kw">self</span><span class="op">.</span>stack<span class="op">.</span>pop()<span class="op">.</span>unwrap()<span class="op">;</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true"></a>        <span class="co">// self.reg0 = add(self.reg0, 32767);</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>f()<span class="op">;</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true"></a>        <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true"></a><span class="op">}</span></span></code></pre></div>
 <p>Now, this function grows really fast. Even for very small inputs it takes minutes to compute. I try to think some well-known functions that grow very fast. Ackermann comes to my mind and I check the Wiki page. Indeed, this looks quite similar, but the third argument makes it different than Ackermann. In any case, it doesn’t really matter for the solution.</p>
 <p>So the problem is coming up with a <code>reg7</code> in this code so that <code>f(4, 1, reg7)</code> returns <code>6</code>. For that I need to implement a search but this is basically impossible with this slow function. I start simplifying the function a little bit. My first attempt:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">impl</span> FnState <span class="op">{</span>
-    <span class="kw">fn</span> f(&amp;<span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span>
-        <span class="co">// When reg0 hits zero, restart it from reg1 + 1</span>
-        <span class="kw">if</span> <span class="kw">self</span>.reg0 == <span class="dv">0</span> <span class="op">{</span>
-            <span class="kw">self</span>.reg0 = add(<span class="kw">self</span>.reg1, <span class="dv">1</span>);
-            <span class="kw">return</span>;
-        <span class="op">}</span>
-
-        <span class="co">// When reg1 hits zero, decrement reg0, restart reg1 from reg7</span>
-        <span class="kw">if</span> <span class="kw">self</span>.reg1 == <span class="dv">0</span> <span class="op">{</span>
-            <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;
-            <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg7;
-            <span class="kw">self</span>.f();
-            <span class="kw">return</span>;
-        <span class="op">}</span>
-
-        <span class="kw">let</span> save_reg0 = <span class="kw">self</span>.reg0;
-
-        <span class="kw">self</span>.reg1 -= <span class="dv">1</span>;
-        <span class="kw">self</span>.f();
-        <span class="kw">self</span>.reg1 = <span class="kw">self</span>.reg0;
-
-        <span class="kw">self</span>.reg0 = save_reg0;
-        <span class="kw">self</span>.reg0 -= <span class="dv">1</span>;
-
-        <span class="kw">self</span>.f();
-        <span class="kw">return</span>;
-    <span class="op">}</span>
-<span class="op">}</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode rust"><code class="sourceCode rust"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">impl</span> FnState <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>    <span class="kw">fn</span> f(<span class="op">&amp;</span><span class="kw">mut</span> <span class="kw">self</span>) <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>        <span class="co">// When reg0 hits zero, restart it from reg1 + 1</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>        <span class="kw">if</span> <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>            <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">=</span> add(<span class="kw">self</span><span class="op">.</span>reg1<span class="op">,</span> <span class="dv">1</span>)<span class="op">;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>        <span class="op">}</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>        <span class="co">// When reg1 hits zero, decrement reg0, restart reg1 from reg7</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>        <span class="kw">if</span> <span class="kw">self</span><span class="op">.</span>reg1 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>            <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>            <span class="kw">self</span><span class="op">.</span>reg1 <span class="op">=</span> <span class="kw">self</span><span class="op">.</span>reg7<span class="op">;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a>            <span class="kw">self</span><span class="op">.</span>f()<span class="op">;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a>        <span class="op">}</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a>        <span class="kw">let</span> save_reg0 <span class="op">=</span> <span class="kw">self</span><span class="op">.</span>reg0<span class="op">;</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>reg1 <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>f()<span class="op">;</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>reg1 <span class="op">=</span> <span class="kw">self</span><span class="op">.</span>reg0<span class="op">;</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">=</span> save_reg0<span class="op">;</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>reg0 <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true"></a>        <span class="kw">self</span><span class="op">.</span>f()<span class="op">;</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true"></a>        <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true"></a><span class="op">}</span></span></code></pre></div>
 <p>This version doesn’t use an explicit stack, instead uses a temporary in the call frame. This works because in the original version each push corresponds to a pop done in the same call frame.</p>
 <p>It’s still too complicated. I keep simplifying.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(<span class="kw">mut</span> reg0 : <span class="dt">u16</span>, <span class="kw">mut</span> reg1 : <span class="dt">u16</span>, <span class="kw">mut</span> reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span>
-    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span>
-        reg0 = add(reg1, <span class="dv">1</span>);
-        <span class="kw">return</span> (reg0, reg1);
-    <span class="op">}</span>
-
-    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span>
-        reg0 -= <span class="dv">1</span>;
-        reg1 = reg7;
-        <span class="kw">return</span> f(reg0, reg1, reg7);
-    <span class="op">}</span>
-
-    <span class="kw">let</span> save_reg0 = reg0;
-    reg1 -= <span class="dv">1</span>;
-
-    <span class="kw">let</span> (reg0_, reg1_) = f(reg0, reg1, reg7);
-    reg0 = reg0_;
-    reg1 = reg1_;
-
-    reg1 = reg0;
-
-    reg0 = save_reg0;
-    reg0 -= <span class="dv">1</span>;
-
-    <span class="kw">return</span> f(reg0, reg1, reg7);
-<span class="op">}</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">fn</span> f(<span class="kw">mut</span> reg0 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> <span class="kw">mut</span> reg1 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> <span class="kw">mut</span> reg7 <span class="op">:</span> <span class="dt">u16</span>) <span class="op">-&gt;</span> (<span class="dt">u16</span><span class="op">,</span> <span class="dt">u16</span>) <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>    <span class="kw">if</span> reg0 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>        reg0 <span class="op">=</span> add(reg1<span class="op">,</span> <span class="dv">1</span>)<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>        <span class="kw">return</span> (reg0<span class="op">,</span> reg1)<span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>    <span class="kw">if</span> reg1 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>        reg0 <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>        reg1 <span class="op">=</span> reg7<span class="op">;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>        <span class="kw">return</span> f(reg0<span class="op">,</span> reg1<span class="op">,</span> reg7)<span class="op">;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a>    <span class="kw">let</span> save_reg0 <span class="op">=</span> reg0<span class="op">;</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>    reg1 <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a>    <span class="kw">let</span> (reg0_<span class="op">,</span> reg1_) <span class="op">=</span> f(reg0<span class="op">,</span> reg1<span class="op">,</span> reg7)<span class="op">;</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true"></a>    reg0 <span class="op">=</span> reg0_<span class="op">;</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true"></a>    reg1 <span class="op">=</span> reg1_<span class="op">;</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true"></a>    reg1 <span class="op">=</span> reg0<span class="op">;</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true"></a>    reg0 <span class="op">=</span> save_reg0<span class="op">;</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true"></a>    reg0 <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true"></a>    <span class="kw">return</span> f(reg0<span class="op">,</span> reg1<span class="op">,</span> reg7)<span class="op">;</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true"></a><span class="op">}</span></span></code></pre></div>
 <p>This version doesn’t have any shared mutable state. At this point I realize that it may be possible to remove internal mutable state too:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span>
-    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span>
-        <span class="kw">return</span> (add(reg1, <span class="dv">1</span>), reg1);
-    <span class="op">}</span>
-
-    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span>
-        <span class="kw">return</span> f(reg0 - <span class="dv">1</span>, reg7, reg7);
-    <span class="op">}</span>
-
-    <span class="kw">let</span> (reg1, _) = f(reg0, reg1 - <span class="dv">1</span>, reg7);
-
-    <span class="kw">return</span> f(reg0 - <span class="dv">1</span>, reg1, reg7);
-<span class="op">}</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode rust"><code class="sourceCode rust"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">fn</span> f(reg0 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> reg1 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> reg7 <span class="op">:</span> <span class="dt">u16</span>) <span class="op">-&gt;</span> (<span class="dt">u16</span><span class="op">,</span> <span class="dt">u16</span>) <span class="op">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>    <span class="kw">if</span> reg0 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>        <span class="kw">return</span> (add(reg1<span class="op">,</span> <span class="dv">1</span>)<span class="op">,</span> reg1)<span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>    <span class="kw">if</span> reg1 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>        <span class="kw">return</span> f(reg0 <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> reg7<span class="op">,</span> reg7)<span class="op">;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>    <span class="kw">let</span> (reg1<span class="op">,</span> _) <span class="op">=</span> f(reg0<span class="op">,</span> reg1 <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> reg7)<span class="op">;</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>    <span class="kw">return</span> f(reg0 <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> reg1<span class="op">,</span> reg7)<span class="op">;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a><span class="op">}</span></span></code></pre></div>
 <p>Now, this is a function I can read and understand. One advantage of this version is that this could be easily memoized:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> f_memo(reg0 : <span class="dt">u16</span>, reg1 : <span class="dt">u16</span>, reg7 : <span class="dt">u16</span>, memo : &amp;<span class="kw">mut</span> HashMap&lt;(<span class="dt">u16</span>, <span class="dt">u16</span>), (<span class="dt">u16</span>, <span class="dt">u16</span>)&gt;) -&gt; (<span class="dt">u16</span>, <span class="dt">u16</span>) <span class="op">{</span>
-    <span class="kw">if</span> <span class="kw">let</span> <span class="cn">Some</span>(ret) = memo.get(&amp;(reg0, reg1)) <span class="op">{</span>
-        <span class="kw">return</span> *ret;
-    <span class="op">}</span>
-
-    <span class="kw">if</span> reg0 == <span class="dv">0</span> <span class="op">{</span>
-        <span class="kw">let</span> ret = (add(reg1, <span class="dv">1</span>), reg1);
-        memo.insert((reg0, reg1), ret);
-        <span class="kw">return</span> ret;
-    <span class="op">}</span>
-
-    <span class="kw">if</span> reg1 == <span class="dv">0</span> <span class="op">{</span>
-        <span class="kw">let</span> ret = f_memo(reg0 - <span class="dv">1</span>, reg7, reg7, memo);
-        memo.insert((reg0, reg1), ret);
-        <span class="kw">return</span> ret;
-    <span class="op">}</span>
-
-    <span class="co">// careful there</span>
-    <span class="kw">let</span> (reg1_new, _) = f_memo(reg0, reg1 - <span class="dv">1</span>, reg7, memo);
-
-    <span class="kw">let</span> ret = f_memo(reg0 - <span class="dv">1</span>, reg1_new, reg7, memo);
-    memo.insert((reg0, reg1), ret);
-    <span class="kw">return</span> ret;
-<span class="op">}</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode rust"><code class="sourceCode rust"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">fn</span> f_memo(reg0 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> reg1 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> reg7 <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> memo <span class="op">:</span> <span class="op">&amp;</span><span class="kw">mut</span> HashMap<span class="op">&lt;</span>(<span class="dt">u16</span><span class="op">,</span> <span class="dt">u16</span>)<span class="op">,</span> (<span class="dt">u16</span><span class="op">,</span> <span class="dt">u16</span>)<span class="op">&gt;</span>) <span class="op">-&gt;</span> (<span class="dt">u16</span><span class="op">,</span> <span class="dt">u16</span>) <span class="op">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>    <span class="kw">if</span> <span class="kw">let</span> <span class="cn">Some</span>(ret) <span class="op">=</span> memo<span class="op">.</span>get(<span class="op">&amp;</span>(reg0<span class="op">,</span> reg1)) <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>        <span class="kw">return</span> <span class="op">*</span>ret<span class="op">;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>    <span class="kw">if</span> reg0 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>        <span class="kw">let</span> ret <span class="op">=</span> (add(reg1<span class="op">,</span> <span class="dv">1</span>)<span class="op">,</span> reg1)<span class="op">;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>        memo<span class="op">.</span>insert((reg0<span class="op">,</span> reg1)<span class="op">,</span> ret)<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>        <span class="kw">return</span> ret<span class="op">;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>    <span class="kw">if</span> reg1 <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>        <span class="kw">let</span> ret <span class="op">=</span> f_memo(reg0 <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> reg7<span class="op">,</span> reg7<span class="op">,</span> memo)<span class="op">;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>        memo<span class="op">.</span>insert((reg0<span class="op">,</span> reg1)<span class="op">,</span> ret)<span class="op">;</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>        <span class="kw">return</span> ret<span class="op">;</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true"></a></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true"></a>    <span class="co">// careful there</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true"></a>    <span class="kw">let</span> (reg1_new<span class="op">,</span> _) <span class="op">=</span> f_memo(reg0<span class="op">,</span> reg1 <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> reg7<span class="op">,</span> memo)<span class="op">;</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true"></a>    <span class="kw">let</span> ret <span class="op">=</span> f_memo(reg0 <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> reg1_new<span class="op">,</span> reg7<span class="op">,</span> memo)<span class="op">;</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true"></a>    memo<span class="op">.</span>insert((reg0<span class="op">,</span> reg1)<span class="op">,</span> ret)<span class="op">;</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true"></a>    <span class="kw">return</span> ret<span class="op">;</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true"></a><span class="op">}</span></span></code></pre></div>
 <p>This version is super fast when compared to the original version. I feel like I can just search the whole space in a few hours. I start the search and as it searches through the search space I start wondering about how to further improve it. I think, why not split search space into pieces and search in parallel?</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust"><span class="kw">fn</span> search(start_range : <span class="dt">u16</span>, end_range : <span class="dt">u16</span>) -&gt; <span class="dt">Option</span>&lt;<span class="dt">u16</span>&gt; <span class="op">{</span>
-    <span class="kw">for</span> i <span class="kw">in</span> start_range .. end_range <span class="op">{</span>
-        <span class="co">// println!(&quot;i = {}&quot;, i);</span>
-        <span class="kw">let</span> <span class="kw">mut</span> tbl = <span class="pp">HashMap::</span>new();
-        <span class="kw">let</span> ret = f_memo(<span class="dv">4</span>, <span class="dv">1</span>, i, &amp;<span class="kw">mut</span> tbl);
-        <span class="kw">if</span> ret.<span class="dv">0</span> == <span class="dv">6</span> <span class="op">{</span>
-            <span class="pp">println!</span>(<span class="st">&quot;Found an answer: {:?} {}&quot;</span>, ret, i);
-            <span class="kw">return</span> <span class="cn">Some</span>(i);
-        <span class="op">}</span>
-    <span class="op">}</span>
-
-    <span class="cn">None</span>
-<span class="op">}</span>
-
-<span class="kw">fn</span> search_in_parallel(n : <span class="dt">i32</span>) <span class="op">{</span>
-    <span class="kw">let</span> increment = <span class="dt">u16</span>::MAX / (n <span class="kw">as</span> <span class="dt">u16</span>);
-    <span class="kw">let</span> <span class="kw">mut</span> threads = <span class="dt">Vec</span>::with_capacity(n <span class="kw">as</span> <span class="dt">usize</span>);
-
-    <span class="kw">for</span> i <span class="kw">in</span> <span class="dv">0</span> .. n <span class="op">{</span>
-        <span class="kw">let</span> range_start = increment * (i <span class="kw">as</span> <span class="dt">u16</span>);
-        <span class="kw">let</span> range_end   = increment * ((i <span class="kw">as</span> <span class="dt">u16</span>) + <span class="dv">1</span>) + <span class="dv">1</span>;
-        threads.push(<span class="pp">thread::Builder::</span>new().stack_size(<span class="dv">1000000000</span>).spawn(<span class="kw">move</span> || <span class="op">{</span>
-            search(range_start, range_end)
-        <span class="op">}</span>).unwrap());
-    <span class="op">}</span>
-
-    <span class="kw">for</span> thread <span class="kw">in</span> threads <span class="op">{</span>
-        thread.join();
-    <span class="op">}</span>
-<span class="op">}</span>
-
-<span class="kw">fn</span> main() <span class="op">{</span>
-    search_in_parallel(<span class="dv">8</span>);
-<span class="op">}</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode rust"><code class="sourceCode rust"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">fn</span> search(start_range <span class="op">:</span> <span class="dt">u16</span><span class="op">,</span> end_range <span class="op">:</span> <span class="dt">u16</span>) <span class="op">-&gt;</span> <span class="dt">Option</span><span class="op">&lt;</span><span class="dt">u16</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>    <span class="kw">for</span> i <span class="kw">in</span> start_range <span class="op">..</span> end_range <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>        <span class="co">// println!(&quot;i = {}&quot;, i);</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>        <span class="kw">let</span> <span class="kw">mut</span> tbl <span class="op">=</span> <span class="pp">HashMap::</span>new()<span class="op">;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>        <span class="kw">let</span> ret <span class="op">=</span> f_memo(<span class="dv">4</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> i<span class="op">,</span> <span class="op">&amp;</span><span class="kw">mut</span> tbl)<span class="op">;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>        <span class="kw">if</span> ret<span class="op">.</span><span class="dv">0</span> <span class="op">==</span> <span class="dv">6</span> <span class="op">{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>            <span class="pp">println!</span>(<span class="st">&quot;Found an answer: {:?} {}&quot;</span><span class="op">,</span> ret<span class="op">,</span> i)<span class="op">;</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>            <span class="kw">return</span> <span class="cn">Some</span>(i)<span class="op">;</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>        <span class="op">}</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a>    <span class="cn">None</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a><span class="op">}</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true"></a></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true"></a><span class="kw">fn</span> search_in_parallel(n <span class="op">:</span> <span class="dt">i32</span>) <span class="op">{</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true"></a>    <span class="kw">let</span> increment <span class="op">=</span> <span class="dt">u16</span><span class="pp">::</span><span class="cn">MAX</span> <span class="op">/</span> (n <span class="kw">as</span> <span class="dt">u16</span>)<span class="op">;</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true"></a>    <span class="kw">let</span> <span class="kw">mut</span> threads <span class="op">=</span> <span class="dt">Vec</span><span class="pp">::</span>with_capacity(n <span class="kw">as</span> <span class="dt">usize</span>)<span class="op">;</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true"></a></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true"></a>    <span class="kw">for</span> i <span class="kw">in</span> <span class="dv">0</span> <span class="op">..</span> n <span class="op">{</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true"></a>        <span class="kw">let</span> range_start <span class="op">=</span> increment <span class="op">*</span> (i <span class="kw">as</span> <span class="dt">u16</span>)<span class="op">;</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true"></a>        <span class="kw">let</span> range_end   <span class="op">=</span> increment <span class="op">*</span> ((i <span class="kw">as</span> <span class="dt">u16</span>) <span class="op">+</span> <span class="dv">1</span>) <span class="op">+</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true"></a>        threads<span class="op">.</span>push(<span class="pp">thread::Builder::</span>new()<span class="op">.</span>stack_size(<span class="dv">1000000000</span>)<span class="op">.</span>spawn(<span class="kw">move</span> <span class="op">||</span> <span class="op">{</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true"></a>            search(range_start<span class="op">,</span> range_end)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true"></a>        <span class="op">}</span>)<span class="op">.</span>unwrap())<span class="op">;</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true"></a></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true"></a>    <span class="kw">for</span> thread <span class="kw">in</span> threads <span class="op">{</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true"></a>        thread<span class="op">.</span>join()<span class="op">;</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true"></a><span class="op">}</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true"></a></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true"></a><span class="kw">fn</span> main() <span class="op">{</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true"></a>    search_in_parallel(<span class="dv">8</span>)<span class="op">;</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true"></a><span class="op">}</span></span></code></pre></div>
 <p>This parallel search takes a couple of seconds until it prints:</p>
 <pre><code>Found an answer: (6, 5) 25734</code></pre>
 <p>So <code>25734</code> returns 6! This is the R8 value we were looking for.</p>

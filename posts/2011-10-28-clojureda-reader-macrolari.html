@@ -20,24 +20,24 @@
             <div class="inner">
                 <h1 id="post-title">Clojure'da reader macroları</h1>
 
-<p><strong>October 28, 2011</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>October 28, 2011</strong> - Tagged as: <a title="All pages tagged 'lisp'." href="../tags/lisp.html">lisp</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Kendime not: Clojure’da, biraz hacky bir şekilde de olsa reader macroları tanımlanabilir. Örneğin <code>&lt;</code> ile başlayıp <code>&gt;</code> ile biten, arasındaki karakterleri string’e dönüştüren bir reader macrosu şu şekilde tanımlanabiliyor:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">defn</span><span class="fu"> reader-macro </span>[ch fun]
-  (<span class="kw">let</span> [dm (.<span class="kw">get</span>
-             (<span class="kw">doto</span> (.getDeclaredField clojure.lang.LispReader <span class="st">&quot;macros&quot;</span>)
-               (.setAccessible <span class="va">true</span>))
-             <span class="va">nil</span>)]
-    (<span class="kw">aset</span> dm (<span class="kw">int</span> ch) fun)))
-(<span class="bu">defn</span><span class="fu"> native-string </span>[rdr letter-u]
-  (<span class="kw">loop</span> [s <span class="va">nil</span>
-         p <span class="ch">\space</span>
-         c (<span class="kw">char</span> (.<span class="kw">read</span> rdr))]
-    (<span class="kw">let</span> [s (<span class="kw">str</span> s p)]
-      (<span class="kw">if</span> (<span class="kw">=</span> c <span class="ch">\&gt;</span>)
-        s
-        (<span class="kw">recur</span> s c (<span class="kw">char</span> (.<span class="kw">read</span> rdr)))))))
-(reader-macro <span class="ch">\&lt;</span> native-string)</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode clojure"><code class="sourceCode clojure"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> reader-macro </span>[ch fun]</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>  (<span class="kw">let</span> [dm (.<span class="kw">get</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>             (<span class="kw">doto</span> (.getDeclaredField clojure.lang.LispReader <span class="st">&quot;macros&quot;</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>               (.setAccessible <span class="va">true</span>))</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>             <span class="va">nil</span>)]</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>    (<span class="kw">aset</span> dm (<span class="kw">int</span> ch) fun)))</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> native-string </span>[rdr letter-u]</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>  (<span class="kw">loop</span> [s <span class="va">nil</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>         p <span class="ch">\space</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>         c (<span class="kw">char</span> (.<span class="kw">read</span> rdr))]</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>    (<span class="kw">let</span> [s (<span class="kw">str</span> s p)]</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>      (<span class="kw">if</span> (<span class="kw">=</span> c <span class="ch">\&gt;</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>        s</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>        (<span class="kw">recur</span> s c (<span class="kw">char</span> (.<span class="kw">read</span> rdr)))))))</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>(reader-macro <span class="ch">\&lt;</span> native-string)</span></code></pre></div>
 <p>Burda <code>reader-macro</code> fonksyionu, <code>clojure.lang.LispReader</code> sınıfının <code>macros</code> fieldını(IFn[^256] erişilebilir hale getirip(reflection), reader macrosunun çağıracak karakterin(bizim durumumuzda <code>&lt;</code>) yerine okuyacak fonksionu ekliyor. Bizim fonksiyonummuz <code>native-string</code>.</p>
 <p>Reader fonksyionunu ilk parametresine <code>clojure.lang.LineNumberingPushbackReader</code> geliyor. <code>read</code>, <code>readLine</code>, <code>unread</code> gibi methodları var. İkinci parametresini çözebilmiş değilim.</p>
 <p>Clojure’da bir de dispatch macroları var, bunların tek farkı(muhtemelen bunların vermek istediği bir mesaj var ama ben çözemedim henüz), dispatch macroları <code>#</code> ile başlıyor. Yukarıdaki kodda, reader macrosunu <code>clojure.lang.LispReader.macros</code>a değil de, <code>clojure.lang.LispReader.dispatchMacros</code>a ekleyerek dispatch macroları genişletilebilir. Kurcalamak isteyen olursa, <a href="https://github.com/clojure/clojure/blob/master/src/jvm/clojure/lang/LispReader.java">LispReader.java</a>.</p>

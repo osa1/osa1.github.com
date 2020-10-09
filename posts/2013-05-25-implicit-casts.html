@@ -20,16 +20,16 @@
             <div class="inner">
                 <h1 id="post-title">Implicit casts</h1>
 
-<p><strong>May 25, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/cpp.html">cpp</a>, <a href="../tags/types.html">types</a>.</p>
+<p><strong>May 25, 2013</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'cpp'." href="../tags/cpp.html">cpp</a>, <a title="All pages tagged 'types'." href="../tags/types.html">types</a>.</p>
 
 <p>I wrote a C++ code like this:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> max_number_of_something = -<span class="dv">1</span>;
-set&lt;<span class="dt">some_type</span>&gt; s;
-
-...
-
-<span class="cf">if</span> (s.size() &gt; max_number_of_something)
-    max_number_of_something = s.size();</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="dt">int</span> max_number_of_something = -<span class="dv">1</span>;</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>set&lt;<span class="dt">some_type</span>&gt; s;</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>...</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="cf">if</span> (s.size() &gt; max_number_of_something)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>    max_number_of_something = s.size();</span></code></pre></div>
 <p>The problem with this code is that this conditional will never be taken, and no errors will be raised either. This is because type of <code>s.size()</code> is unsigned and in the expression <code>s.size() &gt; max_number_of_something</code>, <code>max_number_of_something</code> will be casted to unsigned, implicitly. So <code>-1</code> is now <code>4294967295</code> and no other 32bit unsigned integer is bigger than that number.</p>
 <p>Another reason to not to like weak typing and implicit type casts.</p>
 

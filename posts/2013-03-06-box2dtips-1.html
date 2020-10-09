@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Quick Box2d tips: Terrains, jump behavior and bodies with multiple shapes</h1>
 
-<p><strong>March  6, 2013</strong> - Tagged as: <a href="../tags/box2d.html">box2d</a>, <a href="../tags/en.html">en</a>.</p>
+<p><strong>March  6, 2013</strong> - Tagged as: <a title="All pages tagged 'box2d'." href="../tags/box2d.html">box2d</a>, <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
 
 <p>After wasting enough time implementing my own half-baked physics engine and never having an efficiently implemented collision resolution code, I’ve decided to go on with <a href="https://www.love2d.org/wiki/love.physics">physics module</a> my game library of choice provides. It’s based on <a href="http://box2d.org/">Box2d</a> and the API is mostly the same.</p>
 <p>My first try of using it was last weekend, me and my brother did a super short(12 hours) game jam, and I used Box2d for the first time. We finished our game, but it was so buggy that I don’t even mention it to anybody. Still, I learned so much about Box2d physics.</p>
@@ -28,44 +28,44 @@
 <h3 id="implementing-terrains-with-box2d">Implementing terrains with Box2d</h3>
 <p>Main bug source of my game was terrain implementation. It was reading the map info from a binary file and then creating lots of <a href="https://www.love2d.org/wiki/love.physics.newRectangleShape">RectangleShapes</a>. The problem with this approach was that other dynamic entities in my game was getting stuck between two RectangleShapes, even though each shape was in touch with other so there was no space between them. Later I realized that this behavior is actually <a href="http://www.box2d.org/manual.html#_Toc258082970">documented</a>(see <em>edge shapes</em> section).</p>
 <p>There are two solution mentioned in Box2d manual. Now I’m using ChainShapes in my code and it’s working as expected. In the example game I linked above, you can see that my terrain is implemented with some artificial shapes:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua">worldShape <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newChainShape<span class="op">(</span><span class="st">&quot;false&quot;</span><span class="op">,</span>
-    <span class="dv">80</span><span class="op">,</span> <span class="op">-</span><span class="dv">100</span><span class="op">,</span>
-    <span class="dv">80</span><span class="op">,</span> <span class="dv">680</span><span class="op">,</span>
-    <span class="dv">120</span><span class="op">,</span> <span class="dv">680</span><span class="op">,</span>
-    <span class="op">...</span>
-    <span class="dv">620</span><span class="op">,</span> <span class="dv">680</span><span class="op">,</span>
-    <span class="dv">620</span><span class="op">,</span> <span class="op">-</span><span class="dv">100</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>worldShape <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newChainShape<span class="op">(</span><span class="st">&quot;false&quot;</span><span class="op">,</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    <span class="dv">80</span><span class="op">,</span> <span class="op">-</span><span class="dv">100</span><span class="op">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>    <span class="dv">80</span><span class="op">,</span> <span class="dv">680</span><span class="op">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>    <span class="dv">120</span><span class="op">,</span> <span class="dv">680</span><span class="op">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>    <span class="dv">620</span><span class="op">,</span> <span class="dv">680</span><span class="op">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>    <span class="dv">620</span><span class="op">,</span> <span class="op">-</span><span class="dv">100</span><span class="op">)</span></span></code></pre></div>
 <p>But still none of the dynamic bodies get stuck.</p>
 <h3 id="bodies-with-multiple-shapes-and-jump-behavior">Bodies with multiple shapes and jump behavior</h3>
 <p>Being able to bind multiple shapes to a body is just an awesome feature. It helps having a more accurate shape of an entity, and also having multiple fixtures mean you can change properties of each fixture and get a more accurate behavior of friction or some other things.</p>
 <p>For instance, in my game, I wanted 2 things; 1) I don’t want my main character’s left and right side to have friction, so that it should slide without getting slowed down when left/right side is collided and 2) I want to check if my character is collided in bottom side.</p>
 <p>Having multiple fixtures helped for both cases. My character consists of 4 shapes and fixtures:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua">o<span class="op">.</span>shapeLeft   <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newCircleShape<span class="op">(-</span><span class="dv">20</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">5</span><span class="op">)</span>
-o<span class="op">.</span>shapeTop    <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newCircleShape<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">50</span><span class="op">,</span> <span class="dv">5</span><span class="op">)</span>
-o<span class="op">.</span>shapeRight  <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newCircleShape<span class="op">(</span><span class="dv">20</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">5</span><span class="op">)</span>
-o<span class="op">.</span>shapeBottom <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newCircleShape<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">50</span><span class="op">,</span> <span class="dv">5</span><span class="op">)</span>
-
-o<span class="op">.</span>fixtureLeft   <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newFixture<span class="op">(</span>o<span class="op">.</span>body<span class="op">,</span> o<span class="op">.</span>shapeLeft<span class="op">,</span> <span class="dv">1</span><span class="op">)</span>
-o<span class="op">.</span>fixtureTop    <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newFixture<span class="op">(</span>o<span class="op">.</span>body<span class="op">,</span> o<span class="op">.</span>shapeTop<span class="op">,</span> <span class="dv">1</span><span class="op">)</span>
-o<span class="op">.</span>fixtureRight  <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newFixture<span class="op">(</span>o<span class="op">.</span>body<span class="op">,</span> o<span class="op">.</span>shapeRight<span class="op">,</span> <span class="dv">1</span><span class="op">)</span>
-o<span class="op">.</span>fixtureBottom <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newFixture<span class="op">(</span>o<span class="op">.</span>body<span class="op">,</span> o<span class="op">.</span>shapeBottom<span class="op">,</span> <span class="dv">1</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>o<span class="op">.</span>shapeLeft   <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newCircleShape<span class="op">(-</span><span class="dv">20</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">5</span><span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>o<span class="op">.</span>shapeTop    <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newCircleShape<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">50</span><span class="op">,</span> <span class="dv">5</span><span class="op">)</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>o<span class="op">.</span>shapeRight  <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newCircleShape<span class="op">(</span><span class="dv">20</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">5</span><span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>o<span class="op">.</span>shapeBottom <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newCircleShape<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">50</span><span class="op">,</span> <span class="dv">5</span><span class="op">)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>o<span class="op">.</span>fixtureLeft   <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newFixture<span class="op">(</span>o<span class="op">.</span>body<span class="op">,</span> o<span class="op">.</span>shapeLeft<span class="op">,</span> <span class="dv">1</span><span class="op">)</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>o<span class="op">.</span>fixtureTop    <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newFixture<span class="op">(</span>o<span class="op">.</span>body<span class="op">,</span> o<span class="op">.</span>shapeTop<span class="op">,</span> <span class="dv">1</span><span class="op">)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>o<span class="op">.</span>fixtureRight  <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newFixture<span class="op">(</span>o<span class="op">.</span>body<span class="op">,</span> o<span class="op">.</span>shapeRight<span class="op">,</span> <span class="dv">1</span><span class="op">)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>o<span class="op">.</span>fixtureBottom <span class="op">=</span> love<span class="op">.</span>physics<span class="op">.</span>newFixture<span class="op">(</span>o<span class="op">.</span>body<span class="op">,</span> o<span class="op">.</span>shapeBottom<span class="op">,</span> <span class="dv">1</span><span class="op">)</span></span></code></pre></div>
 <p>Then I set each fixtures a different friction factor:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua">o<span class="op">.</span>fixtureLeft<span class="op">:</span>setFriction<span class="op">(</span><span class="dv">0</span><span class="op">)</span>
-o<span class="op">.</span>fixtureTop<span class="op">:</span>setFriction<span class="op">(</span><span class="dv">0</span><span class="op">)</span>
-o<span class="op">.</span>fixtureRight<span class="op">:</span>setFriction<span class="op">(</span><span class="dv">0</span><span class="op">)</span>
-o<span class="op">.</span>fixtureBottom<span class="op">:</span>setFriction<span class="op">(</span><span class="dv">100</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>o<span class="op">.</span>fixtureLeft<span class="op">:</span>setFriction<span class="op">(</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>o<span class="op">.</span>fixtureTop<span class="op">:</span>setFriction<span class="op">(</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>o<span class="op">.</span>fixtureRight<span class="op">:</span>setFriction<span class="op">(</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>o<span class="op">.</span>fixtureBottom<span class="op">:</span>setFriction<span class="op">(</span><span class="dv">100</span><span class="op">)</span></span></code></pre></div>
 <p>And for jump behavior, I’m just checking if <code>fixtureBottom</code> is collided, with the help of <code>beginContact</code> and <code>endContact</code> callbacks:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> beginContact<span class="op">(</span>a<span class="op">,</span> b<span class="op">,</span> coll<span class="op">)</span>
-    <span class="cf">if</span> a <span class="op">==</span> char<span class="op">.</span>fixtureBottom <span class="kw">or</span> b <span class="op">==</span> char<span class="op">.</span>fixtureBottom <span class="cf">then</span>
-        char<span class="op">.</span>jumpEnabled <span class="op">=</span> <span class="kw">true</span>
-    <span class="cf">end</span>
-<span class="cf">end</span>
-
-<span class="kw">function</span> endContact<span class="op">(</span>a<span class="op">,</span> b<span class="op">,</span> coll<span class="op">)</span>
-    <span class="cf">if</span> a <span class="op">==</span> char<span class="op">.</span>fixtureBottom <span class="kw">or</span> b <span class="op">==</span> char<span class="op">.</span>fixtureBottom <span class="cf">then</span>
-        char<span class="op">.</span>jumpEnabled <span class="op">=</span> <span class="kw">false</span>
-    <span class="cf">end</span>
-<span class="cf">end</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">function</span> beginContact<span class="op">(</span>a<span class="op">,</span> b<span class="op">,</span> coll<span class="op">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>    <span class="cf">if</span> a <span class="op">==</span> char<span class="op">.</span>fixtureBottom <span class="kw">or</span> b <span class="op">==</span> char<span class="op">.</span>fixtureBottom <span class="cf">then</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>        char<span class="op">.</span>jumpEnabled <span class="op">=</span> <span class="kw">true</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>    <span class="cf">end</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a><span class="kw">end</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a><span class="kw">function</span> endContact<span class="op">(</span>a<span class="op">,</span> b<span class="op">,</span> coll<span class="op">)</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>    <span class="cf">if</span> a <span class="op">==</span> char<span class="op">.</span>fixtureBottom <span class="kw">or</span> b <span class="op">==</span> char<span class="op">.</span>fixtureBottom <span class="cf">then</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>        char<span class="op">.</span>jumpEnabled <span class="op">=</span> <span class="kw">false</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>    <span class="cf">end</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
 <p>With this features implemented, I think I have a good-enough platformer engine. Can’t wait for the next jam. Maybe we can build a game that we can actually mention to people ;-)</p>
 
 <hr />

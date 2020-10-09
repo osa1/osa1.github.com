@@ -20,146 +20,146 @@
             <div class="inner">
                 <h1 id="post-title">Knot-tying: two more examples, and an alternative</h1>
 
-<p><strong>February 27, 2020</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/ghc.html">ghc</a>.</p>
+<p><strong>February 27, 2020</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>, <a title="All pages tagged 'ghc'." href="../tags/ghc.html">ghc</a>.</p>
 
 <p>In the <a href="../posts/2020-02-21-knot-tying-why-how-opinions.html">previous post</a> we’ve looked at a representation of expressions in a programming language, what the representation makes easy and where we have to use knot-tying.</p>
 <p>In this post I’m going to give two more examples, using the same expression representation from the previous post, and then talk about how to implement our passes using a different representation, without knot-tying.</p>
 <h2 id="example-attaching-typing-information-to-ids">Example: attaching typing information to Ids</h2>
 <p>Previously we attached arity and unfolding information to <code>Id</code>s. Now suppose that our language is typed, and up to some point our transformations rely on typing information. Similar to arity and unfolding fields we add one more field to <code>Id</code>:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
-  { <span class="fu">..</span>
-  ,<span class="ot"> idType ::</span> <span class="dt">Maybe</span> <span class="dt">Type</span>
-  }</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Id</span> <span class="ot">=</span> <span class="dt">Id</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>  { <span class="op">..</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>  ,<span class="ot"> idType ::</span> <span class="dt">Maybe</span> <span class="dt">Type</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>  }</span></code></pre></div>
 <p>The <code>Maybe</code> part is because when we no longer need the types we want to be able to clear the type fields to make the AST smaller. While we have only one heap object per <code>Id</code>, in an average program there’s still a lot of different <code>Id</code>s, and <code>Type</code> representation can get quite large, so this is worthwhile. This makes the working set smaller, which causes less GC work and improves compiler performance.</p>
 <p>In our cyclic AST representation the only way to implement this without losing sharing is with a full-pass over the entire program, using knot-tying. The code is similar to the ones in the previous post.</p>
 <h2 id="example-attaching-unfoldings-to-ids">Example: attaching unfoldings to Ids</h2>
 <p>Remember that in the previous post we represented the AST as:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Expr</span>
-  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">Id</span>
-  <span class="fu">|</span> <span class="dt">IntE</span> <span class="dt">Int</span>
-  <span class="fu">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span>
-  <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
-  <span class="fu">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
-  <span class="fu">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
-
-<span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
-  {<span class="ot"> idName ::</span> <span class="dt">String</span>
-    <span class="co">-- ^ Unique name of the identifier</span>
-  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span>
-    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
-  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
-    <span class="co">-- ^ RHS of a binder, used for inlining</span>
-  }</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Expr</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  <span class="ot">=</span> <span class="dt">IdE</span> <span class="dt">Id</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IntE</span> <span class="dt">Int</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Id</span> <span class="ot">=</span> <span class="dt">Id</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>  {<span class="ot"> idName ::</span> <span class="dt">String</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>    <span class="co">-- ^ Unique name of the identifier</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a>    <span class="co">-- ^ RHS of a binder, used for inlining</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>  }</span></code></pre></div>
 <p>In this representation if I have a recursive definition like</p>
 <pre><code>let fac = \x . if x then x * fac (x - 1) else 1 in fac 5</code></pre>
 <p>In <code>fac</code> used in lambda body I want to be able to do <code>idUnfolding</code> and get the definition of this lambda. So the lambda refers to the <code>Id</code> for <code>fac</code>, and <code>fac</code> refers to the lambda in its <code>idUnfolding</code> field, forming a cycle.</p>
 <p>In this representation only way to implement this is with knot-tying. An implementation that maintains a map from binders to their RHSs to update unfoldings of <code>Id</code>s in occurrence position does not work, because when we update an occurrence of the binder in its own RHS (i.e. in a recursive <code>let</code>) we end up invalidating the <code>RHS</code> that we’ve added to the map.</p>
 <p>Here’s a knot-tying implementation that adds unfoldings (only the interesting bits):</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
-addUnfoldings <span class="fu">=</span> go M.empty
-  <span class="kw">where</span>
-<span class="ot">    go ::</span> <span class="dt">M.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
-    go ids e <span class="fu">=</span> <span class="kw">case</span> e <span class="kw">of</span>
-
-      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span>
-        <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (M.lookup (idName <span class="fu">id</span>) ids))
-
-      <span class="dt">Let</span> bndr rhs body <span class="ot">-&gt;</span>
-        <span class="kw">let</span>
-          ids' <span class="fu">=</span> M.insert (idName bndr) bndr' ids
-          rhs' <span class="fu">=</span> go ids' rhs
-          bndr' <span class="fu">=</span> bndr{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs' }
-        <span class="kw">in</span>
-          <span class="dt">Let</span> bndr{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs' } rhs' (go ids' body)
-
-      <span class="fu">...</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>addUnfoldings <span class="ot">=</span> go M.empty</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a><span class="ot">    go ::</span> <span class="dt">M.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>    go ids e <span class="ot">=</span> <span class="kw">case</span> e <span class="kw">of</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>        <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (M.lookup (idName <span class="fu">id</span>) ids))</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>      <span class="dt">Let</span> bndr rhs body <span class="ot">-&gt;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>        <span class="kw">let</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a>          ids' <span class="ot">=</span> M.insert (idName bndr) bndr' ids</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a>          rhs' <span class="ot">=</span> go ids' rhs</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>          bndr' <span class="ot">=</span> bndr{ idUnfolding <span class="ot">=</span> <span class="dt">Just</span> rhs' }</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a>        <span class="kw">in</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a>          <span class="dt">Let</span> bndr{ idUnfolding <span class="ot">=</span> <span class="dt">Just</span> rhs' } rhs' (go ids' body)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true"></a>      <span class="op">...</span></span></code></pre></div>
 <p>As before we tie the knot in <code>let</code> case and use it in <code>Id</code> case.</p>
 <p>It’s also possible to initialize <code>idUnfolding</code> fields when parsing, using monadic knot-tying (<a href="http://hackage.haskell.org/package/base-4.12.0.0/docs/Control-Monad-Fix.html">MonadFix</a>). Full code is shown at the end of this post, but the interesting bit is when parsing <code>let</code>s and <code>Id</code>s:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parseLet ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
-parseLet <span class="fu">=</span> <span class="kw">do</span>
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span>
-    id_name <span class="ot">&lt;-</span> parseIdName
-    _ <span class="ot">&lt;-</span> char <span class="ch">'='</span>
-
-    (<span class="fu">id</span>, rhs) <span class="ot">&lt;-</span> mfix <span class="fu">$</span> \ <span class="fu">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span>
-      modify (Map.insert id_name id_)
-      rhs <span class="ot">&lt;-</span> parseExpr
-      <span class="fu">return</span> (<span class="dt">Id</span>{ idName <span class="fu">=</span> id_name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }, rhs)
-
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span>
-    body <span class="ot">&lt;-</span> parseExpr
-    <span class="fu">return</span> (<span class="dt">Let</span> <span class="fu">id</span> rhs body)
-
-<span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">Id</span>
-parseId' <span class="fu">=</span> <span class="kw">do</span>
-    name <span class="ot">&lt;-</span> parseIdName
-    id_map <span class="ot">&lt;-</span> get
-    <span class="kw">let</span> def <span class="fu">=</span> <span class="dt">Id</span>{ idName <span class="fu">=</span> name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
-    <span class="fu">return</span> (fromMaybe def (Map.lookup name id_map))</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="ot">parseLet ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>parseLet <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>    id_name <span class="ot">&lt;-</span> parseIdName</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">'='</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>    (<span class="fu">id</span>, rhs) <span class="ot">&lt;-</span> mfix <span class="op">$</span> \ <span class="op">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>      modify (Map.insert id_name id_)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>      rhs <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>      <span class="fu">return</span> (<span class="dt">Id</span>{ idName <span class="ot">=</span> id_name, idArity <span class="ot">=</span> <span class="dv">0</span>, idUnfolding <span class="ot">=</span> <span class="dt">Just</span> rhs }, rhs)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>    body <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>    <span class="fu">return</span> (<span class="dt">Let</span> <span class="fu">id</span> rhs body)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a><span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">Id</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true"></a>parseId' <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true"></a>    name <span class="ot">&lt;-</span> parseIdName</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true"></a>    id_map <span class="ot">&lt;-</span> get</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true"></a>    <span class="kw">let</span> def <span class="ot">=</span> <span class="dt">Id</span>{ idName <span class="ot">=</span> name, idArity <span class="ot">=</span> <span class="dv">0</span>, idUnfolding <span class="ot">=</span> <span class="dt">Nothing</span> }</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true"></a>    <span class="fu">return</span> (fromMaybe def (Map.lookup name id_map))</span></code></pre></div>
 <p>The idea is very similar. When parsing a <code>let</code> we add a thunk for the binder with correct unfolding to a map. The map is then used when parsing <code>Id</code>s in the RHS and body of the <code>let</code>.</p>
 <h2 id="an-alternative">An alternative</h2>
 <p>A well-known way of associating information with identifiers in a compiler is by using a “symbol table”. Instead of adding information about <code>Id</code>s directly in the <code>Id</code> fields, we maintain a table (or multiple tables) that map <code>Id</code>s to the relevant information. Here’s one way to do this in our language:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Expr</span>
-  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">String</span>
-  <span class="fu">...</span>
-
-<span class="kw">data</span> <span class="dt">IdInfo</span> <span class="fu">=</span> <span class="dt">IdInfo</span>
-  {<span class="ot"> idArity ::</span> <span class="dt">Int</span>
-    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
-  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
-    <span class="co">-- ^ RHS of a binder, used for inlining</span>
-  }
-
-<span class="kw">type</span> <span class="dt">SymTbl</span> <span class="fu">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">IdInfo</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Expr</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>  <span class="ot">=</span> <span class="dt">IdE</span> <span class="dt">String</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>  <span class="op">...</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">IdInfo</span> <span class="ot">=</span> <span class="dt">IdInfo</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>  {<span class="ot"> idArity ::</span> <span class="dt">Int</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>    <span class="co">-- ^ RHS of a binder, used for inlining</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>  }</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">SymTbl</span> <span class="ot">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">IdInfo</span></span></code></pre></div>
 <p>In this representation we have to refer to the table for <code>idArity</code> or <code>idUnfolding</code>. That’s slightly more work than the previous representation where we could simply use the fields of an <code>Id</code>, but a lot of other things become much simpler and efficient.</p>
 <p>Here’s <code>dropUnusedBindings</code> in this representation (only the interesting bits, full code is at the end of this post):</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> <span class="dt">Expr</span>
-dropUnusedBindings <span class="fu">=</span>
-    <span class="fu">fmap</span> <span class="fu">snd</span> <span class="fu">.</span> go Set.empty
-  <span class="kw">where</span>
-<span class="ot">    go ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
-    go free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
-
-      <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
-        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
-        <span class="kw">if</span> Set.member bndr free2 <span class="kw">then</span> <span class="kw">do</span>
-          (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
-          setIdArity bndr (countLambdas e1')
-          <span class="fu">return</span> (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')
-        <span class="kw">else</span>
-          <span class="fu">return</span> (free2, e2')
-
-      <span class="fu">...</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> <span class="dt">Expr</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>dropUnusedBindings <span class="ot">=</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>    <span class="fu">fmap</span> <span class="fu">snd</span> <span class="op">.</span> go Set.empty</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="ot">    go ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>    go free_vars e0 <span class="ot">=</span> <span class="kw">case</span> e0 <span class="kw">of</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>      <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>        <span class="kw">if</span> Set.member bndr free2 <span class="kw">then</span> <span class="kw">do</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a>          (free1, e1') <span class="ot">&lt;-</span> go free_vars e1</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a>          setIdArity bndr (countLambdas e1')</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a>          <span class="fu">return</span> (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true"></a>        <span class="kw">else</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true"></a>          <span class="fu">return</span> (free2, e2')</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true"></a>      <span class="op">...</span></span></code></pre></div>
 <p>Our pass is now stateful (updates the symbol table) and written in monadic style. Knot-tying is gone. We update the symbol table after processing a <code>let</code> RHS. Because <code>Id</code>s no longer have the arity information we don’t need to update anything other than the symbol table.</p>
 <p>It’s now trivial to implement <code>addUnfoldings</code>:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
-addUnfoldings e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
-
-    <span class="dt">IdE</span>{} <span class="ot">-&gt;</span>
-      <span class="fu">return</span> ()
-
-    <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
-      <span class="fu">return</span> ()
-
-    <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span>
-      addUnfoldings body
-
-    <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
-      addUnfoldings e1
-      addUnfoldings e2
-
-    <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span>
-      addUnfoldings e1
-      addUnfoldings e2
-      addUnfoldings e3
-
-    <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
-      addUnfoldings e1
-      addUnfoldings e2
-      setIdUnfolding bndr e1</code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>addUnfoldings e0 <span class="ot">=</span> <span class="kw">case</span> e0 <span class="kw">of</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>    <span class="dt">IdE</span>{} <span class="ot">-&gt;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>      <span class="fu">return</span> ()</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>    <span class="dt">IntE</span>{} <span class="ot">-&gt;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>      <span class="fu">return</span> ()</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>    <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>      addUnfoldings body</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a>    <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a>      addUnfoldings e1</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true"></a>      addUnfoldings e2</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true"></a>    <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true"></a>      addUnfoldings e1</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true"></a>      addUnfoldings e2</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true"></a>      addUnfoldings e3</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true"></a></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true"></a>    <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true"></a>      addUnfoldings e1</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true"></a>      addUnfoldings e2</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true"></a>      setIdUnfolding bndr e1</span></code></pre></div>
 <p>Doing it during parsing is also trivial, and shown in the full code at the end of this post. Updating typing information when we no longer need them is simply</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dropTypes ::</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
-dropTypes <span class="fu">=</span> modify (Map.map (\id_info <span class="ot">-&gt;</span> id_info{ idType <span class="fu">=</span> <span class="dt">Nothing</span> }))</code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ot">dropTypes ::</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>dropTypes <span class="ot">=</span> modify (Map.map (\id_info <span class="ot">-&gt;</span> id_info{ idType <span class="ot">=</span> <span class="dt">Nothing</span> }))</span></code></pre></div>
 <p>We could also maintain a separate table for typing information, in which case all we had to do would be to stop using that table.</p>
 <p>Easy!</p>
 <h2 id="final-remarks">Final remarks</h2>
@@ -185,430 +185,430 @@ arity &lt;- getIdUnfolding id</code></pre>
 <li>The process of throwing away information that are no longer needed is called “zapping”. It happens in many places in GHC, one example is the tidying pass (prepares code for interface file generation) that <a href="https://gitlab.haskell.org/ghc/ghc/blob/1b1067d14b656bbbfa7c47f156ec2700c9751549/compiler%2FGHC%2FIface%2FTidy.hs#L1210">zaps unfoldings</a>.</li>
 <li>Knot-tying is used in many places in the compiler, <a href="https://gitlab.haskell.org/ghc/ghc/blob/1b1067d14b656bbbfa7c47f156ec2700c9751549/compiler%2Fmain%2FUpdateCafInfos.hs#L36">here’s an example</a> where we use knot-tying to update <code>IdInfo</code>s with code generator-generated information.</li>
 </ul>
-<p>In the first post I mostly argued that knot-tying makes things more complicated, and in this post I showed that knot-tying is necessary because of the cyclic representation. If we want to do the same without knot-tying we either have to introduce mutable references (e.g. <code>IORef</code>s) in our AST (not shown in this post), or have to use a non-cyclic representation with symbol tables.</p>
+<p>In the first post I mostly argued that knot-tying makes things more complicated, and in this post I showed that knot-tying is necessary because of the cyclic representation. If we want to do the same without knot-tying we either have to introduce mutable references (e.g. <code>IORef</code>s) in our AST (not shown in this post), or have to use a non-cyclic representation with symbol tables.</p>
 <p>Between these two representations, I think non-cyclic representation with symbol tables is a better choice.</p>
 <details>
 <p><summary>Full code (knot-tying)</summary></p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Tried with GHC 8.6.4</span>
-
-<span class="ot">{-# OPTIONS_GHC -Wall #-}</span>
-
-<span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span>
-<span class="ot">{-# LANGUAGE FlexibleInstances #-}</span>
-
-<span class="kw">import</span> <span class="dt">Data.List</span>
-<span class="kw">import</span> <span class="dt">Data.Maybe</span>
-<span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (id)
-
-<span class="co">-- mtl-2.2</span>
-<span class="kw">import</span> <span class="dt">Control.Monad.State</span>
-
-<span class="co">-- containers-0.6</span>
-<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span>
-<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span>
-
-<span class="co">-- megaparsec-7.0</span>
-<span class="kw">import</span> <span class="dt">Text.Megaparsec</span> <span class="kw">hiding</span> (<span class="dt">State</span>)
-<span class="kw">import</span> <span class="dt">Text.Megaparsec.Char</span>
-
-<span class="co">-- pretty-show-1.10</span>
-<span class="kw">import</span> <span class="dt">Text.Show.Pretty</span>
-
-<span class="kw">data</span> <span class="dt">Expr</span>
-  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">Id</span>
-  <span class="fu">|</span> <span class="dt">IntE</span> <span class="dt">Int</span>
-  <span class="fu">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span>
-  <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
-  <span class="fu">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
-  <span class="fu">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
-  <span class="kw">deriving</span> (<span class="dt">Show</span>)
-
-<span class="kw">data</span> <span class="dt">Id</span> <span class="fu">=</span> <span class="dt">Id</span>
-  {<span class="ot"> idName ::</span> <span class="dt">String</span>
-    <span class="co">-- ^ Unique name of the identifier</span>
-  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span>
-    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
-  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
-    <span class="co">-- ^ RHS of a binder, used for inlining</span>
-  }
-
-<span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Id</span> <span class="kw">where</span>
-  <span class="fu">show</span> (<span class="dt">Id</span> name arity _) <span class="fu">=</span> <span class="st">&quot;(Id &quot;</span> <span class="fu">++</span> <span class="fu">show</span> name <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> <span class="fu">show</span> arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
-
-<span class="co">--------------------------------------------------------------------------------</span>
-<span class="co">-- Initializing unfolding fields in parse time via MonadFix</span>
-
-<span class="kw">type</span> <span class="dt">IdMap</span> <span class="fu">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span>
-
-<span class="kw">type</span> <span class="dt">Parser</span> <span class="fu">=</span> <span class="dt">ParsecT</span> <span class="dt">String</span> <span class="dt">String</span> (<span class="dt">State</span> <span class="dt">IdMap</span>)
-
-<span class="ot">parseExpr ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
-parseExpr <span class="fu">=</span> <span class="kw">do</span>
-    exprs <span class="ot">&lt;-</span> some <span class="fu">$</span>
-      choice <span class="fu">$</span>
-      <span class="fu">map</span> (\p <span class="ot">-&gt;</span> p <span class="fu">&lt;*</span> space)
-        [ parseParens, parseIf, parseLam, parseInt,
-          parseLet, try parseId ]
-    <span class="fu">return</span> (foldl1' <span class="dt">App</span> exprs)
-
-parseParens, parseIf, parseLam, parseInt,
-  parseLet,<span class="ot"> parseId ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
-
-parseParens <span class="fu">=</span> <span class="kw">do</span>
-    _ <span class="ot">&lt;-</span> char <span class="ch">'('</span>
-    space
-    expr <span class="ot">&lt;-</span> parseExpr
-    _ <span class="ot">&lt;-</span> char <span class="ch">')'</span>
-    <span class="fu">return</span> expr
-
-parseIf <span class="fu">=</span> <span class="kw">do</span>
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;if&quot;</span>
-    space
-    condE <span class="ot">&lt;-</span> parseExpr
-
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;then&quot;</span>
-    space
-    thenE <span class="ot">&lt;-</span> parseExpr
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;else&quot;</span>
-    space
-    elseE <span class="ot">&lt;-</span> parseExpr
-    <span class="fu">return</span> (<span class="dt">IfE</span> condE thenE elseE)
-
-parseLam <span class="fu">=</span> <span class="kw">do</span>
-    _ <span class="ot">&lt;-</span> char <span class="ch">'\\'</span>
-    space
-    <span class="fu">id</span> <span class="ot">&lt;-</span> parseId'
-    space
-    _ <span class="ot">&lt;-</span> char <span class="ch">'.'</span>
-    space
-    body <span class="ot">&lt;-</span> parseExpr
-    <span class="fu">return</span> (<span class="dt">Lam</span> <span class="fu">id</span> body)
-
-parseInt <span class="fu">=</span> <span class="kw">do</span>
-    chars <span class="ot">&lt;-</span> some digitChar
-    <span class="fu">return</span> (<span class="dt">IntE</span> (<span class="fu">read</span> chars))
-
-parseLet <span class="fu">=</span> <span class="kw">do</span>
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span>
-    space
-    id_name <span class="ot">&lt;-</span> parseIdName
-    space
-    _ <span class="ot">&lt;-</span> char <span class="ch">'='</span>
-    space
-
-    (<span class="fu">id</span>, rhs) <span class="ot">&lt;-</span> mfix <span class="fu">$</span> \ <span class="fu">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span>
-      modify (Map.insert id_name id_)
-      rhs <span class="ot">&lt;-</span> parseExpr
-      <span class="fu">return</span> (<span class="dt">Id</span>{ idName <span class="fu">=</span> id_name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs }, rhs)
-
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span>
-    space
-    body <span class="ot">&lt;-</span> parseExpr
-    <span class="fu">return</span> (<span class="dt">Let</span> <span class="fu">id</span> rhs body)
-
-parseId <span class="fu">=</span> <span class="dt">IdE</span> <span class="fu">&lt;$&gt;</span> parseId'
-
-<span class="ot">kws ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span>
-kws <span class="fu">=</span> Set.fromList [<span class="st">&quot;if&quot;</span>, <span class="st">&quot;then&quot;</span>, <span class="st">&quot;else&quot;</span>, <span class="st">&quot;let&quot;</span>, <span class="st">&quot;in&quot;</span>]
-
-<span class="ot">parseIdName ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
-parseIdName <span class="fu">=</span> <span class="kw">do</span>
-    name <span class="ot">&lt;-</span> some letterChar
-    guard (<span class="fu">not</span> (Set.member name kws))
-    <span class="fu">return</span> name
-
-<span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">Id</span>
-parseId' <span class="fu">=</span> <span class="kw">do</span>
-    name <span class="ot">&lt;-</span> parseIdName
-    id_map <span class="ot">&lt;-</span> get
-    <span class="kw">let</span> def <span class="fu">=</span> <span class="dt">Id</span>{ idName <span class="fu">=</span> name, idArity <span class="fu">=</span> <span class="dv">0</span>, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span> }
-    <span class="fu">return</span> (fromMaybe def (Map.lookup name id_map))
-
-<span class="ot">testPgm ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
-testPgm pgm <span class="fu">=</span>
-    <span class="kw">case</span> evalState (runParserT parseExpr <span class="st">&quot;&quot;</span> pgm) Map.empty <span class="kw">of</span>
-      <span class="dt">Left</span> (<span class="ot">err_bundle ::</span> <span class="dt">ParseErrorBundle</span> <span class="dt">String</span> <span class="dt">String</span>) <span class="ot">-&gt;</span>
-        <span class="fu">error</span> (errorBundlePretty err_bundle)
-      <span class="dt">Right</span> expr <span class="ot">-&gt;</span>
-        expr
-
-<span class="kw">instance</span> <span class="dt">ShowErrorComponent</span> [<span class="dt">Char</span>] <span class="kw">where</span>
-    showErrorComponent x <span class="fu">=</span> x
-
-<span class="co">--------------------------------------------------------------------------------</span>
-<span class="co">-- Initializing unfoldings with knot-tying</span>
-
-<span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
-addUnfoldings <span class="fu">=</span> go Map.empty
-  <span class="kw">where</span>
-<span class="ot">    go ::</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
-    go ids e <span class="fu">=</span> <span class="kw">case</span> e <span class="kw">of</span>
-
-      <span class="co">-- Interesting bits ------------------------------------------------------</span>
-      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span>
-        <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (Map.lookup (idName <span class="fu">id</span>) ids))
-
-      <span class="dt">Let</span> bndr rhs body <span class="ot">-&gt;</span>
-        <span class="kw">let</span>
-          ids' <span class="fu">=</span> Map.insert (idName bndr) bndr' ids
-          rhs' <span class="fu">=</span> go ids' rhs
-          bndr' <span class="fu">=</span> bndr{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs' }
-        <span class="kw">in</span>
-          <span class="dt">Let</span> bndr{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> rhs' } rhs' (go ids' body)
-      <span class="co">--------------------------------------------------------------------------</span>
-
-      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
-        e
-
-      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span>
-        <span class="dt">Lam</span> arg (go ids body)
-
-      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span>
-        <span class="dt">App</span> (go ids e1) (go ids e2)
-
-      <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span>
-        <span class="dt">IfE</span> (go ids e1) (go ids e2) (go ids e3)</code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="co">-- Tried with GHC 8.6.4</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a><span class="ot">{-# OPTIONS_GHC -Wall #-}</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a><span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a><span class="ot">{-# LANGUAGE FlexibleInstances #-}</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.List</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Maybe</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (id)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true"></a><span class="co">-- mtl-2.2</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Monad.State</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true"></a><span class="co">-- containers-0.6</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true"></a><span class="co">-- megaparsec-7.0</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Megaparsec</span> <span class="kw">hiding</span> (<span class="dt">State</span>)</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Megaparsec.Char</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true"></a></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true"></a><span class="co">-- pretty-show-1.10</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Show.Pretty</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true"></a></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Expr</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true"></a>  <span class="ot">=</span> <span class="dt">IdE</span> <span class="dt">Id</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IntE</span> <span class="dt">Int</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true"></a></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Id</span> <span class="ot">=</span> <span class="dt">Id</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true"></a>  {<span class="ot"> idName ::</span> <span class="dt">String</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true"></a>    <span class="co">-- ^ Unique name of the identifier</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true"></a>  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true"></a>    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true"></a>  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true"></a>    <span class="co">-- ^ RHS of a binder, used for inlining</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true"></a>  }</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true"></a></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Id</span> <span class="kw">where</span></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true"></a>  <span class="fu">show</span> (<span class="dt">Id</span> name arity _) <span class="ot">=</span> <span class="st">&quot;(Id &quot;</span> <span class="op">++</span> <span class="fu">show</span> name <span class="op">++</span> <span class="st">&quot; &quot;</span> <span class="op">++</span> <span class="fu">show</span> arity <span class="op">++</span> <span class="st">&quot;)&quot;</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true"></a></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true"></a><span class="co">--------------------------------------------------------------------------------</span></span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true"></a><span class="co">-- Initializing unfolding fields in parse time via MonadFix</span></span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true"></a></span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">IdMap</span> <span class="ot">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true"></a></span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Parser</span> <span class="ot">=</span> <span class="dt">ParsecT</span> <span class="dt">String</span> <span class="dt">String</span> (<span class="dt">State</span> <span class="dt">IdMap</span>)</span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true"></a></span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true"></a><span class="ot">parseExpr ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true"></a>parseExpr <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true"></a>    exprs <span class="ot">&lt;-</span> some <span class="op">$</span></span>
+<span id="cb11-57"><a href="#cb11-57" aria-hidden="true"></a>      choice <span class="op">$</span></span>
+<span id="cb11-58"><a href="#cb11-58" aria-hidden="true"></a>      <span class="fu">map</span> (\p <span class="ot">-&gt;</span> p <span class="op">&lt;*</span> space)</span>
+<span id="cb11-59"><a href="#cb11-59" aria-hidden="true"></a>        [ parseParens, parseIf, parseLam, parseInt,</span>
+<span id="cb11-60"><a href="#cb11-60" aria-hidden="true"></a>          parseLet, try parseId ]</span>
+<span id="cb11-61"><a href="#cb11-61" aria-hidden="true"></a>    <span class="fu">return</span> (foldl1' <span class="dt">App</span> exprs)</span>
+<span id="cb11-62"><a href="#cb11-62" aria-hidden="true"></a></span>
+<span id="cb11-63"><a href="#cb11-63" aria-hidden="true"></a>parseParens, parseIf, parseLam, parseInt,</span>
+<span id="cb11-64"><a href="#cb11-64" aria-hidden="true"></a>  parseLet,<span class="ot"> parseId ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb11-65"><a href="#cb11-65" aria-hidden="true"></a></span>
+<span id="cb11-66"><a href="#cb11-66" aria-hidden="true"></a>parseParens <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-67"><a href="#cb11-67" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">'('</span></span>
+<span id="cb11-68"><a href="#cb11-68" aria-hidden="true"></a>    space</span>
+<span id="cb11-69"><a href="#cb11-69" aria-hidden="true"></a>    expr <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb11-70"><a href="#cb11-70" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">')'</span></span>
+<span id="cb11-71"><a href="#cb11-71" aria-hidden="true"></a>    <span class="fu">return</span> expr</span>
+<span id="cb11-72"><a href="#cb11-72" aria-hidden="true"></a></span>
+<span id="cb11-73"><a href="#cb11-73" aria-hidden="true"></a>parseIf <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-74"><a href="#cb11-74" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;if&quot;</span></span>
+<span id="cb11-75"><a href="#cb11-75" aria-hidden="true"></a>    space</span>
+<span id="cb11-76"><a href="#cb11-76" aria-hidden="true"></a>    condE <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb11-77"><a href="#cb11-77" aria-hidden="true"></a></span>
+<span id="cb11-78"><a href="#cb11-78" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;then&quot;</span></span>
+<span id="cb11-79"><a href="#cb11-79" aria-hidden="true"></a>    space</span>
+<span id="cb11-80"><a href="#cb11-80" aria-hidden="true"></a>    thenE <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb11-81"><a href="#cb11-81" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;else&quot;</span></span>
+<span id="cb11-82"><a href="#cb11-82" aria-hidden="true"></a>    space</span>
+<span id="cb11-83"><a href="#cb11-83" aria-hidden="true"></a>    elseE <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb11-84"><a href="#cb11-84" aria-hidden="true"></a>    <span class="fu">return</span> (<span class="dt">IfE</span> condE thenE elseE)</span>
+<span id="cb11-85"><a href="#cb11-85" aria-hidden="true"></a></span>
+<span id="cb11-86"><a href="#cb11-86" aria-hidden="true"></a>parseLam <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-87"><a href="#cb11-87" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">'\\'</span></span>
+<span id="cb11-88"><a href="#cb11-88" aria-hidden="true"></a>    space</span>
+<span id="cb11-89"><a href="#cb11-89" aria-hidden="true"></a>    <span class="fu">id</span> <span class="ot">&lt;-</span> parseId'</span>
+<span id="cb11-90"><a href="#cb11-90" aria-hidden="true"></a>    space</span>
+<span id="cb11-91"><a href="#cb11-91" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">'.'</span></span>
+<span id="cb11-92"><a href="#cb11-92" aria-hidden="true"></a>    space</span>
+<span id="cb11-93"><a href="#cb11-93" aria-hidden="true"></a>    body <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb11-94"><a href="#cb11-94" aria-hidden="true"></a>    <span class="fu">return</span> (<span class="dt">Lam</span> <span class="fu">id</span> body)</span>
+<span id="cb11-95"><a href="#cb11-95" aria-hidden="true"></a></span>
+<span id="cb11-96"><a href="#cb11-96" aria-hidden="true"></a>parseInt <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-97"><a href="#cb11-97" aria-hidden="true"></a>    chars <span class="ot">&lt;-</span> some digitChar</span>
+<span id="cb11-98"><a href="#cb11-98" aria-hidden="true"></a>    <span class="fu">return</span> (<span class="dt">IntE</span> (<span class="fu">read</span> chars))</span>
+<span id="cb11-99"><a href="#cb11-99" aria-hidden="true"></a></span>
+<span id="cb11-100"><a href="#cb11-100" aria-hidden="true"></a>parseLet <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-101"><a href="#cb11-101" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span></span>
+<span id="cb11-102"><a href="#cb11-102" aria-hidden="true"></a>    space</span>
+<span id="cb11-103"><a href="#cb11-103" aria-hidden="true"></a>    id_name <span class="ot">&lt;-</span> parseIdName</span>
+<span id="cb11-104"><a href="#cb11-104" aria-hidden="true"></a>    space</span>
+<span id="cb11-105"><a href="#cb11-105" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">'='</span></span>
+<span id="cb11-106"><a href="#cb11-106" aria-hidden="true"></a>    space</span>
+<span id="cb11-107"><a href="#cb11-107" aria-hidden="true"></a></span>
+<span id="cb11-108"><a href="#cb11-108" aria-hidden="true"></a>    (<span class="fu">id</span>, rhs) <span class="ot">&lt;-</span> mfix <span class="op">$</span> \ <span class="op">~</span>(id_, _rhs) <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb11-109"><a href="#cb11-109" aria-hidden="true"></a>      modify (Map.insert id_name id_)</span>
+<span id="cb11-110"><a href="#cb11-110" aria-hidden="true"></a>      rhs <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb11-111"><a href="#cb11-111" aria-hidden="true"></a>      <span class="fu">return</span> (<span class="dt">Id</span>{ idName <span class="ot">=</span> id_name, idArity <span class="ot">=</span> <span class="dv">0</span>, idUnfolding <span class="ot">=</span> <span class="dt">Just</span> rhs }, rhs)</span>
+<span id="cb11-112"><a href="#cb11-112" aria-hidden="true"></a></span>
+<span id="cb11-113"><a href="#cb11-113" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span></span>
+<span id="cb11-114"><a href="#cb11-114" aria-hidden="true"></a>    space</span>
+<span id="cb11-115"><a href="#cb11-115" aria-hidden="true"></a>    body <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb11-116"><a href="#cb11-116" aria-hidden="true"></a>    <span class="fu">return</span> (<span class="dt">Let</span> <span class="fu">id</span> rhs body)</span>
+<span id="cb11-117"><a href="#cb11-117" aria-hidden="true"></a></span>
+<span id="cb11-118"><a href="#cb11-118" aria-hidden="true"></a>parseId <span class="ot">=</span> <span class="dt">IdE</span> <span class="op">&lt;$&gt;</span> parseId'</span>
+<span id="cb11-119"><a href="#cb11-119" aria-hidden="true"></a></span>
+<span id="cb11-120"><a href="#cb11-120" aria-hidden="true"></a><span class="ot">kws ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span></span>
+<span id="cb11-121"><a href="#cb11-121" aria-hidden="true"></a>kws <span class="ot">=</span> Set.fromList [<span class="st">&quot;if&quot;</span>, <span class="st">&quot;then&quot;</span>, <span class="st">&quot;else&quot;</span>, <span class="st">&quot;let&quot;</span>, <span class="st">&quot;in&quot;</span>]</span>
+<span id="cb11-122"><a href="#cb11-122" aria-hidden="true"></a></span>
+<span id="cb11-123"><a href="#cb11-123" aria-hidden="true"></a><span class="ot">parseIdName ::</span> <span class="dt">Parser</span> <span class="dt">String</span></span>
+<span id="cb11-124"><a href="#cb11-124" aria-hidden="true"></a>parseIdName <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-125"><a href="#cb11-125" aria-hidden="true"></a>    name <span class="ot">&lt;-</span> some letterChar</span>
+<span id="cb11-126"><a href="#cb11-126" aria-hidden="true"></a>    guard (<span class="fu">not</span> (Set.member name kws))</span>
+<span id="cb11-127"><a href="#cb11-127" aria-hidden="true"></a>    <span class="fu">return</span> name</span>
+<span id="cb11-128"><a href="#cb11-128" aria-hidden="true"></a></span>
+<span id="cb11-129"><a href="#cb11-129" aria-hidden="true"></a><span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">Id</span></span>
+<span id="cb11-130"><a href="#cb11-130" aria-hidden="true"></a>parseId' <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-131"><a href="#cb11-131" aria-hidden="true"></a>    name <span class="ot">&lt;-</span> parseIdName</span>
+<span id="cb11-132"><a href="#cb11-132" aria-hidden="true"></a>    id_map <span class="ot">&lt;-</span> get</span>
+<span id="cb11-133"><a href="#cb11-133" aria-hidden="true"></a>    <span class="kw">let</span> def <span class="ot">=</span> <span class="dt">Id</span>{ idName <span class="ot">=</span> name, idArity <span class="ot">=</span> <span class="dv">0</span>, idUnfolding <span class="ot">=</span> <span class="dt">Nothing</span> }</span>
+<span id="cb11-134"><a href="#cb11-134" aria-hidden="true"></a>    <span class="fu">return</span> (fromMaybe def (Map.lookup name id_map))</span>
+<span id="cb11-135"><a href="#cb11-135" aria-hidden="true"></a></span>
+<span id="cb11-136"><a href="#cb11-136" aria-hidden="true"></a><span class="ot">testPgm ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span></span>
+<span id="cb11-137"><a href="#cb11-137" aria-hidden="true"></a>testPgm pgm <span class="ot">=</span></span>
+<span id="cb11-138"><a href="#cb11-138" aria-hidden="true"></a>    <span class="kw">case</span> evalState (runParserT parseExpr <span class="st">&quot;&quot;</span> pgm) Map.empty <span class="kw">of</span></span>
+<span id="cb11-139"><a href="#cb11-139" aria-hidden="true"></a>      <span class="dt">Left</span> (<span class="ot">err_bundle ::</span> <span class="dt">ParseErrorBundle</span> <span class="dt">String</span> <span class="dt">String</span>) <span class="ot">-&gt;</span></span>
+<span id="cb11-140"><a href="#cb11-140" aria-hidden="true"></a>        <span class="fu">error</span> (errorBundlePretty err_bundle)</span>
+<span id="cb11-141"><a href="#cb11-141" aria-hidden="true"></a>      <span class="dt">Right</span> expr <span class="ot">-&gt;</span></span>
+<span id="cb11-142"><a href="#cb11-142" aria-hidden="true"></a>        expr</span>
+<span id="cb11-143"><a href="#cb11-143" aria-hidden="true"></a></span>
+<span id="cb11-144"><a href="#cb11-144" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">ShowErrorComponent</span> [<span class="dt">Char</span>] <span class="kw">where</span></span>
+<span id="cb11-145"><a href="#cb11-145" aria-hidden="true"></a>    showErrorComponent x <span class="ot">=</span> x</span>
+<span id="cb11-146"><a href="#cb11-146" aria-hidden="true"></a></span>
+<span id="cb11-147"><a href="#cb11-147" aria-hidden="true"></a><span class="co">--------------------------------------------------------------------------------</span></span>
+<span id="cb11-148"><a href="#cb11-148" aria-hidden="true"></a><span class="co">-- Initializing unfoldings with knot-tying</span></span>
+<span id="cb11-149"><a href="#cb11-149" aria-hidden="true"></a></span>
+<span id="cb11-150"><a href="#cb11-150" aria-hidden="true"></a><span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span></span>
+<span id="cb11-151"><a href="#cb11-151" aria-hidden="true"></a>addUnfoldings <span class="ot">=</span> go Map.empty</span>
+<span id="cb11-152"><a href="#cb11-152" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb11-153"><a href="#cb11-153" aria-hidden="true"></a><span class="ot">    go ::</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span></span>
+<span id="cb11-154"><a href="#cb11-154" aria-hidden="true"></a>    go ids e <span class="ot">=</span> <span class="kw">case</span> e <span class="kw">of</span></span>
+<span id="cb11-155"><a href="#cb11-155" aria-hidden="true"></a></span>
+<span id="cb11-156"><a href="#cb11-156" aria-hidden="true"></a>      <span class="co">-- Interesting bits ------------------------------------------------------</span></span>
+<span id="cb11-157"><a href="#cb11-157" aria-hidden="true"></a>      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span></span>
+<span id="cb11-158"><a href="#cb11-158" aria-hidden="true"></a>        <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (Map.lookup (idName <span class="fu">id</span>) ids))</span>
+<span id="cb11-159"><a href="#cb11-159" aria-hidden="true"></a></span>
+<span id="cb11-160"><a href="#cb11-160" aria-hidden="true"></a>      <span class="dt">Let</span> bndr rhs body <span class="ot">-&gt;</span></span>
+<span id="cb11-161"><a href="#cb11-161" aria-hidden="true"></a>        <span class="kw">let</span></span>
+<span id="cb11-162"><a href="#cb11-162" aria-hidden="true"></a>          ids' <span class="ot">=</span> Map.insert (idName bndr) bndr' ids</span>
+<span id="cb11-163"><a href="#cb11-163" aria-hidden="true"></a>          rhs' <span class="ot">=</span> go ids' rhs</span>
+<span id="cb11-164"><a href="#cb11-164" aria-hidden="true"></a>          bndr' <span class="ot">=</span> bndr{ idUnfolding <span class="ot">=</span> <span class="dt">Just</span> rhs' }</span>
+<span id="cb11-165"><a href="#cb11-165" aria-hidden="true"></a>        <span class="kw">in</span></span>
+<span id="cb11-166"><a href="#cb11-166" aria-hidden="true"></a>          <span class="dt">Let</span> bndr{ idUnfolding <span class="ot">=</span> <span class="dt">Just</span> rhs' } rhs' (go ids' body)</span>
+<span id="cb11-167"><a href="#cb11-167" aria-hidden="true"></a>      <span class="co">--------------------------------------------------------------------------</span></span>
+<span id="cb11-168"><a href="#cb11-168" aria-hidden="true"></a></span>
+<span id="cb11-169"><a href="#cb11-169" aria-hidden="true"></a>      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span></span>
+<span id="cb11-170"><a href="#cb11-170" aria-hidden="true"></a>        e</span>
+<span id="cb11-171"><a href="#cb11-171" aria-hidden="true"></a></span>
+<span id="cb11-172"><a href="#cb11-172" aria-hidden="true"></a>      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span></span>
+<span id="cb11-173"><a href="#cb11-173" aria-hidden="true"></a>        <span class="dt">Lam</span> arg (go ids body)</span>
+<span id="cb11-174"><a href="#cb11-174" aria-hidden="true"></a></span>
+<span id="cb11-175"><a href="#cb11-175" aria-hidden="true"></a>      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span></span>
+<span id="cb11-176"><a href="#cb11-176" aria-hidden="true"></a>        <span class="dt">App</span> (go ids e1) (go ids e2)</span>
+<span id="cb11-177"><a href="#cb11-177" aria-hidden="true"></a></span>
+<span id="cb11-178"><a href="#cb11-178" aria-hidden="true"></a>      <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span></span>
+<span id="cb11-179"><a href="#cb11-179" aria-hidden="true"></a>        <span class="dt">IfE</span> (go ids e1) (go ids e2) (go ids e3)</span></code></pre></div>
 </details>
 <details>
 <p><summary>Full code (symbol table)</summary></p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Tried with GHC 8.6.4</span>
-
-<span class="ot">{-# OPTIONS_GHC -Wall #-}</span>
-
-<span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span>
-<span class="ot">{-# LANGUAGE FlexibleInstances #-}</span>
-
-<span class="kw">import</span> <span class="dt">Data.List</span>
-<span class="kw">import</span> <span class="dt">Data.Maybe</span>
-<span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (id)
-
-<span class="co">-- mtl-2.2</span>
-<span class="kw">import</span> <span class="dt">Control.Monad.State</span>
-
-<span class="co">-- containers-0.6</span>
-<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span>
-<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span>
-
-<span class="co">-- megaparsec-7.0</span>
-<span class="kw">import</span> <span class="dt">Text.Megaparsec</span> <span class="kw">hiding</span> (<span class="dt">State</span>)
-<span class="kw">import</span> <span class="dt">Text.Megaparsec.Char</span>
-
-<span class="co">-- pretty-show-1.10</span>
-<span class="kw">import</span> <span class="dt">Text.Show.Pretty</span>
-
-<span class="kw">import</span> <span class="dt">Debug.Trace</span>
-
-<span class="kw">data</span> <span class="dt">Expr</span>
-  <span class="fu">=</span> <span class="dt">IdE</span> <span class="dt">String</span>
-  <span class="fu">|</span> <span class="dt">IntE</span> <span class="dt">Int</span>
-  <span class="fu">|</span> <span class="dt">Lam</span> <span class="dt">String</span> <span class="dt">Expr</span>
-  <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
-  <span class="fu">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
-  <span class="fu">|</span> <span class="dt">Let</span> <span class="dt">String</span> <span class="dt">Expr</span> <span class="dt">Expr</span>
-  <span class="kw">deriving</span> (<span class="dt">Show</span>)
-
-<span class="kw">data</span> <span class="dt">IdInfo</span> <span class="fu">=</span> <span class="dt">IdInfo</span>
-  {<span class="ot"> idArity ::</span> <span class="dt">Int</span>
-    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span>
-  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span>
-    <span class="co">-- ^ RHS of a binder, used for inlining</span>
-  ,<span class="ot"> idType ::</span> <span class="dt">Maybe</span> <span class="dt">Type</span>
-    <span class="co">-- ^ Type of the id.</span>
-  }
-
-<span class="kw">data</span> <span class="dt">Type</span> <span class="fu">=</span> <span class="dt">Type</span> <span class="co">-- Assume a large type</span>
-
-<span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">IdInfo</span> <span class="kw">where</span>
-  <span class="fu">show</span> (<span class="dt">IdInfo</span> arity _ _) <span class="fu">=</span> <span class="st">&quot;(IdInfo &quot;</span> <span class="fu">++</span> <span class="fu">show</span> arity <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
-
-<span class="kw">type</span> <span class="dt">SymTbl</span> <span class="fu">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">IdInfo</span>
-
-<span class="ot">getIdInfo ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Maybe</span> <span class="dt">IdInfo</span>)
-getIdInfo <span class="fu">id</span> <span class="fu">=</span>
-    Map.lookup <span class="fu">id</span> <span class="fu">&lt;$&gt;</span> get
-
-<span class="ot">setIdArity ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
-setIdArity <span class="fu">id</span> arity <span class="fu">=</span> modify (Map.alter alter <span class="fu">id</span>)
-  <span class="kw">where</span>
-    alter <span class="dt">Nothing</span> <span class="fu">=</span>
-      <span class="dt">Just</span> <span class="dt">IdInfo</span>{ idArity <span class="fu">=</span> arity, idUnfolding <span class="fu">=</span> <span class="dt">Nothing</span>, idType <span class="fu">=</span> <span class="dt">Nothing</span> }
-    alter (<span class="dt">Just</span> id_info) <span class="fu">=</span>
-      <span class="dt">Just</span> id_info{ idArity <span class="fu">=</span> arity }
-
-<span class="ot">setIdUnfolding ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
-setIdUnfolding <span class="fu">id</span> unfolding <span class="fu">=</span> modify (Map.alter alter <span class="fu">id</span>)
-  <span class="kw">where</span>
-    alter <span class="dt">Nothing</span> <span class="fu">=</span>
-      <span class="dt">Just</span> <span class="dt">IdInfo</span>{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> unfolding, idArity <span class="fu">=</span> <span class="dv">0</span>, idType <span class="fu">=</span> <span class="dt">Nothing</span> }
-    alter (<span class="dt">Just</span> id_info) <span class="fu">=</span>
-      <span class="dt">Just</span> id_info{ idUnfolding <span class="fu">=</span> <span class="dt">Just</span> unfolding }
-
-<span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
-countLambdas (<span class="dt">Lam</span> _ rhs) <span class="fu">=</span> <span class="dv">1</span> <span class="fu">+</span> countLambdas rhs
-countLambdas _ <span class="fu">=</span> <span class="dv">0</span>
-
-<span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> <span class="dt">Expr</span>
-dropUnusedBindings <span class="fu">=</span>
-    <span class="fu">fmap</span> <span class="fu">snd</span> <span class="fu">.</span> go Set.empty
-  <span class="kw">where</span>
-<span class="ot">    go ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)
-    go free_vars e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
-
-      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span>
-        <span class="fu">return</span> (Set.insert <span class="fu">id</span> free_vars, e0)
-
-      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
-        <span class="fu">return</span> (free_vars, e0)
-
-      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span> <span class="kw">do</span>
-        (free_vars', body') <span class="ot">&lt;-</span> go free_vars body
-        <span class="fu">return</span> (Set.delete arg free_vars', <span class="dt">Lam</span> arg body')
-
-      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
-        (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
-        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
-        <span class="fu">return</span> (Set.union free1 free2, <span class="dt">App</span> e1' e2')
-
-      <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span>
-        (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
-        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
-        (free3, e3') <span class="ot">&lt;-</span> go free_vars e3
-        <span class="fu">return</span> (Set.unions [free1, free2, free3], <span class="dt">IfE</span> e1' e2' e3')
-
-      <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
-        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2
-        <span class="kw">if</span> Set.member bndr free2 <span class="kw">then</span> <span class="kw">do</span>
-          (free1, e1') <span class="ot">&lt;-</span> go free_vars e1
-          trace (ppShow e1') (<span class="fu">return</span> ())
-          setIdArity bndr (countLambdas e1')
-          <span class="fu">return</span> (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')
-        <span class="kw">else</span>
-          <span class="fu">return</span> (free2, e2')
-
-<span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
-addUnfoldings e0 <span class="fu">=</span> <span class="kw">case</span> e0 <span class="kw">of</span>
-
-    <span class="dt">IdE</span>{} <span class="ot">-&gt;</span>
-      <span class="fu">return</span> ()
-
-    <span class="dt">IntE</span>{} <span class="ot">-&gt;</span>
-      <span class="fu">return</span> ()
-
-    <span class="dt">Lam</span> _ body <span class="ot">-&gt;</span>
-      addUnfoldings body
-
-    <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
-      addUnfoldings e1
-      addUnfoldings e2
-
-    <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span>
-      addUnfoldings e1
-      addUnfoldings e2
-      addUnfoldings e3
-
-    <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span>
-      addUnfoldings e1
-      addUnfoldings e2
-      setIdUnfolding bndr e1
-
-<span class="ot">dropTypes ::</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()
-dropTypes <span class="fu">=</span> modify (Map.map (\id_info <span class="ot">-&gt;</span> id_info{ idType <span class="fu">=</span> <span class="dt">Nothing</span> }))
-
-<span class="ot">pgm ::</span> <span class="dt">Expr</span>
-pgm <span class="fu">=</span> <span class="dt">Let</span> <span class="st">&quot;fac&quot;</span> rhs body
-  <span class="kw">where</span>
-    rhs <span class="fu">=</span> <span class="dt">Lam</span> <span class="st">&quot;x&quot;</span> (<span class="dt">IfE</span> (<span class="dt">IdE</span> <span class="st">&quot;x&quot;</span>) (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;*&quot;</span>) (<span class="dt">IdE</span> <span class="st">&quot;x&quot;</span>))
-                                      (<span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;fac&quot;</span>)
-                                           (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;-&quot;</span>) (<span class="dt">IdE</span> <span class="st">&quot;x&quot;</span>)) (<span class="dt">IntE</span> <span class="dv">1</span>))))
-                                 (<span class="dt">IntE</span> <span class="dv">1</span>))
-    body <span class="fu">=</span> <span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;fac&quot;</span>) (<span class="dt">IntE</span> <span class="dv">5</span>)
-
-<span class="co">--------------------------------------------------------------------------------</span>
-<span class="co">-- Initializing unfolding fields in parse time, the boring way</span>
-
-<span class="kw">type</span> <span class="dt">Parser</span> <span class="fu">=</span> <span class="dt">ParsecT</span> <span class="dt">String</span> <span class="dt">String</span> (<span class="dt">State</span> <span class="dt">SymTbl</span>)
-
-<span class="ot">parseExpr ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
-parseExpr <span class="fu">=</span> <span class="kw">do</span>
-    exprs <span class="ot">&lt;-</span> some <span class="fu">$</span>
-      choice <span class="fu">$</span>
-      <span class="fu">map</span> (\p <span class="ot">-&gt;</span> p <span class="fu">&lt;*</span> space)
-        [ parseParens, parseIf, parseLam, parseInt,
-          parseLet, try parseId ]
-    <span class="fu">return</span> (foldl1' <span class="dt">App</span> exprs)
-
-parseParens, parseIf, parseLam, parseInt,
-  parseLet,<span class="ot"> parseId ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span>
-
-parseParens <span class="fu">=</span> <span class="kw">do</span>
-    _ <span class="ot">&lt;-</span> char <span class="ch">'('</span>
-    space
-    expr <span class="ot">&lt;-</span> parseExpr
-    _ <span class="ot">&lt;-</span> char <span class="ch">')'</span>
-    <span class="fu">return</span> expr
-
-parseIf <span class="fu">=</span> <span class="kw">do</span>
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;if&quot;</span>
-    space
-    condE <span class="ot">&lt;-</span> parseExpr
-
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;then&quot;</span>
-    space
-    thenE <span class="ot">&lt;-</span> parseExpr
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;else&quot;</span>
-    space
-    elseE <span class="ot">&lt;-</span> parseExpr
-    <span class="fu">return</span> (<span class="dt">IfE</span> condE thenE elseE)
-
-parseLam <span class="fu">=</span> <span class="kw">do</span>
-    _ <span class="ot">&lt;-</span> char <span class="ch">'\\'</span>
-    space
-    <span class="fu">id</span> <span class="ot">&lt;-</span> parseId'
-    space
-    _ <span class="ot">&lt;-</span> char <span class="ch">'.'</span>
-    space
-    body <span class="ot">&lt;-</span> parseExpr
-    <span class="fu">return</span> (<span class="dt">Lam</span> <span class="fu">id</span> body)
-
-parseInt <span class="fu">=</span> <span class="kw">do</span>
-    chars <span class="ot">&lt;-</span> some digitChar
-    <span class="fu">return</span> (<span class="dt">IntE</span> (<span class="fu">read</span> chars))
-
-parseLet <span class="fu">=</span> <span class="kw">do</span>
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span>
-    space
-    <span class="fu">id</span> <span class="ot">&lt;-</span> parseId'
-    space
-    _ <span class="ot">&lt;-</span> char <span class="ch">'='</span>
-    space
-    rhs <span class="ot">&lt;-</span> parseExpr
-    _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span>
-    space
-    body <span class="ot">&lt;-</span> parseExpr
-    lift (setIdUnfolding <span class="fu">id</span> rhs)
-    <span class="fu">return</span> (<span class="dt">Let</span> <span class="fu">id</span> rhs body)
-
-parseId <span class="fu">=</span> <span class="dt">IdE</span> <span class="fu">&lt;$&gt;</span> parseId'
-
-<span class="ot">kws ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span>
-kws <span class="fu">=</span> Set.fromList [<span class="st">&quot;if&quot;</span>, <span class="st">&quot;then&quot;</span>, <span class="st">&quot;else&quot;</span>, <span class="st">&quot;let&quot;</span>, <span class="st">&quot;in&quot;</span>]
-
-<span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
-parseId' <span class="fu">=</span> <span class="kw">do</span>
-    name <span class="ot">&lt;-</span> some letterChar
-    guard (<span class="fu">not</span> (Set.member name kws))
-    <span class="fu">return</span> name
-
-<span class="ot">testPgm ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span>
-testPgm pgm <span class="fu">=</span>
-    <span class="kw">case</span> evalState (runParserT parseExpr <span class="st">&quot;&quot;</span> pgm) Map.empty <span class="kw">of</span>
-      <span class="dt">Left</span> (<span class="ot">err_bundle ::</span> <span class="dt">ParseErrorBundle</span> <span class="dt">String</span> <span class="dt">String</span>) <span class="ot">-&gt;</span>
-        <span class="fu">error</span> (errorBundlePretty err_bundle)
-      <span class="dt">Right</span> expr <span class="ot">-&gt;</span>
-        expr
-
-<span class="kw">instance</span> <span class="dt">ShowErrorComponent</span> [<span class="dt">Char</span>] <span class="kw">where</span>
-    showErrorComponent x <span class="fu">=</span> x</code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="co">-- Tried with GHC 8.6.4</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a><span class="ot">{-# OPTIONS_GHC -Wall #-}</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a><span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a><span class="ot">{-# LANGUAGE FlexibleInstances #-}</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.List</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Maybe</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (id)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true"></a><span class="co">-- mtl-2.2</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Monad.State</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true"></a><span class="co">-- containers-0.6</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true"></a></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true"></a><span class="co">-- megaparsec-7.0</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Megaparsec</span> <span class="kw">hiding</span> (<span class="dt">State</span>)</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Megaparsec.Char</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true"></a><span class="co">-- pretty-show-1.10</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Show.Pretty</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Debug.Trace</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true"></a></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Expr</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true"></a>  <span class="ot">=</span> <span class="dt">IdE</span> <span class="dt">String</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IntE</span> <span class="dt">Int</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Lam</span> <span class="dt">String</span> <span class="dt">Expr</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Let</span> <span class="dt">String</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true"></a></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">IdInfo</span> <span class="ot">=</span> <span class="dt">IdInfo</span></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true"></a>  {<span class="ot"> idArity ::</span> <span class="dt">Int</span></span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true"></a>    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span></span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true"></a>  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true"></a>    <span class="co">-- ^ RHS of a binder, used for inlining</span></span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true"></a>  ,<span class="ot"> idType ::</span> <span class="dt">Maybe</span> <span class="dt">Type</span></span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true"></a>    <span class="co">-- ^ Type of the id.</span></span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true"></a>  }</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true"></a></span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Type</span> <span class="ot">=</span> <span class="dt">Type</span> <span class="co">-- Assume a large type</span></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true"></a></span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">IdInfo</span> <span class="kw">where</span></span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true"></a>  <span class="fu">show</span> (<span class="dt">IdInfo</span> arity _ _) <span class="ot">=</span> <span class="st">&quot;(IdInfo &quot;</span> <span class="op">++</span> <span class="fu">show</span> arity <span class="op">++</span> <span class="st">&quot;)&quot;</span></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true"></a></span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">SymTbl</span> <span class="ot">=</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">IdInfo</span></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true"></a></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true"></a><span class="ot">getIdInfo ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Maybe</span> <span class="dt">IdInfo</span>)</span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true"></a>getIdInfo <span class="fu">id</span> <span class="ot">=</span></span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true"></a>    Map.lookup <span class="fu">id</span> <span class="op">&lt;$&gt;</span> get</span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true"></a></span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true"></a><span class="ot">setIdArity ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()</span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true"></a>setIdArity <span class="fu">id</span> arity <span class="ot">=</span> modify (Map.alter alter <span class="fu">id</span>)</span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true"></a>    alter <span class="dt">Nothing</span> <span class="ot">=</span></span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true"></a>      <span class="dt">Just</span> <span class="dt">IdInfo</span>{ idArity <span class="ot">=</span> arity, idUnfolding <span class="ot">=</span> <span class="dt">Nothing</span>, idType <span class="ot">=</span> <span class="dt">Nothing</span> }</span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true"></a>    alter (<span class="dt">Just</span> id_info) <span class="ot">=</span></span>
+<span id="cb12-63"><a href="#cb12-63" aria-hidden="true"></a>      <span class="dt">Just</span> id_info{ idArity <span class="ot">=</span> arity }</span>
+<span id="cb12-64"><a href="#cb12-64" aria-hidden="true"></a></span>
+<span id="cb12-65"><a href="#cb12-65" aria-hidden="true"></a><span class="ot">setIdUnfolding ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()</span>
+<span id="cb12-66"><a href="#cb12-66" aria-hidden="true"></a>setIdUnfolding <span class="fu">id</span> unfolding <span class="ot">=</span> modify (Map.alter alter <span class="fu">id</span>)</span>
+<span id="cb12-67"><a href="#cb12-67" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb12-68"><a href="#cb12-68" aria-hidden="true"></a>    alter <span class="dt">Nothing</span> <span class="ot">=</span></span>
+<span id="cb12-69"><a href="#cb12-69" aria-hidden="true"></a>      <span class="dt">Just</span> <span class="dt">IdInfo</span>{ idUnfolding <span class="ot">=</span> <span class="dt">Just</span> unfolding, idArity <span class="ot">=</span> <span class="dv">0</span>, idType <span class="ot">=</span> <span class="dt">Nothing</span> }</span>
+<span id="cb12-70"><a href="#cb12-70" aria-hidden="true"></a>    alter (<span class="dt">Just</span> id_info) <span class="ot">=</span></span>
+<span id="cb12-71"><a href="#cb12-71" aria-hidden="true"></a>      <span class="dt">Just</span> id_info{ idUnfolding <span class="ot">=</span> <span class="dt">Just</span> unfolding }</span>
+<span id="cb12-72"><a href="#cb12-72" aria-hidden="true"></a></span>
+<span id="cb12-73"><a href="#cb12-73" aria-hidden="true"></a><span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb12-74"><a href="#cb12-74" aria-hidden="true"></a>countLambdas (<span class="dt">Lam</span> _ rhs) <span class="ot">=</span> <span class="dv">1</span> <span class="op">+</span> countLambdas rhs</span>
+<span id="cb12-75"><a href="#cb12-75" aria-hidden="true"></a>countLambdas _ <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb12-76"><a href="#cb12-76" aria-hidden="true"></a></span>
+<span id="cb12-77"><a href="#cb12-77" aria-hidden="true"></a><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> <span class="dt">Expr</span></span>
+<span id="cb12-78"><a href="#cb12-78" aria-hidden="true"></a>dropUnusedBindings <span class="ot">=</span></span>
+<span id="cb12-79"><a href="#cb12-79" aria-hidden="true"></a>    <span class="fu">fmap</span> <span class="fu">snd</span> <span class="op">.</span> go Set.empty</span>
+<span id="cb12-80"><a href="#cb12-80" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb12-81"><a href="#cb12-81" aria-hidden="true"></a><span class="ot">    go ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)</span>
+<span id="cb12-82"><a href="#cb12-82" aria-hidden="true"></a>    go free_vars e0 <span class="ot">=</span> <span class="kw">case</span> e0 <span class="kw">of</span></span>
+<span id="cb12-83"><a href="#cb12-83" aria-hidden="true"></a></span>
+<span id="cb12-84"><a href="#cb12-84" aria-hidden="true"></a>      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span></span>
+<span id="cb12-85"><a href="#cb12-85" aria-hidden="true"></a>        <span class="fu">return</span> (Set.insert <span class="fu">id</span> free_vars, e0)</span>
+<span id="cb12-86"><a href="#cb12-86" aria-hidden="true"></a></span>
+<span id="cb12-87"><a href="#cb12-87" aria-hidden="true"></a>      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span></span>
+<span id="cb12-88"><a href="#cb12-88" aria-hidden="true"></a>        <span class="fu">return</span> (free_vars, e0)</span>
+<span id="cb12-89"><a href="#cb12-89" aria-hidden="true"></a></span>
+<span id="cb12-90"><a href="#cb12-90" aria-hidden="true"></a>      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb12-91"><a href="#cb12-91" aria-hidden="true"></a>        (free_vars', body') <span class="ot">&lt;-</span> go free_vars body</span>
+<span id="cb12-92"><a href="#cb12-92" aria-hidden="true"></a>        <span class="fu">return</span> (Set.delete arg free_vars', <span class="dt">Lam</span> arg body')</span>
+<span id="cb12-93"><a href="#cb12-93" aria-hidden="true"></a></span>
+<span id="cb12-94"><a href="#cb12-94" aria-hidden="true"></a>      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb12-95"><a href="#cb12-95" aria-hidden="true"></a>        (free1, e1') <span class="ot">&lt;-</span> go free_vars e1</span>
+<span id="cb12-96"><a href="#cb12-96" aria-hidden="true"></a>        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2</span>
+<span id="cb12-97"><a href="#cb12-97" aria-hidden="true"></a>        <span class="fu">return</span> (Set.union free1 free2, <span class="dt">App</span> e1' e2')</span>
+<span id="cb12-98"><a href="#cb12-98" aria-hidden="true"></a></span>
+<span id="cb12-99"><a href="#cb12-99" aria-hidden="true"></a>      <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb12-100"><a href="#cb12-100" aria-hidden="true"></a>        (free1, e1') <span class="ot">&lt;-</span> go free_vars e1</span>
+<span id="cb12-101"><a href="#cb12-101" aria-hidden="true"></a>        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2</span>
+<span id="cb12-102"><a href="#cb12-102" aria-hidden="true"></a>        (free3, e3') <span class="ot">&lt;-</span> go free_vars e3</span>
+<span id="cb12-103"><a href="#cb12-103" aria-hidden="true"></a>        <span class="fu">return</span> (Set.unions [free1, free2, free3], <span class="dt">IfE</span> e1' e2' e3')</span>
+<span id="cb12-104"><a href="#cb12-104" aria-hidden="true"></a></span>
+<span id="cb12-105"><a href="#cb12-105" aria-hidden="true"></a>      <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb12-106"><a href="#cb12-106" aria-hidden="true"></a>        (free2, e2') <span class="ot">&lt;-</span> go free_vars e2</span>
+<span id="cb12-107"><a href="#cb12-107" aria-hidden="true"></a>        <span class="kw">if</span> Set.member bndr free2 <span class="kw">then</span> <span class="kw">do</span></span>
+<span id="cb12-108"><a href="#cb12-108" aria-hidden="true"></a>          (free1, e1') <span class="ot">&lt;-</span> go free_vars e1</span>
+<span id="cb12-109"><a href="#cb12-109" aria-hidden="true"></a>          trace (ppShow e1') (<span class="fu">return</span> ())</span>
+<span id="cb12-110"><a href="#cb12-110" aria-hidden="true"></a>          setIdArity bndr (countLambdas e1')</span>
+<span id="cb12-111"><a href="#cb12-111" aria-hidden="true"></a>          <span class="fu">return</span> (Set.delete bndr (Set.union free1 free2), <span class="dt">Let</span> bndr e1' e2')</span>
+<span id="cb12-112"><a href="#cb12-112" aria-hidden="true"></a>        <span class="kw">else</span></span>
+<span id="cb12-113"><a href="#cb12-113" aria-hidden="true"></a>          <span class="fu">return</span> (free2, e2')</span>
+<span id="cb12-114"><a href="#cb12-114" aria-hidden="true"></a></span>
+<span id="cb12-115"><a href="#cb12-115" aria-hidden="true"></a><span class="ot">addUnfoldings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()</span>
+<span id="cb12-116"><a href="#cb12-116" aria-hidden="true"></a>addUnfoldings e0 <span class="ot">=</span> <span class="kw">case</span> e0 <span class="kw">of</span></span>
+<span id="cb12-117"><a href="#cb12-117" aria-hidden="true"></a></span>
+<span id="cb12-118"><a href="#cb12-118" aria-hidden="true"></a>    <span class="dt">IdE</span>{} <span class="ot">-&gt;</span></span>
+<span id="cb12-119"><a href="#cb12-119" aria-hidden="true"></a>      <span class="fu">return</span> ()</span>
+<span id="cb12-120"><a href="#cb12-120" aria-hidden="true"></a></span>
+<span id="cb12-121"><a href="#cb12-121" aria-hidden="true"></a>    <span class="dt">IntE</span>{} <span class="ot">-&gt;</span></span>
+<span id="cb12-122"><a href="#cb12-122" aria-hidden="true"></a>      <span class="fu">return</span> ()</span>
+<span id="cb12-123"><a href="#cb12-123" aria-hidden="true"></a></span>
+<span id="cb12-124"><a href="#cb12-124" aria-hidden="true"></a>    <span class="dt">Lam</span> _ body <span class="ot">-&gt;</span></span>
+<span id="cb12-125"><a href="#cb12-125" aria-hidden="true"></a>      addUnfoldings body</span>
+<span id="cb12-126"><a href="#cb12-126" aria-hidden="true"></a></span>
+<span id="cb12-127"><a href="#cb12-127" aria-hidden="true"></a>    <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb12-128"><a href="#cb12-128" aria-hidden="true"></a>      addUnfoldings e1</span>
+<span id="cb12-129"><a href="#cb12-129" aria-hidden="true"></a>      addUnfoldings e2</span>
+<span id="cb12-130"><a href="#cb12-130" aria-hidden="true"></a></span>
+<span id="cb12-131"><a href="#cb12-131" aria-hidden="true"></a>    <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb12-132"><a href="#cb12-132" aria-hidden="true"></a>      addUnfoldings e1</span>
+<span id="cb12-133"><a href="#cb12-133" aria-hidden="true"></a>      addUnfoldings e2</span>
+<span id="cb12-134"><a href="#cb12-134" aria-hidden="true"></a>      addUnfoldings e3</span>
+<span id="cb12-135"><a href="#cb12-135" aria-hidden="true"></a></span>
+<span id="cb12-136"><a href="#cb12-136" aria-hidden="true"></a>    <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb12-137"><a href="#cb12-137" aria-hidden="true"></a>      addUnfoldings e1</span>
+<span id="cb12-138"><a href="#cb12-138" aria-hidden="true"></a>      addUnfoldings e2</span>
+<span id="cb12-139"><a href="#cb12-139" aria-hidden="true"></a>      setIdUnfolding bndr e1</span>
+<span id="cb12-140"><a href="#cb12-140" aria-hidden="true"></a></span>
+<span id="cb12-141"><a href="#cb12-141" aria-hidden="true"></a><span class="ot">dropTypes ::</span> <span class="dt">State</span> <span class="dt">SymTbl</span> ()</span>
+<span id="cb12-142"><a href="#cb12-142" aria-hidden="true"></a>dropTypes <span class="ot">=</span> modify (Map.map (\id_info <span class="ot">-&gt;</span> id_info{ idType <span class="ot">=</span> <span class="dt">Nothing</span> }))</span>
+<span id="cb12-143"><a href="#cb12-143" aria-hidden="true"></a></span>
+<span id="cb12-144"><a href="#cb12-144" aria-hidden="true"></a><span class="ot">pgm ::</span> <span class="dt">Expr</span></span>
+<span id="cb12-145"><a href="#cb12-145" aria-hidden="true"></a>pgm <span class="ot">=</span> <span class="dt">Let</span> <span class="st">&quot;fac&quot;</span> rhs body</span>
+<span id="cb12-146"><a href="#cb12-146" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb12-147"><a href="#cb12-147" aria-hidden="true"></a>    rhs <span class="ot">=</span> <span class="dt">Lam</span> <span class="st">&quot;x&quot;</span> (<span class="dt">IfE</span> (<span class="dt">IdE</span> <span class="st">&quot;x&quot;</span>) (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;*&quot;</span>) (<span class="dt">IdE</span> <span class="st">&quot;x&quot;</span>))</span>
+<span id="cb12-148"><a href="#cb12-148" aria-hidden="true"></a>                                      (<span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;fac&quot;</span>)</span>
+<span id="cb12-149"><a href="#cb12-149" aria-hidden="true"></a>                                           (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;-&quot;</span>) (<span class="dt">IdE</span> <span class="st">&quot;x&quot;</span>)) (<span class="dt">IntE</span> <span class="dv">1</span>))))</span>
+<span id="cb12-150"><a href="#cb12-150" aria-hidden="true"></a>                                 (<span class="dt">IntE</span> <span class="dv">1</span>))</span>
+<span id="cb12-151"><a href="#cb12-151" aria-hidden="true"></a>    body <span class="ot">=</span> <span class="dt">App</span> (<span class="dt">IdE</span> <span class="st">&quot;fac&quot;</span>) (<span class="dt">IntE</span> <span class="dv">5</span>)</span>
+<span id="cb12-152"><a href="#cb12-152" aria-hidden="true"></a></span>
+<span id="cb12-153"><a href="#cb12-153" aria-hidden="true"></a><span class="co">--------------------------------------------------------------------------------</span></span>
+<span id="cb12-154"><a href="#cb12-154" aria-hidden="true"></a><span class="co">-- Initializing unfolding fields in parse time, the boring way</span></span>
+<span id="cb12-155"><a href="#cb12-155" aria-hidden="true"></a></span>
+<span id="cb12-156"><a href="#cb12-156" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">Parser</span> <span class="ot">=</span> <span class="dt">ParsecT</span> <span class="dt">String</span> <span class="dt">String</span> (<span class="dt">State</span> <span class="dt">SymTbl</span>)</span>
+<span id="cb12-157"><a href="#cb12-157" aria-hidden="true"></a></span>
+<span id="cb12-158"><a href="#cb12-158" aria-hidden="true"></a><span class="ot">parseExpr ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb12-159"><a href="#cb12-159" aria-hidden="true"></a>parseExpr <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-160"><a href="#cb12-160" aria-hidden="true"></a>    exprs <span class="ot">&lt;-</span> some <span class="op">$</span></span>
+<span id="cb12-161"><a href="#cb12-161" aria-hidden="true"></a>      choice <span class="op">$</span></span>
+<span id="cb12-162"><a href="#cb12-162" aria-hidden="true"></a>      <span class="fu">map</span> (\p <span class="ot">-&gt;</span> p <span class="op">&lt;*</span> space)</span>
+<span id="cb12-163"><a href="#cb12-163" aria-hidden="true"></a>        [ parseParens, parseIf, parseLam, parseInt,</span>
+<span id="cb12-164"><a href="#cb12-164" aria-hidden="true"></a>          parseLet, try parseId ]</span>
+<span id="cb12-165"><a href="#cb12-165" aria-hidden="true"></a>    <span class="fu">return</span> (foldl1' <span class="dt">App</span> exprs)</span>
+<span id="cb12-166"><a href="#cb12-166" aria-hidden="true"></a></span>
+<span id="cb12-167"><a href="#cb12-167" aria-hidden="true"></a>parseParens, parseIf, parseLam, parseInt,</span>
+<span id="cb12-168"><a href="#cb12-168" aria-hidden="true"></a>  parseLet,<span class="ot"> parseId ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb12-169"><a href="#cb12-169" aria-hidden="true"></a></span>
+<span id="cb12-170"><a href="#cb12-170" aria-hidden="true"></a>parseParens <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-171"><a href="#cb12-171" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">'('</span></span>
+<span id="cb12-172"><a href="#cb12-172" aria-hidden="true"></a>    space</span>
+<span id="cb12-173"><a href="#cb12-173" aria-hidden="true"></a>    expr <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb12-174"><a href="#cb12-174" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">')'</span></span>
+<span id="cb12-175"><a href="#cb12-175" aria-hidden="true"></a>    <span class="fu">return</span> expr</span>
+<span id="cb12-176"><a href="#cb12-176" aria-hidden="true"></a></span>
+<span id="cb12-177"><a href="#cb12-177" aria-hidden="true"></a>parseIf <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-178"><a href="#cb12-178" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;if&quot;</span></span>
+<span id="cb12-179"><a href="#cb12-179" aria-hidden="true"></a>    space</span>
+<span id="cb12-180"><a href="#cb12-180" aria-hidden="true"></a>    condE <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb12-181"><a href="#cb12-181" aria-hidden="true"></a></span>
+<span id="cb12-182"><a href="#cb12-182" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;then&quot;</span></span>
+<span id="cb12-183"><a href="#cb12-183" aria-hidden="true"></a>    space</span>
+<span id="cb12-184"><a href="#cb12-184" aria-hidden="true"></a>    thenE <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb12-185"><a href="#cb12-185" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;else&quot;</span></span>
+<span id="cb12-186"><a href="#cb12-186" aria-hidden="true"></a>    space</span>
+<span id="cb12-187"><a href="#cb12-187" aria-hidden="true"></a>    elseE <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb12-188"><a href="#cb12-188" aria-hidden="true"></a>    <span class="fu">return</span> (<span class="dt">IfE</span> condE thenE elseE)</span>
+<span id="cb12-189"><a href="#cb12-189" aria-hidden="true"></a></span>
+<span id="cb12-190"><a href="#cb12-190" aria-hidden="true"></a>parseLam <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-191"><a href="#cb12-191" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">'\\'</span></span>
+<span id="cb12-192"><a href="#cb12-192" aria-hidden="true"></a>    space</span>
+<span id="cb12-193"><a href="#cb12-193" aria-hidden="true"></a>    <span class="fu">id</span> <span class="ot">&lt;-</span> parseId'</span>
+<span id="cb12-194"><a href="#cb12-194" aria-hidden="true"></a>    space</span>
+<span id="cb12-195"><a href="#cb12-195" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">'.'</span></span>
+<span id="cb12-196"><a href="#cb12-196" aria-hidden="true"></a>    space</span>
+<span id="cb12-197"><a href="#cb12-197" aria-hidden="true"></a>    body <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb12-198"><a href="#cb12-198" aria-hidden="true"></a>    <span class="fu">return</span> (<span class="dt">Lam</span> <span class="fu">id</span> body)</span>
+<span id="cb12-199"><a href="#cb12-199" aria-hidden="true"></a></span>
+<span id="cb12-200"><a href="#cb12-200" aria-hidden="true"></a>parseInt <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-201"><a href="#cb12-201" aria-hidden="true"></a>    chars <span class="ot">&lt;-</span> some digitChar</span>
+<span id="cb12-202"><a href="#cb12-202" aria-hidden="true"></a>    <span class="fu">return</span> (<span class="dt">IntE</span> (<span class="fu">read</span> chars))</span>
+<span id="cb12-203"><a href="#cb12-203" aria-hidden="true"></a></span>
+<span id="cb12-204"><a href="#cb12-204" aria-hidden="true"></a>parseLet <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-205"><a href="#cb12-205" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;let&quot;</span></span>
+<span id="cb12-206"><a href="#cb12-206" aria-hidden="true"></a>    space</span>
+<span id="cb12-207"><a href="#cb12-207" aria-hidden="true"></a>    <span class="fu">id</span> <span class="ot">&lt;-</span> parseId'</span>
+<span id="cb12-208"><a href="#cb12-208" aria-hidden="true"></a>    space</span>
+<span id="cb12-209"><a href="#cb12-209" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> char <span class="ch">'='</span></span>
+<span id="cb12-210"><a href="#cb12-210" aria-hidden="true"></a>    space</span>
+<span id="cb12-211"><a href="#cb12-211" aria-hidden="true"></a>    rhs <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb12-212"><a href="#cb12-212" aria-hidden="true"></a>    _ <span class="ot">&lt;-</span> string <span class="st">&quot;in&quot;</span></span>
+<span id="cb12-213"><a href="#cb12-213" aria-hidden="true"></a>    space</span>
+<span id="cb12-214"><a href="#cb12-214" aria-hidden="true"></a>    body <span class="ot">&lt;-</span> parseExpr</span>
+<span id="cb12-215"><a href="#cb12-215" aria-hidden="true"></a>    lift (setIdUnfolding <span class="fu">id</span> rhs)</span>
+<span id="cb12-216"><a href="#cb12-216" aria-hidden="true"></a>    <span class="fu">return</span> (<span class="dt">Let</span> <span class="fu">id</span> rhs body)</span>
+<span id="cb12-217"><a href="#cb12-217" aria-hidden="true"></a></span>
+<span id="cb12-218"><a href="#cb12-218" aria-hidden="true"></a>parseId <span class="ot">=</span> <span class="dt">IdE</span> <span class="op">&lt;$&gt;</span> parseId'</span>
+<span id="cb12-219"><a href="#cb12-219" aria-hidden="true"></a></span>
+<span id="cb12-220"><a href="#cb12-220" aria-hidden="true"></a><span class="ot">kws ::</span> <span class="dt">Set.Set</span> <span class="dt">String</span></span>
+<span id="cb12-221"><a href="#cb12-221" aria-hidden="true"></a>kws <span class="ot">=</span> Set.fromList [<span class="st">&quot;if&quot;</span>, <span class="st">&quot;then&quot;</span>, <span class="st">&quot;else&quot;</span>, <span class="st">&quot;let&quot;</span>, <span class="st">&quot;in&quot;</span>]</span>
+<span id="cb12-222"><a href="#cb12-222" aria-hidden="true"></a></span>
+<span id="cb12-223"><a href="#cb12-223" aria-hidden="true"></a><span class="ot">parseId' ::</span> <span class="dt">Parser</span> <span class="dt">String</span></span>
+<span id="cb12-224"><a href="#cb12-224" aria-hidden="true"></a>parseId' <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-225"><a href="#cb12-225" aria-hidden="true"></a>    name <span class="ot">&lt;-</span> some letterChar</span>
+<span id="cb12-226"><a href="#cb12-226" aria-hidden="true"></a>    guard (<span class="fu">not</span> (Set.member name kws))</span>
+<span id="cb12-227"><a href="#cb12-227" aria-hidden="true"></a>    <span class="fu">return</span> name</span>
+<span id="cb12-228"><a href="#cb12-228" aria-hidden="true"></a></span>
+<span id="cb12-229"><a href="#cb12-229" aria-hidden="true"></a><span class="ot">testPgm ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span></span>
+<span id="cb12-230"><a href="#cb12-230" aria-hidden="true"></a>testPgm pgm <span class="ot">=</span></span>
+<span id="cb12-231"><a href="#cb12-231" aria-hidden="true"></a>    <span class="kw">case</span> evalState (runParserT parseExpr <span class="st">&quot;&quot;</span> pgm) Map.empty <span class="kw">of</span></span>
+<span id="cb12-232"><a href="#cb12-232" aria-hidden="true"></a>      <span class="dt">Left</span> (<span class="ot">err_bundle ::</span> <span class="dt">ParseErrorBundle</span> <span class="dt">String</span> <span class="dt">String</span>) <span class="ot">-&gt;</span></span>
+<span id="cb12-233"><a href="#cb12-233" aria-hidden="true"></a>        <span class="fu">error</span> (errorBundlePretty err_bundle)</span>
+<span id="cb12-234"><a href="#cb12-234" aria-hidden="true"></a>      <span class="dt">Right</span> expr <span class="ot">-&gt;</span></span>
+<span id="cb12-235"><a href="#cb12-235" aria-hidden="true"></a>        expr</span>
+<span id="cb12-236"><a href="#cb12-236" aria-hidden="true"></a></span>
+<span id="cb12-237"><a href="#cb12-237" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">ShowErrorComponent</span> [<span class="dt">Char</span>] <span class="kw">where</span></span>
+<span id="cb12-238"><a href="#cb12-238" aria-hidden="true"></a>    showErrorComponent x <span class="ot">=</span> x</span></code></pre></div>
 </details>
 
 <hr />

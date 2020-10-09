@@ -20,37 +20,37 @@
             <div class="inner">
                 <h1 id="post-title">The issue of splitting without work duplication</h1>
 
-<p><strong>August 13, 2015</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/supercompilation.html">supercompilation</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>August 13, 2015</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'supercompilation'." href="../tags/supercompilation.html">supercompilation</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>.</p>
 
 <p>(I’m starting publishing my long list of unpublished blog posts with this post)</p>
 <p>(Examples are from <a href="http://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-835.html">Bolingbroke’s PhD thesis</a>)</p>
 <p><em>Example 1:</em></p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> a  <span class="fu">=</span> <span class="fu">id</span> y
-    <span class="fu">id</span> <span class="fu">=</span> \x <span class="ot">-&gt;</span> x
- <span class="kw">in</span> <span class="dt">Just</span> a</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">let</span> a  <span class="ot">=</span> <span class="fu">id</span> y</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    <span class="fu">id</span> <span class="ot">=</span> \x <span class="ot">-&gt;</span> x</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a> <span class="kw">in</span> <span class="dt">Just</span> a</span></code></pre></div>
 <p><em>Problem:</em> The compiler should know about <code>id</code> while compiling <code>a</code>. This is easy to do, just tell the compiler about every binding when compiling RHSs. However, it causes some other problems:</p>
 <p><em>Example 2:</em></p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> n <span class="fu">=</span> fib <span class="dv">100</span>
-    b <span class="fu">=</span> n <span class="fu">+</span> <span class="dv">1</span>
-    c <span class="fu">=</span> n <span class="fu">+</span> <span class="dv">2</span>
- <span class="kw">in</span> (b, c)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">let</span> n <span class="ot">=</span> fib <span class="dv">100</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>    b <span class="ot">=</span> n <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>    c <span class="ot">=</span> n <span class="op">+</span> <span class="dv">2</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a> <span class="kw">in</span> (b, c)</span></code></pre></div>
 <p><em>Problem:</em> If we tell about <code>n</code> to the compiler when it’s compiling <code>b</code> and <code>c</code>, we’re taking the risk of work duplication. It may seem like <code>fib 100</code> will be evaluated in compile time and so duplication is not a huge deal, but this is not necessarily the case. First, we can’t know if it’s going to be evaluated to a value in compile time. Second, even if it’s a closed term and we somehow know it’s going to be terminated, termination checker of the evaluator may want to stop it before it’s evaluated to a value. Third, most of the time it’ll be an open term that’ll get stuck in the middle of supercompilation.</p>
 <p>And when that happens we will generate a let-binding in residual code. In our case, we’ll be generating two let-bindings, one is for <code>b</code> and one is for <code>c</code>, and those let bindings will be doing same work.</p>
 <hr />
 <p><em>Question:</em> Can we rely on a post-processsing pass to eliminate common subexpressions? I.e. if we generate a code like this:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> b <span class="fu">=</span> <span class="kw">let</span> n_supercompiled <span class="fu">=</span> <span class="fu">&lt;</span>supercompiled fib <span class="dv">100</span><span class="fu">&gt;</span>
-         <span class="kw">in</span> n_supercompiled <span class="fu">+</span> <span class="dv">1</span>
-    c <span class="fu">=</span> <span class="kw">let</span> n_supercompiled <span class="fu">=</span> <span class="fu">&lt;</span>supercompiled fib <span class="dv">100</span><span class="fu">&gt;</span>
-         <span class="kw">in</span> n_supercompiled <span class="fu">+</span> <span class="dv">2</span>
- <span class="kw">in</span> (b, c)</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">let</span> b <span class="ot">=</span> <span class="kw">let</span> n_supercompiled <span class="ot">=</span> <span class="op">&lt;</span>supercompiled fib <span class="dv">100</span><span class="op">&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>         <span class="kw">in</span> n_supercompiled <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    c <span class="ot">=</span> <span class="kw">let</span> n_supercompiled <span class="ot">=</span> <span class="op">&lt;</span>supercompiled fib <span class="dv">100</span><span class="op">&gt;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>         <span class="kw">in</span> n_supercompiled <span class="op">+</span> <span class="dv">2</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a> <span class="kw">in</span> (b, c)</span></code></pre></div>
 <p>It would transform it to obvious residual code that has single <code>n_supercompiled</code> which is in scope of <code>b</code> and <code>c</code>.</p>
 <p>What are trade-offs?</p>
 <hr />
 <p>Finding a good heuristic is hard. Let’s say we try to estimate costs of expressions and decide whether to tell the compiler about them or not. If we decide that <code>ys</code> and <code>xs</code> are expensive in this case:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> <span class="fu">map</span> <span class="fu">=</span> <span class="fu">...</span>
-    ys <span class="fu">=</span> <span class="fu">map</span> f zs
-    xs <span class="fu">=</span> <span class="fu">map</span> g ys
- <span class="kw">in</span> <span class="dt">Just</span> xs</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">let</span> <span class="fu">map</span> <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>    ys <span class="ot">=</span> <span class="fu">map</span> f zs</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>    xs <span class="ot">=</span> <span class="fu">map</span> g ys</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a> <span class="kw">in</span> <span class="dt">Just</span> xs</span></code></pre></div>
 <p>We miss a deforestation opportunity, because the compiler won’t know about <code>ys</code> while compiling <code>xs</code>.</p>
 
 <hr />

@@ -20,36 +20,36 @@
             <div class="inner">
                 <h1 id="post-title">Django'ya Markdown desteği</h1>
 
-<p><strong>August  2, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/django.html">django</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>August  2, 2010</strong> - Tagged as: <a title="All pages tagged 'python'." href="../tags/python.html">python</a>, <a title="All pages tagged 'django'." href="../tags/django.html">django</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Bir süredir blog sayfam için yazı girmemi kolaylaştıracak bazı düzenlemeler yapıyorum. Öncelikle <a href="http://www.apress.com/book/view/1590599829">Beginning Python: From Novice to Professional</a> kitabındaki “instant markup” örneğini uygulamaya çalıştım, düz yazı yazacaksanız gayet kullanışlı, fakat eğer kod yayınlayacaksanız sapıtıyor. Daha sonrdan BBCode tarzı birşeyler oluşturmayı denedim, fakat o sırada <a href="http://daringfireball.net/projects/markdown/">Markdown</a>’ı keşfettim.</p>
 <blockquote>
 <p>Markdown is a text-to-HTML conversion tool for web writers. Markdown allows you to write using an easy-to-read, easy-to-write plain text format, then convert it to structurally valid XHTML (or HTML).</p>
 </blockquote>
-<p>Python modülünü <a href="http://pypi.python.org/pypi/Markdown/2.0.3" class="uri">http://pypi.python.org/pypi/Markdown/2.0.3</a> adresinden indirebilirsiniz.</p>
+<p>Python modülünü <a href="http://pypi.python.org/pypi/Markdown/2.0.3">http://pypi.python.org/pypi/Markdown/2.0.3</a> adresinden indirebilirsiniz.</p>
 <p>Henüz isteğim doğrultusunda nasıl geliştirebileceğimi bulamasam da ilk haliyle bile çok yardımcı oluyor. Django’yla kullanmak için iki farklı yol izleyebilirsiniz. Birincisi, hangi modelinizde uygulamak istiyorsanız, onun save metodunu override edersiniz. Örneğin modelimdeki “post” alanına uygulamak istiyorsam, markdown modülünü import ettikten sonra şöyle yapıyorum:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> save(<span class="va">self</span>, <span class="op">*</span>args, <span class="op">**</span>kargs):
-    <span class="va">self</span>.post <span class="op">=</span> markdown.markdown(<span class="va">self</span>.post)
-    <span class="bu">super</span>(Post, <span class="va">self</span>).save()</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">def</span> save(<span class="va">self</span>, <span class="op">*</span>args, <span class="op">**</span>kargs):</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    <span class="va">self</span>.post <span class="op">=</span> markdown.markdown(<span class="va">self</span>.post)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>    <span class="bu">super</span>(Post, <span class="va">self</span>).save()</span></code></pre></div>
 <p>Bu yöntemin kötü yanı, eğer o yazıyı bir daha düzenlemek isterseniz, size markdown’ın eklediği html taglarıyla beraber gelecek. Yani yazıyı bir kere eklediniz mi, düzenlemek için yine html ile uğraşmanız gerekir. Kötü bir yöntem yani.</p>
 <p>İkinci yöntem de, markdown fonksiyonu için bir template tag’ı oluşturup, istediğiniz yere uygulamanız. Bu yöntem her yönden çok daha mantıklı gözüküyor, hem istediğiniz şeye uygulayabilirsiniz. Bunun için markdown’u proje klasörüne kopyaladıktan sonra ayar dosyanızdan markdown’u ISTALLED_APPS altında eklemeniz gerekiyor. Daha sonra <a href="http://docs.djangoproject.com/en/dev/howto/custom-template-tags/">şu belgedeki</a> adımları izlemelisiniz. Ya da:</p>
 <ul>
 <li>markdown klasörünün altında templatetags klasörü oluşturursunuz.</li>
 <li>markdown.py diye bir dosya açarsınız. İçine şu kodu yapıştırırsınız:</li>
 </ul>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python">    <span class="im">from</span> django <span class="im">import</span> template
-    <span class="im">from</span> ..markdown <span class="im">import</span> markdown <span class="im">as</span> Markdown
-    <span class="im">from</span> django.template.defaultfilters <span class="im">import</span> stringfilter
-    register <span class="op">=</span> template.Library()
-    <span class="at">@register.filter</span> <span class="co"># detayli bilgi icin http://docs.djangoproject.com/en/dev/howto/custom-template-tags/</span>
-    <span class="at">@stringfilter</span> <span class="co"># sadece stringlerle calissin</span>
-    <span class="kw">def</span> markdown(value):
-        <span class="co">&quot;String'i Markdown'dan gecirir.&quot;</span>
-        <span class="cf">return</span> Markdown(value)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>    <span class="im">from</span> django <span class="im">import</span> template</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>    <span class="im">from</span> ..markdown <span class="im">import</span> markdown <span class="im">as</span> Markdown</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>    <span class="im">from</span> django.template.defaultfilters <span class="im">import</span> stringfilter</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    register <span class="op">=</span> template.Library()</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>    <span class="at">@register.filter</span> <span class="co"># detayli bilgi icin http://docs.djangoproject.com/en/dev/howto/custom-template-tags/</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>    <span class="at">@stringfilter</span> <span class="co"># sadece stringlerle calissin</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>    <span class="kw">def</span> markdown(value):</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>        <span class="co">&quot;String'i Markdown'dan gecirir.&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>        <span class="cf">return</span> Markdown(value)</span></code></pre></div>
 <ul>
 <li>Daha sonra template tagımızı kullanmak istediğimiz templateimize <code>{% load markdown %}</code> satırını ekleyip, hangi string’de kullanmak istiyorsak ona markdown filter’ını uygularsınız. Örneğin <code>{{ post|markdown|safe|escape }}</code>.</li>
 </ul>
-<p>Daha sonra <a href="http://daringfireball.net/projects/markdown/syntax" class="uri">http://daringfireball.net/projects/markdown/syntax</a> adresindeki gibi yazarsınız. Eklenti desteği sayesinden markdown’a tablo bile çizdirebilirsiniz(eklenti klasörüne bakın).</p>
+<p>Daha sonra <a href="http://daringfireball.net/projects/markdown/syntax">http://daringfireball.net/projects/markdown/syntax</a> adresindeki gibi yazarsınız. Eklenti desteği sayesinden markdown’a tablo bile çizdirebilirsiniz(eklenti klasörüne bakın).</p>
 
 <hr />
 

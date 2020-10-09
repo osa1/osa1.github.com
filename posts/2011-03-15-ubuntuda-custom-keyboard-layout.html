@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Ubuntu'da custom keyboard layout</h1>
 
-<p><strong>March 15, 2011</strong> - Tagged as: <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>March 15, 2011</strong> - Tagged as: <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Vim ile uğraştığım son birkaç ayda kendime çok sağlam bir <a href="https://github.com/osa1/rcbackup/blob/master/.vimrc">.vimrc</a> dosyası hazırladım. Bir sürü ayar var ama benim için en önemli kısımları, sistem genelinde ihtiyaç duyduğum <code>map ğ [</code> <code>map ü ]</code> <code>map Ğ {</code> ve <code>map Ü }</code> kısımları. Dizüstü bilgisyarımın klavyesi ingilizce ve ordan farkettim, ingilizce klavyede ğ ve ü’nün olduğu yerlerde [ ] var ve çok daha kullanışlı.</p>
 <p>Kod yazarken türkçe karakterleri hiçbir şekilde kullanmadığımıza göre, bunları bir şekilde [] ile değiştirebilirsem çok daha kullanışlı olacak. Türkçe klavyede <span></span> karakterlerinin yerleri çok kötü. (vim’de { } karakterleri normal mode’da bloklar arasında gezinmeyi de sağlıyor.)</p>
@@ -32,15 +32,15 @@ key &lt;AD12&gt;	{[udiaeresis, Udiaeresis, asciitilde, dead_macron]};</code></pr
 <pre><code>key &lt;AD11&gt;	{[bracketleft, braceleft ]};
 key &lt;AD12&gt;	{[bracketright, braceright, asciitilde, dead_macron]};</code></pre>
 <p>Bu kadar. Kaydedip çıktıktan sonra başka bir dosyada daha değişiklik yapacağız. <code>/usr/share/X11/xkb/rules/evdav.xml</code> dosyasını açıyoruz. Herhangi bir <code>&lt;/layout&gt;</code> sonuna şunu ekliyoruz:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode xml"><code class="sourceCode xml"><span class="kw">&lt;layout&gt;</span> <span class="co">&lt;!-- custom --&gt;</span>
-	<span class="kw">&lt;configItem&gt;</span>
-		<span class="kw">&lt;name&gt;</span>t1<span class="kw">&lt;/name&gt;</span> <span class="co">&lt;!-- buraya dosyanizin adi gelecek --&gt;</span>
-		<span class="kw">&lt;shortDescription&gt;</span>t1<span class="kw">&lt;/shortDescription&gt;</span> <span class="co">&lt;!-- bu satir gnome panelde de gozukecek --&gt;</span>
-		<span class="kw">&lt;description&gt;</span>My Custom Layout 1<span class="kw">&lt;/description&gt;</span>
-		<span class="kw">&lt;languageList&gt;&lt;iso639Id&gt;</span>tur<span class="kw">&lt;/iso639Id&gt;&lt;/languageList&gt;</span>
-	<span class="kw">&lt;/configItem&gt;</span>
-	<span class="kw">&lt;variantList/&gt;</span>
-<span class="kw">&lt;/layout&gt;</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode xml"><code class="sourceCode xml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">&lt;layout&gt;</span> <span class="co">&lt;!-- custom --&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>	<span class="kw">&lt;configItem&gt;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>		<span class="kw">&lt;name&gt;</span>t1<span class="kw">&lt;/name&gt;</span> <span class="co">&lt;!-- buraya dosyanizin adi gelecek --&gt;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>		<span class="kw">&lt;shortDescription&gt;</span>t1<span class="kw">&lt;/shortDescription&gt;</span> <span class="co">&lt;!-- bu satir gnome panelde de gozukecek --&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>		<span class="kw">&lt;description&gt;</span>My Custom Layout 1<span class="kw">&lt;/description&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>		<span class="kw">&lt;languageList&gt;&lt;iso639Id&gt;</span>tur<span class="kw">&lt;/iso639Id&gt;&lt;/languageList&gt;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>	<span class="kw">&lt;/configItem&gt;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>	<span class="kw">&lt;variantList/&gt;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="kw">&lt;/layout&gt;</span></span></code></pre></div>
 <p>Bu kadar. Bundan sonra <code>gnome-keyboard-properties</code>i çalıştırıp klavye düzenimizi ekliyoruz. Burda klavye düzenlerini hızlıca değiştirmek için ayar ekranından <code>shift + ctrl</code> vb. şeyler seçebilirsiniz.</p>
 
 <hr />

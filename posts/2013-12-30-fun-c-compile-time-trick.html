@@ -20,37 +20,37 @@
             <div class="inner">
                 <h1 id="post-title">Fun C compile time assertion trick</h1>
 
-<p><strong>December 30, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/c.html">c</a>.</p>
+<p><strong>December 30, 2013</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'c'." href="../tags/c.html">c</a>.</p>
 
 <p>It’s been long time since I wrote an interesting post but I still don’t have anything interesting and short enough for me to explain in a blog post. Anyway, here’s a fun C compile time assertion trick that I found in libSDL 2 codebase:</p>
 <p>In C we have <code>typedef</code> which can be used for defining type synonyms. This code:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> test;</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">typedef</span> <span class="dt">int</span> test;</span></code></pre></div>
 <p>Defines <code>test</code> as type synonym for int, and then you can replace <code>int</code>s in variable declarations with <code>test</code>.</p>
 <p>Interestingly, you can also use illegal type names for typedefs, like this:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">10</span>];</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">10</span>];</span></code></pre></div>
 <p>This is funny, because you can’t use <code>foo[10]</code> as type of a variable, so I don’t understand why this syntax is allowed. I think the reason is that a <code>typedef</code> is just like declaration and shares same syntax with it, so this is allowed. Still, this declaration looks pretty useless to me.</p>
 <p>Anyway, apparently there are some other interesting uses of <code>typedef</code>s. This code:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[-<span class="dv">1</span>];</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">typedef</span> <span class="dt">int</span> foo[-<span class="dv">1</span>];</span></code></pre></div>
 <p>fails with:</p>
 <pre><code>test.c:13:17: error: 'foo' declared as an array with a negative size
 typedef int foo[-1];
                 ^~</code></pre>
-<p>Furthermore, there are some expression-like C syntax that are actually evaluated at compile time<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>. For example:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">3-4</span>];</code></pre></div>
+<p>Furthermore, there are some expression-like C syntax that are actually evaluated at compile time<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. For example:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">typedef</span> <span class="dt">int</span> foo[<span class="dv">3</span>-<span class="dv">4</span>];</span></code></pre></div>
 <p>Here <code>3-4</code> looks like an expression, but it’s actually evaluated at compile-time and thus this code fails with same error as above.</p>
 <p>Using this two tricks, we can have some kind of compile-time assertions, like libSDL people use:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#define COMPILE_TIME_ASSERT(name, x) \</span>
-<span class="pp">  typedef int dummy_ ## name[(x) * 2 - 1]</span>
-
-<span class="kw">typedef</span> <span class="dt">uint16_t</span> Uint16;
-
-COMPILE_TIME_ASSERT(uint16, <span class="kw">sizeof</span>(Uint16) == <span class="dv">2</span>);</code></pre></div>
-<p>This code checks in compile time if <code>Uint16</code> really represents 2 bytes in memory and it fails to compile if it doesn’t. Interesting part here is that <code>(x) * 2 - 1</code> expression evaluated at compile-time.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
-<section class="footnotes">
+<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="pp">#define COMPILE_TIME_ASSERT(name, x) \</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="pp">  typedef int dummy_ ## name[(x) * 2 - 1]</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a><span class="kw">typedef</span> <span class="dt">uint16_t</span> Uint16;</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>COMPILE_TIME_ASSERT(uint16, <span class="kw">sizeof</span>(Uint16) == <span class="dv">2</span>);</span></code></pre></div>
+<p>This code checks in compile time if <code>Uint16</code> really represents 2 bytes in memory and it fails to compile if it doesn’t. Interesting part here is that <code>(x) * 2 - 1</code> expression evaluated at compile-time.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>These are called <em>constant expressions</em> and specified in C11 standard(<a href="http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf">draft</a>) section 6.6.<a href="#fnref1" class="footnote-back">↩</a></p></li>
-<li id="fn2"><p>Note that the <code>x</code> here will be already replaced with some other expression, passed with macro call.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>These are called <em>constant expressions</em> and specified in C11 standard(<a href="http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf">draft</a>) section 6.6.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>Note that the <code>x</code> here will be already replaced with some other expression, passed with macro call.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Fuzzy module loading in GHCi</h1>
 
-<p><strong>October 26, 2017</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>October 26, 2017</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>.</p>
 
 <p><a href="https://downloads.haskell.org/~ghc/8.2.1/docs/html/users_guide/ghci.html#ghci-cmd-:def">A GHCi macro</a> is just a function of type <code>String -&gt; IO String</code>. The argument is parameter of the macro, and return value is evaluated by GHCi as a command.</p>
 <p>Using this and the <a href="http://hackage.haskell.org/package/process"><code>process</code></a> library we can implement a fuzzy module loader that works inside ghci:</p>
@@ -42,7 +42,7 @@ let loadFuzzy _ = do
 
 :def l loadFuzzy</code></pre>
 <p>Add this code to your global ghci config file (<code>~/.ghci</code>) or your project-wide <code>.ghci</code> (at the project root).</p>
-<p>Only problem here is the <code>process</code> dependency: when you use <code>stack repl</code> or <code>cabal repl</code>, <code>process</code> won’t be importable in GHCi unless the project you’re loading into GHCi already has it as a dependency. One solution is to pass <code>-package process</code> to <code>cabal repl</code> or <code>--ghci-options=&quot;-package process&quot;</code> to <code>stack repl</code>. Because <code>process</code> is distributed with GHC this will always work.</p>
+<p>Only problem here is the <code>process</code> dependency: when you use <code>stack repl</code> or <code>cabal repl</code>, <code>process</code> won’t be importable in GHCi unless the project you’re loading into GHCi already has it as a dependency. One solution is to pass <code>-package process</code> to <code>cabal repl</code> or <code>--ghci-options="-package process"</code> to <code>stack repl</code>. Because <code>process</code> is distributed with GHC this will always work.</p>
 
 <hr />
 

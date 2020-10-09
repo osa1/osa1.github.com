@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">GUI programlama, IDEler, ve Python hakkında</h1>
 
-<p><strong>May 22, 2011</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/java.html">java</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>May 22, 2011</strong> - Tagged as: <a title="All pages tagged 'python'." href="../tags/python.html">python</a>, <a title="All pages tagged 'java'." href="../tags/java.html">java</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Son birkaç gündür yoğun bir şekilde GUI programlama ve Java ile uğraştım. İlk başta 2 arkadaşımla beraber basit bir chat sunucu/istemcisi yazmaya başladık(<a href="https://github.com/osa1/simple-chat">kaynak koda</a> github depomuzdan erişebilirsiniz). Daha önceki tecrübelerimden (lisede web tasarım, daha sonra Python + GTK/QT ile arayüz denemelerim) arayüz tasarımından ne kadar nefret ettiğimi bildiğimden, bu projede ben sunucu ve istemci altyapısını hazırlamakla uğraştım. Fakat sonra bir ödev gereği, arayüz tasarımıyla da kendim uğraşmam gerekti.</p>
 <p>Ödev Java ile yapılacaktı ve dolayıyısla arayüz olarak Swing kullandım. Başlangıç için Eclipse için <a href="http://code.google.com/javadevtools/wbpro/index.html">WindowBuilder</a> eklentisi ile ana çerçeve + layoutları oluşturup daha sonra elle yazdım. Bu süreçte şunu farkettim, adam gibi bir IDE, işleri daha önce tahmin edemeyeceğim kadar kolaylaştırıyor. Asıl olarak Python ile yazan biri olarak, birkaç gün öncesine kadar her işimde VIM kullanıyordum ve çok da memnundum(arayüz tasarımı yapmıyorum). Şu birkaç gün(sadece ödev için 1460 satır kod) bazı şeyleri farketmemi sağladı.</p>
@@ -30,15 +30,15 @@
 <p>Hatta mesela şöyle birşey yapabilseydim:</p>
 <p><img src="../images/ss/eclipse_autocomplete1.png" /></p>
 <p>Ama yok, örneğin PyDev daha aşağıdaki kodda çakılıyor:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python">cls <span class="op">=</span> Class1()
-cls.</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>cls <span class="op">=</span> Class1()</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>cls.</span></code></pre></div>
 <p>Daha burda bile, Class1’in methodlarını gösteremiyor. Direkt olarak <code>Class1.</code> şeklinde yazıp, autocomplete çalıştırırsak, methodları gösteriyor, bu iyi, fakat bu sefer de bound-unbound method farkını anlayamıyor ve bound methodları da gösteriyor. Ki bound methodlar bu şekilde çağırılamaz. Fail.</p>
 <p>WingIDE diyenler için, personal sürümü, sanki “öyle gerekli özellikler çıkaralım ki, kimse almasın” diye düşünülerek hazırlanmış. O kısıtlı özellikleri çıkardığımızda, Vim ile de yapıyorum zaten geri kalanları. <a href="https://wingware.com/wingide/features/personal">Burdan bakın</a>. Professional sürümü de çok pahalı.</p>
 <p>PyCharm diyenler için, Open Source lisansı ücretsiz, fakat <a href="http://www.opensource.org/docs/osd">Open Source Definition</a>’a uyan bir projeniz olmalı. Benim yok.</p>
 <p>Eclipse, Java’nın verdiği acıyı inanılmaz derecede hafifletiyor. Yoksa sınıflar arasındaki saçma derecede karmaşık ilişkiler başka türlü çözülemez. Python’da ise, benzer karışıklıkta tasarlanmış(muhtemelen başka bir dilde, örneğin QT için C++) bir kütüphane ile çalışıyorsanız, acınızı hafifletecek hiçbir şey yok.</p>
 <p>Konudan biraz sapacağım ama, Python hakkında beni sinirlendiren bir başka konu da, threading ve socket olayları. Ne zaman socket veya threading kullansam, mutlaka bir problemle karşılaşıyorum ve bunu ne zaman IRC’de sorsam, mutlaka birileri Twisted kullanmamı söylüyor. Kötü alışkanlıklardan, yanlış programlamadan vs bahsedip duruyorlar. Sanki Freenode #python kanalında, içinde şöyle bir kod olan bir sürü bot varmış gibi:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span class="cf">if</span> <span class="st">&quot;socket&quot;</span> <span class="kw">in</span> msg <span class="kw">or</span> <span class="st">&quot;thread&quot;</span> <span class="kw">in</span> msg:
-    <span class="va">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="cf">if</span> <span class="st">&quot;socket&quot;</span> <span class="kw">in</span> msg <span class="kw">or</span> <span class="st">&quot;thread&quot;</span> <span class="kw">in</span> msg:</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>    <span class="va">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</span></code></pre></div>
 <p>Java’da yaklaşık bir hafta kadar önce kullanılabilr bir hale getirdiğimiz chat istemci/sunucusu, dilin kendi thread ve socketlerini kullanıyor. Thread ve socket kullanımı ile alakalı dökümantasyon hariç hiçbir yere baktığımı hatırlamıyorum. Python’dan gelen birisi olarak şaşırtıcı derecede kolay ve stabil oldu.</p>
 <hr />
 <p>Bir süredir kafamda kendi IRC istemcimi yazma fikri var. Şu anda yazabilmek için gerekli herşeyi biliyorum. Dün oturdum, Java ve Python’da IRC sunucusuna bağlanabilmek için gerekli en küçük kodu yazmaya karar verdim(arayüz ile beraber). Java’da, kendi socket ve thread sınıfları ve Swing ile kolayca yazdım(bu arada Swing’in ne kadar kötü gözüktüğüne dikkat, platform bağımsız olarak iğrenç gözüken bir arayüz kütüphanesi kendisi, ehehe):</p>

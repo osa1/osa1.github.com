@@ -28,21 +28,21 @@
 <p>Let’s start.</p>
 <h1 id="defining-lua-function-in-haskell">Defining Lua function in Haskell</h1>
 <p>This is exactly the same as before: We just define a function with type: <code>LuaState -&gt; IO Int</code>. To keep the code simple, we don’t do error handling at all.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb1-2" title="2"></a>
-<a class="sourceLine" id="cb1-3" title="3"><span class="kw">import</span> <span class="dt">Data.Maybe</span></a>
-<a class="sourceLine" id="cb1-4" title="4"><span class="kw">import</span> <span class="dt">Scripting.Lua</span> <span class="co">-- this one from hslua</span></a>
-<a class="sourceLine" id="cb1-5" title="5"></a>
-<a class="sourceLine" id="cb1-6" title="6">foreign export ccall</a>
-<a class="sourceLine" id="cb1-7" title="7"><span class="ot">  add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb1-8" title="8"></a>
-<a class="sourceLine" id="cb1-9" title="9"><span class="ot">add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb1-10" title="10">add l <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb1-11" title="11">  i1 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">1</span></a>
-<a class="sourceLine" id="cb1-12" title="12">  i2 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">2</span></a>
-<a class="sourceLine" id="cb1-13" title="13">  pop l <span class="dv">2</span></a>
-<a class="sourceLine" id="cb1-14" title="14">  push l (i1 <span class="fu">+</span><span class="ot"> i2 ::</span> <span class="dt">Int</span>)</a>
-<a class="sourceLine" id="cb1-15" title="15">  <span class="fu">return</span> <span class="dv">1</span></a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Maybe</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Scripting.Lua</span> <span class="co">-- this one from hslua</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>foreign export ccall</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="ot">  add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a><span class="ot">add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>add l <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>  i1 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">1</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>  i2 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">2</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>  pop l <span class="dv">2</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>  push l (i1 <span class="op">+</span><span class="ot"> i2 ::</span> <span class="dt">Int</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>  <span class="fu">return</span> <span class="dv">1</span></span></code></pre></div>
 <h1 id="implementing-intermediate-c">Implementing intermediate C</h1>
 <p>In our C glue code, we do two things:</p>
 <ol type="1">
@@ -50,31 +50,31 @@
 <li>Implement Lua C module interface in which we register our functions to Lua. (see <a href="http://www.lua.org/manual/5.1/manual.html#pdf-package.loaders">related docs</a> for details)</li>
 </ol>
 <p>Here’s the code:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb2-1" title="1"><span class="pp">#include </span><span class="im">&quot;LibArith_stub.h&quot;</span></a>
-<a class="sourceLine" id="cb2-2" title="2"><span class="pp">#include </span><span class="im">&quot;lua.h&quot;</span></a>
-<a class="sourceLine" id="cb2-3" title="3"></a>
-<a class="sourceLine" id="cb2-4" title="4"><span class="dt">int</span> hs_init_lua(lua_State *L)</a>
-<a class="sourceLine" id="cb2-5" title="5">{</a>
-<a class="sourceLine" id="cb2-6" title="6">  hs_init(NULL, NULL);</a>
-<a class="sourceLine" id="cb2-7" title="7">  <span class="cf">return</span> <span class="dv">0</span>;</a>
-<a class="sourceLine" id="cb2-8" title="8">}</a>
-<a class="sourceLine" id="cb2-9" title="9"></a>
-<a class="sourceLine" id="cb2-10" title="10"><span class="dt">int</span> hs_exit_lua(lua_State *L)</a>
-<a class="sourceLine" id="cb2-11" title="11">{</a>
-<a class="sourceLine" id="cb2-12" title="12">  hs_exit();</a>
-<a class="sourceLine" id="cb2-13" title="13">  <span class="cf">return</span> <span class="dv">0</span>;</a>
-<a class="sourceLine" id="cb2-14" title="14">}</a>
-<a class="sourceLine" id="cb2-15" title="15"></a>
-<a class="sourceLine" id="cb2-16" title="16"><span class="dt">int</span> luaopen_lualibhelper(lua_State *L)</a>
-<a class="sourceLine" id="cb2-17" title="17">{</a>
-<a class="sourceLine" id="cb2-18" title="18">  lua_pushcfunction(L, add);</a>
-<a class="sourceLine" id="cb2-19" title="19">  lua_setglobal(L, <span class="st">&quot;add_in_haskell&quot;</span>);</a>
-<a class="sourceLine" id="cb2-20" title="20">  lua_pushcfunction(L, hs_init_lua);</a>
-<a class="sourceLine" id="cb2-21" title="21">  lua_setglobal(L, <span class="st">&quot;hs_init&quot;</span>);</a>
-<a class="sourceLine" id="cb2-22" title="22">  lua_pushcfunction(L, hs_exit_lua);</a>
-<a class="sourceLine" id="cb2-23" title="23">  lua_setglobal(L, <span class="st">&quot;hs_exit&quot;</span>);</a>
-<a class="sourceLine" id="cb2-24" title="24">  <span class="cf">return</span> <span class="dv">0</span>;</a>
-<a class="sourceLine" id="cb2-25" title="25">}</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;LibArith_stub.h&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;lua.h&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="dt">int</span> hs_init_lua(lua_State *L)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>{</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>  hs_init(NULL, NULL);</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>  <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>}</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a><span class="dt">int</span> hs_exit_lua(lua_State *L)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>{</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>  hs_exit();</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>  <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>}</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a><span class="dt">int</span> luaopen_lualibhelper(lua_State *L)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a>{</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a>  lua_pushcfunction(L, add);</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a>  lua_setglobal(L, <span class="st">&quot;add_in_haskell&quot;</span>);</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true"></a>  lua_pushcfunction(L, hs_init_lua);</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true"></a>  lua_setglobal(L, <span class="st">&quot;hs_init&quot;</span>);</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true"></a>  lua_pushcfunction(L, hs_exit_lua);</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true"></a>  lua_setglobal(L, <span class="st">&quot;hs_exit&quot;</span>);</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true"></a>  <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Some things to note:</p>
 <ul>
 <li><code>LibArith_stub.h</code> is generated by GHC. I’ll explain how to compile and link next.</li>
@@ -135,38 +135,38 @@ newBoundTask: RTS is not initialised; call hs_init() first</code></pre>
 <p>While first method gives you a nice, abstracted way of writing Lua functions in Haskell, <em>raw</em> function method gives you the maximum amount of flexibility that Lua can provide. First method has lots of limitations when compared with <em>raw</em> method.</p>
 <h1 id="higher-level-haskell-functions-in-lua">Higher-level Haskell functions in Lua</h1>
 <p>In first method all you have to do is to write a Haskell function with it’s type is an instance of <code>LuaImport</code>. So let’s see what types are instances:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">instance</span> (<span class="dt">StackValue</span> a) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (<span class="dt">IO</span> a) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb1-2" title="2"><span class="kw">instance</span> (<span class="dt">StackValue</span> a, <span class="dt">LuaImport</span> b) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (a <span class="ot">-&gt;</span> b)</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">StackValue</span> a) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (<span class="dt">IO</span> a) <span class="kw">where</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">instance</span> (<span class="dt">StackValue</span> a, <span class="dt">LuaImport</span> b) <span class="ot">=&gt;</span> <span class="dt">LuaImport</span> (a <span class="ot">-&gt;</span> b)</span></code></pre></div>
 <p>So basically every function type where it’s argument types are instances of <code>StackValue</code> and return type is <code>IO a</code> where <code>a</code> is also an instance of <code>StackValue</code> is an instance of <code>LuaImport</code> and thus can be used in this higher-level method of writing Lua functions in Haskell. Let’s see which types are <code>StackValue</code>s:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaInteger</span></a>
-<a class="sourceLine" id="cb2-2" title="2"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaNumber</span></a>
-<a class="sourceLine" id="cb2-3" title="3"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Int</span></a>
-<a class="sourceLine" id="cb2-4" title="4"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Double</span></a>
-<a class="sourceLine" id="cb2-5" title="5"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">String</span></a>
-<a class="sourceLine" id="cb2-6" title="6"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Bool</span></a>
-<a class="sourceLine" id="cb2-7" title="7"><span class="kw">instance</span> <span class="dt">StackValue</span> (<span class="dt">FunPtr</span> <span class="dt">LuaCFunction</span>)</a>
-<a class="sourceLine" id="cb2-8" title="8"><span class="kw">instance</span> <span class="dt">StackValue</span> (<span class="dt">Ptr</span> a)</a>
-<a class="sourceLine" id="cb2-9" title="9"><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaState</span></a>
-<a class="sourceLine" id="cb2-10" title="10"><span class="kw">instance</span> <span class="dt">StackValue</span> ()</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaInteger</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaNumber</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Int</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Double</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">String</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">Bool</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> (<span class="dt">FunPtr</span> <span class="dt">LuaCFunction</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> (<span class="dt">Ptr</span> a)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> <span class="dt">LuaState</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">StackValue</span> ()</span></code></pre></div>
 <p>We have basic Haskell types <code>Int</code>, <code>Double</code>, <code>String</code>, and <code>Bool</code> as instances. Other types are for more advanced use, for example, <code>Ptr a</code> is used for <code>userdata</code>(basically any binary data that you want to pass to Lua stack and later get back, see <a href="http://www.lua.org/manual/5.1/manual.html#2.2">reference manual</a> for more details).</p>
 <p>This two functions are instances of <code>LuaImport</code>:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="ot">concat&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span></a>
-<a class="sourceLine" id="cb3-2" title="2">concat&#39; s1 s2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> s1 <span class="fu">++</span> s2</a>
-<a class="sourceLine" id="cb3-3" title="3"></a>
-<a class="sourceLine" id="cb3-4" title="4"><span class="ot">pow ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Double</span></a>
-<a class="sourceLine" id="cb3-5" title="5">pow d1 d2 <span class="fu">=</span> <span class="fu">return</span> <span class="fu">$</span> d1 <span class="fu">**</span> d2</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="ot">concat&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>concat&#39; s1 s2 <span class="ot">=</span> <span class="fu">return</span> <span class="op">$</span> s1 <span class="op">++</span> s2</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="ot">pow ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Double</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>pow d1 d2 <span class="ot">=</span> <span class="fu">return</span> <span class="op">$</span> d1 <span class="op">**</span> d2</span></code></pre></div>
 <p>And we can push this functions to Lua stack using <code>pushhsfunction</code> or directly assign them to a global variable using <code>registerhsfunction</code>. In this post I’ll use register functions:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">import</span> <span class="dt">Scripting.Lua</span> <span class="kw">as</span> <span class="dt">Lua</span></a>
-<a class="sourceLine" id="cb4-2" title="2"></a>
-<a class="sourceLine" id="cb4-3" title="3"><span class="ot">main ::</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb4-4" title="4">main <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-5" title="5">    l <span class="ot">&lt;-</span> newstate</a>
-<a class="sourceLine" id="cb4-6" title="6">    openlibs l</a>
-<a class="sourceLine" id="cb4-7" title="7">    registerhsfunction l <span class="st">&quot;concat&quot;</span> concat&#39;</a>
-<a class="sourceLine" id="cb4-8" title="8">    registerhsfunction l <span class="st">&quot;pow&quot;</span> pow</a>
-<a class="sourceLine" id="cb4-9" title="9">    loadfile l <span class="st">&quot;haskellfun.lua&quot;</span></a>
-<a class="sourceLine" id="cb4-10" title="10">    call l <span class="dv">0</span> <span class="dv">0</span></a>
-<a class="sourceLine" id="cb4-11" title="11">    close l</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Scripting.Lua</span> <span class="kw">as</span> <span class="dt">Lua</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>    l <span class="ot">&lt;-</span> newstate</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>    openlibs l</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>    registerhsfunction l <span class="st">&quot;concat&quot;</span> concat&#39;</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>    registerhsfunction l <span class="st">&quot;pow&quot;</span> pow</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>    loadfile l <span class="st">&quot;haskellfun.lua&quot;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>    call l <span class="dv">0</span> <span class="dv">0</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>    close l</span></code></pre></div>
 <p>With 11 lines of code, we can create a Lua state and map this Haskell functions to some names and call them from Lua. This program runs Lua file <code>haskellfun.lua</code>, which you can see in examples folder of <a href="https://github.com/osa1/hslua/tree/master/examples/haskellfun"><code>hslua</code> repository</a>.</p>
 <p>Apart from the simplicity, another good thing about this method is that it handles type checking of Lua values automatically. Internally, this functions are wrapped with another function which gets <code>LuaState</code> as parameter and collects Lua values from stack, checks their types(and throws error in case of a type mismatch), and push return value of the function to the Lua stack again. Here’s an example call with wrong type of values:</p>
 <pre><code>print(pow(&quot;wrong&quot;))
@@ -179,46 +179,46 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
 <p>We can do this writing <em>raw</em> Haskell functions. Raw functions have type <code>LuaState -&gt; IO CInt</code> and <code>LuaState</code> allows us to run any C API function. <em>raw</em> functions are pushed to Lua stack using <code>pushrawhsfunction</code> and registered as global variable using <code>registerrawhsfunction</code>.</p>
 <p><a href="https://github.com/osa1/hslua/tree/master/examples/callbacks"><code>callbacks</code> example</a> in the <code>hslua</code> repository takes Lua callbacks in Haskell functions and later call them in FIFO order and return their return values as a Lua array(table with int keys). You can see the complete program in the repository and here I’ll give only the tricky parts.</p>
 <p><em>Raw</em> Haskell functions should return number of values left on the Lua stack as return values. As an example, <code>addLuaCallbacks</code> function uses this for simple error reporting, it puts the error string to the Lua stack and return <code>1</code> in case of an error, and return <code>0</code> otherwise:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1">addLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb6-2" title="2">    <span class="fu">...</span></a>
-<a class="sourceLine" id="cb6-3" title="3">    <span class="kw">case</span> as <span class="kw">of</span></a>
-<a class="sourceLine" id="cb6-4" title="4">      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb6-5" title="5">        <span class="co">-- arguments are functions, add them to callback queue and return</span></a>
-<a class="sourceLine" id="cb6-6" title="6">        <span class="co">-- nothing</span></a>
-<a class="sourceLine" id="cb6-7" title="7">        addCallbacks <span class="dv">1</span> args</a>
-<a class="sourceLine" id="cb6-8" title="8">        <span class="fu">return</span> <span class="dv">0</span></a>
-<a class="sourceLine" id="cb6-9" title="9">      <span class="dt">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb6-10" title="10">        <span class="co">-- error: argument at `errArg` is not a function, return error</span></a>
-<a class="sourceLine" id="cb6-11" title="11">        <span class="co">-- string</span></a>
-<a class="sourceLine" id="cb6-12" title="12">        pushstring l <span class="fu">$</span> <span class="st">&quot;argument &quot;</span> <span class="fu">++</span> <span class="fu">show</span> errArg <span class="fu">++</span> <span class="st">&quot; is not a function&quot;</span></a>
-<a class="sourceLine" id="cb6-13" title="13">        <span class="fu">return</span> <span class="dv">1</span></a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>addLuaCallbacks l <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>    <span class="kw">case</span> as <span class="kw">of</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>        <span class="co">-- arguments are functions, add them to callback queue and return</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>        <span class="co">-- nothing</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>        addCallbacks <span class="dv">1</span> args</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>        <span class="fu">return</span> <span class="dv">0</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>      <span class="dt">Just</span> errArg <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>        <span class="co">-- error: argument at `errArg` is not a function, return error</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>        <span class="co">-- string</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>        pushstring l <span class="op">$</span> <span class="st">&quot;argument &quot;</span> <span class="op">++</span> <span class="fu">show</span> errArg <span class="op">++</span> <span class="st">&quot; is not a function&quot;</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>        <span class="fu">return</span> <span class="dv">1</span></span></code></pre></div>
 <p>This example program keeps track of passed Lua callbacks in an <code>IORef</code>. Here’s the part that handles getting Lua callbacks from Lua stack:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1">addCallbacks n <span class="fu">max</span></a>
-<a class="sourceLine" id="cb7-2" title="2">  <span class="fu">|</span> n <span class="fu">&gt;</span> <span class="fu">max</span> <span class="fu">=</span> <span class="fu">return</span> ()</a>
-<a class="sourceLine" id="cb7-3" title="3">  <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb7-4" title="4">      <span class="co">-- move nth argument to top of the stack</span></a>
-<a class="sourceLine" id="cb7-5" title="5">      pushvalue l n</a>
-<a class="sourceLine" id="cb7-6" title="6">      <span class="co">-- add function reference to registry</span></a>
-<a class="sourceLine" id="cb7-7" title="7">      refId <span class="ot">&lt;-</span> ref l registryindex</a>
-<a class="sourceLine" id="cb7-8" title="8">      <span class="co">-- add registry index to IORef</span></a>
-<a class="sourceLine" id="cb7-9" title="9">      modifyIORef cs (<span class="fu">++</span> [refId])</a>
-<a class="sourceLine" id="cb7-10" title="10">      <span class="co">-- continue adding other arguments</span></a>
-<a class="sourceLine" id="cb7-11" title="11">      addCallbacks (n<span class="fu">+</span><span class="dv">1</span>) <span class="fu">max</span></a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>addCallbacks n <span class="fu">max</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>  <span class="op">|</span> n <span class="op">&gt;</span> <span class="fu">max</span> <span class="ot">=</span> <span class="fu">return</span> ()</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>      <span class="co">-- move nth argument to top of the stack</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>      pushvalue l n</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>      <span class="co">-- add function reference to registry</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>      refId <span class="ot">&lt;-</span> ref l registryindex</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>      <span class="co">-- add registry index to IORef</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>      modifyIORef cs (<span class="op">++</span> [refId])</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>      <span class="co">-- continue adding other arguments</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a>      addCallbacks (n<span class="op">+</span><span class="dv">1</span>) <span class="fu">max</span></span></code></pre></div>
 <p>Note how we’re adding the function to the <em>registry</em> and getting it’s index at the <em>registry</em> in Haskell. We can now refer to this functions(e.g. push this function to Lua stack) using this index. Here’s the relevant code:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="co">-- | Call Lua callbacks collected with `addLuaCallbacks`.</span></a>
-<a class="sourceLine" id="cb8-2" title="2"><span class="ot">callLuaCallbacks ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">CInt</span></a>
-<a class="sourceLine" id="cb8-3" title="3">callLuaCallbacks l <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-4" title="4">    <span class="fu">...</span></a>
-<a class="sourceLine" id="cb8-5" title="5">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb8-6" title="6">    iter [] <span class="fu">=</span> <span class="fu">return</span> ()</a>
-<a class="sourceLine" id="cb8-7" title="7">    iter (c <span class="fu">:</span> rest) <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-8" title="8">      <span class="fu">...</span></a>
-<a class="sourceLine" id="cb8-9" title="9">      pushinteger l (<span class="fu">fromIntegral</span> c)</a>
-<a class="sourceLine" id="cb8-10" title="10">      gettable l registryindex</a>
-<a class="sourceLine" id="cb8-11" title="11">      <span class="co">-- call the callback</span></a>
-<a class="sourceLine" id="cb8-12" title="12">      call l <span class="dv">0</span> <span class="dv">1</span></a>
-<a class="sourceLine" id="cb8-13" title="13">      <span class="fu">...</span></a>
-<a class="sourceLine" id="cb8-14" title="14">      iter rest</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="co">-- | Call Lua callbacks collected with `addLuaCallbacks`.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="ot">callLuaCallbacks ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">CInt</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>callLuaCallbacks l <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>    iter [] <span class="ot">=</span> <span class="fu">return</span> ()</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>    iter (c <span class="op">:</span> rest) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>      <span class="op">...</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>      pushinteger l (<span class="fu">fromIntegral</span> c)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>      gettable l registryindex</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>      <span class="co">-- call the callback</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a>      call l <span class="dv">0</span> <span class="dv">1</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a>      <span class="op">...</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a>      iter rest</span></code></pre></div>
 <p>We’re pushing the index to the Lua stack, and calling <code>gettable</code> to push actual function to the stack using the index. Complete program is longish, so I’m omitting it here, you can see it in <a href="https://github.com/osa1/hslua/tree/master/examples/callbacks"><code>hslua</code>s Github repository</a> with an example Lua program that uses defined Haskell functions to pass Lua callbacks to Haskell.</p>
 <h1 id="a-note-about-safety">A note about safety</h1>
 <p>Lua tolerates some incorrect stack operations and if you do that while writing <em>raw</em> Haskell functions, you can have hard times debugging your programs. Fortunately, Lua also provides a compile time flag to enable checking API usage for safety. If you install <code>hslua</code> using <code>-fapicheck</code> Cabal flag, it compiled Lua with API checking enabled and Lua gives you errors instead of silently doing something not intended. For example, if you refer to a Lua value at stack index <code>-4</code> while your stack has only <code>3</code> elements, you get something like:</p>
@@ -226,16 +226,16 @@ bad argument #1 to &#39;?&#39; (number expected, got string)</code></pre>
 <p>This helps making sure that your API usage is correct.</p>
 <h1 id="using-hslua-for-reading-configuration-files-written-in-lua">Using hslua for reading configuration files written in Lua</h1>
 <p>hslua also provides a module for reading configuration files. As an example, using <code>Scripting.Lua.ConfigFile.getNestedAssocLists</code>, you can execute the Lua file given below and get resulting nested table as Haskell <code>[(String, [(String, String)])]</code>:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode lua"><code class="sourceCode lua"><a class="sourceLine" id="cb10-1" title="1"> someVal <span class="op">=</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb10-2" title="2">    something <span class="op">=</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb10-3" title="3">       foo <span class="op">=</span> <span class="st">&quot;aaa&quot;</span><span class="op">,</span></a>
-<a class="sourceLine" id="cb10-4" title="4">       bar <span class="op">=</span> <span class="st">&quot;bbb&quot;</span><span class="op">,</span></a>
-<a class="sourceLine" id="cb10-5" title="5">       baz <span class="op">=</span> <span class="st">&quot;ccc&quot;</span></a>
-<a class="sourceLine" id="cb10-6" title="6">    <span class="op">},</span></a>
-<a class="sourceLine" id="cb10-7" title="7">    somethingElse <span class="op">=</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb10-8" title="8">       <span class="op">...</span></a>
-<a class="sourceLine" id="cb10-9" title="9">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb10-10" title="10"> <span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a> someVal <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a>    something <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a>       foo <span class="op">=</span> <span class="st">&quot;aaa&quot;</span><span class="op">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>       bar <span class="op">=</span> <span class="st">&quot;bbb&quot;</span><span class="op">,</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a>       baz <span class="op">=</span> <span class="st">&quot;ccc&quot;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a>    <span class="op">},</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a>    somethingElse <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a>       <span class="op">...</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true"></a>    <span class="op">}</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true"></a> <span class="op">}</span></span></code></pre></div>
 <h1 id="running-lua-programs-using-lua-interpreters">Running Lua programs using Lua interpreters</h1>
 <p>In all hslua examples, we needed to create Lua state in Haskell, register Haskell functions inside Haskell and then run Lua files using Lua C API again in Haskell. I think in theory it is also possible to run Lua programs using standard Lua interpreter executables(instead of running the interpreter using Lua C API inside Haskell) and load Haskell functions compiled to <code>*.so</code> shared library files.</p>
 <p>About one year ago, I did something similar using C instead of Haskell. You can see the code <a href="https://github.com/osa1/lcl">here</a>. The library compiled to a <code>.so</code> file and by using Lua’s <code>package.loadlib</code>, you can load functions defined in the <code>.so</code>.</p>

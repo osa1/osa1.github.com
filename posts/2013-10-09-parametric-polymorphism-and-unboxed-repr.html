@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Parametric polymorphism and unboxed representations</h1>
 
-<p><strong>October  9, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/cpp.html">cpp</a>, <a href="../tags/java.html">java</a>.</p>
+<p><strong>October  9, 2013</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'cpp'." href="../tags/cpp.html">cpp</a>, <a title="All pages tagged 'java'." href="../tags/java.html">java</a>.</p>
 
 <p>This post was written 5 months ago – I just found it in my Github Gist archive and realized it’s not published. I’m publishing it now.</p>
 <hr />
@@ -28,35 +28,35 @@
 <p>I think this is also the reason why we can’t instantiate generics in Java with primitive types.</p>
 <p>Here’s an explanation:</p>
 <p>Let’s think this C++ code:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> test<span class="dv">2</span>
-{
-  <span class="dt">int</span> a, b;
-  test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}
-};
-
-<span class="kw">struct</span> test<span class="dv">3</span>
-{
-  <span class="dt">int</span> a, b, c;
-  test3(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) : a(a), b(b), c(c) {}
-};
-
-<span class="dt">void</span> f2() {}
-
-<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
-T f3(T t)
-{
-  t.a = <span class="dv">20</span>;
-  <span class="cf">return</span> t;
-}
-
-<span class="dt">int</span> main()
-{
-  test2 t2(<span class="dv">1</span>, <span class="dv">2</span>);
-  test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);
-  f3&lt;test2&gt;(t2);
-  f3&lt;test3&gt;(t3);
-  <span class="cf">return</span> <span class="dv">0</span>;
-}</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">struct</span> test2</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>{</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>  <span class="dt">int</span> a, b;</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>  test2(<span class="dt">int</span> a, <span class="dt">int</span> b) : a(a), b(b) {}</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>};</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="kw">struct</span> test3</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>{</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>  <span class="dt">int</span> a, b, c;</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>  test3(<span class="dt">int</span> a, <span class="dt">int</span> b, <span class="dt">int</span> c) : a(a), b(b), c(c) {}</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>};</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a><span class="dt">void</span> f2() {}</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>T f3(T t)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>{</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a>  t.a = <span class="dv">20</span>;</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>  <span class="cf">return</span> t;</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>}</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a><span class="dt">int</span> main()</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>{</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>  test2 t2(<span class="dv">1</span>, <span class="dv">2</span>);</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>  test3 t3(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>);</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a>  f3&lt;test2&gt;(t2);</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>  f3&lt;test3&gt;(t3);</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a>  <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a>}</span></code></pre></div>
 <p>The key thing to realize here is that I’m passing parameter by value, ie. values are copied to function stack frame. But this function is still polymorphic on parameter type. This is possible in C++ because for each distinct instance of <code>f3</code>, a specialized code will be generated. To observe this, I put a breakpoint to that <code>f3</code> function and looked to disassembly output.</p>
 <pre><code>        18	T f3(T t)
 0x400af6  &lt;+0x0000&gt;         push   rbp
@@ -92,21 +92,21 @@ T f3(T t)
 0x400b37  &lt;+0x002c&gt;         pop    rbp
 0x400b38  &lt;+0x002d&gt;         ret</code></pre>
 <p>So what happened here is two new functions is generated from the definition, one with type <code>test2 f3(test2)</code> and one with type <code>test3 f3(test3)</code>. This gives a great opportunity, for instance, we can have this function:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
-
-<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
-T someFun(T arg1, T arg2)
-{
-  <span class="cf">return</span> arg1 + arg2;
-}
-
-<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="at">const</span> <span class="dt">char</span> *argv[])
-{
-  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;
-  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;
-
-  <span class="cf">return</span> <span class="dv">0</span>;
-}</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>T someFun(T arg1, T arg2)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>{</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>  <span class="cf">return</span> arg1 + arg2;</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>}</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="at">const</span> <span class="dt">char</span> *argv[])</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>{</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a>  <span class="bu">std::</span>cout &lt;&lt; someFun&lt;<span class="dt">float</span>&gt;(<span class="fl">1.4</span>, <span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>  <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a>}</span></code></pre></div>
 <p>..which is impossible to have in Java, without manually overloading the method definition.</p>
 <p>(An off-topic but interesting note: I was expecting <code>SP</code> to be set here, but here it’s not set. I think the reason is that the compiler is clever enough to see there is no recursive calls, so no need to set <code>SP</code>, when I added a dummy function call in the middle of <code>f3</code>, <code>SP</code> is got set)</p>
 <p>So in a way, C++ generics are gives us the most general way for parametric polymorphism. For any type you instantiated the template with, it generates a specialized definition. And if that definition is accepted by type checker, you’re fine.</p>

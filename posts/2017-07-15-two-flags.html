@@ -20,9 +20,9 @@
             <div class="inner">
                 <h1 id="post-title">Enable these two flags in GHC 8.2</h1>
 
-<p><strong>July 15, 2017</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>July 15, 2017</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>.</p>
 
-<p>As usual, the next major GHC release will be <a href="https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.2.1#Releasehighlights">pretty great</a>. It’ll come with a bunch of new features that I can’t wait to start using, and I’ve contributed to three of the new features<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, but what excites me the most is not any of these features. I’m most excited about the improved <code>-Werror</code> flag.</p>
+<p>As usual, the next major GHC release will be <a href="https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.2.1#Releasehighlights">pretty great</a>. It’ll come with a bunch of new features that I can’t wait to start using, and I’ve contributed to three of the new features<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, but what excites me the most is not any of these features. I’m most excited about the improved <code>-Werror</code> flag.</p>
 <p>The summary is that with GHC 8.2 we’ll be able to promote some warnings into errors, without making <em>all warnings</em> errors (which is how <code>-Werror</code> worked pre-8.2). With this we can finally fix some of the Haskell 2010 warts.</p>
 <hr />
 <p>By the beginning of this year I moved from academia to industry. I was writing Haskell in academia, and I’m still writing Haskell, but the environment, tasks, and constraints are quite different, so the way I write Haskell changed quite a lot during this transition.</p>
@@ -36,18 +36,18 @@
 <p>While I can’t find any mention to exhaustiveness of pattern matching in Haskell 2010, it clearly covers the case where patterns do not cover all values when defining <a href="https://www.haskell.org/onlinereport/haskell2010/haskellch3.html#x8-610003.17.3">formal semantics of pattern matching</a> (see case (b)). You only realize that this is a bad idea when (1) your code is not warning-free so new warnings sometimes go unnoticed and (2) you can’t promote individual warnings to errors. This again breaks the workflow I mentioned above, and makes code reviews much harder.</p>
 <hr />
 <p>The solution that GHC 8.2 brings is we can now make these two warnings errors, using <code>-Werror=missing-fields -Werror=incomplete-patterns</code>. There’s still one problem though, the error message is not good enough. Suppose we had this code:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Lib</span> <span class="kw">where</span>
-
-<span class="kw">data</span> <span class="dt">Rec</span> <span class="fu">=</span> <span class="dt">Rec</span> {<span class="ot"> f1 ::</span> <span class="dt">Int</span>,<span class="ot"> f2 ::</span> <span class="dt">Int</span> }
-
-<span class="kw">data</span> <span class="dt">S</span> <span class="fu">=</span> <span class="dt">C1</span> <span class="dt">Int</span> <span class="fu">|</span> <span class="dt">C2</span> <span class="dt">Int</span>
-
-<span class="co">-- incomplete pattern</span>
-sInt s <span class="fu">=</span> <span class="kw">case</span> s <span class="kw">of</span>
-           <span class="dt">C1</span> i <span class="ot">-&gt;</span> i
-
-<span class="co">-- missing field</span>
-initRec <span class="fu">=</span> <span class="dt">Rec</span> { f1 <span class="fu">=</span> <span class="dv">1</span> }</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Lib</span> <span class="kw">where</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Rec</span> <span class="ot">=</span> <span class="dt">Rec</span> {<span class="ot"> f1 ::</span> <span class="dt">Int</span>,<span class="ot"> f2 ::</span> <span class="dt">Int</span> }</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">S</span> <span class="ot">=</span> <span class="dt">C1</span> <span class="dt">Int</span> <span class="op">|</span> <span class="dt">C2</span> <span class="dt">Int</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="co">-- incomplete pattern</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>sInt s <span class="ot">=</span> <span class="kw">case</span> s <span class="kw">of</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>           <span class="dt">C1</span> i <span class="ot">-&gt;</span> i</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a><span class="co">-- missing field</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>initRec <span class="ot">=</span> <span class="dt">Rec</span> { f1 <span class="ot">=</span> <span class="dv">1</span> }</span></code></pre></div>
 <p>Compile this with <code>ghc -Wall</code> and you get:</p>
 <pre><code>[1 of 1] Compiling Lib              ( test.hs, test.o )
 
@@ -112,10 +112,10 @@ test.hs:15:11: error: [-Wmissing-fields, -Werror=missing-fields]
    |           ^^^^^^^^^^^^^^</code></pre>
 <p>Much better!</p>
 <p>This is probably not as exciting to many people as, say, new features like compact regions or join points, but I think this will significantly improve “refactor types, folow type error, repeat” style workflows and make code reviews much easier.</p>
-<section class="footnotes">
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>I discovered and reported <a href="https://ghc.haskell.org/trac/ghc/ticket/10598">#10598</a> two years ago, which led to <code>-XDerivingStrategies</code> work, I was involved in the <a href="http://ezyang.com/papers/ezyang15-cnf.pdf">Compact regions paper</a>, and I implemented <a href="https://phabricator.haskell.org/D2259">unboxed sums</a> during my time at MSR Cambridge last summer.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>I discovered and reported <a href="https://ghc.haskell.org/trac/ghc/ticket/10598">#10598</a> two years ago, which led to <code>-XDerivingStrategies</code> work, I was involved in the <a href="http://ezyang.com/papers/ezyang15-cnf.pdf">Compact regions paper</a>, and I implemented <a href="https://phabricator.haskell.org/D2259">unboxed sums</a> during my time at MSR Cambridge last summer.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

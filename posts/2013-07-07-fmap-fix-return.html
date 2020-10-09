@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">fmap fix return</h1>
 
-<p><strong>July  7, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>July  7, 2013</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>.</p>
 
 <p>While floating across the internets, I came across a blog with title <code>fmap fix return</code>. I immediately run ghci and queried it’s type:</p>
 <pre class="ghci"><code>ghci&gt; :t fmap fix return
@@ -38,8 +38,8 @@ return :: Monad m =&gt; a -&gt; m a
 -- instance specific implementation</code></pre>
 <p>A very important thing to realize at this point is which monad and functor instances are used for <code>return</code> and <code>fmap</code>. To realize this, observe that we get a function as return value of <code>fmap</code>. Which means <code>Functor f =&gt; f b</code> is <code>a -&gt; a</code>, or written in a different style to see it’s functor property: <code>((-&gt;) a) a</code>, so our functor here is <code>(-&gt;) a</code>.</p>
 <p>After that, we need to look up functor and monad instances for <code>(-&gt;) a</code>. Since it’s 2:30 AM here, I wanted to derive that too.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Functor</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span>
-     <span class="fu">fmap</span> <span class="fu">=</span> (<span class="fu">.</span>)</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Functor</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>     <span class="fu">fmap</span> <span class="ot">=</span> (<span class="op">.</span>)</span></code></pre></div>
 <p>It’s very easy to derive just by looking specialized version of <code>fmap</code>s type for <code>((-&gt;) a)</code>: <code>fmap :: (a1 -&gt; b) -&gt; (a -&gt; a1) -&gt; (a -&gt; b)</code>.</p>
 <p>We can easily prove that it satisfies functor laws:</p>
 <pre><code>fmap id f
@@ -52,9 +52,9 @@ fmap (p . q) &lt;-&gt; (fmap p) . (fmap q)
 = p . q . f
 = fmap (p . q) f</code></pre>
 <p>Monad instance can also be derived from types of <code>return</code> and <code>&gt;&gt;=</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Monad</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span>
-    <span class="fu">return</span>   <span class="fu">=</span> <span class="fu">const</span>
-    f <span class="fu">&gt;&gt;=</span> fn <span class="fu">=</span> \r <span class="ot">-&gt;</span> fn (f r) r</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Monad</span> ((<span class="ot">-&gt;</span>) a) <span class="kw">where</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>    <span class="fu">return</span>   <span class="ot">=</span> <span class="fu">const</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>    f <span class="op">&gt;&gt;=</span> fn <span class="ot">=</span> \r <span class="ot">-&gt;</span> fn (f r) r</span></code></pre></div>
 <p>(I found Monad instance of <code>((-&gt;) a)</code> very interesting, especially the <code>&gt;&gt;=</code> part. I couldn’t come up with a problem that makes use of this instance, I’ll investigate that after some sleep)</p>
 <p>It satisfies monad laws:</p>
 <pre><code>-- left identity

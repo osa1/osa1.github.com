@@ -20,112 +20,112 @@
             <div class="inner">
                 <h1 id="post-title">Clojure ve bir 4Clojure problemi</h1>
 
-<p><strong>September 25, 2011</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>September 25, 2011</strong> - Tagged as: <a title="All pages tagged 'python'." href="../tags/python.html">python</a>, <a title="All pages tagged 'lisp'." href="../tags/lisp.html">lisp</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Clojure(ve genel olarak Lisp dilleri) ile bir süredir ilgileniyorum, canım sıkıldıkça <a href="http://4clojure.com/">4clojure</a>’daki problemleri çözüyordum(bu arada Clojure’a başalyan herkese tavsiye ederim, sitenin en güzel yanı, problemi çözdükten sonra başkalarının çözümlerini görebiliyorsunuz, ve çoğu zaman problemi çözmüş birkaç Clojure geliştirici/katkıcısı bulabiliyorsunuz). Bir süre sonra, artık temellerini kavradığımı düşündüğümde, şu ana kadar en az çözülen probleme, <a href="http://4clojure.com/problem/117">‘For Science!’</a>a bir bakayım dedim. Problem tanıdık geldi. Bu problemin bir benzeriyle ilk kez <a href="http://osa1.net/finaldeyiz/">şurda bahsettiğim</a> programlama yarışmasında karşılaşmış, ve o zaman soruya saf saf bakmaktan başka birşey yapamamıştık. Daha sonra, ilk başta alakasız gibi gözüksede, aslında çok benzeyen bir halini, üzerinde çalıştığım bir oyunun yapım aşamasını kolaylaştırmak için çözmüştüm, ilgili yazı <a href="http://osa1.net/pygame-ve-duzensiz-sprite-sheetlerle-calismak/">şurda</a>.</p>
 <p>Alternatif bir yöntem düşünmeden hemen daha önceden çözdüğüm gibi çözmeye başladım. Çözen Python kodunu birkaç dakika içerisinde yazdım. Algoritmam şu şekilde: gezilebilir olup birbirlerine komşu olan tüm alanları grupluyorum, daha sonra eğer başlangıç ve hedef aynı grupdaysa, birbirlerine erişebilirler demektir.</p>
 <p>Python koduyla açıklamak daha kolay:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python">pos_m <span class="op">=</span> <span class="va">None</span>
-pos_c <span class="op">=</span> <span class="va">None</span>
-groups <span class="op">=</span> []</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>pos_m <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>pos_c <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>groups <span class="op">=</span> []</span></code></pre></div>
 <p>Burda <code>pos_m</code>, problemdeki fare(mouse - M)nin başlangıç noktasını temsil ediyor. Alanı gezerken fareyle karşılaştığımızda bunu atayacağız. Aynı şekilde <code>pos_c</code> de peynir(cheese)in yeri.</p>
 <p><code>groups</code> da birbirlerine komşu olan tüm noktaların oluşturduğu grupları tutacak.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> check_adjacency(pos, x, y):
-    difx <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">0</span>]x)
-    dify <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">1</span>]y)
-    <span class="cf">return</span> (difx <span class="op">==</span> <span class="dv">1</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">0</span>) <span class="kw">or</span> (difx <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">1</span>)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">def</span> check_adjacency(pos, x, y):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>    difx <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">0</span>]x)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>    dify <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">1</span>]y)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    <span class="cf">return</span> (difx <span class="op">==</span> <span class="dv">1</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">0</span>) <span class="kw">or</span> (difx <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">1</span>)</span></code></pre></div>
 <p>Bu fonksiyonun yaptığı, bir (X, Y) ikilisinden oluşan noktanın, (x, y) noktasına komşu olup olmadığını dönmek. Burda komşu olma şartı, iki noktanın üst üste veya yan yana bulunmaları(haritada çarpraz ilerleme olmadığından, çarprazdakiler komşu sayılmıyor).</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> find_groups(x, y):
-    r <span class="op">=</span> []
-    <span class="cf">for</span> group <span class="kw">in</span> groups:
-        <span class="cf">for</span> pos <span class="kw">in</span> group:
-            <span class="cf">if</span> check_adjacency(pos, x, y):
-                r.append(group)
-                <span class="cf">break</span>
-    <span class="cf">return</span> r</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">def</span> find_groups(x, y):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>    r <span class="op">=</span> []</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    <span class="cf">for</span> group <span class="kw">in</span> groups:</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>        <span class="cf">for</span> pos <span class="kw">in</span> group:</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>            <span class="cf">if</span> check_adjacency(pos, x, y):</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>                r.append(group)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>                <span class="cf">break</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>    <span class="cf">return</span> r</span></code></pre></div>
 <p><code>find_groups</code>, (x, y) noktasının komşu olduğu grupların bir listesini dönüyor. Örneğin bir aşamada elimizde [(1, 1), (2, 2)] ve [(2, 4)] grupları varsa ve biz (2, 3) noktasının komşu olduğu grupları arıyorsak, bu iki grupu bize döndürecek. Bu durumda bu iki grupu birleştirmemiz gerekcek çükü artık bu ikisi birbirine (2, 3) ile bağlı.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> merge_groups(grps):
-    <span class="cf">for</span> group <span class="kw">in</span> grps[<span class="dv">1</span>:]:
-        grps[<span class="op">^</span><span class="dv">0</span>]<span class="op">+=</span> group
-        groups.remove(group)</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">def</span> merge_groups(grps):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>    <span class="cf">for</span> group <span class="kw">in</span> grps[<span class="dv">1</span>:]:</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>        grps[<span class="op">^</span><span class="dv">0</span>]<span class="op">+=</span> group</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>        groups.remove(group)</span></code></pre></div>
 <p>Birleştirme işlemini de bu yapıyor işte.</p>
 <p>Bundan sonrası basit zaten, teker teker gez, grupları bul, grup yoksa yeni oluştur, varsa onu genişlet, birden fazlaysa birleştir. Kodu takip etmek için kullandığım print statement’larını silmeden koyuyorum:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span class="cf">for</span> y <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid)):
-    <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid[<span class="op">^</span><span class="dv">0</span>]):
-        char <span class="op">=</span> test_grid[y][x]
-        <span class="bu">print</span> x, y, char,
-        <span class="cf">if</span> char <span class="op">==</span> <span class="st">'#'</span>:
-            <span class="bu">print</span> <span class="st">&quot;block&quot;</span>
-        <span class="cf">else</span>:
-            <span class="cf">if</span> char <span class="op">==</span> <span class="st">'M'</span>:
-                pos_m <span class="op">=</span> (x, y)
-            <span class="cf">elif</span> char <span class="op">==</span> <span class="st">'C'</span>:
-                pos_c <span class="op">=</span> (x, y)
-            grps <span class="op">=</span> find_groups(x, y)
-            <span class="cf">if</span> <span class="bu">len</span>(grps) <span class="op">&gt;</span> <span class="dv">1</span>:
-                merge_groups(grps)
-                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))
-                <span class="bu">print</span> <span class="st">&quot;merge&quot;</span>
-            <span class="cf">elif</span> <span class="bu">len</span>(grps) <span class="op">==</span> <span class="dv">0</span>:
-                groups.append([(x, y)])
-                <span class="bu">print</span> <span class="st">&quot;new group&quot;</span>
-            <span class="cf">else</span>:
-                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))
-                <span class="bu">print</span> <span class="st">&quot;append&quot;</span>
-<span class="bu">print</span> pos_m, pos_c
-<span class="cf">for</span> group <span class="kw">in</span> groups:
-    <span class="cf">if</span> pos_m <span class="kw">in</span> group <span class="kw">and</span> pos_c <span class="kw">in</span> group:
-        <span class="bu">print</span> <span class="st">&quot;M can reach C&quot;</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="cf">for</span> y <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid)):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>    <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid[<span class="op">^</span><span class="dv">0</span>]):</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>        char <span class="op">=</span> test_grid[y][x]</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>        <span class="bu">print</span> x, y, char,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>        <span class="cf">if</span> char <span class="op">==</span> <span class="st">'#'</span>:</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>            <span class="bu">print</span> <span class="st">&quot;block&quot;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>        <span class="cf">else</span>:</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>            <span class="cf">if</span> char <span class="op">==</span> <span class="st">'M'</span>:</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>                pos_m <span class="op">=</span> (x, y)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>            <span class="cf">elif</span> char <span class="op">==</span> <span class="st">'C'</span>:</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>                pos_c <span class="op">=</span> (x, y)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>            grps <span class="op">=</span> find_groups(x, y)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>            <span class="cf">if</span> <span class="bu">len</span>(grps) <span class="op">&gt;</span> <span class="dv">1</span>:</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>                merge_groups(grps)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a>                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a>                <span class="bu">print</span> <span class="st">&quot;merge&quot;</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true"></a>            <span class="cf">elif</span> <span class="bu">len</span>(grps) <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true"></a>                groups.append([(x, y)])</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true"></a>                <span class="bu">print</span> <span class="st">&quot;new group&quot;</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true"></a>            <span class="cf">else</span>:</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true"></a>                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true"></a>                <span class="bu">print</span> <span class="st">&quot;append&quot;</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true"></a><span class="bu">print</span> pos_m, pos_c</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true"></a><span class="cf">for</span> group <span class="kw">in</span> groups:</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true"></a>    <span class="cf">if</span> pos_m <span class="kw">in</span> group <span class="kw">and</span> pos_c <span class="kw">in</span> group:</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true"></a>        <span class="bu">print</span> <span class="st">&quot;M can reach C&quot;</span></span></code></pre></div>
 <p>Çok da güzel bir kod olmayabilir(örneğin liste içinde listelerde lineer arama yerine, <code>set</code> kullanılabilir, Clojure kodumda yaptığım gibi) ama problemi hızlıca çözmek için işimi gördü.</p>
 <p>Fonksiyonel programlama yolunu henüz çözebilmiş değilim. Hala daha çoğu zaman yaptığım, bir algoritmadaki değişen durumları(<code>state</code>) bir <code>loop</code> içine alıp, tail-call yapmak(Clojure’da <code>recur</code> yani, bu arada <code>recur</code>’un tail-call optimization olmadığının farkındayım).</p>
 <p>Yukarıdaki Python fonksiyonlarının Clojure karşılıklarını şu şekilde yazdım:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">defn</span><span class="fu"> abs</span>
-  <span class="st">&quot;Absolute value of n&quot;</span>
-  [n]
-  (<span class="kw">if</span> (<span class="kw">neg?</span> n)
-    (<span class="kw">-</span> n)
-    n))
-(<span class="bu">defn</span><span class="fu"> check-adjacency</span>
-  [[posx posy] x y]
-  (<span class="kw">let</span> [difx (abs (<span class="kw">-</span> posx x))
-        dify (abs (<span class="kw">-</span> posy y))]
-    (<span class="kw">or</span> (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">1</span>) (<span class="kw">=</span> dify <span class="dv">0</span>)) (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">0</span>) (<span class="kw">=</span> dify <span class="dv">1</span>)))))
-(<span class="bu">defn</span><span class="fu"> find-adjacent-sets</span>
-  [sets [x y]]
-  (<span class="kw">set</span> (<span class="kw">filter</span> (<span class="kw">fn</span> [<span class="kw">set</span>]
-                 (<span class="kw">some</span> (<span class="kw">fn</span> [p]
-                         (check-adjacency p x y))
-                       <span class="kw">set</span>))
-               sets)))
-(<span class="bu">defn</span><span class="fu"> get-char</span>
-  [grid [x y]]
-  (<span class="kw">get</span> (grid y) x))</code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode clojure"><code class="sourceCode clojure"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> abs</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>  <span class="st">&quot;Absolute value of n&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>  [n]</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>  (<span class="kw">if</span> (<span class="kw">neg?</span> n)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>    (<span class="kw">-</span> n)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>    n))</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> check-adjacency</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>  [[posx posy] x y]</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>  (<span class="kw">let</span> [difx (abs (<span class="kw">-</span> posx x))</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>        dify (abs (<span class="kw">-</span> posy y))]</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>    (<span class="kw">or</span> (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">1</span>) (<span class="kw">=</span> dify <span class="dv">0</span>)) (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">0</span>) (<span class="kw">=</span> dify <span class="dv">1</span>)))))</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> find-adjacent-sets</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>  [sets [x y]]</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>  (<span class="kw">set</span> (<span class="kw">filter</span> (<span class="kw">fn</span> [<span class="kw">set</span>]</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>                 (<span class="kw">some</span> (<span class="kw">fn</span> [p]</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true"></a>                         (check-adjacency p x y))</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true"></a>                       <span class="kw">set</span>))</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true"></a>               sets)))</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> get-char</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true"></a>  [grid [x y]]</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true"></a>  (<span class="kw">get</span> (grid y) x))</span></code></pre></div>
 <p>Daha sonra bunları kullanarak problemin çözümü:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">defn</span><span class="fu"> can-reach?</span>
-  [grid]
-  (<span class="kw">let</span> [rang (<span class="kw">for</span> [y (<span class="kw">range</span> (<span class="kw">count</span> grid)) 
-                   x (<span class="kw">range</span> (<span class="kw">count</span> (<span class="kw">first</span> grid)))] [x y])]
-    (<span class="kw">loop</span> [positions rang
-           sets #{}
-           posm <span class="va">nil</span>
-           posc <span class="va">nil</span>]
-      (<span class="kw">if</span> (<span class="kw">nil?</span> positions)
-        (<span class="kw">let</span> [m-set (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="va">%</span> posm) sets))
-              c-set (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="va">%</span> posc) sets))]
-          (<span class="kw">=</span> m-set c-set))
-        (<span class="kw">let</span> [pos (<span class="kw">first</span> positions)
-              ch (get-char grid pos)
-              adj-sets (find-adjacent-sets sets pos)
-              set-count (<span class="kw">count</span> adj-sets)]
-          (<span class="kw">if</span> (<span class="kw">not=</span> ch <span class="at">\#</span>)
-            (<span class="kw">recur</span> (<span class="kw">next</span> positions)
-                   (<span class="kw">conj</span> (<span class="kw">difference</span> sets adj-sets) (<span class="kw">union</span> (<span class="kw">apply</span> <span class="kw">union</span> adj-sets) #{pos}))
-                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\M</span>) pos posm)
-                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\C</span>) pos posc))
-            (<span class="kw">recur</span> (<span class="kw">next</span> positions)
-                   sets
-                   posm
-                   posc)))))))</code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode clojure"><code class="sourceCode clojure"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> can-reach?</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>  [grid]</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>  (<span class="kw">let</span> [rang (<span class="kw">for</span> [y (<span class="kw">range</span> (<span class="kw">count</span> grid)) </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>                   x (<span class="kw">range</span> (<span class="kw">count</span> (<span class="kw">first</span> grid)))] [x y])]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>    (<span class="kw">loop</span> [positions rang</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>           sets #{}</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>           posm <span class="va">nil</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>           posc <span class="va">nil</span>]</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>      (<span class="kw">if</span> (<span class="kw">nil?</span> positions)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>        (<span class="kw">let</span> [m-set (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="va">%</span> posm) sets))</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a>              c-set (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="va">%</span> posc) sets))]</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a>          (<span class="kw">=</span> m-set c-set))</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a>        (<span class="kw">let</span> [pos (<span class="kw">first</span> positions)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true"></a>              ch (get-char grid pos)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true"></a>              adj-sets (find-adjacent-sets sets pos)</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true"></a>              set-count (<span class="kw">count</span> adj-sets)]</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true"></a>          (<span class="kw">if</span> (<span class="kw">not=</span> ch <span class="at">\#</span>)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true"></a>            (<span class="kw">recur</span> (<span class="kw">next</span> positions)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true"></a>                   (<span class="kw">conj</span> (<span class="kw">difference</span> sets adj-sets) (<span class="kw">union</span> (<span class="kw">apply</span> <span class="kw">union</span> adj-sets) #{pos}))</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true"></a>                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\M</span>) pos posm)</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true"></a>                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\C</span>) pos posc))</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true"></a>            (<span class="kw">recur</span> (<span class="kw">next</span> positions)</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true"></a>                   sets</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true"></a>                   posm</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true"></a>                   posc)))))))</span></code></pre></div>
 <p>4clojure çözümlerde birden fazla fonksiyon kabul etmediğinden, tüm yardımcı fonksiyon tanımlarımı ana fonksiyonumun içine almam gerekti. 4clojure’a yolladığım çözüm <a href="https://gist.github.com/1240517">şurda</a>.</p>
 <hr />
 <p>Clojure hakkında karmaşık duygular içerisindeyim(eheh, bir programlama dili hakkında böyle bir cümle kurmak). Pek çok ileri-seviye özelliklerini henüz bilmiyorum. Fonksiyonel programlamayı da, yukarıda bahsettiğim gibi, henüz çözebilmiş değilim. Macroları şu ana kadar hiç kullanmadım. Bu dönem sonuna kadar SICP’in ilk 3 bölümünü bitirip, tüm alıştırma çözümlerini yayınlamayı planlıyorum(ilk bölüm bitti, ikincisi bitmek üzere, birkaç alıştırmayı çözemedim gerçi). Daha sonra McCarthy’nin ilk Lispini bir dilde(büyük ihtimalle C olacak) implement ettikten sonra muhtemelen <a href="http://en.wikipedia.org/wiki/Type_theory">type theory</a>ye dalmak için Haskell(veya daha uygun başka bir Lisp dili) ile uğraşacağım(sonunda muhtemelen bu dediklerimin yarısını falan yapmış olacağım ama olsun eheh).</p>

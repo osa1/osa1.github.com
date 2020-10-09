@@ -20,58 +20,58 @@
             <div class="inner">
                 <h1 id="post-title">A converter from Lua tables to JavaScript objects</h1>
 
-<p><strong>May  6, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/lua.html">lua</a>, <a href="../tags/javascript.html">javascript</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>May  6, 2013</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'lua'." href="../tags/lua.html">lua</a>, <a title="All pages tagged 'javascript'." href="../tags/javascript.html">javascript</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>.</p>
 
 <p>I wrote a simple Haskell program to convert some data encoded as Lua tables to JavaScript objects/arrays to be used in another project of mine:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span>
-<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-<span class="kw">import</span>           <span class="dt">Language.Lua.Parser</span>
-<span class="kw">import</span>           <span class="dt">Language.Lua.Types</span>
-
-<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Language.ECMAScript3.Syntax</span>       <span class="kw">as</span> <span class="dt">JS</span>
-<span class="kw">import</span>           <span class="dt">Language.ECMAScript3.PrettyPrint</span>  (renderExpression)
-
-<span class="kw">import</span>           <span class="dt">System.Environment</span>                (getArgs)
-<span class="kw">import</span>           <span class="dt">Control.Monad</span>
-<span class="kw">import</span>           <span class="dt">Prelude</span>                           <span class="kw">hiding</span> (exp)
-
-<span class="ot">unsupported ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b
-unsupported <span class="fu">=</span> <span class="fu">error</span> <span class="fu">.</span> (<span class="st">&quot;unsupported exp: &quot;</span> <span class="fu">++</span>) <span class="fu">.</span> <span class="fu">show</span>
-
-<span class="kw">class</span> <span class="dt">ToJsExp</span> a <span class="kw">where</span>
-<span class="ot">    toJsExp ::</span> a <span class="ot">-&gt;</span> <span class="dt">JS.Expression</span> ()
-
-<span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Exp</span> a) <span class="kw">where</span>
-    toJsExp (<span class="dt">Nil</span> _) <span class="fu">=</span> <span class="dt">JS.NullLit</span> ()
-    toJsExp (<span class="dt">Bool</span> _ bool) <span class="fu">=</span> <span class="dt">JS.BoolLit</span> () bool
-    toJsExp (<span class="dt">Number</span> _ num) <span class="fu">=</span> <span class="dt">JS.NumLit</span> () (<span class="fu">read</span> num)
-    toJsExp (<span class="dt">String</span> _ str) <span class="fu">=</span> <span class="dt">JS.StringLit</span> () str
-    toJsExp (<span class="dt">TableConst</span> _ table) <span class="fu">=</span> toJsExp table
-    toJsExp unsupportedexp <span class="fu">=</span> unsupported (<span class="fu">fmap</span> (<span class="fu">const</span> ()) unsupportedexp)
-
-<span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Table</span> a) <span class="kw">where</span>
-    toJsExp (<span class="dt">Table</span> _ fields)
-      <span class="fu">|</span> <span class="fu">all</span> arrField fields <span class="fu">=</span>
-          <span class="dt">JS.ArrayLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">Field</span> _ <span class="fu">exp</span>) <span class="ot">-&gt;</span> toJsExp <span class="fu">exp</span>) fields
-      <span class="fu">|</span> <span class="fu">all</span> objField fields <span class="fu">=</span>
-          <span class="dt">JS.ObjectLit</span> () <span class="fu">$</span> <span class="fu">map</span> (\(<span class="dt">NamedField</span> _ (<span class="dt">Name</span> _ name) <span class="fu">exp</span>) <span class="ot">-&gt;</span> (<span class="dt">JS.PropId</span> () (<span class="dt">JS.Id</span> () name), toJsExp <span class="fu">exp</span>)) fields
-      <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> unsupported (<span class="fu">map</span> (<span class="fu">fmap</span> (<span class="fu">const</span> ())) fields)
-
-      <span class="kw">where</span>
-        arrField <span class="dt">Field</span>{} <span class="fu">=</span> <span class="dt">True</span>
-        arrField _       <span class="fu">=</span> <span class="dt">False</span>
-
-        objField <span class="dt">NamedField</span>{} <span class="fu">=</span> <span class="dt">True</span>
-        objField _            <span class="fu">=</span> <span class="dt">False</span>
-
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-    args <span class="ot">&lt;-</span> getArgs
-    contents <span class="ot">&lt;-</span> <span class="fu">readFile</span> (<span class="fu">head</span> args)
-    <span class="kw">case</span> parseText <span class="fu">exp</span> contents <span class="kw">of</span>
-      <span class="dt">Left</span> err <span class="ot">-&gt;</span> <span class="fu">print</span> err
-      <span class="dt">Right</span> result <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="fu">$</span> renderExpression <span class="fu">$</span> toJsExp result</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="ot">{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Language.Lua.Parser</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Language.Lua.Types</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Language.ECMAScript3.Syntax</span>       <span class="kw">as</span> <span class="dt">JS</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Language.ECMAScript3.PrettyPrint</span>  (renderExpression)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">System.Environment</span>                (getArgs)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Control.Monad</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Prelude</span>                           <span class="kw">hiding</span> (exp)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a><span class="ot">unsupported ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>unsupported <span class="ot">=</span> <span class="fu">error</span> <span class="op">.</span> (<span class="st">&quot;unsupported exp: &quot;</span> <span class="op">++</span>) <span class="op">.</span> <span class="fu">show</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a><span class="kw">class</span> <span class="dt">ToJsExp</span> a <span class="kw">where</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a><span class="ot">    toJsExp ::</span> a <span class="ot">-&gt;</span> <span class="dt">JS.Expression</span> ()</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Exp</span> a) <span class="kw">where</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>    toJsExp (<span class="dt">Nil</span> _) <span class="ot">=</span> <span class="dt">JS.NullLit</span> ()</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>    toJsExp (<span class="dt">Bool</span> _ bool) <span class="ot">=</span> <span class="dt">JS.BoolLit</span> () bool</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>    toJsExp (<span class="dt">Number</span> _ num) <span class="ot">=</span> <span class="dt">JS.NumLit</span> () (<span class="fu">read</span> num)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>    toJsExp (<span class="dt">String</span> _ str) <span class="ot">=</span> <span class="dt">JS.StringLit</span> () str</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>    toJsExp (<span class="dt">TableConst</span> _ table) <span class="ot">=</span> toJsExp table</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a>    toJsExp unsupportedexp <span class="ot">=</span> unsupported (<span class="fu">fmap</span> (<span class="fu">const</span> ()) unsupportedexp)</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">ToJsExp</span> (<span class="dt">Table</span> a) <span class="kw">where</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a>    toJsExp (<span class="dt">Table</span> _ fields)</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a>      <span class="op">|</span> <span class="fu">all</span> arrField fields <span class="ot">=</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a>          <span class="dt">JS.ArrayLit</span> () <span class="op">$</span> <span class="fu">map</span> (\(<span class="dt">Field</span> _ <span class="fu">exp</span>) <span class="ot">-&gt;</span> toJsExp <span class="fu">exp</span>) fields</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a>      <span class="op">|</span> <span class="fu">all</span> objField fields <span class="ot">=</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a>          <span class="dt">JS.ObjectLit</span> () <span class="op">$</span> <span class="fu">map</span> (\(<span class="dt">NamedField</span> _ (<span class="dt">Name</span> _ name) <span class="fu">exp</span>) <span class="ot">-&gt;</span> (<span class="dt">JS.PropId</span> () (<span class="dt">JS.Id</span> () name), toJsExp <span class="fu">exp</span>)) fields</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true"></a>      <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> unsupported (<span class="fu">map</span> (<span class="fu">fmap</span> (<span class="fu">const</span> ())) fields)</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true"></a>      <span class="kw">where</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true"></a>        arrField <span class="dt">Field</span>{} <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true"></a>        arrField _       <span class="ot">=</span> <span class="dt">False</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true"></a></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true"></a>        objField <span class="dt">NamedField</span>{} <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true"></a>        objField _            <span class="ot">=</span> <span class="dt">False</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true"></a></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true"></a>    args <span class="ot">&lt;-</span> getArgs</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true"></a>    contents <span class="ot">&lt;-</span> <span class="fu">readFile</span> (<span class="fu">head</span> args)</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true"></a>    <span class="kw">case</span> parseText <span class="fu">exp</span> contents <span class="kw">of</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true"></a>      <span class="dt">Left</span> err <span class="ot">-&gt;</span> <span class="fu">print</span> err</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true"></a>      <span class="dt">Right</span> result <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="op">$</span> renderExpression <span class="op">$</span> toJsExp result</span></code></pre></div>
 <p>It uses <a href="http://hackage.haskell.org/package/language-lua">language-lua</a>, a Lua parser and pretty-printer which I wrote to use in some other project of mine(a static analysis tool for Lua, I have big plans about it) and <a href="http://hackage.haskell.org/package/language-ecmascript">language-ecmascript</a>, JavaScript parser and pretty-printer.</p>
 
 <hr />

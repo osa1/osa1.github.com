@@ -20,91 +20,91 @@
             <div class="inner">
                 <h1 id="post-title">Rowlar, kindlar ve tip çıkarımı hakkında öylesine bir yazı</h1>
 
-<p><strong>February 15, 2013</strong> - Tagged as: <a href="../tags/ocaml.html">ocaml</a>, <a href="../tags/types.html">types</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>February 15, 2013</strong> - Tagged as: <a title="All pages tagged 'ocaml'." href="../tags/ocaml.html">ocaml</a>, <a title="All pages tagged 'types'." href="../tags/types.html">types</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Bu yazı birkaç gün önce attığım bir mail aslında. Acele ile yazılmış bir yazı olmasına rağmen epey uzun oldu ve maili yazmaya başlamadan önce kafamda karmaşık bir şekilde duran bazı fikirleri toparlamamda yardımcı oldu. Pek kimsenin işine yarayacağını tahmin etmesem de, yine de buraya koyuyorum. Küçük bazı düzenlemeler yaptım. Eklemeler ise yazının en altına yazıldı. Kodlar OCaml dilinde yazıldı.</p>
 <hr />
-<p>Üzerinde çalıştığım dilin tip sistemi hakkında<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> ty =
-  | ...
-  | TRow <span class="kw">of</span> tyrow
-  | ...
-
-<span class="kw">type</span> fieldty =
-  | Pre ty
-  | Btm <span class="co">(* Abs ismi lambda abstractionlarda kullanildi *)</span>
-
-<span class="kw">type</span> tyrow =
-  | EmptyRow
-  | Row (id * ty * ..<span class="dv">1</span>..)
-  | ..<span class="dv">2</span>..</code></pre></div>
+<p>Üzerinde çalıştığım dilin tip sistemi hakkında<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">type</span> ty =</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>  | ...</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>  | TRow <span class="kw">of</span> tyrow</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>  | ...</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="kw">type</span> fieldty =</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>  | Pre ty</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>  | Btm <span class="co">(* Abs ismi lambda abstractionlarda kullanildi *)</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a><span class="kw">type</span> tyrow =</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>  | EmptyRow</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>  | Row (id * ty * ..<span class="dv">1</span>..)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>  | ..<span class="dv">2</span>..</span></code></pre></div>
 <p>1 ve 2 boşluklarını doldurmamız gerekiyor. Sorunlar şunlar:</p>
 <p>1 kısmına yazdığımız tip, sadece yine kendi tipiyle(yani <code>TRow</code> ile) unify etmek zorunda(ilk bakışta <code>tyrow</code> yazmak mantıklı gibi geliyor ama bu yüzden değil).</p>
 <p>2 kısmına yazdığımız constructor polymorphic row’u temsil edecek. Burada ben ilk başta aslında row değişkenlerini tamamen yok sayıp, recordlar extensible mı değil mi diye bir boolean flag tutayım demiştim. Fakat sorun, recordlar rowları paylaşabiliyorlar, örneğin şöyle bir fonksiyonda <code>\r -&gt; r.x = 10</code> tip <code>{r/x} -&gt; {x:int|r/x}</code> oluyor, başka bir yerde bu <code>r</code> kullanılabilir(parametre olarak verilen record başka yerlerde kullanıldığında fonksiyonun dönüş değeri olan recordın row değişkeni ile aynı row değişkenine sahip birden fazla record oluyor). Dolayısıyla bir değişken olmak zorunda.</p>
 <p>Fakat bu <code>typevar</code> tipinde olamaz, çünkü <code>typevar</code> bir <code>ty</code> ile unify edilebiliyor. Rowlarda ise <code>tyrow</code> ile unify etmek istiyoruz. Ayrı bir tip gerekiyor yani.</p>
-<p>Temel olarak row variable ile normal variable tamamen aynı olmalı, tek farkla, row değişkenler sadece row değişkenlerle/değerler ile unify edecek, variablelar da aynı şekilde.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
+<p>Temel olarak row variable ile normal variable tamamen aynı olmalı, tek farkla, row değişkenler sadece row değişkenlerle/değerler ile unify edecek, variablelar da aynı şekilde.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
 <h3 id="neden-tip-seviyesinde-kindlara-ihtiyaç-var">Neden tip seviyesinde kindlara ihtiyaç var ?</h3>
-<p>Type schemeler row değişkenler de tutabilir. <code>let</code> ile bir fonksiyon tanımladım, fonksiyon tipindeki free type variableları generalize ederek(terimler teminoloji ile uyumlu olsun diye ingilizce kullanıldı) bu fonksiyon polymorphic hale getiriliyor ve tipi <code>TypeScheme</code> olarak tutuluyor, quantified değişkenler belirtiliyor.<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a></p>
+<p>Type schemeler row değişkenler de tutabilir. <code>let</code> ile bir fonksiyon tanımladım, fonksiyon tipindeki free type variableları generalize ederek(terimler teminoloji ile uyumlu olsun diye ingilizce kullanıldı) bu fonksiyon polymorphic hale getiriliyor ve tipi <code>TypeScheme</code> olarak tutuluyor, quantified değişkenler belirtiliyor.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></p>
 <p>Daha sonra bu fonksiyon kullanıldığında instantiate ediliyor. Burada instantiate edilen quantified değişkenler yerine ancak kendi kindlarında tiplerin konulması bir şekilde sağlanmalı.</p>
 <p>Yani şunu demeye çalışıyorum, elimde bir row variable varsa, bu ancak bir row tipi ile yer değiştirebilir(yerine ancak row tipi yazılabilir). Bunu implementasyon sırasında tip sistemi ile garanti etmek gerçekten zor. İnsanlar bu yüzden kind sistemi kullanıyorlar sanırım.</p>
-<p>Kind kullanırsam şöyle oluyor, her tipe bir kind veriyorum. Özet geçmek gerekirse, mesela TVar bir type değişkeni tutuyordu, şimdi bir de kind tutacak. Kindlar ise dilimde kaç tip -birbirlerinden farklı- type varsa, o kadar olacak. Örneğin <code>Star</code> int, bool gibi tipler için kullanılırken, <code>Row</code> row tipleri için kullanılır. Bu sayede bir değişkenim Row kindında ise, quantified edilse de instantiate edilse de bu bilgi taşınır ve en son yerine yazılacağında kind kontrol edilir. Tüm yerine yazmalar <code>kind-preserving</code> olmalıdır.<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a></p>
+<p>Kind kullanırsam şöyle oluyor, her tipe bir kind veriyorum. Özet geçmek gerekirse, mesela TVar bir type değişkeni tutuyordu, şimdi bir de kind tutacak. Kindlar ise dilimde kaç tip -birbirlerinden farklı- type varsa, o kadar olacak. Örneğin <code>Star</code> int, bool gibi tipler için kullanılırken, <code>Row</code> row tipleri için kullanılır. Bu sayede bir değişkenim Row kindında ise, quantified edilse de instantiate edilse de bu bilgi taşınır ve en son yerine yazılacağında kind kontrol edilir. Tüm yerine yazmalar <code>kind-preserving</code> olmalıdır.<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a></p>
 <p>Bu sayede farklı kindlarda type variablelar için aynı fonksiyonları kullanabilirim, sürekli kind bilgisini de taşırım. En son substitution veya unification yaparken, kindların korunup korunmadığını kontrol ederim ve normal type değişkeni yerine row type yazılmamasını sağlarım veya unification sırasında hata alırım.</p>
 <p>–</p>
 <p>Kindlarla beraber tipleri şu şekilde tanımlayabiliyoruz(yaklaşık olarak, henüz programı yazmadım)</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> kind =
-  | KStar                 <span class="co">(* kind of term types *)</span>
-  | KRow                  <span class="co">(* kind of row types *)</span>
-  | KArr <span class="kw">of</span> (kind * kind) <span class="co">(* kind of type constructors *)</span>
-
-<span class="kw">type</span> ty =
-  | TCon <span class="kw">of</span> tycon     <span class="co">(* constant *)</span>
-  | TVar <span class="kw">of</span> tyvar     <span class="co">(* type variable *)</span>
-  | TApp <span class="kw">of</span> (ty * ty)
-      <span class="co">(* type application, to be well-typed</span>
-<span class="co">         kind of first ty should be KArr (k2, k)</span>
-<span class="co">         and second ty should be k2 *)</span>
-<span class="kw">and</span> tyvar = (tyvarlink <span class="dt">ref</span> * kind)
-<span class="kw">and</span> tyvarlink =
-  | NoLink <span class="kw">of</span> id <span class="co">(* just a type variable *)</span>
-  | LinkTo <span class="kw">of</span> ty <span class="co">(* equated to a ty *)</span>
-<span class="kw">and</span> tycon = (id * kind) <span class="co">(* kind should be always KStar *)</span>
-
-<span class="kw">let</span> t_int        = TCon (<span class="st">&quot;int&quot;</span>,  KStar)
-<span class="kw">let</span> t_bool       = TCon (<span class="st">&quot;bool&quot;</span>, KStar)
-<span class="kw">let</span> t_unit       = TCon (<span class="st">&quot;unit&quot;</span>, KStar)
-<span class="kw">let</span> t_list       = TCon (<span class="st">&quot;[]&quot;</span>,   KArr (KStar, KStar))
-<span class="kw">let</span> t_ref        = TCon (<span class="st">&quot;ref&quot;</span>,  KArr (KStar, KStar))
-<span class="kw">let</span> t_arr        = TCon (<span class="st">&quot;-&gt;&quot;</span>,   KArr (KStar, KArr (KStar, KStar)))
-<span class="kw">let</span> t_empty_row  = TCon (<span class="st">&quot;&lt;|&gt;&quot;</span>,  KRow)
-<span class="kw">let</span> t_row_ext    = TCon (<span class="st">&quot;&lt;+&gt;&quot;</span>,  KArr (KStar, KArr (KRow, KRow)))
-<span class="kw">let</span> t_rec_const  = TCon (<span class="st">&quot;{_}&quot;</span>,  KArr (KRow, KStar))
-
-<span class="co">(* type of {r1} *)</span>
-<span class="kw">let</span> rp1 = TApp (t_rec_const, TVar (<span class="dt">ref</span> (NoLink <span class="st">&quot;r1&quot;</span>), KRow))
-
-<span class="co">(* type of {r1} -&gt; {_:int|r1} *)</span>
-<span class="kw">let</span> f   = TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), rp1))</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">type</span> kind =</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  | KStar                 <span class="co">(* kind of term types *)</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>  | KRow                  <span class="co">(* kind of row types *)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>  | KArr <span class="kw">of</span> (kind * kind) <span class="co">(* kind of type constructors *)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a><span class="kw">type</span> ty =</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>  | TCon <span class="kw">of</span> tycon     <span class="co">(* constant *)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>  | TVar <span class="kw">of</span> tyvar     <span class="co">(* type variable *)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>  | TApp <span class="kw">of</span> (ty * ty)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>      <span class="co">(* type application, to be well-typed</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a><span class="co">         kind of first ty should be KArr (k2, k)</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a><span class="co">         and second ty should be k2 *)</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a><span class="kw">and</span> tyvar = (tyvarlink <span class="dt">ref</span> * kind)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a><span class="kw">and</span> tyvarlink =</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a>  | NoLink <span class="kw">of</span> id <span class="co">(* just a type variable *)</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>  | LinkTo <span class="kw">of</span> ty <span class="co">(* equated to a ty *)</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a><span class="kw">and</span> tycon = (id * kind) <span class="co">(* kind should be always KStar *)</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a><span class="kw">let</span> t_int        = TCon (<span class="st">&quot;int&quot;</span>,  KStar)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true"></a><span class="kw">let</span> t_bool       = TCon (<span class="st">&quot;bool&quot;</span>, KStar)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true"></a><span class="kw">let</span> t_unit       = TCon (<span class="st">&quot;unit&quot;</span>, KStar)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true"></a><span class="kw">let</span> t_list       = TCon (<span class="st">&quot;[]&quot;</span>,   KArr (KStar, KStar))</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true"></a><span class="kw">let</span> t_ref        = TCon (<span class="st">&quot;ref&quot;</span>,  KArr (KStar, KStar))</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true"></a><span class="kw">let</span> t_arr        = TCon (<span class="st">&quot;-&gt;&quot;</span>,   KArr (KStar, KArr (KStar, KStar)))</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true"></a><span class="kw">let</span> t_empty_row  = TCon (<span class="st">&quot;&lt;|&gt;&quot;</span>,  KRow)</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true"></a><span class="kw">let</span> t_row_ext    = TCon (<span class="st">&quot;&lt;+&gt;&quot;</span>,  KArr (KStar, KArr (KRow, KRow)))</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true"></a><span class="kw">let</span> t_rec_const  = TCon (<span class="st">&quot;{_}&quot;</span>,  KArr (KRow, KStar))</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true"></a><span class="co">(* type of {r1} *)</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true"></a><span class="kw">let</span> rp1 = TApp (t_rec_const, TVar (<span class="dt">ref</span> (NoLink <span class="st">&quot;r1&quot;</span>), KRow))</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true"></a><span class="co">(* type of {r1} -&gt; {_:int|r1} *)</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true"></a><span class="kw">let</span> f   = TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), rp1))</span></code></pre></div>
 <p>En sonraki iki tanım örnek olsun diyeydi.</p>
-<p>Karmaşık olduğunun farkındayım ama 1) bu tip sistemi implementasyonları için standard yol gibi geldi bana(çok fazla makalede kind sistemlerinden bahsediliyor) 2) diğer türlü de daha az karmaşık değil gibi.<a href="#fn5" class="footnote-ref" id="fnref5"><sup>5</sup></a></p>
+<p>Karmaşık olduğunun farkındayım ama 1) bu tip sistemi implementasyonları için standard yol gibi geldi bana(çok fazla makalede kind sistemlerinden bahsediliyor) 2) diğer türlü de daha az karmaşık değil gibi.<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a></p>
 <p>Burda mesela <code>TApp</code> oluşturan bir yardımcı fonksiyon oluştururuz ve kindları kontrol eder, uyumlu mu diye, bir miktar daha kolaylaşır. Yardımcı fonksiyonlarla işi kolaylaştırabiliriz diye düşünüyorum yani.</p>
 <p>Bu örnekde <code>rp1</code> yerine mesela <code>{a:bool}</code> (yani <code>TApp (TApp (t_rec_ext, bool_ty), t_empty_row)</code>) yazarsak:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), TApp (TApp (t_rec_ext, bool_ty), t_empty_row)))</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>TApp (TApp (t_arr, rp1), TApp (TApp (t_row_ext, t_int), TApp (TApp (t_rec_ext, bool_ty), t_empty_row)))</span></code></pre></div>
 <p>Bana gayet temiz bir şekilde <code>{x:int, a:bool}</code> elde ettik gibi geliyor ve tek yaptığımız yerine yazmak oldu. ( bu sunumda labelların atlandığının farkındayım, tam olarak labelları nasıl bu sisteme entegre ederim düşünmedim )</p>
-<p>Diğer türlü yapılamaz mı, tabii ki yapılabilir ve ben zaten çok yaklaşmıştım. Fakat çirkin olmayan bir yolu yok. Kod içerisinde şöyle kısımlar olmak <em>zorunda</em> gibi: “implementasyonum doğru olduğuna göre bu type variable record ile unify edilmiş olacak, exhaustive olmayan pattern matching yap”. Mesela tüm row değişkenler bir record’a unify edilimş olacak, ben pattern matching ile fieldları alacağım kendi recordıma ekleyeceğim vs.<a href="#fn6" class="footnote-ref" id="fnref6"><sup>6</sup></a></p>
+<p>Diğer türlü yapılamaz mı, tabii ki yapılabilir ve ben zaten çok yaklaşmıştım. Fakat çirkin olmayan bir yolu yok. Kod içerisinde şöyle kısımlar olmak <em>zorunda</em> gibi: “implementasyonum doğru olduğuna göre bu type variable record ile unify edilmiş olacak, exhaustive olmayan pattern matching yap”. Mesela tüm row değişkenler bir record’a unify edilimş olacak, ben pattern matching ile fieldları alacağım kendi recordıma ekleyeceğim vs.<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a></p>
 <p>Ama kindler ile yaptığımda bu gibi durumlar olmayacak, ben <code>TApp</code>’lar ile typelar oluşturacağım, kind preserving substitutionlar, generalizationlar, instantiationlar yapılacağından, her zaman row tiplerim well-formed olmuş olacak ben hiçbir kontrol yapmadan <code>TApp</code>’ler oluşturmaya başlayacağım.</p>
 <p>Ben bugün akşam birkaç makale daha inceleyeceğim: Type Inference for Records in a Natural Extension of ML (Didier Rémy) ve A Polymorphic Type System for Extensible Records and Variants (Mark P. Jones, Benedict R. Gaster). Bir de Typing Haskell in Haskell (Mark P. Jones)’a baktım, Haskell’da burada konuştuğumuz anlamda recordlar yok, ama kind sisteminden bahsederken “row kindlar da kolayca eklenebilir” diyerek sanırım yukarıda yaptığım şeyi kastetmekte.</p>
 <p>Bu nasıl olabiliyor anlayabilmiş değilim ama gerçekten internette hiç örnek implementasyon yok. Bu yüzden ben bir tane yazacağım blog yazısı olarak. Polymorphic recordlara sahip bir dil inceleyeyim dedim, bir tanesi <a href="http://elm-lang.org/">Elm</a> adlı bir dil, kaynağı Haskell ile yazılmış temel olarak “Scoped Labels” makalesini kullanmış, ama kod berbat bir durumda. Çok çok karmaşık, kod stili berbat(type annotationlarını atlamış, Haskell’da bunu hiçbir zaman yapmayız, derleyici uyarı verir, annotationlar OCaml’daki gibi kodun içine yazılmaz, ayrı bir satıra yazılır ve anlaşılabilmeye çok katkı sağlarlar) vs. Yine de okunacak olursa en mantıklısı bu.</p>
-<p>İkincisi <a href="http://www.pllab.riec.tohoku.ac.jp/smlsharp/">SML#</a>. Bu da ne yazık ki SML üzerine implement edilmiş ve kaynak kodu devasa. Tüm SML kodunu incelemek gerekecek yani(aradım bulamadım alakalı kısımları).<a href="#fn7" class="footnote-ref" id="fnref7"><sup>7</sup></a></p>
-<section class="footnotes">
+<p>İkincisi <a href="http://www.pllab.riec.tohoku.ac.jp/smlsharp/">SML#</a>. Bu da ne yazık ki SML üzerine implement edilmiş ve kaynak kodu devasa. Tüm SML kodunu incelemek gerekecek yani(aradım bulamadım alakalı kısımları).<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a></p>
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Özetle, row polymorphism’e sahip, multi-staged bir dil. Buradaki veri yapısı dilin tip sistemini ifade ediyor. Row tiplerine dikkat. Row polymorphism’de fieldlar üzerinde bazı kısıtlar tanımlamanın birkaç yolu var. Bir yol, benim burada yaptığım ve <a href="http://gallium.inria.fr/~remy/publications.html">D. Rémy</a>’nin “Type inference for records in a natural extension of ML” ve başka makalelerinde gösterdiği gibi, field tiplerinde bir çeşit “flag” tutmak. Makalelerde Abs/Pre diye geçer, benim kodumda Pre/Btm. Bu yolun bu işi yapmak en bariz yol olduğunu söyleyebiliriz belki. Fakat kesinlikle en kolay/güzel yötem değil. Alternatif olarak kısıtlar constraint seviyesinde, kind seviyesinde veya başka bazı seviyelerde tanımlanabiliyor.<a href="#fnref1" class="footnote-back">↩</a></p></li>
-<li id="fn2"><p>Burada anlatmaya çalıştığım problem bana çok vakit kaybettirdi ve aslında pek çok kişiye tanıdık gelebilir. Kısaca yapmaya çalıştığım şey, bazı şeyleri statik olarak garanti etmek için tip sistemini kullanmaya çalışmak. Örneğin bir programlama dilinde syntax ağacını well-formed olmayan programları ifade edebilmesini engelleyecek şekilde oluşturmak gibi. Bu gibi durumlarda eğer yeterince güçlü tip sisteminiz yoksa(örnek: GADTler yardımcı olabiliyor) işiniz çok zorlaşabiliyor. Daha kolay bir yöntemi runtime’da bunu garantilemek. Hemen sonrasında anlattığım şey tam olarak bu aslında. Statik garantiler verebilmek süper birşey aslında. Hiçbir şart altında programınızın yanlış çalışmayacağını garanti altına alıyorsunuz. Ama bazı durumlarda bu mümkün ama çok zor olabiliyor. Diğer yandan, zor da olsa bir kere implement ettikten sonra kesin olarak doğru çalışacağından emin olabiliyorsunuz. Veya test etmesi çok kolay oluyor vs.<a href="#fnref2" class="footnote-back">↩</a></p></li>
-<li id="fn3"><p>Anlattığım şey Damas-Hindley-Milner tip sisteminin temellerinden aslında.<a href="#fnref3" class="footnote-back">↩</a></p></li>
-<li id="fn4"><p>Kindları kendi kendime keşfettiğim an. Aslında Haskell programcısı olduğumdan kind konspetine aşinaydım, ama bu şekilde kullanımı bir bakıma kendi kendime keşfettim diyebilirim. Kind adını da ben vermedim tabii, daha sonra hakkında okudukça farkettim.<a href="#fnref4" class="footnote-back">↩</a></p></li>
-<li id="fn5"><p>“diğer türlü daha az karmaşık değil gibi” derken kastettiğim, Rémy usulü, field tiplerine bir flag koyarak Abs/Pre özelliğini belirtmekti.<a href="#fnref5" class="footnote-back">↩</a></p></li>
-<li id="fn6"><p>Burda aslında biraz programımın implementasyonu ile alakalı detaylardan bahsediyorum. Belki bir ara biraz daha açarım.<a href="#fnref6" class="footnote-back">↩</a></p></li>
-<li id="fn7"><p>Daha sonradan farkettim ki bir alternatif daha varmış: “Extensible records with scoped labels” makalesinde bahsedilenlerin implement edildiği <a href="http://www.equational.org/morrow/">Morrow</a> programlama dili. En iyi implementasyon şimdilik bu. Tek problemi, kurulmak için <a href="http://www.cs.uu.nl/wiki/HUT/AttributeGrammarSystem">UUAG attribute grammar system</a>a ihtiyaç duyması. Bir de eğer sadece type inference yapmasın, bir de çalıştırsın derseniz, OCaml’a ihtiyaç duyuyor. Evet çok fantastik. Haskell ile statik analiz kısımları yapılıyor ve OCaml’a derleniyor. Tabii programın asıl olayı tip sistemi olduğundan, deneme için yazdığınız programları çalıştırmak istemeyebilirsiniz, o zaman OCaml’a gerek yok.<a href="#fnref7" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>Özetle, row polymorphism’e sahip, multi-staged bir dil. Buradaki veri yapısı dilin tip sistemini ifade ediyor. Row tiplerine dikkat. Row polymorphism’de fieldlar üzerinde bazı kısıtlar tanımlamanın birkaç yolu var. Bir yol, benim burada yaptığım ve <a href="http://gallium.inria.fr/~remy/publications.html">D. Rémy</a>’nin “Type inference for records in a natural extension of ML” ve başka makalelerinde gösterdiği gibi, field tiplerinde bir çeşit “flag” tutmak. Makalelerde Abs/Pre diye geçer, benim kodumda Pre/Btm. Bu yolun bu işi yapmak en bariz yol olduğunu söyleyebiliriz belki. Fakat kesinlikle en kolay/güzel yötem değil. Alternatif olarak kısıtlar constraint seviyesinde, kind seviyesinde veya başka bazı seviyelerde tanımlanabiliyor.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>Burada anlatmaya çalıştığım problem bana çok vakit kaybettirdi ve aslında pek çok kişiye tanıdık gelebilir. Kısaca yapmaya çalıştığım şey, bazı şeyleri statik olarak garanti etmek için tip sistemini kullanmaya çalışmak. Örneğin bir programlama dilinde syntax ağacını well-formed olmayan programları ifade edebilmesini engelleyecek şekilde oluşturmak gibi. Bu gibi durumlarda eğer yeterince güçlü tip sisteminiz yoksa(örnek: GADTler yardımcı olabiliyor) işiniz çok zorlaşabiliyor. Daha kolay bir yöntemi runtime’da bunu garantilemek. Hemen sonrasında anlattığım şey tam olarak bu aslında. Statik garantiler verebilmek süper birşey aslında. Hiçbir şart altında programınızın yanlış çalışmayacağını garanti altına alıyorsunuz. Ama bazı durumlarda bu mümkün ama çok zor olabiliyor. Diğer yandan, zor da olsa bir kere implement ettikten sonra kesin olarak doğru çalışacağından emin olabiliyorsunuz. Veya test etmesi çok kolay oluyor vs.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p>Anlattığım şey Damas-Hindley-Milner tip sisteminin temellerinden aslında.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>Kindları kendi kendime keşfettiğim an. Aslında Haskell programcısı olduğumdan kind konspetine aşinaydım, ama bu şekilde kullanımı bir bakıma kendi kendime keşfettim diyebilirim. Kind adını da ben vermedim tabii, daha sonra hakkında okudukça farkettim.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5" role="doc-endnote"><p>“diğer türlü daha az karmaşık değil gibi” derken kastettiğim, Rémy usulü, field tiplerine bir flag koyarak Abs/Pre özelliğini belirtmekti.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6" role="doc-endnote"><p>Burda aslında biraz programımın implementasyonu ile alakalı detaylardan bahsediyorum. Belki bir ara biraz daha açarım.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7" role="doc-endnote"><p>Daha sonradan farkettim ki bir alternatif daha varmış: “Extensible records with scoped labels” makalesinde bahsedilenlerin implement edildiği <a href="http://www.equational.org/morrow/">Morrow</a> programlama dili. En iyi implementasyon şimdilik bu. Tek problemi, kurulmak için <a href="http://www.cs.uu.nl/wiki/HUT/AttributeGrammarSystem">UUAG attribute grammar system</a>a ihtiyaç duyması. Bir de eğer sadece type inference yapmasın, bir de çalıştırsın derseniz, OCaml’a ihtiyaç duyuyor. Evet çok fantastik. Haskell ile statik analiz kısımları yapılıyor ve OCaml’a derleniyor. Tabii programın asıl olayı tip sistemi olduğundan, deneme için yazdığınız programları çalıştırmak istemeyebilirsiniz, o zaman OCaml’a gerek yok.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

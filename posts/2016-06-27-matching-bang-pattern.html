@@ -20,40 +20,40 @@
             <div class="inner">
                 <h1 id="post-title">On matching bang patterns</h1>
 
-<p><strong>June 27, 2016</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>June 27, 2016</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>.</p>
 
 <p>I thought a bang pattern is all about <code>seq</code>. That may actually be true, but when that <code>seq</code> is happening may not be obvious. Even after ~5 years of Haskell I was initially very confused by this, and in fact at first I thought it was a bug:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T</span> <span class="fu">=</span> <span class="dt">A</span> <span class="fu">|</span> <span class="dt">B</span> <span class="fu">|</span> <span class="dt">C</span>
-
-<span class="ot">fn5 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">T</span>] <span class="ot">-&gt;</span> <span class="dt">Int</span>
-fn5  i []       <span class="fu">=</span> i
-fn5  i (<span class="dt">A</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 (i <span class="fu">+</span> <span class="dv">1</span>) ts
-fn5 <span class="fu">!</span>i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts
-fn5  i (<span class="dt">C</span> <span class="fu">:</span> ts) <span class="fu">=</span> fn5 <span class="dv">0</span> ts</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">T</span> <span class="ot">=</span> <span class="dt">A</span> <span class="op">|</span> <span class="dt">B</span> <span class="op">|</span> <span class="dt">C</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="ot">fn5 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">T</span>] <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>fn5  i []       <span class="ot">=</span> i</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>fn5  i (<span class="dt">A</span> <span class="op">:</span> ts) <span class="ot">=</span> fn5 (i <span class="op">+</span> <span class="dv">1</span>) ts</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>fn5 <span class="op">!</span>i (<span class="dt">B</span> <span class="op">:</span> ts) <span class="ot">=</span> fn5 (i <span class="op">+</span> <span class="dv">2</span>) ts</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>fn5  i (<span class="dt">C</span> <span class="op">:</span> ts) <span class="ot">=</span> fn5 <span class="dv">0</span> ts</span></code></pre></div>
 <p>The question is, given these definitions, what does this evaluate to, and why:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 <span class="fu">undefined</span> [<span class="dt">C</span>]</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>fn5 <span class="fu">undefined</span> [<span class="dt">C</span>]</span></code></pre></div>
 <p>This question is basically a <code>BangPatterns</code> question. The key point is that a bang pattern <em>first evaluates the value</em> to match, then looks at the pattern. This is from GHC 8.0.1 user manual, <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#bang-patterns-informal">section 9.28.1</a>:</p>
 <blockquote>
 <p>Matching an expression e against a pattern !p is done by first evaluating e (to WHNF) and then matching the result against p.</p>
 </blockquote>
 <p>My initial thought was that this example would not crash because the pattern <code>i</code> always matches, and since second argument is only matched by last case of this definition, which doesn’t evaluate <code>i</code>, <code>i</code> would not get evaluated.</p>
 <p>Or in other words, I thought all this bang pattern does is to add a <code>seq</code>, <em>to the RHS</em>:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell">fn5 i (<span class="dt">B</span> <span class="fu">:</span> ts) <span class="fu">=</span> i <span class="ot">`seq`</span> fn5 (i <span class="fu">+</span> <span class="dv">2</span>) ts</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>fn5 i (<span class="dt">B</span> <span class="op">:</span> ts) <span class="ot">=</span> i <span class="ot">`seq`</span> fn5 (i <span class="op">+</span> <span class="dv">2</span>) ts</span></code></pre></div>
 <p>which is not what it really does!</p>
 <hr />
 <p>Before bang patterns, I think this pattern was considered as the standard way of forcing a function argument (mostly used for accumulator arguments):</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell">f acc _ <span class="fu">|</span> acc <span class="ot">`seq`</span> <span class="dt">False</span> <span class="fu">=</span> <span class="fu">undefined</span>
-f acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></div>
-<p>The guard in first equation always fails, but it forces the <code>acc</code> by the time it fails. While this looks bad<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, it compiles to nice code after a case-of-case transformation, and it evaluates <code>acc</code> as first thing to do whenever it’s applied to two arguments.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>f acc _ <span class="op">|</span> acc <span class="ot">`seq`</span> <span class="dt">False</span> <span class="ot">=</span> <span class="fu">undefined</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>f acc arg <span class="ot">=</span> <span class="op">...</span></span></code></pre></div>
+<p>The guard in first equation always fails, but it forces the <code>acc</code> by the time it fails. While this looks bad<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, it compiles to nice code after a case-of-case transformation, and it evaluates <code>acc</code> as first thing to do whenever it’s applied to two arguments.</p>
 <p>Now, with <code>BangPatterns</code>, we get to do this:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">!</span>acc arg <span class="fu">=</span> <span class="fu">...</span></code></pre></div>
-<p>Which is good when we have one equation only, but when we have multiple equations like in <code>fn5</code> above, we need add bang patterns to every equation, or we risk having bugs<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a>f <span class="op">!</span>acc arg <span class="ot">=</span> <span class="op">...</span></span></code></pre></div>
+<p>Which is good when we have one equation only, but when we have multiple equations like in <code>fn5</code> above, we need add bang patterns to every equation, or we risk having bugs<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
 <p>So in short, we don’t have a good solution for saying a function is strict on some arguments, without risking bugs (by trying to add minimum number of bangs) or adding a lot of them.</p>
-<section class="footnotes">
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>I don’t like seeing <code>undefined</code>s like this, because I reserve them for code that’s not yet implemented but needs to be implemented. Using <code>undefined</code> as a proxy is also not OK these days, as we have <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#visible-type-application">visible type applications in GHC 8.0.1</a> and <a href="http://hackage.haskell.org/package/base-4.9.0.0/docs/Data-Proxy.html"><code>Proxy</code> in base</a> since <code>base-4.7</code>.<a href="#fnref1" class="footnote-back">↩</a></p></li>
-<li id="fn2"><p>I don’t mean semantic bugs, rather, unexpected memory usage etc. caused by not forcing thunks on time.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>I don’t like seeing <code>undefined</code>s like this, because I reserve them for code that’s not yet implemented but needs to be implemented. Using <code>undefined</code> as a proxy is also not OK these days, as we have <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#visible-type-application">visible type applications in GHC 8.0.1</a> and <a href="http://hackage.haskell.org/package/base-4.9.0.0/docs/Data-Proxy.html"><code>Proxy</code> in base</a> since <code>base-4.7</code>.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>I don’t mean semantic bugs, rather, unexpected memory usage etc. caused by not forcing thunks on time.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

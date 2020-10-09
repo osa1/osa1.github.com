@@ -20,125 +20,125 @@
             <div class="inner">
                 <h1 id="post-title">Binary dosyaları okumak için basit bir DSL</h1>
 
-<p><strong>January 31, 2012</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>January 31, 2012</strong> - Tagged as: <a title="All pages tagged 'lisp'." href="../tags/lisp.html">lisp</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Hiçbir motivasyonum olmaksızın Common Lisp ile uğraştığım şu günlerde(şu ana kadar kullandığım diller arasında bariz bir şekilde kullanması en zevkli olanı, bu konu hakkında bir yazı yazdım birkaç düzenlemeye hazır olur), staj projem için yaptığım çalışmalar sırasında öğrendiğim bazı şeyleri Common Lisp ile uyguluyorum. Bunlardan birisi de JVM yapısı. Common Lisp ile basit bir JVM işine giriştim. Şimdilik epey iyi gidiyorum, amacım birkaç JVM komutu(instructuion, opcode, artık ne derseniz) çalıştırabilen bir altyapı. Tüm native kütüphaneleriyle beraber Java programlarını çalıştırabilecek bir JVM yapmıyorum tabii ki.</p>
 <p>İlk adım olarak bir Java class dosyasını okuyup, istediğim kısımlarına kolayla ulaşabileceğim bir şekilde yüklemekti. class dosyalarının yapısını <a href="http://java.sun.com/docs/books/jvms/second_edition/html/ClassFile.doc.html">şuradan</a> inceleyebilirsiniz.</p>
 <p>Bunu yaparken bazı kod parçalarının çok tekrar ettiğini farkettim, örneğin n byte’lık bir kısmı, bir sonraki kısımdan(bu 1 byte’lık bir veri de olabilir, tamamen farklı bir yapı da olabilir, örneğin bir interface referansı) kaç tane olduğunu bilmek için okumak. Şu şekilde birşeyler yani:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">let*</span> ((constant-count (read-bytes <span class="dv">2</span> <span class="kw">stream</span>))
-       (constants (<span class="kw">make-array</span> constant-count)))
-  (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="op">1-</span> constant-count) <span class="kw">do</span>
-    (<span class="kw">setf</span> (<span class="kw">elt</span> constants i) (read-constant <span class="kw">stream</span>))))</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>(<span class="kw">let*</span> ((constant-count (read-bytes <span class="dv">2</span> <span class="kw">stream</span>))</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>       (constants (<span class="kw">make-array</span> constant-count)))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>  (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="op">1-</span> constant-count) <span class="kw">do</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>    (<span class="kw">setf</span> (<span class="kw">elt</span> constants i) (read-constant <span class="kw">stream</span>))))</span></code></pre></div>
 <p>Burda yaptığım, 2 byte okuyarak constant pool’da kaç tane sabit olduğunu öğrenmek. Buna göre kaç byte daha okuyacağıma karar vereceğim çünkü.</p>
 <p>Tabii bir de class dosyasının istediğim kısımlarına kolayca ulaşabilmek için dosyayı farklı parçaları için structlara bölmem gerekti. Bir yerden sonra her bir struct için farklı bir okuma fonksiyonu oluşturmuştum. Ve bu okuma fonksiyonlarında da bir sürü ortak kısım vardı. Bir DSL’e çevirmeye karar verdim.</p>
 <p>Aslında DSL ile API’ın arasındaki fark tam belli değil. Benim DSL’den kastettiğim arayüzü sunarken kendisine özel bir syntax ile sunmak. Bu yaptığım biraz da yeni birşey öğrenince hemen uygulamaya çalışma merakı aslında.</p>
 <p>Önce nasıl kullanıldığını göstereyim, sonra macrolardan bahsedeceğim. Tüm kodu görmek isteyenler için, <a href="https://gist.github.com/1706229">şu</a> class dosyasını ayrıştıran kod, <a href="https://gist.github.com/1704351">şu</a> da DSL macroları. Tüm class dosyasını tanımladığım yapı şöyle birşey:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct class-file
-  (magic <span class="dv">4</span>)
-  (minor-version <span class="dv">2</span>)
-  (major-version <span class="dv">2</span>)
-  (constant-pool (:struct constant-pool))
-  (access-flags <span class="dv">2</span>)
-  (this-class <span class="dv">2</span>)
-  (super-class <span class="dv">2</span>)
-  (:temp (interfaces-count <span class="dv">2</span>))
-  (interfaces (:list <span class="dv">2</span> interfaces-count))
-  (:temp (fields-count <span class="dv">2</span>))
-  (fields (:list (:struct field) fields-count))
-  (:temp (jmethods-count <span class="dv">2</span>))
-  (methods (:list (:struct jmethod) jmethods-count))
-  (:temp (attributes-count <span class="dv">2</span>))
-  (attributes (:list (:struct attribute) attributes-count)))</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>(defbinstruct class-file</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  (magic <span class="dv">4</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>  (minor-version <span class="dv">2</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>  (major-version <span class="dv">2</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>  (constant-pool (:struct constant-pool))</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>  (access-flags <span class="dv">2</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>  (this-class <span class="dv">2</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>  (super-class <span class="dv">2</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>  (:temp (interfaces-count <span class="dv">2</span>))</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>  (interfaces (:list <span class="dv">2</span> interfaces-count))</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>  (:temp (fields-count <span class="dv">2</span>))</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>  (fields (:list (:struct field) fields-count))</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>  (:temp (jmethods-count <span class="dv">2</span>))</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>  (methods (:list (:struct jmethod) jmethods-count))</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a>  (:temp (attributes-count <span class="dv">2</span>))</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>  (attributes (:list (:struct attribute) attributes-count)))</span></code></pre></div>
 <p>Tanımın yukarıda linkini verdiğim class dosyası yapısına ne kadar benzediğine dikkat edin. Şöyle çalışıyor, her <code>defbinstruct</code> için bir <code>struct</code> oluşturuluyor, içindeki her bir liste için gerekiyorsa(<code>:temp</code> olup olmadığına göre) struct’a <code>slot</code> ekleniyor. <code>:temp</code> değişkenler farklı amaçlar için gerekebilir. Örneğin dosyadaki boşluklar(<code>padding</code> diye geçer genelde) için, veya dosyada bir yapıdan kaç tane olduğunu okumanız gerektiğinde, ama bu değeri okuduyup oluşturduğunuz yapıya dahil etmek istemiyorsanız. Her bir <code>defbinstruct</code> için bir de okuma fonksiyonu oluşturuluyor, yapının adına “read” eklenerek(burdaki örnek için <code>read-class-file</code> yani).</p>
 <p>Değişken isminden sonra gelen kısım eğer tamsayı ise, o tamsayı kadar byte okunup bu slota atanıyor, eğer <code>(:list a b)</code> veya <code>(:vector a b)</code> şeklinde birşeyse, <code>a</code>dan <code>b</code> kere okunup, liste veya vector olarak atanıyor. Eğer tamsayı kısmına <code>(:struct a)</code> gibi birşey gelmişse, <code>a</code>nın bir <code>defbinstruct</code> ile oluşturulmuş yapı olması gerekiyor(yani <code>read-a</code> diye bir fonksiyon olmalı). Bu tanımlamaların recursive bir formda olabileceğine dikkat. Şöyle birşey olabilir mesela: <code>(field-1 (:list (:list (:struct sub-field) sub-field-count) field-count))</code>.</p>
 <p>Dönüş değeri de tanımladığınız yapıdan oluşturulmuş bir <code>struct</code>. Örnekteki kodda <code>class-file-interfaces</code> ile interfaces alanına ulaşabilirsiniz mesela.</p>
 <p>Okunan değerlere göre daha kompleks işler yapmanız gerektiğinde <code>:custom</code> keywordu ile <code>read</code> fonksiyonunu kendiniz tanımlayabilirsiniz. <code>:custom</code> keywordunden sonraki kısım da yapıda olacak slotların listesi. Örneğin <code>constant-pool</code>u okumak biraz daha zor(mesela double ve long sabitler constant-pool’da 2 slot kaplıyor), şöyle:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct constant-pool
-  :custom
-  (constants)
-  (<span class="kw">let*</span> ((constant-pool-count (<span class="op">1-</span> (read-bytes <span class="dv">2</span> <span class="kw">stream</span>)))
-         (constants (<span class="kw">make-array</span> constant-pool-count)))
-    (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="op">1-</span> constant-pool-count) <span class="kw">do</span>
-      (<span class="kw">let</span> ((tag (read-bytes <span class="dv">1</span> <span class="kw">stream</span>)))
-        (<span class="kw">if</span> (<span class="kw">or</span> (<span class="op">=</span> tag <span class="dv">5</span>) (<span class="op">=</span> tag <span class="dv">6</span>))
-            (<span class="kw">let</span> ((constant (<span class="kw">if</span> (<span class="op">=</span> tag <span class="dv">5</span>)
-                                (read-jlong <span class="kw">stream</span>)
-                                (read-jdouble <span class="kw">stream</span>))))
-              (<span class="kw">setf</span> (<span class="kw">elt</span> constants i) constant
-                    (<span class="kw">elt</span> constants (<span class="op">1+</span> i)) constant)
-              (<span class="kw">incf</span> i))
-            (<span class="kw">setf</span> (<span class="kw">elt</span> constants i)
-                  (<span class="kw">funcall</span>
-                   (<span class="kw">case</span> tag
-                     (<span class="dv">1</span> #'read-utf<span class="dv">-8</span>)
-                     (<span class="dv">8</span> #'read-string-ref)
-                     (<span class="dv">3</span> #'read-jinteger)
-                     (<span class="dv">4</span> #'read-jfloat)
-                     (<span class="dv">7</span> #'read-class-ref)
-                     (<span class="dv">9</span> #'read-field-ref)
-                     (<span class="dv">10</span> #'read-method-ref)
-                     (<span class="dv">11</span> #'read-interface-method-ref)
-                     (<span class="dv">12</span> #'read-descriptor))
-                   <span class="kw">stream</span>)))))
-    (make-constant-pool :constants constants)))</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>(defbinstruct constant-pool</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>  :custom</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>  (constants)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>  (<span class="kw">let*</span> ((constant-pool-count (<span class="op">1-</span> (read-bytes <span class="dv">2</span> <span class="kw">stream</span>)))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>         (constants (<span class="kw">make-array</span> constant-pool-count)))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>    (<span class="kw">loop</span> for i from <span class="dv">0</span> to (<span class="op">1-</span> constant-pool-count) <span class="kw">do</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>      (<span class="kw">let</span> ((tag (read-bytes <span class="dv">1</span> <span class="kw">stream</span>)))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>        (<span class="kw">if</span> (<span class="kw">or</span> (<span class="op">=</span> tag <span class="dv">5</span>) (<span class="op">=</span> tag <span class="dv">6</span>))</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>            (<span class="kw">let</span> ((constant (<span class="kw">if</span> (<span class="op">=</span> tag <span class="dv">5</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>                                (read-jlong <span class="kw">stream</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>                                (read-jdouble <span class="kw">stream</span>))))</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>              (<span class="kw">setf</span> (<span class="kw">elt</span> constants i) constant</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a>                    (<span class="kw">elt</span> constants (<span class="op">1+</span> i)) constant)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a>              (<span class="kw">incf</span> i))</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a>            (<span class="kw">setf</span> (<span class="kw">elt</span> constants i)</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a>                  (<span class="kw">funcall</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a>                   (<span class="kw">case</span> tag</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a>                     (<span class="dv">1</span> #'read-utf<span class="dv">-8</span>)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a>                     (<span class="dv">8</span> #'read-string-ref)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a>                     (<span class="dv">3</span> #'read-jinteger)</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a>                     (<span class="dv">4</span> #'read-jfloat)</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a>                     (<span class="dv">7</span> #'read-class-ref)</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a>                     (<span class="dv">9</span> #'read-field-ref)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a>                     (<span class="dv">10</span> #'read-method-ref)</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a>                     (<span class="dv">11</span> #'read-interface-method-ref)</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true"></a>                     (<span class="dv">12</span> #'read-descriptor))</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true"></a>                   <span class="kw">stream</span>)))))</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true"></a>    (make-constant-pool :constants constants)))</span></code></pre></div>
 <p>Bu tanımladığımız read fonksiyonuna <code>stream</code> diye bir parametre aktarıldığını varsayıyoruz(macro tarafından oluşturulmuş kodda aktarılıyor). Burda aslında stream yerine lexical scope ile <code>*standard-input*</code>a bu <code>stream</code> atanabilir. Yine de çaktırmadan <code>*standard-input*</code> ile oynamak bana çok iyi bir yolmuş gibi gelmedi.</p>
 <p>Bir başka örnek olarak da yine constant-pooldaki string sabitlerini nasıl okuduğumu göstereyim:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defbinstruct utf<span class="dv">-8</span>
-  (:temp (<span class="kw">length</span> <span class="dv">2</span>))
-  (value (:vector <span class="dv">1</span> <span class="kw">length</span>)))</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>(defbinstruct utf<span class="dv">-8</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>  (:temp (<span class="kw">length</span> <span class="dv">2</span>))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>  (value (:vector <span class="dv">1</span> <span class="kw">length</span>)))</span></code></pre></div>
 <p>İlk 2 byte, string’in uzunluğunu veriyor. Daha sonra bu uzunluk kadar 1 byte okuyup bir vector olarak kaydediyorum.</p>
 <p>Şimdi macrolara bakalım. İlk önce <code>defbinstruct</code> kodundaki keywordleri(<code>:vector</code>, <code>:list</code>, <code>:struct</code>) recursive olarak silip yerine gerekli Lisp kodunu ekleyen <code>remove-keywords</code> macrosu:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> remove-keywords </span>(form)
-  (<span class="kw">cond</span> ((<span class="kw">null</span> form) '())
-        ((<span class="kw">integerp</span> form)
-         `(read-bytes ,form <span class="kw">stream</span>))
-        ((<span class="kw">and</span> (<span class="kw">consp</span> form) (<span class="kw">keywordp</span> (<span class="kw">first</span> form)))
-         (<span class="kw">case</span> (<span class="kw">first</span> form)
-           ((:list)
-            `(<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="op">1-</span> ,(<span class="kw">third</span> form))
-                   collect (remove-keywords ,(<span class="kw">second</span> form))))
-           ((:vector)
-            `(<span class="kw">coerce</span> (<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="op">1-</span> ,(<span class="kw">third</span> form))
-                           collect (remove-keywords ,(<span class="kw">second</span> form)))
-                     'vector))
-           ((:struct)
-            `(,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string <span class="st">&quot;READ-&quot;</span> (<span class="kw">string</span> (<span class="kw">second</span> form)))) <span class="kw">stream</span>))))
-        (<span class="kw">t</span> form)))</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a>(<span class="kw">defmacro</span><span class="fu"> remove-keywords </span>(form)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>  (<span class="kw">cond</span> ((<span class="kw">null</span> form) '())</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>        ((<span class="kw">integerp</span> form)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>         `(read-bytes ,form <span class="kw">stream</span>))</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>        ((<span class="kw">and</span> (<span class="kw">consp</span> form) (<span class="kw">keywordp</span> (<span class="kw">first</span> form)))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>         (<span class="kw">case</span> (<span class="kw">first</span> form)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>           ((:list)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>            `(<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="op">1-</span> ,(<span class="kw">third</span> form))</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>                   collect (remove-keywords ,(<span class="kw">second</span> form))))</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>           ((:vector)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>            `(<span class="kw">coerce</span> (<span class="kw">loop</span> for s from <span class="dv">0</span> to (<span class="op">1-</span> ,(<span class="kw">third</span> form))</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>                           collect (remove-keywords ,(<span class="kw">second</span> form)))</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>                     'vector))</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>           ((:struct)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a>            `(,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string <span class="st">&quot;READ-&quot;</span> (<span class="kw">string</span> (<span class="kw">second</span> form)))) <span class="kw">stream</span>))))</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a>        (<span class="kw">t</span> form)))</span></code></pre></div>
 <p>Yaptığı şey çok basit, her <code>:struct</code> keywordu gördüğü yere <code>(read-x)</code> fonksiyonunu ekliyor, <code>:list</code> veya <code>:vector</code> gördüğü yerde de gereken <code>loop</code> kodunu. İkinci olarak olarak <code>defbinstruct</code>:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defbinstruct </span>(name &amp;body attributes)
-  (<span class="kw">labels</span> ((make-reader-name (name-symbol)
-             (<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string <span class="st">&quot;READ-&quot;</span> (<span class="kw">string</span> name-symbol)))))
-    (<span class="kw">if</span> (<span class="kw">and</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attributes))
-             (<span class="kw">eql</span> (<span class="kw">first</span> attributes) :custom))
-        (<span class="kw">let</span> ((attributes (<span class="kw">second</span> attributes))
-              (body (<span class="kw">cddr</span> attributes)))
-          `(<span class="kw">progn</span>
-             (<span class="kw">defstruct</span><span class="fu"> </span>,name
-               ,@attributes)
-             (<span class="kw">defun</span><span class="fu"> </span>,(make-reader-name name) (<span class="kw">stream</span>)
-               ,@body)))
-        (<span class="kw">let</span> ((attr-struct-names (<span class="kw">remove-if-not</span> #'identity
-                                                (<span class="kw">mapcar</span> (<span class="kw">lambda</span> (attr)
-                                                          (<span class="kw">unless</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attr))
-                                                            (<span class="kw">first</span> attr)))
-                                                        attributes))))
-          `(<span class="kw">progn</span>
-             (<span class="kw">defstruct</span><span class="fu"> </span>,name
-               ,@attr-struct-names)
-             (<span class="kw">defun</span><span class="fu"> </span>,(make-reader-name name) (<span class="kw">stream</span>)
-               (<span class="kw">let*</span> (,@(<span class="kw">mapcar</span> (<span class="kw">lambda</span> (attr)
-                                  (<span class="kw">destructuring-bind</span> (attr-name . bytes)
-                                      (<span class="kw">if</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attr))
-                                          (<span class="kw">cons</span> (<span class="kw">caadr</span> attr) (<span class="kw">cadadr</span> attr))
-                                          (<span class="kw">cons</span> (<span class="kw">first</span> attr) (<span class="kw">second</span> attr)))
-                                    `(,attr-name ,(<span class="kw">if</span> (<span class="kw">integerp</span> bytes)
-                                                      `(read-bytes ,bytes <span class="kw">stream</span>)
-                                                      `(remove-keywords ,bytes)))))
-                                attributes))
-                 
-                 (,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string <span class="st">&quot;MAKE-&quot;</span> (<span class="kw">string</span> name)))
-                  ,@(<span class="kw">mapcan</span> (<span class="kw">lambda</span> (name) (<span class="kw">list</span> (<span class="kw">intern</span> (<span class="kw">string</span> name) <span class="st">&quot;KEYWORD&quot;</span>) name))
-                            attr-struct-names)))))))))</code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>(<span class="kw">defmacro</span><span class="fu"> defbinstruct </span>(name &amp;body attributes)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>  (<span class="kw">labels</span> ((make-reader-name (name-symbol)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>             (<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string <span class="st">&quot;READ-&quot;</span> (<span class="kw">string</span> name-symbol)))))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>    (<span class="kw">if</span> (<span class="kw">and</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attributes))</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>             (<span class="kw">eql</span> (<span class="kw">first</span> attributes) :custom))</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>        (<span class="kw">let</span> ((attributes (<span class="kw">second</span> attributes))</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>              (body (<span class="kw">cddr</span> attributes)))</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>          `(<span class="kw">progn</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>             (<span class="kw">defstruct</span><span class="fu"> </span>,name</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>               ,@attributes)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>             (<span class="kw">defun</span><span class="fu"> </span>,(make-reader-name name) (<span class="kw">stream</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>               ,@body)))</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>        (<span class="kw">let</span> ((attr-struct-names (<span class="kw">remove-if-not</span> #'identity</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>                                                (<span class="kw">mapcar</span> (<span class="kw">lambda</span> (attr)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>                                                          (<span class="kw">unless</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attr))</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true"></a>                                                            (<span class="kw">first</span> attr)))</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true"></a>                                                        attributes))))</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true"></a>          `(<span class="kw">progn</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true"></a>             (<span class="kw">defstruct</span><span class="fu"> </span>,name</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true"></a>               ,@attr-struct-names)</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true"></a>             (<span class="kw">defun</span><span class="fu"> </span>,(make-reader-name name) (<span class="kw">stream</span>)</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true"></a>               (<span class="kw">let*</span> (,@(<span class="kw">mapcar</span> (<span class="kw">lambda</span> (attr)</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true"></a>                                  (<span class="kw">destructuring-bind</span> (attr-name . bytes)</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true"></a>                                      (<span class="kw">if</span> (<span class="kw">keywordp</span> (<span class="kw">first</span> attr))</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true"></a>                                          (<span class="kw">cons</span> (<span class="kw">caadr</span> attr) (<span class="kw">cadadr</span> attr))</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true"></a>                                          (<span class="kw">cons</span> (<span class="kw">first</span> attr) (<span class="kw">second</span> attr)))</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true"></a>                                    `(,attr-name ,(<span class="kw">if</span> (<span class="kw">integerp</span> bytes)</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true"></a>                                                      `(read-bytes ,bytes <span class="kw">stream</span>)</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true"></a>                                                      `(remove-keywords ,bytes)))))</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true"></a>                                attributes))</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true"></a>                 </span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true"></a>                 (,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string <span class="st">&quot;MAKE-&quot;</span> (<span class="kw">string</span> name)))</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true"></a>                  ,@(<span class="kw">mapcan</span> (<span class="kw">lambda</span> (name) (<span class="kw">list</span> (<span class="kw">intern</span> (<span class="kw">string</span> name) <span class="st">&quot;KEYWORD&quot;</span>) name))</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true"></a>                            attr-struct-names)))))))))</span></code></pre></div>
 <p>Burda da <code>defbinstruct</code> altındaki listeleri gezip, oluşturulacak olan <code>struct</code>a gerekli <code>slot</code>ları ekliyorum ve <code>read</code> fonksiyonunu oluşturuyorum. Her bir <code>defbinstruct</code> için bir <code>struct</code> bir de fonksiyon tanımlıyorum yani.</p>
 <p>Kütüphane toplam 52 satır. İkinci bir örnek olarak da ID3 etiketlerini okuyacaktım ama çok kompleks geldi. Dikkat edilmesi gereken çok fazla istisna var. Aklıma daha basit bir örnek gelirse ekleyeceğim(ara ara kütüphaneyi de güncelliyorum, gistlerden takip edebilirsiniz).</p>
 

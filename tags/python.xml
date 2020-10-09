@@ -17,115 +17,115 @@
     <updated>2013-04-24T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span></a>
-<a class="sourceLine" id="cb1-2" title="2"><span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span></a>
-<a class="sourceLine" id="cb1-3" title="3"></a>
-<a class="sourceLine" id="cb1-4" title="4"><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-5" title="5">    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span></a>
-<a class="sourceLine" id="cb1-6" title="6">    <span class="va">callbacks</span>.<span class="at">push</span>(<span class="kw">function</span> () <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-7" title="7">        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span></a>
-<a class="sourceLine" id="cb1-8" title="8">    <span class="op">}</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb1-9" title="9"><span class="op">}</span></a>
-<a class="sourceLine" id="cb1-10" title="10"></a>
-<a class="sourceLine" id="cb1-11" title="11"><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span></a>
-<a class="sourceLine" id="cb1-12" title="12">    callbacks[idx]()<span class="op">;</span></a>
-<a class="sourceLine" id="cb1-13" title="13"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>    callbacks<span class="op">.</span><span class="fu">push</span>(<span class="kw">function</span> () {</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>        <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(say)<span class="op">;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    })<span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>}</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>    callbacks[idx]()<span class="op">;</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>}</span></code></pre></div>
 <p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
 <p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
-<p>Python also has this problem<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1">callbacks <span class="op">=</span> []</a>
-<a class="sourceLine" id="cb2-2" title="2"></a>
-<a class="sourceLine" id="cb2-3" title="3"><span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:</a>
-<a class="sourceLine" id="cb2-4" title="4">    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i</a>
-<a class="sourceLine" id="cb2-5" title="5">    <span class="kw">def</span> callback():</a>
-<a class="sourceLine" id="cb2-6" title="6">        <span class="bu">print</span> say</a>
-<a class="sourceLine" id="cb2-7" title="7">    callbacks.append(callback)</a>
-<a class="sourceLine" id="cb2-8" title="8"></a>
-<a class="sourceLine" id="cb2-9" title="9"><span class="cf">for</span> c <span class="kw">in</span> callbacks:</a>
-<a class="sourceLine" id="cb2-10" title="10">    c()</a></code></pre></div>
+<p>Python also has this problem<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>callbacks <span class="op">=</span> []</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>    <span class="kw">def</span> callback():</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>        <span class="bu">print</span> say</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>    callbacks.append(callback)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a><span class="cf">for</span> c <span class="kw">in</span> callbacks:</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>    c()</span></code></pre></div>
 <p>This prints same wrong output as with JavaScript.</p>
 <p>Lua, my favorite dynamic language, does great:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><a class="sourceLine" id="cb3-1" title="1">callbacks <span class="op">=</span> <span class="op">{}</span></a>
-<a class="sourceLine" id="cb3-2" title="2"></a>
-<a class="sourceLine" id="cb3-3" title="3"><span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">({</span> <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> <span class="op">})</span> <span class="cf">do</span></a>
-<a class="sourceLine" id="cb3-4" title="4">    <span class="kw">local</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">..</span> v</a>
-<a class="sourceLine" id="cb3-5" title="5">    <span class="fu">table.insert</span><span class="op">(</span>callbacks<span class="op">,</span> <span class="kw">function</span> <span class="op">()</span> <span class="fu">print</span><span class="op">(</span>say<span class="op">)</span> <span class="cf">end</span><span class="op">)</span></a>
-<a class="sourceLine" id="cb3-6" title="6"><span class="cf">end</span></a>
-<a class="sourceLine" id="cb3-7" title="7"></a>
-<a class="sourceLine" id="cb3-8" title="8"><span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">(</span>callbacks<span class="op">)</span> <span class="cf">do</span></a>
-<a class="sourceLine" id="cb3-9" title="9">    v<span class="op">()</span></a>
-<a class="sourceLine" id="cb3-10" title="10"><span class="cf">end</span></a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>callbacks <span class="op">=</span> <span class="op">{}</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">({</span> <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> <span class="op">})</span> <span class="cf">do</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>    <span class="kw">local</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">..</span> v</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>    <span class="fu">table.insert</span><span class="op">(</span>callbacks<span class="op">,</span> <span class="kw">function</span> <span class="op">()</span> <span class="fu">print</span><span class="op">(</span>say<span class="op">)</span> <span class="kw">end</span><span class="op">)</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="cf">end</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">(</span>callbacks<span class="op">)</span> <span class="cf">do</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>    v<span class="op">()</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="cf">end</span></span></code></pre></div>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb4-2" title="2"></a>
-<a class="sourceLine" id="cb4-3" title="3">main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks</a>
-<a class="sourceLine" id="cb4-4" title="4">  <span class="kw">where</span> callbacks <span class="fu">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>main <span class="ot">=</span> <span class="fu">sequence_</span> callbacks</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>  <span class="kw">where</span> callbacks <span class="ot">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="op">.</span> (<span class="st">&quot;say &quot;</span> <span class="op">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</span></code></pre></div>
 <p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
 <p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
 <p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb5-1" title="1"><span class="op">&gt;</span> <span class="cf">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> ]) <span class="op">{</span> <span class="va">console</span>.<span class="at">log</span>(v)<span class="op">;</span> <span class="op">}</span></a>
-<a class="sourceLine" id="cb5-2" title="2"><span class="dv">0</span></a>
-<a class="sourceLine" id="cb5-3" title="3"><span class="dv">1</span></a>
-<a class="sourceLine" id="cb5-4" title="4"><span class="dv">2</span></a>
-<a class="sourceLine" id="cb5-5" title="5"><span class="op">&gt;</span> v</a>
-<a class="sourceLine" id="cb5-6" title="6"><span class="st">&quot;2&quot;</span></a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="op">&gt;</span> <span class="cf">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> ]) { <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(v)<span class="op">;</span> }</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="dv">0</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="dv">1</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="dv">2</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a><span class="op">&gt;</span> v</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="st">&quot;2&quot;</span></span></code></pre></div>
 <p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
 <h1 id="fixing-it">Fixing it</h1>
 <p>Let’s fix that in JavaScript and Python.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span></a>
-<a class="sourceLine" id="cb6-2" title="2"><span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span></a>
-<a class="sourceLine" id="cb6-3" title="3"></a>
-<a class="sourceLine" id="cb6-4" title="4"><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-5" title="5">    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span></a>
-<a class="sourceLine" id="cb6-6" title="6">    <span class="va">callbacks</span>.<span class="at">push</span>((<span class="kw">function</span> (say) <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-7" title="7">      <span class="cf">return</span> <span class="kw">function</span> () <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-8" title="8">        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span></a>
-<a class="sourceLine" id="cb6-9" title="9">      <span class="op">}</span></a>
-<a class="sourceLine" id="cb6-10" title="10">    <span class="op">}</span>)(say))<span class="op">;</span></a>
-<a class="sourceLine" id="cb6-11" title="11"><span class="op">}</span></a>
-<a class="sourceLine" id="cb6-12" title="12"></a>
-<a class="sourceLine" id="cb6-13" title="13"><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span></a>
-<a class="sourceLine" id="cb6-14" title="14">    callbacks[idx]()<span class="op">;</span></a>
-<a class="sourceLine" id="cb6-15" title="15"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>    callbacks<span class="op">.</span><span class="fu">push</span>((<span class="kw">function</span> (say) {</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>      <span class="cf">return</span> <span class="kw">function</span> () {</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>        <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(say)<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>      }</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>    })(say))<span class="op">;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>}</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>    callbacks[idx]()<span class="op">;</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Here we’re creating a new scope with function(remember the JavaScript module pattern?), and then passing <code>say</code> variable to it. This guarantees that we have <code>say</code> variable local to the function. Then in callback returned by wrapper function, we have a reference just like before, but it’s not shared with any other functions.</p>
 <p>In Python, there’s a cleaner way to do same thing:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb7-1" title="1">callbacks <span class="op">=</span> []</a>
-<a class="sourceLine" id="cb7-2" title="2"></a>
-<a class="sourceLine" id="cb7-3" title="3"><span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:</a>
-<a class="sourceLine" id="cb7-4" title="4">    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i</a>
-<a class="sourceLine" id="cb7-5" title="5">    <span class="kw">def</span> callback(say<span class="op">=</span>say):</a>
-<a class="sourceLine" id="cb7-6" title="6">        <span class="bu">print</span> say</a>
-<a class="sourceLine" id="cb7-7" title="7">    callbacks.append(callback)</a>
-<a class="sourceLine" id="cb7-8" title="8"></a>
-<a class="sourceLine" id="cb7-9" title="9"><span class="cf">for</span> c <span class="kw">in</span> callbacks:</a>
-<a class="sourceLine" id="cb7-10" title="10">    c()</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>callbacks <span class="op">=</span> []</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>    <span class="kw">def</span> callback(say<span class="op">=</span>say):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>        <span class="bu">print</span> say</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>    callbacks.append(callback)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a><span class="cf">for</span> c <span class="kw">in</span> callbacks:</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>    c()</span></code></pre></div>
 <p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
 <h1 id="breaking-it">Breaking it</h1>
 <p>Let’s have JavaScript’s behavior in Haskell:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb8-2" title="2"></a>
-<a class="sourceLine" id="cb8-3" title="3"><span class="kw">import</span> <span class="dt">Data.IORef</span></a>
-<a class="sourceLine" id="cb8-4" title="4"></a>
-<a class="sourceLine" id="cb8-5" title="5">printFromRef r <span class="fu">=</span> <span class="fu">putStrLn</span> <span class="fu">=&lt;&lt;</span> readIORef r</a>
-<a class="sourceLine" id="cb8-6" title="6"></a>
-<a class="sourceLine" id="cb8-7" title="7">mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-8" title="8">    ref <span class="ot">&lt;-</span> newIORef w</a>
-<a class="sourceLine" id="cb8-9" title="9">    r   <span class="ot">&lt;-</span> iter ref ws</a>
-<a class="sourceLine" id="cb8-10" title="10">    <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r</a>
-<a class="sourceLine" id="cb8-11" title="11">  <span class="kw">where</span> iter ref []     <span class="fu">=</span> <span class="fu">return</span> []</a>
-<a class="sourceLine" id="cb8-12" title="12">        iter ref (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-13" title="13">          writeIORef ref w</a>
-<a class="sourceLine" id="cb8-14" title="14">          cs <span class="ot">&lt;-</span> iter ref ws</a>
-<a class="sourceLine" id="cb8-15" title="15">          <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs</a>
-<a class="sourceLine" id="cb8-16" title="16"></a>
-<a class="sourceLine" id="cb8-17" title="17">main <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-18" title="18">  callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</a>
-<a class="sourceLine" id="cb8-19" title="19">  <span class="fu">sequence_</span> callbacks</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.IORef</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>printFromRef r <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="op">=&lt;&lt;</span> readIORef r</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>mkCallbacks (w<span class="op">:</span>ws) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>    ref <span class="ot">&lt;-</span> newIORef w</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>    r   <span class="ot">&lt;-</span> iter ref ws</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>    <span class="fu">return</span> <span class="op">$</span> printFromRef ref <span class="op">:</span> r</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>  <span class="kw">where</span> iter ref []     <span class="ot">=</span> <span class="fu">return</span> []</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a>        iter ref (w<span class="op">:</span>ws) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a>          writeIORef ref w</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a>          cs <span class="ot">&lt;-</span> iter ref ws</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true"></a>          <span class="fu">return</span> <span class="op">$</span> printFromRef ref <span class="op">:</span> cs</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true"></a>  callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true"></a>  <span class="fu">sequence_</span> callbacks</span></code></pre></div>
 <p>The reason this code is that long is because we need to create and pass references explicitly.</p>
-<section class="footnotes">
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>]]></summary>
 </entry>
@@ -140,145 +140,145 @@
 <p>In the rest of the post, when I use <code>Lisp</code>, I’ll be mentioning the Lisp in micro-manual, not the modern dialects.</p>
 <p>Lisp programs are formed by symbolic expressions(s-exps, sexps, sexprs), and a sexp is either a <code>list</code> or an <code>atom</code>. Before interpreting our Lisp, we should read sexps and convert them into a form that we can work on with our host language(in my case, it’s Python).</p>
 <p>I’ll convert Lisp lists into ordinary Python lists, and atoms into Python strings. My reader has two parts, the first part is getting the input and parsing tokens:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">class</span> Reader:</a>
-<a class="sourceLine" id="cb1-2" title="2">    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, form):</a>
-<a class="sourceLine" id="cb1-3" title="3">        <span class="va">self</span>.form <span class="op">=</span> form</a>
-<a class="sourceLine" id="cb1-4" title="4">        <span class="va">self</span>.index <span class="op">=</span> <span class="dv">0</span></a>
-<a class="sourceLine" id="cb1-5" title="5">    <span class="kw">def</span> seek_char(<span class="va">self</span>):</a>
-<a class="sourceLine" id="cb1-6" title="6">        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):</a>
-<a class="sourceLine" id="cb1-7" title="7">            <span class="cf">return</span> <span class="va">None</span></a>
-<a class="sourceLine" id="cb1-8" title="8">        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index]</a>
-<a class="sourceLine" id="cb1-9" title="9">    <span class="kw">def</span> unread_char(<span class="va">self</span>):</a>
-<a class="sourceLine" id="cb1-10" title="10">        <span class="va">self</span>.index <span class="op">-=</span> <span class="dv">1</span></a>
-<a class="sourceLine" id="cb1-11" title="11">    <span class="kw">def</span> read_char(<span class="va">self</span>):</a>
-<a class="sourceLine" id="cb1-12" title="12">        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):</a>
-<a class="sourceLine" id="cb1-13" title="13">            <span class="cf">return</span> <span class="va">None</span></a>
-<a class="sourceLine" id="cb1-14" title="14">        <span class="va">self</span>.index <span class="op">+=</span> <span class="dv">1</span></a>
-<a class="sourceLine" id="cb1-15" title="15">        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index<span class="dv">-1</span>]</a>
-<a class="sourceLine" id="cb1-16" title="16">    <span class="kw">def</span> read_token(<span class="va">self</span>):</a>
-<a class="sourceLine" id="cb1-17" title="17">        ch <span class="op">=</span> <span class="va">self</span>.read_char()</a>
-<a class="sourceLine" id="cb1-18" title="18">        <span class="cf">if</span> ch <span class="op">==</span> <span class="st">&#39;(&#39;</span>:</a>
-<a class="sourceLine" id="cb1-19" title="19">            <span class="cf">return</span> <span class="st">&#39;(&#39;</span></a>
-<a class="sourceLine" id="cb1-20" title="20">        <span class="cf">elif</span> ch <span class="op">==</span> <span class="st">&#39;)&#39;</span>:</a>
-<a class="sourceLine" id="cb1-21" title="21">            <span class="cf">if</span> <span class="va">self</span>.seek_char() <span class="op">==</span> <span class="st">&#39; &#39;</span>:</a>
-<a class="sourceLine" id="cb1-22" title="22">                <span class="va">self</span>.read_char()</a>
-<a class="sourceLine" id="cb1-23" title="23">            <span class="cf">return</span> <span class="st">&#39;)&#39;</span></a>
-<a class="sourceLine" id="cb1-24" title="24">        <span class="cf">else</span>:</a>
-<a class="sourceLine" id="cb1-25" title="25">            buf <span class="op">=</span> <span class="st">&#39;&#39;</span></a>
-<a class="sourceLine" id="cb1-26" title="26">            <span class="cf">while</span> ch <span class="op">!=</span> <span class="st">&#39; &#39;</span> <span class="kw">and</span> ch <span class="op">!=</span> <span class="va">None</span>:</a>
-<a class="sourceLine" id="cb1-27" title="27">                <span class="cf">if</span> ch <span class="op">==</span> <span class="st">&#39;)&#39;</span>:</a>
-<a class="sourceLine" id="cb1-28" title="28">                    <span class="va">self</span>.unread_char()</a>
-<a class="sourceLine" id="cb1-29" title="29">                    <span class="cf">return</span> buf</a>
-<a class="sourceLine" id="cb1-30" title="30">                <span class="cf">else</span>:</a>
-<a class="sourceLine" id="cb1-31" title="31">                    buf <span class="op">+=</span> ch</a>
-<a class="sourceLine" id="cb1-32" title="32">                    ch <span class="op">=</span> <span class="va">self</span>.read_char()</a>
-<a class="sourceLine" id="cb1-33" title="33">            <span class="cf">return</span> buf</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">class</span> Reader:</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, form):</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>        <span class="va">self</span>.form <span class="op">=</span> form</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>        <span class="va">self</span>.index <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    <span class="kw">def</span> seek_char(<span class="va">self</span>):</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>            <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index]</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>    <span class="kw">def</span> unread_char(<span class="va">self</span>):</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>        <span class="va">self</span>.index <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>    <span class="kw">def</span> read_char(<span class="va">self</span>):</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>        <span class="cf">if</span> <span class="va">self</span>.index <span class="op">&gt;=</span> <span class="bu">len</span>(<span class="va">self</span>.form):</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>            <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>        <span class="va">self</span>.index <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>        <span class="cf">return</span> <span class="va">self</span>.form[<span class="va">self</span>.index<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>    <span class="kw">def</span> read_token(<span class="va">self</span>):</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>        ch <span class="op">=</span> <span class="va">self</span>.read_char()</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a>        <span class="cf">if</span> ch <span class="op">==</span> <span class="st">&#39;(&#39;</span>:</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>            <span class="cf">return</span> <span class="st">&#39;(&#39;</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>        <span class="cf">elif</span> ch <span class="op">==</span> <span class="st">&#39;)&#39;</span>:</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>            <span class="cf">if</span> <span class="va">self</span>.seek_char() <span class="op">==</span> <span class="st">&#39; &#39;</span>:</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>                <span class="va">self</span>.read_char()</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>            <span class="cf">return</span> <span class="st">&#39;)&#39;</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>        <span class="cf">else</span>:</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>            buf <span class="op">=</span> <span class="st">&#39;&#39;</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a>            <span class="cf">while</span> ch <span class="op">!=</span> <span class="st">&#39; &#39;</span> <span class="kw">and</span> ch <span class="op">!=</span> <span class="va">None</span>:</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>                <span class="cf">if</span> ch <span class="op">==</span> <span class="st">&#39;)&#39;</span>:</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a>                    <span class="va">self</span>.unread_char()</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a>                    <span class="cf">return</span> buf</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a>                <span class="cf">else</span>:</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a>                    buf <span class="op">+=</span> ch</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a>                    ch <span class="op">=</span> <span class="va">self</span>.read_char()</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a>            <span class="cf">return</span> buf</span></code></pre></div>
 <p>Well, it may not be the best way to parse an input to tokens, but it works great. It return a <code>(</code>, <code>)</code>, or a string each time you call <code>read_token</code>. When we read <code>(</code>, we start collecting a list, until reading a <code>)</code>(we should also consider lists into lists):</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">def</span> read_list(reader):</a>
-<a class="sourceLine" id="cb2-2" title="2">    result <span class="op">=</span> []</a>
-<a class="sourceLine" id="cb2-3" title="3">    token <span class="op">=</span> reader.read_token()</a>
-<a class="sourceLine" id="cb2-4" title="4">    <span class="cf">while</span> token:</a>
-<a class="sourceLine" id="cb2-5" title="5">        <span class="cf">if</span> token <span class="op">==</span> <span class="st">&#39;(&#39;</span>:</a>
-<a class="sourceLine" id="cb2-6" title="6">            result.append(read_list(reader))</a>
-<a class="sourceLine" id="cb2-7" title="7">        <span class="cf">elif</span> token <span class="op">==</span> <span class="st">&#39;)&#39;</span>:</a>
-<a class="sourceLine" id="cb2-8" title="8">            <span class="cf">return</span> result</a>
-<a class="sourceLine" id="cb2-9" title="9">        <span class="cf">else</span>:</a>
-<a class="sourceLine" id="cb2-10" title="10">            result.append(token)</a>
-<a class="sourceLine" id="cb2-11" title="11">        token <span class="op">=</span> reader.read_token()</a>
-<a class="sourceLine" id="cb2-12" title="12">    <span class="cf">return</span> result</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">def</span> read_list(reader):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>    result <span class="op">=</span> []</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>    token <span class="op">=</span> reader.read_token()</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    <span class="cf">while</span> token:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>        <span class="cf">if</span> token <span class="op">==</span> <span class="st">&#39;(&#39;</span>:</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>            result.append(read_list(reader))</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>        <span class="cf">elif</span> token <span class="op">==</span> <span class="st">&#39;)&#39;</span>:</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>            <span class="cf">return</span> result</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>        <span class="cf">else</span>:</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>            result.append(token)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>        token <span class="op">=</span> reader.read_token()</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>    <span class="cf">return</span> result</span></code></pre></div>
 <p><code>read_atom</code> functions is easier, since each each atom is also a token:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">def</span> read_atom(reader):</a>
-<a class="sourceLine" id="cb3-2" title="2">    <span class="cf">return</span> reader.read_token()</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">def</span> read_atom(reader):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>    <span class="cf">return</span> reader.read_token()</span></code></pre></div>
 <p>At this point, we have a Lisp reader that reading s-expressions, converting lists to Python lists and atoms to Python strings. Now we can define our 9 primitive procedures(<code>quote</code>, <code>car</code>, <code>cdr</code>, <code>cons</code>, <code>equal</code>, <code>atom</code>, <code>cond</code>, <code>lambda</code>, <code>label</code>):</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">def</span> quote(e):</a>
-<a class="sourceLine" id="cb4-2" title="2">    <span class="cf">return</span> e</a>
-<a class="sourceLine" id="cb4-3" title="3"><span class="kw">def</span> car(e):</a>
-<a class="sourceLine" id="cb4-4" title="4">    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)</a>
-<a class="sourceLine" id="cb4-5" title="5">    <span class="cf">return</span> e[<span class="op">^</span><span class="dv">0</span>]<span class="kw">def</span> cdr(e):</a>
-<a class="sourceLine" id="cb4-6" title="6">    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)</a>
-<a class="sourceLine" id="cb4-7" title="7">    <span class="cf">return</span> e[<span class="dv">1</span>:]</a>
-<a class="sourceLine" id="cb4-8" title="8"><span class="kw">def</span> cons(e1, e2):</a>
-<a class="sourceLine" id="cb4-9" title="9">    <span class="cf">if</span> <span class="bu">isinstance</span>(e2, <span class="bu">list</span>):</a>
-<a class="sourceLine" id="cb4-10" title="10">        <span class="cf">return</span> [e1] <span class="op">+</span> e2</a>
-<a class="sourceLine" id="cb4-11" title="11">    <span class="cf">return</span> [e1, e2]</a>
-<a class="sourceLine" id="cb4-12" title="12"><span class="kw">def</span> equal(e1, e2):</a>
-<a class="sourceLine" id="cb4-13" title="13">    <span class="cf">return</span> e1 <span class="op">==</span> e2</a>
-<a class="sourceLine" id="cb4-14" title="14"><span class="kw">def</span> atom(e):</a>
-<a class="sourceLine" id="cb4-15" title="15">    <span class="cf">return</span> <span class="kw">not</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">def</span> quote(e):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>    <span class="cf">return</span> e</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="kw">def</span> car(e):</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>    <span class="cf">return</span> e[<span class="op">^</span><span class="dv">0</span>]<span class="kw">def</span> cdr(e):</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>    <span class="cf">assert</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>    <span class="cf">return</span> e[<span class="dv">1</span>:]</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a><span class="kw">def</span> cons(e1, e2):</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(e2, <span class="bu">list</span>):</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>        <span class="cf">return</span> [e1] <span class="op">+</span> e2</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>    <span class="cf">return</span> [e1, e2]</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a><span class="kw">def</span> equal(e1, e2):</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a>    <span class="cf">return</span> e1 <span class="op">==</span> e2</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a><span class="kw">def</span> atom(e):</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a>    <span class="cf">return</span> <span class="kw">not</span> <span class="bu">isinstance</span>(e, <span class="bu">list</span>)</span></code></pre></div>
 <p>These are obvious. Since I’ve already converted sexp lists into Python lists, all I need to do is to call some Python list methods.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">def</span> cond(<span class="op">*</span>cases):</a>
-<a class="sourceLine" id="cb5-2" title="2">    <span class="cf">for</span> case <span class="kw">in</span> cases:</a>
-<a class="sourceLine" id="cb5-3" title="3">        <span class="cf">if</span> eval_(case[<span class="op">^</span><span class="dv">0</span>] <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</a>
-<a class="sourceLine" id="cb5-4" title="4">            <span class="cf">for</span> expr <span class="kw">in</span> cdr(case)[:<span class="op">-</span><span class="dv">1</span>]:</a>
-<a class="sourceLine" id="cb5-5" title="5">                eval_(expr)</a>
-<a class="sourceLine" id="cb5-6" title="6">            <span class="cf">return</span> eval_(case[<span class="op">-</span><span class="dv">1</span>])</a>
-<a class="sourceLine" id="cb5-7" title="7">    <span class="cf">return</span> <span class="va">None</span></a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">def</span> cond(<span class="op">*</span>cases):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>    <span class="cf">for</span> case <span class="kw">in</span> cases:</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>        <span class="cf">if</span> eval_(case[<span class="op">^</span><span class="dv">0</span>] <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>            <span class="cf">for</span> expr <span class="kw">in</span> cdr(case)[:<span class="op">-</span><span class="dv">1</span>]:</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>                eval_(expr)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>            <span class="cf">return</span> eval_(case[<span class="op">-</span><span class="dv">1</span>])</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>    <span class="cf">return</span> <span class="va">None</span></span></code></pre></div>
 <p>An important point here is that in <code>cond</code>, I’m not evaluating all expressions, but I’m evaluating the test forms until I find a form that evaluates something that’s not <code>nil</code>, and then evaluating it’s form.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">def</span> lambda_(args, <span class="op">*</span>exprs):</a>
-<a class="sourceLine" id="cb6-2" title="2">    <span class="kw">def</span> fn(<span class="op">*</span>arg_vals):</a>
-<a class="sourceLine" id="cb6-3" title="3">        fn_env <span class="op">=</span> {k:v <span class="cf">for</span> (k, v) <span class="kw">in</span> <span class="bu">zip</span>(args, arg_vals)}</a>
-<a class="sourceLine" id="cb6-4" title="4">        fn_env[<span class="st">&#39;parent_env&#39;</span>] <span class="op">=</span> env</a>
-<a class="sourceLine" id="cb6-5" title="5">        <span class="cf">for</span> expr <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:</a>
-<a class="sourceLine" id="cb6-6" title="6">            eval_(expr, fn_env)</a>
-<a class="sourceLine" id="cb6-7" title="7">        <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], fn_env)</a>
-<a class="sourceLine" id="cb6-8" title="8">    <span class="cf">return</span> fn</a>
-<a class="sourceLine" id="cb6-9" title="9"><span class="kw">def</span> label(name, lambda_exp, <span class="op">*</span>exprs):</a>
-<a class="sourceLine" id="cb6-10" title="10">    func <span class="op">=</span> eval_(lambda_exp)</a>
-<a class="sourceLine" id="cb6-11" title="11">    label_env <span class="op">=</span> env.copy()</a>
-<a class="sourceLine" id="cb6-12" title="12">    label_env[name] <span class="op">=</span> func</a>
-<a class="sourceLine" id="cb6-13" title="13">    <span class="cf">for</span> exp <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:</a>
-<a class="sourceLine" id="cb6-14" title="14">        eval_(exp, label_env)</a>
-<a class="sourceLine" id="cb6-15" title="15">    <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], label_env)</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">def</span> lambda_(args, <span class="op">*</span>exprs):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>    <span class="kw">def</span> fn(<span class="op">*</span>arg_vals):</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>        fn_env <span class="op">=</span> {k:v <span class="cf">for</span> (k, v) <span class="kw">in</span> <span class="bu">zip</span>(args, arg_vals)}</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>        fn_env[<span class="st">&#39;parent_env&#39;</span>] <span class="op">=</span> env</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>        <span class="cf">for</span> expr <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>            eval_(expr, fn_env)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>        <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], fn_env)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>    <span class="cf">return</span> fn</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a><span class="kw">def</span> label(name, lambda_exp, <span class="op">*</span>exprs):</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>    func <span class="op">=</span> eval_(lambda_exp)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>    label_env <span class="op">=</span> env.copy()</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>    label_env[name] <span class="op">=</span> func</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>    <span class="cf">for</span> exp <span class="kw">in</span> exprs[:<span class="op">-</span><span class="dv">1</span>]:</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>        eval_(exp, label_env)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>    <span class="cf">return</span> eval_(exprs[<span class="op">-</span><span class="dv">1</span>], label_env)</span></code></pre></div>
 <p><code>label</code> is a way to name lambdas, so you can create recursive functions. I’m creating a new environment for each label, and connecting it to the parent environment.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb7-1" title="1">env <span class="op">=</span> {<span class="st">&#39;quote&#39;</span>: quote,</a>
-<a class="sourceLine" id="cb7-2" title="2">       <span class="st">&#39;car&#39;</span>: car,</a>
-<a class="sourceLine" id="cb7-3" title="3">       <span class="st">&#39;cdr&#39;</span>: cdr,</a>
-<a class="sourceLine" id="cb7-4" title="4">       <span class="st">&#39;cons&#39;</span>: cons,</a>
-<a class="sourceLine" id="cb7-5" title="5">       <span class="st">&#39;equal&#39;</span>: equal,</a>
-<a class="sourceLine" id="cb7-6" title="6">       <span class="st">&#39;atom&#39;</span>: atom,</a>
-<a class="sourceLine" id="cb7-7" title="7">       <span class="st">&#39;cond&#39;</span>: cond,</a>
-<a class="sourceLine" id="cb7-8" title="8">       <span class="st">&#39;lambda&#39;</span>: Lambda,</a>
-<a class="sourceLine" id="cb7-9" title="9">       <span class="st">&#39;label&#39;</span>: label,</a>
-<a class="sourceLine" id="cb7-10" title="10">       <span class="st">&#39;defun&#39;</span>: defun}</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>env <span class="op">=</span> {<span class="st">&#39;quote&#39;</span>: quote,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>       <span class="st">&#39;car&#39;</span>: car,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>       <span class="st">&#39;cdr&#39;</span>: cdr,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>       <span class="st">&#39;cons&#39;</span>: cons,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>       <span class="st">&#39;equal&#39;</span>: equal,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>       <span class="st">&#39;atom&#39;</span>: atom,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>       <span class="st">&#39;cond&#39;</span>: cond,</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>       <span class="st">&#39;lambda&#39;</span>: Lambda,</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>       <span class="st">&#39;label&#39;</span>: label,</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>       <span class="st">&#39;defun&#39;</span>: defun}</span></code></pre></div>
 <p>The global environment. When an atom is evaluated, it’s value is searched in here, with this function:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">def</span> search_in_env(env, key):</a>
-<a class="sourceLine" id="cb8-2" title="2">    val <span class="op">=</span> env.get(key)</a>
-<a class="sourceLine" id="cb8-3" title="3">    <span class="cf">if</span> val:</a>
-<a class="sourceLine" id="cb8-4" title="4">        <span class="cf">return</span> val</a>
-<a class="sourceLine" id="cb8-5" title="5">    <span class="cf">if</span> env.has_key(<span class="st">&#39;parent_env&#39;</span>):</a>
-<a class="sourceLine" id="cb8-6" title="6">        <span class="cf">return</span> search_in_env(env[<span class="st">&#39;parent_env&#39;</span>], key)</a>
-<a class="sourceLine" id="cb8-7" title="7">    <span class="cf">raise</span> <span class="pp">KeyError</span>(key)</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">def</span> search_in_env(env, key):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>    val <span class="op">=</span> env.get(key)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>    <span class="cf">if</span> val:</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>        <span class="cf">return</span> val</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>    <span class="cf">if</span> env.has_key(<span class="st">&#39;parent_env&#39;</span>):</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>        <span class="cf">return</span> search_in_env(env[<span class="st">&#39;parent_env&#39;</span>], key)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>    <span class="cf">raise</span> <span class="pp">KeyError</span>(key)</span></code></pre></div>
 <p>Since each environment may be connected to a parent environment(the case of <code>label</code>), we should search all the chain of environments.</p>
 <p>So now we have the Lisp described in the micro-manual, we only need the eval:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">def</span> eval_(exp, env<span class="op">=</span>env):</a>
-<a class="sourceLine" id="cb9-2" title="2">    <span class="co"># print &quot;evaluating: %s&quot; % str(exp)</span></a>
-<a class="sourceLine" id="cb9-3" title="3">    <span class="cf">if</span> <span class="bu">isinstance</span>(exp, <span class="bu">list</span>):</a>
-<a class="sourceLine" id="cb9-4" title="4">        <span class="cf">if</span> <span class="bu">isinstance</span>(exp[<span class="op">^</span><span class="dv">0</span>] <span class="bu">list</span>):</a>
-<a class="sourceLine" id="cb9-5" title="5">            op <span class="op">=</span> eval_(exp[<span class="op">^</span><span class="dv">0</span>]</a>
-<a class="sourceLine" id="cb9-6" title="6">        <span class="cf">else</span>:</a>
-<a class="sourceLine" id="cb9-7" title="7">            op <span class="op">=</span> search_in_env(env, exp[<span class="op">^</span><span class="dv">0</span>]</a>
-<a class="sourceLine" id="cb9-8" title="8">        <span class="cf">if</span> op <span class="kw">in</span> [quote, cond, lambda_, label, defun]:</a>
-<a class="sourceLine" id="cb9-9" title="9">            <span class="cf">return</span> <span class="bu">apply</span>(op, exp[<span class="dv">1</span>:])</a>
-<a class="sourceLine" id="cb9-10" title="10">        <span class="cf">return</span> <span class="bu">apply</span>(op, [eval_(e, env) <span class="cf">for</span> e <span class="kw">in</span> exp[<span class="dv">1</span>:]])</a>
-<a class="sourceLine" id="cb9-11" title="11">    <span class="cf">return</span> search_in_env(env, exp)</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">def</span> eval_(exp, env<span class="op">=</span>env):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>    <span class="co"># print &quot;evaluating: %s&quot; % str(exp)</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(exp, <span class="bu">list</span>):</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a>        <span class="cf">if</span> <span class="bu">isinstance</span>(exp[<span class="op">^</span><span class="dv">0</span>] <span class="bu">list</span>):</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a>            op <span class="op">=</span> eval_(exp[<span class="op">^</span><span class="dv">0</span>]</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a>        <span class="cf">else</span>:</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a>            op <span class="op">=</span> search_in_env(env, exp[<span class="op">^</span><span class="dv">0</span>]</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a>        <span class="cf">if</span> op <span class="kw">in</span> [quote, cond, lambda_, label, defun]:</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a>            <span class="cf">return</span> <span class="bu">apply</span>(op, exp[<span class="dv">1</span>:])</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a>        <span class="cf">return</span> <span class="bu">apply</span>(op, [eval_(e, env) <span class="cf">for</span> e <span class="kw">in</span> exp[<span class="dv">1</span>:]])</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true"></a>    <span class="cf">return</span> search_in_env(env, exp)</span></code></pre></div>
 <p>And some helpers for REPL:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">def</span> eval_from_string(string):</a>
-<a class="sourceLine" id="cb10-2" title="2">    <span class="cf">return</span> eval_(read(Reader(string)))</a>
-<a class="sourceLine" id="cb10-3" title="3"><span class="kw">def</span> expr_repr(expr):</a>
-<a class="sourceLine" id="cb10-4" title="4">    <span class="cf">if</span> <span class="bu">isinstance</span>(expr, <span class="bu">list</span>):</a>
-<a class="sourceLine" id="cb10-5" title="5">        <span class="cf">return</span> <span class="st">&#39;(&#39;</span> <span class="op">+</span> <span class="st">&#39; &#39;</span>.join([expr_repr(e) <span class="cf">for</span> e <span class="kw">in</span> expr]) <span class="op">+</span> <span class="st">&#39;)&#39;</span></a>
-<a class="sourceLine" id="cb10-6" title="6">    <span class="cf">elif</span> <span class="bu">isinstance</span>(expr, <span class="bu">bool</span>):</a>
-<a class="sourceLine" id="cb10-7" title="7">        <span class="cf">if</span> expr:</a>
-<a class="sourceLine" id="cb10-8" title="8">            <span class="cf">return</span> <span class="st">&#39;T&#39;</span></a>
-<a class="sourceLine" id="cb10-9" title="9">        <span class="cf">return</span> <span class="st">&#39;nil&#39;</span></a>
-<a class="sourceLine" id="cb10-10" title="10">    <span class="cf">return</span> <span class="bu">str</span>(expr)</a>
-<a class="sourceLine" id="cb10-11" title="11"><span class="kw">def</span> repl():</a>
-<a class="sourceLine" id="cb10-12" title="12">    <span class="cf">while</span> <span class="va">True</span>:</a>
-<a class="sourceLine" id="cb10-13" title="13">        <span class="cf">try</span>:</a>
-<a class="sourceLine" id="cb10-14" title="14">            <span class="bu">input</span> <span class="op">=</span> <span class="bu">raw_input</span>(<span class="st">&quot;&gt; &quot;</span>)</a>
-<a class="sourceLine" id="cb10-15" title="15">            <span class="bu">print</span> expr_repr(eval_(read(Reader(<span class="bu">input</span>))))</a>
-<a class="sourceLine" id="cb10-16" title="16">        <span class="cf">except</span> (<span class="pp">KeyboardInterrupt</span>, <span class="pp">EOFError</span>):</a>
-<a class="sourceLine" id="cb10-17" title="17">            <span class="cf">return</span></a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="kw">def</span> eval_from_string(string):</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a>    <span class="cf">return</span> eval_(read(Reader(string)))</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="kw">def</span> expr_repr(expr):</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(expr, <span class="bu">list</span>):</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a>        <span class="cf">return</span> <span class="st">&#39;(&#39;</span> <span class="op">+</span> <span class="st">&#39; &#39;</span>.join([expr_repr(e) <span class="cf">for</span> e <span class="kw">in</span> expr]) <span class="op">+</span> <span class="st">&#39;)&#39;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a>    <span class="cf">elif</span> <span class="bu">isinstance</span>(expr, <span class="bu">bool</span>):</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a>        <span class="cf">if</span> expr:</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a>            <span class="cf">return</span> <span class="st">&#39;T&#39;</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true"></a>        <span class="cf">return</span> <span class="st">&#39;nil&#39;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true"></a>    <span class="cf">return</span> <span class="bu">str</span>(expr)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true"></a><span class="kw">def</span> repl():</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true"></a>    <span class="cf">while</span> <span class="va">True</span>:</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true"></a>        <span class="cf">try</span>:</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true"></a>            <span class="bu">input</span> <span class="op">=</span> <span class="bu">raw_input</span>(<span class="st">&quot;&gt; &quot;</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true"></a>            <span class="bu">print</span> expr_repr(eval_(read(Reader(<span class="bu">input</span>))))</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true"></a>        <span class="cf">except</span> (<span class="pp">KeyboardInterrupt</span>, <span class="pp">EOFError</span>):</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true"></a>            <span class="cf">return</span></span></code></pre></div>
 <p>I also wrote some unit-tests based on examples in the paper. You can read the implementation and tests from <a href="https://gist.github.com/2147404">the gist</a>. To run the interpreter, just save the code and run <code>python lisp.py</code>.</p>]]></summary>
 </entry>
 <entry>
@@ -295,18 +295,18 @@
 <pre><code>ctpop(bmp &amp; ((1&lt;&lt;n)-1))</code></pre>
 <p><code>ctpop</code>, population count fonksiyonu, yani bir sayının iki tabanında gösterilişindeki 1 bitleri sayıyor. Bu Java’da <code>Integer.bitCount</code> fonksiyonu(öhm, static methodu) ile bulunabilir.</p>
 <p>Birkaç deneme yaparak nasıl yaptığını anlayabilir ve kendimizi ikna edebiliriz:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb3-1" title="1">In [<span class="op">^</span><span class="dv">2</span>]: bmp <span class="op">=</span> <span class="dv">0</span></a>
-<a class="sourceLine" id="cb3-2" title="2">In [<span class="op">^</span><span class="dv">3</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">15</span></a>
-<a class="sourceLine" id="cb3-3" title="3">In [<span class="op">^</span><span class="dv">4</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))</a>
-<a class="sourceLine" id="cb3-4" title="4">Out[<span class="op">^</span><span class="dv">4</span>]: <span class="dv">0</span></a>
-<a class="sourceLine" id="cb3-5" title="5">In [<span class="op">^</span><span class="dv">5</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">21</span></a>
-<a class="sourceLine" id="cb3-6" title="6">In [<span class="op">^</span><span class="dv">6</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">10</span></a>
-<a class="sourceLine" id="cb3-7" title="7">In [<span class="op">^</span><span class="dv">7</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">10</span>)<span class="op">-</span><span class="dv">1</span>))</a>
-<a class="sourceLine" id="cb3-8" title="8">Out[<span class="op">^</span><span class="dv">7</span>]: <span class="dv">0</span></a>
-<a class="sourceLine" id="cb3-9" title="9">In [<span class="op">^</span><span class="dv">8</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))</a>
-<a class="sourceLine" id="cb3-10" title="10">Out[<span class="op">^</span><span class="dv">8</span>]: <span class="dv">1</span></a>
-<a class="sourceLine" id="cb3-11" title="11">In [<span class="op">^</span><span class="dv">9</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">21</span>)<span class="op">-</span><span class="dv">1</span>))</a>
-<a class="sourceLine" id="cb3-12" title="12">Out[<span class="op">^</span><span class="dv">9</span>]: <span class="dv">2</span></a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>In [<span class="op">^</span><span class="dv">2</span>]: bmp <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>In [<span class="op">^</span><span class="dv">3</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">15</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>In [<span class="op">^</span><span class="dv">4</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>Out[<span class="op">^</span><span class="dv">4</span>]: <span class="dv">0</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>In [<span class="op">^</span><span class="dv">5</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">21</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>In [<span class="op">^</span><span class="dv">6</span>]: bmp <span class="op">|=</span> <span class="dv">1</span> <span class="op">&lt;&lt;</span> <span class="dv">10</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>In [<span class="op">^</span><span class="dv">7</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">10</span>)<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>Out[<span class="op">^</span><span class="dv">7</span>]: <span class="dv">0</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>In [<span class="op">^</span><span class="dv">8</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">15</span>)<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>Out[<span class="op">^</span><span class="dv">8</span>]: <span class="dv">1</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>In [<span class="op">^</span><span class="dv">9</span>]: ctpop(bmp <span class="op">&amp;</span> ((<span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">21</span>)<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>Out[<span class="op">^</span><span class="dv">9</span>]: <span class="dv">2</span></span></code></pre></div>
 <p>Eğer arraydeki n. yere bir eleman ekliyorsak, n’den itibaren arrayi bir kaydırmamız lazım. En büyük index her zaman arrayde de daha sonda oluyor.</p>
 <p>Ne yaptığına bakalım. 25. elemanın arraydeki yerine bakarken, <code>1 &lt;&lt; 25</code>i hesaplıyorum ki bu aslında (2 tabanında) 1 ve yanına 25 tane 0 koymak demek. Daha sonra bu sayıdan 1 çıkararak, en sağdan itibaren(en anlamsız bitten itibaren) tüm 0ları 1 yapıyorum, ilk gördüğüm 1’i 0 yapıyorum, gerisine dokunmuyorum(bu şartlar altında geriye kalan tüm bitler 0 oluyor). Daha sonra bu sayı ile bitmap’i logical and(bazı yerlerde bitwise and diyor, aynı şeyler sanırım?) işlemine sokup ctpop yaptığımda, bitmap’de (1 &lt;&lt; n)’den itibaren kaç tane 1 olduğunu saymış oluyorum ve bu da bana array’deki indeximi veriyor. Çok mantıklı.</p>
 <p>Bu arada kullandığınız dile göre bu işlemi daha kolay bir şekilde yapabilirsiniz. Bazı diller(Java’da <code>Integer.bitcount</code>, Common Lisp’de <code>logcount</code> gibi) direkt olarak <code>bitCount</code> gibi fonksiyonlar sunuyor. Bir de ben Common Lisp’de hiç kaydır 1 çıkart falan demeden direkt “şu bitle şu bit arasında kaç 1 olduğunu say” şeklinde bir fonksiyon yazdım, bitwise trickler yapmadan, şöyle:</p>
@@ -337,107 +337,107 @@
     <summary type="html"><![CDATA[<p>Clojure(ve genel olarak Lisp dilleri) ile bir süredir ilgileniyorum, canım sıkıldıkça <a href="http://4clojure.com/">4clojure</a>’daki problemleri çözüyordum(bu arada Clojure’a başalyan herkese tavsiye ederim, sitenin en güzel yanı, problemi çözdükten sonra başkalarının çözümlerini görebiliyorsunuz, ve çoğu zaman problemi çözmüş birkaç Clojure geliştirici/katkıcısı bulabiliyorsunuz). Bir süre sonra, artık temellerini kavradığımı düşündüğümde, şu ana kadar en az çözülen probleme, <a href="http://4clojure.com/problem/117">‘For Science!’</a>a bir bakayım dedim. Problem tanıdık geldi. Bu problemin bir benzeriyle ilk kez <a href="http://osa1.net/finaldeyiz/">şurda bahsettiğim</a> programlama yarışmasında karşılaşmış, ve o zaman soruya saf saf bakmaktan başka birşey yapamamıştık. Daha sonra, ilk başta alakasız gibi gözüksede, aslında çok benzeyen bir halini, üzerinde çalıştığım bir oyunun yapım aşamasını kolaylaştırmak için çözmüştüm, ilgili yazı <a href="http://osa1.net/pygame-ve-duzensiz-sprite-sheetlerle-calismak/">şurda</a>.</p>
 <p>Alternatif bir yöntem düşünmeden hemen daha önceden çözdüğüm gibi çözmeye başladım. Çözen Python kodunu birkaç dakika içerisinde yazdım. Algoritmam şu şekilde: gezilebilir olup birbirlerine komşu olan tüm alanları grupluyorum, daha sonra eğer başlangıç ve hedef aynı grupdaysa, birbirlerine erişebilirler demektir.</p>
 <p>Python koduyla açıklamak daha kolay:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" title="1">pos_m <span class="op">=</span> <span class="va">None</span></a>
-<a class="sourceLine" id="cb1-2" title="2">pos_c <span class="op">=</span> <span class="va">None</span></a>
-<a class="sourceLine" id="cb1-3" title="3">groups <span class="op">=</span> []</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>pos_m <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>pos_c <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>groups <span class="op">=</span> []</span></code></pre></div>
 <p>Burda <code>pos_m</code>, problemdeki fare(mouse - M)nin başlangıç noktasını temsil ediyor. Alanı gezerken fareyle karşılaştığımızda bunu atayacağız. Aynı şekilde <code>pos_c</code> de peynir(cheese)in yeri.</p>
 <p><code>groups</code> da birbirlerine komşu olan tüm noktaların oluşturduğu grupları tutacak.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">def</span> check_adjacency(pos, x, y):</a>
-<a class="sourceLine" id="cb2-2" title="2">    difx <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">0</span>]x)</a>
-<a class="sourceLine" id="cb2-3" title="3">    dify <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">1</span>]y)</a>
-<a class="sourceLine" id="cb2-4" title="4">    <span class="cf">return</span> (difx <span class="op">==</span> <span class="dv">1</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">0</span>) <span class="kw">or</span> (difx <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">1</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">def</span> check_adjacency(pos, x, y):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>    difx <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">0</span>]x)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>    dify <span class="op">=</span> <span class="bu">abs</span>(pos[<span class="op">^</span><span class="dv">1</span>]y)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    <span class="cf">return</span> (difx <span class="op">==</span> <span class="dv">1</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">0</span>) <span class="kw">or</span> (difx <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> dify <span class="op">==</span> <span class="dv">1</span>)</span></code></pre></div>
 <p>Bu fonksiyonun yaptığı, bir (X, Y) ikilisinden oluşan noktanın, (x, y) noktasına komşu olup olmadığını dönmek. Burda komşu olma şartı, iki noktanın üst üste veya yan yana bulunmaları(haritada çarpraz ilerleme olmadığından, çarprazdakiler komşu sayılmıyor).</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">def</span> find_groups(x, y):</a>
-<a class="sourceLine" id="cb3-2" title="2">    r <span class="op">=</span> []</a>
-<a class="sourceLine" id="cb3-3" title="3">    <span class="cf">for</span> group <span class="kw">in</span> groups:</a>
-<a class="sourceLine" id="cb3-4" title="4">        <span class="cf">for</span> pos <span class="kw">in</span> group:</a>
-<a class="sourceLine" id="cb3-5" title="5">            <span class="cf">if</span> check_adjacency(pos, x, y):</a>
-<a class="sourceLine" id="cb3-6" title="6">                r.append(group)</a>
-<a class="sourceLine" id="cb3-7" title="7">                <span class="cf">break</span></a>
-<a class="sourceLine" id="cb3-8" title="8">    <span class="cf">return</span> r</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">def</span> find_groups(x, y):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>    r <span class="op">=</span> []</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    <span class="cf">for</span> group <span class="kw">in</span> groups:</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>        <span class="cf">for</span> pos <span class="kw">in</span> group:</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>            <span class="cf">if</span> check_adjacency(pos, x, y):</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>                r.append(group)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>                <span class="cf">break</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>    <span class="cf">return</span> r</span></code></pre></div>
 <p><code>find_groups</code>, (x, y) noktasının komşu olduğu grupların bir listesini dönüyor. Örneğin bir aşamada elimizde [(1, 1), (2, 2)] ve [(2, 4)] grupları varsa ve biz (2, 3) noktasının komşu olduğu grupları arıyorsak, bu iki grupu bize döndürecek. Bu durumda bu iki grupu birleştirmemiz gerekcek çükü artık bu ikisi birbirine (2, 3) ile bağlı.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">def</span> merge_groups(grps):</a>
-<a class="sourceLine" id="cb4-2" title="2">    <span class="cf">for</span> group <span class="kw">in</span> grps[<span class="dv">1</span>:]:</a>
-<a class="sourceLine" id="cb4-3" title="3">        grps[<span class="op">^</span><span class="dv">0</span>]<span class="op">+=</span> group</a>
-<a class="sourceLine" id="cb4-4" title="4">        groups.remove(group)</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">def</span> merge_groups(grps):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>    <span class="cf">for</span> group <span class="kw">in</span> grps[<span class="dv">1</span>:]:</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>        grps[<span class="op">^</span><span class="dv">0</span>]<span class="op">+=</span> group</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>        groups.remove(group)</span></code></pre></div>
 <p>Birleştirme işlemini de bu yapıyor işte.</p>
 <p>Bundan sonrası basit zaten, teker teker gez, grupları bul, grup yoksa yeni oluştur, varsa onu genişlet, birden fazlaysa birleştir. Kodu takip etmek için kullandığım print statement’larını silmeden koyuyorum:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb5-1" title="1"><span class="cf">for</span> y <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid)):</a>
-<a class="sourceLine" id="cb5-2" title="2">    <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid[<span class="op">^</span><span class="dv">0</span>]):</a>
-<a class="sourceLine" id="cb5-3" title="3">        char <span class="op">=</span> test_grid[y][x]</a>
-<a class="sourceLine" id="cb5-4" title="4">        <span class="bu">print</span> x, y, char,</a>
-<a class="sourceLine" id="cb5-5" title="5">        <span class="cf">if</span> char <span class="op">==</span> <span class="st">&#39;#&#39;</span>:</a>
-<a class="sourceLine" id="cb5-6" title="6">            <span class="bu">print</span> <span class="st">&quot;block&quot;</span></a>
-<a class="sourceLine" id="cb5-7" title="7">        <span class="cf">else</span>:</a>
-<a class="sourceLine" id="cb5-8" title="8">            <span class="cf">if</span> char <span class="op">==</span> <span class="st">&#39;M&#39;</span>:</a>
-<a class="sourceLine" id="cb5-9" title="9">                pos_m <span class="op">=</span> (x, y)</a>
-<a class="sourceLine" id="cb5-10" title="10">            <span class="cf">elif</span> char <span class="op">==</span> <span class="st">&#39;C&#39;</span>:</a>
-<a class="sourceLine" id="cb5-11" title="11">                pos_c <span class="op">=</span> (x, y)</a>
-<a class="sourceLine" id="cb5-12" title="12">            grps <span class="op">=</span> find_groups(x, y)</a>
-<a class="sourceLine" id="cb5-13" title="13">            <span class="cf">if</span> <span class="bu">len</span>(grps) <span class="op">&gt;</span> <span class="dv">1</span>:</a>
-<a class="sourceLine" id="cb5-14" title="14">                merge_groups(grps)</a>
-<a class="sourceLine" id="cb5-15" title="15">                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))</a>
-<a class="sourceLine" id="cb5-16" title="16">                <span class="bu">print</span> <span class="st">&quot;merge&quot;</span></a>
-<a class="sourceLine" id="cb5-17" title="17">            <span class="cf">elif</span> <span class="bu">len</span>(grps) <span class="op">==</span> <span class="dv">0</span>:</a>
-<a class="sourceLine" id="cb5-18" title="18">                groups.append([(x, y)])</a>
-<a class="sourceLine" id="cb5-19" title="19">                <span class="bu">print</span> <span class="st">&quot;new group&quot;</span></a>
-<a class="sourceLine" id="cb5-20" title="20">            <span class="cf">else</span>:</a>
-<a class="sourceLine" id="cb5-21" title="21">                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))</a>
-<a class="sourceLine" id="cb5-22" title="22">                <span class="bu">print</span> <span class="st">&quot;append&quot;</span></a>
-<a class="sourceLine" id="cb5-23" title="23"><span class="bu">print</span> pos_m, pos_c</a>
-<a class="sourceLine" id="cb5-24" title="24"><span class="cf">for</span> group <span class="kw">in</span> groups:</a>
-<a class="sourceLine" id="cb5-25" title="25">    <span class="cf">if</span> pos_m <span class="kw">in</span> group <span class="kw">and</span> pos_c <span class="kw">in</span> group:</a>
-<a class="sourceLine" id="cb5-26" title="26">        <span class="bu">print</span> <span class="st">&quot;M can reach C&quot;</span></a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="cf">for</span> y <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid)):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>    <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">xrange</span>(<span class="bu">len</span>(test_grid[<span class="op">^</span><span class="dv">0</span>]):</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>        char <span class="op">=</span> test_grid[y][x]</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>        <span class="bu">print</span> x, y, char,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>        <span class="cf">if</span> char <span class="op">==</span> <span class="st">&#39;#&#39;</span>:</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>            <span class="bu">print</span> <span class="st">&quot;block&quot;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>        <span class="cf">else</span>:</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>            <span class="cf">if</span> char <span class="op">==</span> <span class="st">&#39;M&#39;</span>:</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>                pos_m <span class="op">=</span> (x, y)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>            <span class="cf">elif</span> char <span class="op">==</span> <span class="st">&#39;C&#39;</span>:</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>                pos_c <span class="op">=</span> (x, y)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>            grps <span class="op">=</span> find_groups(x, y)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>            <span class="cf">if</span> <span class="bu">len</span>(grps) <span class="op">&gt;</span> <span class="dv">1</span>:</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>                merge_groups(grps)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a>                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a>                <span class="bu">print</span> <span class="st">&quot;merge&quot;</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true"></a>            <span class="cf">elif</span> <span class="bu">len</span>(grps) <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true"></a>                groups.append([(x, y)])</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true"></a>                <span class="bu">print</span> <span class="st">&quot;new group&quot;</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true"></a>            <span class="cf">else</span>:</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true"></a>                grps[<span class="op">^</span><span class="dv">0</span>]append((x, y))</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true"></a>                <span class="bu">print</span> <span class="st">&quot;append&quot;</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true"></a><span class="bu">print</span> pos_m, pos_c</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true"></a><span class="cf">for</span> group <span class="kw">in</span> groups:</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true"></a>    <span class="cf">if</span> pos_m <span class="kw">in</span> group <span class="kw">and</span> pos_c <span class="kw">in</span> group:</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true"></a>        <span class="bu">print</span> <span class="st">&quot;M can reach C&quot;</span></span></code></pre></div>
 <p>Çok da güzel bir kod olmayabilir(örneğin liste içinde listelerde lineer arama yerine, <code>set</code> kullanılabilir, Clojure kodumda yaptığım gibi) ama problemi hızlıca çözmek için işimi gördü.</p>
 <p>Fonksiyonel programlama yolunu henüz çözebilmiş değilim. Hala daha çoğu zaman yaptığım, bir algoritmadaki değişen durumları(<code>state</code>) bir <code>loop</code> içine alıp, tail-call yapmak(Clojure’da <code>recur</code> yani, bu arada <code>recur</code>’un tail-call optimization olmadığının farkındayım).</p>
 <p>Yukarıdaki Python fonksiyonlarının Clojure karşılıklarını şu şekilde yazdım:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode clojure"><code class="sourceCode clojure"><a class="sourceLine" id="cb6-1" title="1">(<span class="bu">defn</span><span class="fu"> abs</span></a>
-<a class="sourceLine" id="cb6-2" title="2">  <span class="st">&quot;Absolute value of n&quot;</span></a>
-<a class="sourceLine" id="cb6-3" title="3">  [n]</a>
-<a class="sourceLine" id="cb6-4" title="4">  (<span class="kw">if</span> (<span class="kw">neg?</span> n)</a>
-<a class="sourceLine" id="cb6-5" title="5">    (<span class="kw">-</span> n)</a>
-<a class="sourceLine" id="cb6-6" title="6">    n))</a>
-<a class="sourceLine" id="cb6-7" title="7">(<span class="bu">defn</span><span class="fu"> check-adjacency</span></a>
-<a class="sourceLine" id="cb6-8" title="8">  [[posx posy] x y]</a>
-<a class="sourceLine" id="cb6-9" title="9">  (<span class="kw">let</span> [difx (abs (<span class="kw">-</span> posx x))</a>
-<a class="sourceLine" id="cb6-10" title="10">        dify (abs (<span class="kw">-</span> posy y))]</a>
-<a class="sourceLine" id="cb6-11" title="11">    (<span class="kw">or</span> (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">1</span>) (<span class="kw">=</span> dify <span class="dv">0</span>)) (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">0</span>) (<span class="kw">=</span> dify <span class="dv">1</span>)))))</a>
-<a class="sourceLine" id="cb6-12" title="12">(<span class="bu">defn</span><span class="fu"> find-adjacent-sets</span></a>
-<a class="sourceLine" id="cb6-13" title="13">  [sets [x y]]</a>
-<a class="sourceLine" id="cb6-14" title="14">  (<span class="kw">set</span> (<span class="kw">filter</span> (<span class="kw">fn</span> [<span class="kw">set</span>]</a>
-<a class="sourceLine" id="cb6-15" title="15">                 (<span class="kw">some</span> (<span class="kw">fn</span> [p]</a>
-<a class="sourceLine" id="cb6-16" title="16">                         (check-adjacency p x y))</a>
-<a class="sourceLine" id="cb6-17" title="17">                       <span class="kw">set</span>))</a>
-<a class="sourceLine" id="cb6-18" title="18">               sets)))</a>
-<a class="sourceLine" id="cb6-19" title="19">(<span class="bu">defn</span><span class="fu"> get-char</span></a>
-<a class="sourceLine" id="cb6-20" title="20">  [grid [x y]]</a>
-<a class="sourceLine" id="cb6-21" title="21">  (<span class="kw">get</span> (grid y) x))</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode clojure"><code class="sourceCode clojure"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> abs</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>  <span class="st">&quot;Absolute value of n&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>  [n]</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>  (<span class="kw">if</span> (<span class="kw">neg?</span> n)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>    (<span class="kw">-</span> n)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>    n))</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> check-adjacency</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>  [[posx posy] x y]</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>  (<span class="kw">let</span> [difx (abs (<span class="kw">-</span> posx x))</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>        dify (abs (<span class="kw">-</span> posy y))]</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>    (<span class="kw">or</span> (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">1</span>) (<span class="kw">=</span> dify <span class="dv">0</span>)) (<span class="kw">and</span> (<span class="kw">=</span> difx <span class="dv">0</span>) (<span class="kw">=</span> dify <span class="dv">1</span>)))))</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> find-adjacent-sets</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>  [sets [x y]]</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>  (<span class="kw">set</span> (<span class="kw">filter</span> (<span class="kw">fn</span> [<span class="kw">set</span>]</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>                 (<span class="kw">some</span> (<span class="kw">fn</span> [p]</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true"></a>                         (check-adjacency p x y))</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true"></a>                       <span class="kw">set</span>))</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true"></a>               sets)))</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> get-char</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true"></a>  [grid [x y]]</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true"></a>  (<span class="kw">get</span> (grid y) x))</span></code></pre></div>
 <p>Daha sonra bunları kullanarak problemin çözümü:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode clojure"><code class="sourceCode clojure"><a class="sourceLine" id="cb7-1" title="1">(<span class="bu">defn</span><span class="fu"> can-reach?</span></a>
-<a class="sourceLine" id="cb7-2" title="2">  [grid]</a>
-<a class="sourceLine" id="cb7-3" title="3">  (<span class="kw">let</span> [rang (<span class="kw">for</span> [y (<span class="kw">range</span> (<span class="kw">count</span> grid)) </a>
-<a class="sourceLine" id="cb7-4" title="4">                   x (<span class="kw">range</span> (<span class="kw">count</span> (<span class="kw">first</span> grid)))] [x y])]</a>
-<a class="sourceLine" id="cb7-5" title="5">    (<span class="kw">loop</span> [positions rang</a>
-<a class="sourceLine" id="cb7-6" title="6">           sets #{}</a>
-<a class="sourceLine" id="cb7-7" title="7">           posm <span class="va">nil</span></a>
-<a class="sourceLine" id="cb7-8" title="8">           posc <span class="va">nil</span>]</a>
-<a class="sourceLine" id="cb7-9" title="9">      (<span class="kw">if</span> (<span class="kw">nil?</span> positions)</a>
-<a class="sourceLine" id="cb7-10" title="10">        (<span class="kw">let</span> [m-set (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="va">%</span> posm) sets))</a>
-<a class="sourceLine" id="cb7-11" title="11">              c-set (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="va">%</span> posc) sets))]</a>
-<a class="sourceLine" id="cb7-12" title="12">          (<span class="kw">=</span> m-set c-set))</a>
-<a class="sourceLine" id="cb7-13" title="13">        (<span class="kw">let</span> [pos (<span class="kw">first</span> positions)</a>
-<a class="sourceLine" id="cb7-14" title="14">              ch (get-char grid pos)</a>
-<a class="sourceLine" id="cb7-15" title="15">              adj-sets (find-adjacent-sets sets pos)</a>
-<a class="sourceLine" id="cb7-16" title="16">              set-count (<span class="kw">count</span> adj-sets)]</a>
-<a class="sourceLine" id="cb7-17" title="17">          (<span class="kw">if</span> (<span class="kw">not=</span> ch <span class="at">\#</span>)</a>
-<a class="sourceLine" id="cb7-18" title="18">            (<span class="kw">recur</span> (<span class="kw">next</span> positions)</a>
-<a class="sourceLine" id="cb7-19" title="19">                   (<span class="kw">conj</span> (<span class="kw">difference</span> sets adj-sets) (<span class="kw">union</span> (<span class="kw">apply</span> <span class="kw">union</span> adj-sets) #{pos}))</a>
-<a class="sourceLine" id="cb7-20" title="20">                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\M</span>) pos posm)</a>
-<a class="sourceLine" id="cb7-21" title="21">                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\C</span>) pos posc))</a>
-<a class="sourceLine" id="cb7-22" title="22">            (<span class="kw">recur</span> (<span class="kw">next</span> positions)</a>
-<a class="sourceLine" id="cb7-23" title="23">                   sets</a>
-<a class="sourceLine" id="cb7-24" title="24">                   posm</a>
-<a class="sourceLine" id="cb7-25" title="25">                   posc)))))))</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode clojure"><code class="sourceCode clojure"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>(<span class="bu">defn</span><span class="fu"> can-reach?</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>  [grid]</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>  (<span class="kw">let</span> [rang (<span class="kw">for</span> [y (<span class="kw">range</span> (<span class="kw">count</span> grid)) </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>                   x (<span class="kw">range</span> (<span class="kw">count</span> (<span class="kw">first</span> grid)))] [x y])]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>    (<span class="kw">loop</span> [positions rang</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>           sets #{}</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>           posm <span class="va">nil</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>           posc <span class="va">nil</span>]</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>      (<span class="kw">if</span> (<span class="kw">nil?</span> positions)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>        (<span class="kw">let</span> [m-set (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="va">%</span> posm) sets))</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a>              c-set (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="va">%</span> posc) sets))]</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a>          (<span class="kw">=</span> m-set c-set))</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a>        (<span class="kw">let</span> [pos (<span class="kw">first</span> positions)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true"></a>              ch (get-char grid pos)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true"></a>              adj-sets (find-adjacent-sets sets pos)</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true"></a>              set-count (<span class="kw">count</span> adj-sets)]</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true"></a>          (<span class="kw">if</span> (<span class="kw">not=</span> ch <span class="at">\#</span>)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true"></a>            (<span class="kw">recur</span> (<span class="kw">next</span> positions)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true"></a>                   (<span class="kw">conj</span> (<span class="kw">difference</span> sets adj-sets) (<span class="kw">union</span> (<span class="kw">apply</span> <span class="kw">union</span> adj-sets) #{pos}))</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true"></a>                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\M</span>) pos posm)</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true"></a>                   (<span class="kw">if</span> (<span class="kw">=</span> ch <span class="ch">\C</span>) pos posc))</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true"></a>            (<span class="kw">recur</span> (<span class="kw">next</span> positions)</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true"></a>                   sets</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true"></a>                   posm</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true"></a>                   posc)))))))</span></code></pre></div>
 <p>4clojure çözümlerde birden fazla fonksiyon kabul etmediğinden, tüm yardımcı fonksiyon tanımlarımı ana fonksiyonumun içine almam gerekti. 4clojure’a yolladığım çözüm <a href="https://gist.github.com/1240517">şurda</a>.</p>
 <hr />
 <p>Clojure hakkında karmaşık duygular içerisindeyim(eheh, bir programlama dili hakkında böyle bir cümle kurmak). Pek çok ileri-seviye özelliklerini henüz bilmiyorum. Fonksiyonel programlamayı da, yukarıda bahsettiğim gibi, henüz çözebilmiş değilim. Macroları şu ana kadar hiç kullanmadım. Bu dönem sonuna kadar SICP’in ilk 3 bölümünü bitirip, tüm alıştırma çözümlerini yayınlamayı planlıyorum(ilk bölüm bitti, ikincisi bitmek üzere, birkaç alıştırmayı çözemedim gerçi). Daha sonra McCarthy’nin ilk Lispini bir dilde(büyük ihtimalle C olacak) implement ettikten sonra muhtemelen <a href="http://en.wikipedia.org/wiki/Type_theory">type theory</a>ye dalmak için Haskell(veya daha uygun başka bir Lisp dili) ile uğraşacağım(sonunda muhtemelen bu dediklerimin yarısını falan yapmış olacağım ama olsun eheh).</p>
@@ -483,67 +483,67 @@
 <iframe width="425" height="349" src="http://www.youtube.com/embed/e1MC7re1r0s" frameborder="0" allowfullscreen>
 </iframe>
 <p>Arduino’nun yaptığı, serial port’u dinleyip, gelen verinin 0’dan büyük bir takam olduğunu varsayarak(<code>val -= '0'</code>), bu veriye göre ledleri yakıp söndürmek.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb1-1" title="1"><span class="pp">#define ledPin1 13</span></a>
-<a class="sourceLine" id="cb1-2" title="2"><span class="pp">#define ledPin2 12</span></a>
-<a class="sourceLine" id="cb1-3" title="3"><span class="pp">#define ledPin3 11</span></a>
-<a class="sourceLine" id="cb1-4" title="4"></a>
-<a class="sourceLine" id="cb1-5" title="5"><span class="dt">int</span> val = <span class="dv">0</span>;</a>
-<a class="sourceLine" id="cb1-6" title="6"></a>
-<a class="sourceLine" id="cb1-7" title="7"><span class="dt">void</span> setup() {</a>
-<a class="sourceLine" id="cb1-8" title="8">    pinMode(ledPin1, OUTPUT);</a>
-<a class="sourceLine" id="cb1-9" title="9">    pinMode(ledPin2, OUTPUT);</a>
-<a class="sourceLine" id="cb1-10" title="10">    pinMode(ledPin3, OUTPUT);</a>
-<a class="sourceLine" id="cb1-11" title="11">    Serial.begin(<span class="dv">9600</span>);</a>
-<a class="sourceLine" id="cb1-12" title="12">}</a>
-<a class="sourceLine" id="cb1-13" title="13"></a>
-<a class="sourceLine" id="cb1-14" title="14"><span class="dt">void</span> loop () {</a>
-<a class="sourceLine" id="cb1-15" title="15">    <span class="cf">if</span> (Serial.available()) {</a>
-<a class="sourceLine" id="cb1-16" title="16">        val = Serial.read();</a>
-<a class="sourceLine" id="cb1-17" title="17">        val -= <span class="ch">&#39;0&#39;</span>;</a>
-<a class="sourceLine" id="cb1-18" title="18"></a>
-<a class="sourceLine" id="cb1-19" title="19">        <span class="cf">if</span> (val == <span class="dv">1</span>) {</a>
-<a class="sourceLine" id="cb1-20" title="20">            digitalWrite(ledPin1, HIGH);</a>
-<a class="sourceLine" id="cb1-21" title="21">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">2</span>) {</a>
-<a class="sourceLine" id="cb1-22" title="22">            digitalWrite(ledPin2, HIGH);</a>
-<a class="sourceLine" id="cb1-23" title="23">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">3</span>) {</a>
-<a class="sourceLine" id="cb1-24" title="24">            digitalWrite(ledPin3, HIGH);</a>
-<a class="sourceLine" id="cb1-25" title="25">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">4</span>) {</a>
-<a class="sourceLine" id="cb1-26" title="26">            digitalWrite(ledPin1, LOW);</a>
-<a class="sourceLine" id="cb1-27" title="27">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">5</span>) {</a>
-<a class="sourceLine" id="cb1-28" title="28">            digitalWrite(ledPin2, LOW);</a>
-<a class="sourceLine" id="cb1-29" title="29">        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">6</span>) {</a>
-<a class="sourceLine" id="cb1-30" title="30">            digitalWrite(ledPin3, LOW);</a>
-<a class="sourceLine" id="cb1-31" title="31">        }</a>
-<a class="sourceLine" id="cb1-32" title="32">    }</a>
-<a class="sourceLine" id="cb1-33" title="33">}</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="pp">#define ledPin1 13</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="pp">#define ledPin2 12</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="pp">#define ledPin3 11</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="dt">int</span> val = <span class="dv">0</span>;</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="dt">void</span> setup() {</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    pinMode(ledPin1, OUTPUT);</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>    pinMode(ledPin2, OUTPUT);</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>    pinMode(ledPin3, OUTPUT);</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>    Serial.begin(<span class="dv">9600</span>);</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>}</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a><span class="dt">void</span> loop () {</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>    <span class="cf">if</span> (Serial.available()) {</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>        val = Serial.read();</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>        val -= <span class="ch">&#39;0&#39;</span>;</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>        <span class="cf">if</span> (val == <span class="dv">1</span>) {</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>            digitalWrite(ledPin1, HIGH);</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">2</span>) {</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>            digitalWrite(ledPin2, HIGH);</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">3</span>) {</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>            digitalWrite(ledPin3, HIGH);</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">4</span>) {</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a>            digitalWrite(ledPin1, LOW);</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">5</span>) {</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a>            digitalWrite(ledPin2, LOW);</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a>        } <span class="cf">else</span> <span class="cf">if</span> (val == <span class="dv">6</span>) {</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a>            digitalWrite(ledPin3, LOW);</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a>        }</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a>    }</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Python ve Pygame ile de klavyeyi izleyip, tuşların basılması veya bırakılması durumlarında serial port’a gerekli verileri gönderdim:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1"><span class="im">import</span> serial</a>
-<a class="sourceLine" id="cb2-2" title="2"><span class="im">import</span> pygame</a>
-<a class="sourceLine" id="cb2-3" title="3"></a>
-<a class="sourceLine" id="cb2-4" title="4">s <span class="op">=</span> serial.Serial(<span class="st">&#39;/dev/ttyACM2&#39;</span>, <span class="dv">9600</span>)</a>
-<a class="sourceLine" id="cb2-5" title="5">screen <span class="op">=</span> pygame.display.set_mode((<span class="dv">100</span>, <span class="dv">100</span>))</a>
-<a class="sourceLine" id="cb2-6" title="6">clock <span class="op">=</span> pygame.time.Clock()</a>
-<a class="sourceLine" id="cb2-7" title="7"></a>
-<a class="sourceLine" id="cb2-8" title="8">keydwn <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;1&quot;</span>,</a>
-<a class="sourceLine" id="cb2-9" title="9">          pygame.K_RIGHT: <span class="st">&quot;2&quot;</span>,</a>
-<a class="sourceLine" id="cb2-10" title="10">          pygame.K_DOWN : <span class="st">&quot;3&quot;</span>}</a>
-<a class="sourceLine" id="cb2-11" title="11"></a>
-<a class="sourceLine" id="cb2-12" title="12">keyup  <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;4&quot;</span>,</a>
-<a class="sourceLine" id="cb2-13" title="13">          pygame.K_RIGHT: <span class="st">&quot;5&quot;</span>,</a>
-<a class="sourceLine" id="cb2-14" title="14">          pygame.K_DOWN : <span class="st">&quot;6&quot;</span>}</a>
-<a class="sourceLine" id="cb2-15" title="15"></a>
-<a class="sourceLine" id="cb2-16" title="16">running <span class="op">=</span> <span class="dv">1</span></a>
-<a class="sourceLine" id="cb2-17" title="17"><span class="cf">while</span> running:</a>
-<a class="sourceLine" id="cb2-18" title="18">    screen.fill((<span class="dv">00</span>, <span class="dv">00</span>, <span class="dv">00</span>))</a>
-<a class="sourceLine" id="cb2-19" title="19">    <span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():</a>
-<a class="sourceLine" id="cb2-20" title="20">        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.QUIT:</a>
-<a class="sourceLine" id="cb2-21" title="21">            running <span class="op">=</span> <span class="va">False</span></a>
-<a class="sourceLine" id="cb2-22" title="22">        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYDOWN:</a>
-<a class="sourceLine" id="cb2-23" title="23">            s.write(keydwn.get(event.key, <span class="st">&quot;&quot;</span>))</a>
-<a class="sourceLine" id="cb2-24" title="24">        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYUP:</a>
-<a class="sourceLine" id="cb2-25" title="25">            s.write(keyup.get(event.key, <span class="st">&quot;&quot;</span>))</a>
-<a class="sourceLine" id="cb2-26" title="26"></a>
-<a class="sourceLine" id="cb2-27" title="27">    time <span class="op">=</span> clock.tick(<span class="dv">30</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="im">import</span> serial</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="im">import</span> pygame</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>s <span class="op">=</span> serial.Serial(<span class="st">&#39;/dev/ttyACM2&#39;</span>, <span class="dv">9600</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>screen <span class="op">=</span> pygame.display.set_mode((<span class="dv">100</span>, <span class="dv">100</span>))</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>clock <span class="op">=</span> pygame.time.Clock()</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>keydwn <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;1&quot;</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>          pygame.K_RIGHT: <span class="st">&quot;2&quot;</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>          pygame.K_DOWN : <span class="st">&quot;3&quot;</span>}</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>keyup  <span class="op">=</span> {pygame.K_LEFT : <span class="st">&quot;4&quot;</span>,</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>          pygame.K_RIGHT: <span class="st">&quot;5&quot;</span>,</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>          pygame.K_DOWN : <span class="st">&quot;6&quot;</span>}</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>running <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a><span class="cf">while</span> running:</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a>    screen.fill((<span class="dv">00</span>, <span class="dv">00</span>, <span class="dv">00</span>))</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a>    <span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true"></a>        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.QUIT:</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true"></a>            running <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true"></a>        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYDOWN:</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true"></a>            s.write(keydwn.get(event.key, <span class="st">&quot;&quot;</span>))</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true"></a>        <span class="cf">elif</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.KEYUP:</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true"></a>            s.write(keyup.get(event.key, <span class="st">&quot;&quot;</span>))</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true"></a>    time <span class="op">=</span> clock.tick(<span class="dv">30</span>)</span></code></pre></div>
 <p>İlk deneme için gayet basit ve güzel :) . Aslında amacım, Python ve Pygame ile yaptığım şeyleri Clojure ile(Pygame kısmı için AWT gerekecekti sanırım) yapmaktı ama sırt ağrım bir yerden sonra dayanılmaz hale geldi(zaten çalışma ortamım rahat değil, bir de Arduino için masaya eğilince) ve bir an önce bitirmeye çalıştım. Bundan sonraki denemelerimi Clojure ile yapmaya çalışacağım.</p>
 <p>Onun dışında, Arduino kodunu Pardus ortamında bir türlü derleyemedim, gerekli kütüphaneler/bağımlılıklar yüzünden. Bir ara onunla uğraşacağım.</p>]]></summary>
 </entry>
@@ -576,15 +576,15 @@
 <p>Hatta mesela şöyle birşey yapabilseydim:</p>
 <p><img src="/images/ss/eclipse_autocomplete1.png" /></p>
 <p>Ama yok, örneğin PyDev daha aşağıdaki kodda çakılıyor:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" title="1">cls <span class="op">=</span> Class1()</a>
-<a class="sourceLine" id="cb1-2" title="2">cls.</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>cls <span class="op">=</span> Class1()</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>cls.</span></code></pre></div>
 <p>Daha burda bile, Class1’in methodlarını gösteremiyor. Direkt olarak <code>Class1.</code> şeklinde yazıp, autocomplete çalıştırırsak, methodları gösteriyor, bu iyi, fakat bu sefer de bound-unbound method farkını anlayamıyor ve bound methodları da gösteriyor. Ki bound methodlar bu şekilde çağırılamaz. Fail.</p>
 <p>WingIDE diyenler için, personal sürümü, sanki “öyle gerekli özellikler çıkaralım ki, kimse almasın” diye düşünülerek hazırlanmış. O kısıtlı özellikleri çıkardığımızda, Vim ile de yapıyorum zaten geri kalanları. <a href="https://wingware.com/wingide/features/personal">Burdan bakın</a>. Professional sürümü de çok pahalı.</p>
 <p>PyCharm diyenler için, Open Source lisansı ücretsiz, fakat <a href="http://www.opensource.org/docs/osd">Open Source Definition</a>’a uyan bir projeniz olmalı. Benim yok.</p>
 <p>Eclipse, Java’nın verdiği acıyı inanılmaz derecede hafifletiyor. Yoksa sınıflar arasındaki saçma derecede karmaşık ilişkiler başka türlü çözülemez. Python’da ise, benzer karışıklıkta tasarlanmış(muhtemelen başka bir dilde, örneğin QT için C++) bir kütüphane ile çalışıyorsanız, acınızı hafifletecek hiçbir şey yok.</p>
 <p>Konudan biraz sapacağım ama, Python hakkında beni sinirlendiren bir başka konu da, threading ve socket olayları. Ne zaman socket veya threading kullansam, mutlaka bir problemle karşılaşıyorum ve bunu ne zaman IRC’de sorsam, mutlaka birileri Twisted kullanmamı söylüyor. Kötü alışkanlıklardan, yanlış programlamadan vs bahsedip duruyorlar. Sanki Freenode #python kanalında, içinde şöyle bir kod olan bir sürü bot varmış gibi:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1"><span class="cf">if</span> <span class="st">&quot;socket&quot;</span> <span class="kw">in</span> msg <span class="kw">or</span> <span class="st">&quot;thread&quot;</span> <span class="kw">in</span> msg:</a>
-<a class="sourceLine" id="cb2-2" title="2">    <span class="va">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="cf">if</span> <span class="st">&quot;socket&quot;</span> <span class="kw">in</span> msg <span class="kw">or</span> <span class="st">&quot;thread&quot;</span> <span class="kw">in</span> msg:</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>    <span class="va">self</span>.reply(msg, <span class="st">&quot;Use twisted!!1 bad habits good code debugging bla bla bla&quot;</span>)</span></code></pre></div>
 <p>Java’da yaklaşık bir hafta kadar önce kullanılabilr bir hale getirdiğimiz chat istemci/sunucusu, dilin kendi thread ve socketlerini kullanıyor. Thread ve socket kullanımı ile alakalı dökümantasyon hariç hiçbir yere baktığımı hatırlamıyorum. Python’dan gelen birisi olarak şaşırtıcı derecede kolay ve stabil oldu.</p>
 <hr />
 <p>Bir süredir kafamda kendi IRC istemcimi yazma fikri var. Şu anda yazabilmek için gerekli herşeyi biliyorum. Dün oturdum, Java ve Python’da IRC sunucusuna bağlanabilmek için gerekli en küçük kodu yazmaya karar verdim(arayüz ile beraber). Java’da, kendi socket ve thread sınıfları ve Swing ile kolayca yazdım(bu arada Swing’in ne kadar kötü gözüktüğüne dikkat, platform bağımsız olarak iğrenç gözüken bir arayüz kütüphanesi kendisi, ehehe):</p>

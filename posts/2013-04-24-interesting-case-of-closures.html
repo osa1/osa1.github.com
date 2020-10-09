@@ -20,119 +20,119 @@
             <div class="inner">
                 <h1 id="post-title">An interesting case of closures: is closed-over variable reference or value?</h1>
 
-<p><strong>April 24, 2013</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/lua.html">lua</a>, <a href="../tags/javascript.html">javascript</a>, <a href="../tags/python.html">python</a>.</p>
+<p><strong>April 24, 2013</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'lua'." href="../tags/lua.html">lua</a>, <a title="All pages tagged 'javascript'." href="../tags/javascript.html">javascript</a>, <a title="All pages tagged 'python'." href="../tags/python.html">python</a>.</p>
 
 <p>I discovered an interesting behavior of JavaScript’s closures while writing a nodejs script.</p>
 <p>This behavior is pretty easy to observe when writing a nodejs application, because of it’s callback-based asynchronous nature, you’ll be writing callbacks all the time. Let’s say I’ll create a callback function which uses a variable defined in outer-scope, then do some actions using that variable:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
-<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
-
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
-    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
-    <span class="va">callbacks</span>.<span class="at">push</span>(<span class="kw">function</span> () <span class="op">{</span>
-        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
-    <span class="op">}</span>)<span class="op">;</span>
-<span class="op">}</span>
-
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
-    callbacks[idx]()<span class="op">;</span>
-<span class="op">}</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>    callbacks<span class="op">.</span><span class="fu">push</span>(<span class="kw">function</span> () {</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>        <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(say)<span class="op">;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    })<span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>}</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>    callbacks[idx]()<span class="op">;</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>}</span></code></pre></div>
 <p>What I expect from this program is to print <code>foo\nbar\nbaz</code>, but it instead prints <code>baz\nbaz\nbaz</code>. It’s like <code>say</code> variable used inside the callback is a reference and not a value. But it’s still strange because the reference should be local to for-loop’s body, so each <code>var say = ...</code> assignment should create a separate reference.</p>
 <p>I find this behavior very counterintuitive. Before moving to solutions to fix this, I tried same program with several other languages.</p>
-<p>Python also has this problem<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
-
-<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
-    <span class="kw">def</span> callback():
-        <span class="bu">print</span> say
-    callbacks.append(callback)
-
-<span class="cf">for</span> c <span class="kw">in</span> callbacks:
-    c()</code></pre></div>
+<p>Python also has this problem<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>callbacks <span class="op">=</span> []</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>    <span class="kw">def</span> callback():</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>        <span class="bu">print</span> say</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>    callbacks.append(callback)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a><span class="cf">for</span> c <span class="kw">in</span> callbacks:</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>    c()</span></code></pre></div>
 <p>This prints same wrong output as with JavaScript.</p>
 <p>Lua, my favorite dynamic language, does great:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua">callbacks <span class="op">=</span> <span class="op">{}</span>
-
-<span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">({</span> <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> <span class="op">})</span> <span class="cf">do</span>
-    <span class="kw">local</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">..</span> v
-    <span class="fu">table.insert</span><span class="op">(</span>callbacks<span class="op">,</span> <span class="kw">function</span> <span class="op">()</span> <span class="fu">print</span><span class="op">(</span>say<span class="op">)</span> <span class="cf">end</span><span class="op">)</span>
-<span class="cf">end</span>
-
-<span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">(</span>callbacks<span class="op">)</span> <span class="cf">do</span>
-    v<span class="op">()</span>
-<span class="cf">end</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>callbacks <span class="op">=</span> <span class="op">{}</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">({</span> <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> <span class="op">})</span> <span class="cf">do</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>    <span class="kw">local</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">..</span> v</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>    <span class="fu">table.insert</span><span class="op">(</span>callbacks<span class="op">,</span> <span class="kw">function</span> <span class="op">()</span> <span class="fu">print</span><span class="op">(</span>say<span class="op">)</span> <span class="kw">end</span><span class="op">)</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="cf">end</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="cf">for</span> <span class="cn">_</span><span class="op">,</span> v <span class="kw">in</span> <span class="fu">pairs</span><span class="op">(</span>callbacks<span class="op">)</span> <span class="cf">do</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>    v<span class="op">()</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="cf">end</span></span></code></pre></div>
 <p>It prints <code>foo\nbar\nbaz</code> as expected. Trying this in functional languages may be pointless, since variables are actually not <em>variables</em>(they’re immutable), but it may be still useful for demonstration purposes, here’s the Haskell code that works as expected:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-main <span class="fu">=</span> <span class="fu">sequence_</span> callbacks
-  <span class="kw">where</span> callbacks <span class="fu">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="fu">.</span> (<span class="st">&quot;say &quot;</span> <span class="fu">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>main <span class="ot">=</span> <span class="fu">sequence_</span> callbacks</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>  <span class="kw">where</span> callbacks <span class="ot">=</span> <span class="fu">map</span> (<span class="fu">putStrLn</span> <span class="op">.</span> (<span class="st">&quot;say &quot;</span> <span class="op">++</span> )) [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</span></code></pre></div>
 <p>I’ll show how to get JavaScript’s behavior in languages that handle this right, and in Haskell it’s harder to get this behavior because we will need to use reference cells explicitly.</p>
 <p>I think in Python it’s more understandable, because it doesn’t have any scope declarations. ie. we can’t reason about <code>say</code> variable’s scope by the look of it. In JavaScript, we have <code>var</code> keyword that indicates a new variable is created in the scope. But it still works wrong.</p>
 <p>Indeed, in JavaScript, the worst language ever, <code>var</code> keyword is just like any other strange JavaScript feature and works in an unexpected way:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="op">&gt;</span> <span class="cf">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> ]) <span class="op">{</span> <span class="va">console</span>.<span class="at">log</span>(v)<span class="op">;</span> <span class="op">}</span>
-<span class="dv">0</span>
-<span class="dv">1</span>
-<span class="dv">2</span>
-<span class="op">&gt;</span> v
-<span class="st">&quot;2&quot;</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="op">&gt;</span> <span class="cf">for</span> (<span class="kw">var</span> v <span class="kw">in</span> [ <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> ]) { <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(v)<span class="op">;</span> }</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="dv">0</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="dv">1</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="dv">2</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a><span class="op">&gt;</span> v</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="st">&quot;2&quot;</span></span></code></pre></div>
 <p>So one explanation of this behavior may be this: In Python, we don’t know the scope of variable and it looks like it’s global. So in closure, it works like a reference. And in JavaScript, <code>var</code> keyword is simply broken(and also variable inside closure works like reference).</p>
 <h2 id="fixing-it">Fixing it</h2>
 <p>Let’s fix that in JavaScript and Python.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span>
-<span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span>
-
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) <span class="op">{</span>
-    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span>
-    <span class="va">callbacks</span>.<span class="at">push</span>((<span class="kw">function</span> (say) <span class="op">{</span>
-      <span class="cf">return</span> <span class="kw">function</span> () <span class="op">{</span>
-        <span class="va">console</span>.<span class="at">log</span>(say)<span class="op">;</span>
-      <span class="op">}</span>
-    <span class="op">}</span>)(say))<span class="op">;</span>
-<span class="op">}</span>
-
-<span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) <span class="op">{</span>
-    callbacks[idx]()<span class="op">;</span>
-<span class="op">}</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">var</span> callbacks <span class="op">=</span> []<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="kw">var</span> words <span class="op">=</span> [ <span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span> ]<span class="op">;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> words) {</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>    <span class="kw">var</span> say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> words[idx]<span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>    callbacks<span class="op">.</span><span class="fu">push</span>((<span class="kw">function</span> (say) {</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>      <span class="cf">return</span> <span class="kw">function</span> () {</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>        <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(say)<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>      }</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>    })(say))<span class="op">;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>}</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a><span class="cf">for</span> (<span class="kw">var</span> idx <span class="kw">in</span> callbacks) {</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>    callbacks[idx]()<span class="op">;</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Here we’re creating a new scope with function(remember the JavaScript module pattern?), and then passing <code>say</code> variable to it. This guarantees that we have <code>say</code> variable local to the function. Then in callback returned by wrapper function, we have a reference just like before, but it’s not shared with any other functions.</p>
 <p>In Python, there’s a cleaner way to do same thing:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python">callbacks <span class="op">=</span> []
-
-<span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:
-    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i
-    <span class="kw">def</span> callback(say<span class="op">=</span>say):
-        <span class="bu">print</span> say
-    callbacks.append(callback)
-
-<span class="cf">for</span> c <span class="kw">in</span> callbacks:
-    c()</code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>callbacks <span class="op">=</span> []</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="cf">for</span> i <span class="kw">in</span> [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>]:</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>    say <span class="op">=</span> <span class="st">&quot;say &quot;</span> <span class="op">+</span> i</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>    <span class="kw">def</span> callback(say<span class="op">=</span>say):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>        <span class="bu">print</span> say</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>    callbacks.append(callback)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a><span class="cf">for</span> c <span class="kw">in</span> callbacks:</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>    c()</span></code></pre></div>
 <p>Here the parameter is passed implicitly. (to me it’s still very strange and it shouldn’t be working, but for now I’ll just keep this post short)</p>
 <h2 id="breaking-it">Breaking it</h2>
 <p>Let’s have JavaScript’s behavior in Haskell:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-<span class="kw">import</span> <span class="dt">Data.IORef</span>
-
-printFromRef r <span class="fu">=</span> <span class="fu">putStrLn</span> <span class="fu">=&lt;&lt;</span> readIORef r
-
-mkCallbacks (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
-    ref <span class="ot">&lt;-</span> newIORef w
-    r   <span class="ot">&lt;-</span> iter ref ws
-    <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> r
-  <span class="kw">where</span> iter ref []     <span class="fu">=</span> <span class="fu">return</span> []
-        iter ref (w<span class="fu">:</span>ws) <span class="fu">=</span> <span class="kw">do</span>
-          writeIORef ref w
-          cs <span class="ot">&lt;-</span> iter ref ws
-          <span class="fu">return</span> <span class="fu">$</span> printFromRef ref <span class="fu">:</span> cs
-
-main <span class="fu">=</span> <span class="kw">do</span>
-  callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]
-  <span class="fu">sequence_</span> callbacks</code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.IORef</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>printFromRef r <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="op">=&lt;&lt;</span> readIORef r</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>mkCallbacks (w<span class="op">:</span>ws) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>    ref <span class="ot">&lt;-</span> newIORef w</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>    r   <span class="ot">&lt;-</span> iter ref ws</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>    <span class="fu">return</span> <span class="op">$</span> printFromRef ref <span class="op">:</span> r</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>  <span class="kw">where</span> iter ref []     <span class="ot">=</span> <span class="fu">return</span> []</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a>        iter ref (w<span class="op">:</span>ws) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a>          writeIORef ref w</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a>          cs <span class="ot">&lt;-</span> iter ref ws</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true"></a>          <span class="fu">return</span> <span class="op">$</span> printFromRef ref <span class="op">:</span> cs</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true"></a>  callbacks <span class="ot">&lt;-</span> mkCallbacks [ <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> ]</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true"></a>  <span class="fu">sequence_</span> callbacks</span></code></pre></div>
 <p>The reason this code is that long is because we need to create and pass references explicitly.</p>
-<section class="footnotes">
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>Calling this behavior <em>problem</em> may be a bit wrong, maybe it’s just a design decision. To me it’s a <em>problem</em> because this behavior is really counterintuitive.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

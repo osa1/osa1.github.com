@@ -20,57 +20,57 @@
             <div class="inner">
                 <h1 id="post-title">Bir dili/kütüphaneyi sevmemek için gereken süre</h1>
 
-<p><strong>April 26, 2012</strong> - Tagged as: <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>April 26, 2012</strong> - Tagged as: <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>30 saniye ile 3 saat arasında değişiyor. 3 saat sonunda hala seviyorsanız büyük ihtimalle seviyorsunuz.</p>
 <h3 id="örnek-1-coffeescript-3-saat">Örnek 1: CoffeeScript (3 saat)</h3>
 <p>CoffeeScript’te birşeyler ciddi anlamda yanlış. Bir kısmı fikir olarak <em>bence</em> kötü, bir kısmı da hata gibi. Örneğin aşağıdaki koda bakalım:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span class="dt">@e</span><span class="kw">(</span><span class="st">''</span><span class="kw">)</span>
-    <span class="kw">.</span>color<span class="kw">(</span><span class="st">'rgb(255,0,0)'</span><span class="kw">)</span>
-    <span class="kw">.</span>attr<span class="kw">(</span> x<span class="kw">:</span> <span class="dv">20</span><span class="kw">,</span>
-           y<span class="kw">:</span> <span class="dv">100</span><span class="kw">,</span>
-           w<span class="kw">:</span> <span class="dv">10</span><span class="kw">,</span>
-           h<span class="kw">:</span> <span class="dv">100</span> <span class="kw">)</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="dt">@e</span><span class="kw">(</span><span class="st">''</span><span class="kw">)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    <span class="kw">.</span>color<span class="kw">(</span><span class="st">'rgb(255,0,0)'</span><span class="kw">)</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>    <span class="kw">.</span>attr<span class="kw">(</span> x<span class="kw">:</span> <span class="dv">20</span><span class="kw">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>           y<span class="kw">:</span> <span class="dv">100</span><span class="kw">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>           w<span class="kw">:</span> <span class="dv">10</span><span class="kw">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>           h<span class="kw">:</span> <span class="dv">100</span> <span class="kw">)</span></span></code></pre></div>
 <p><code>.attr</code> çağrısına dikkat edin. Parametresinin nasıl bir JS koduna derlenmesini beklersiniz? <a href="http://coffeescript.org/#literals">Referansına</a> bakarak ben şöyle düşünüyorum: <code>x</code>, <code>y</code>, <code>w</code> ve <code>h</code> anahtarlarını içeren bir map(veya object veya her ne derseniz). Peki aslında nasıl derleniyor?</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">this</span>.<span class="at">e</span>(<span class="st">''</span>).<span class="at">color</span>(<span class="st">'rgb(255,0,0)'</span>).<span class="at">attr</span>(<span class="op">{</span>
-  <span class="dt">x</span><span class="op">:</span> <span class="dv">20</span>
-<span class="op">},</span> <span class="op">{</span>
-  <span class="dt">y</span><span class="op">:</span> <span class="dv">100</span><span class="op">,</span>
-  <span class="dt">w</span><span class="op">:</span> <span class="dv">10</span><span class="op">,</span>
-  <span class="dt">h</span><span class="op">:</span> <span class="dv">100</span>
-<span class="op">}</span>)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">this</span><span class="op">.</span><span class="fu">e</span>(<span class="st">''</span>)<span class="op">.</span><span class="fu">color</span>(<span class="st">'rgb(255,0,0)'</span>)<span class="op">.</span><span class="fu">attr</span>({</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  <span class="dt">x</span><span class="op">:</span> <span class="dv">20</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>}<span class="op">,</span> {</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>  <span class="dt">y</span><span class="op">:</span> <span class="dv">100</span><span class="op">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>  <span class="dt">w</span><span class="op">:</span> <span class="dv">10</span><span class="op">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>  <span class="dt">h</span><span class="op">:</span> <span class="dv">100</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>})</span></code></pre></div>
 <p>x’i diğerlerinden ayırıyor. Sanki x’den sonraki virgülü parametreleri birbirinden ayıran virgülmüş gibi yorumluyor. Ama bunu yapmaması lazım çünkü 1) parametre syntaxına uymuyor(<code>:</code> karakteri) 2) madem onu parametre gibi ayırdın neden <code>y</code>, <code>w</code> ve <code>h</code>yi birbirinden ayırmadın?</p>
 <p>Hadi neyse, klasik object gösterimini kullanalım, şu şekilde:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span class="dt">@e</span><span class="kw">(</span><span class="st">''</span><span class="kw">)</span>
-    <span class="kw">.</span>color<span class="kw">(</span><span class="st">'rgb(255,0,0)'</span><span class="kw">)</span>
-    <span class="kw">.</span>attr<span class="kw">({</span> x<span class="kw">:</span> <span class="dv">20</span><span class="kw">,</span>
-            y<span class="kw">:</span> <span class="dv">100</span><span class="kw">,</span>
-            w<span class="kw">:</span> <span class="dv">10</span><span class="kw">,</span>
-            h<span class="kw">:</span> <span class="dv">100</span> <span class="kw">})</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="dt">@e</span><span class="kw">(</span><span class="st">''</span><span class="kw">)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>    <span class="kw">.</span>color<span class="kw">(</span><span class="st">'rgb(255,0,0)'</span><span class="kw">)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    <span class="kw">.</span>attr<span class="kw">({</span> x<span class="kw">:</span> <span class="dv">20</span><span class="kw">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>            y<span class="kw">:</span> <span class="dv">100</span><span class="kw">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>            w<span class="kw">:</span> <span class="dv">10</span><span class="kw">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>            h<span class="kw">:</span> <span class="dv">100</span> <span class="kw">})</span></span></code></pre></div>
 <p>Herşey yolunda gibi, normal {} ile object syntaxını kullandım. Bu seferde, çok komik gelecek, <code>y</code>ni olduğu satırda <code>Unexpected '{'</code> hatası veriyor. Şaka gibi. O satırda öyle bir karakter bile yok. Bu hatadan emin olmak için birkaç deneme yaptım. Öyle bir olmamasına rağmen derleyici hata veriyor. Bana bariz bir bug gibi geldi.</p>
 <p>Kodu istediğim gibi bir tek şu şekilde derleyebildim:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span class="dt">@e</span><span class="kw">(</span><span class="st">''</span><span class="kw">)</span>
-    <span class="kw">.</span>color<span class="kw">(</span><span class="st">'rgb(255,0,0)'</span><span class="kw">)</span>
-    <span class="kw">.</span>attr
-           x<span class="kw">:</span> <span class="dv">20</span><span class="kw">,</span>
-           y<span class="kw">:</span> <span class="dv">100</span><span class="kw">,</span>
-           w<span class="kw">:</span> <span class="dv">10</span><span class="kw">,</span>
-           h<span class="kw">:</span> <span class="dv">100</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="dt">@e</span><span class="kw">(</span><span class="st">''</span><span class="kw">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>    <span class="kw">.</span>color<span class="kw">(</span><span class="st">'rgb(255,0,0)'</span><span class="kw">)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>    <span class="kw">.</span>attr</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>           x<span class="kw">:</span> <span class="dv">20</span><span class="kw">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>           y<span class="kw">:</span> <span class="dv">100</span><span class="kw">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>           w<span class="kw">:</span> <span class="dv">10</span><span class="kw">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>           h<span class="kw">:</span> <span class="dv">100</span></span></code></pre></div>
 <p>Şaka gibi, bir karakter aşağıda, ve indent edilmiş. Burda <code>.attr</code>dan sonra parantez koyarsam da derleniyor. Eğer <code>x</code>i ilk örnekteki gibi <code>.attr</code> ile aynı satıra alırsam yine ilk örnekteki hatayı alıyorum.</p>
 <p>Bu kodda bir de öncesinde başka bir parametre koyacaksam syntax şöyle oluyor:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span class="kw">.</span>attr <span class="dv">4</span><span class="kw">,</span>
-    x<span class="kw">:</span> <span class="dv">20</span>
-    y<span class="kw">:</span> <span class="dv">100</span>
-    w<span class="kw">:</span> <span class="dv">10</span>
-    h<span class="kw">:</span> <span class="dv">100</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode coffeescript"><code class="sourceCode coffee"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">.</span>attr <span class="dv">4</span><span class="kw">,</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>    x<span class="kw">:</span> <span class="dv">20</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>    y<span class="kw">:</span> <span class="dv">100</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>    w<span class="kw">:</span> <span class="dv">10</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>    h<span class="kw">:</span> <span class="dv">100</span></span></code></pre></div>
 <p>Daha fazlasını kaldıramayacağım :) .</p>
 <p>Bir başka dikkat edilmezse çok uğraştıracak kısım da şu, eğer <code>.color(..)</code> kısmında, <code>color</code> methoduna tek parametre göndermeme rağmen parantez kullanmazsam, <code>.attr</code> kısmı <code>.color</code>a gönderdiğim stringe çağırılıyor. Bu şekilde alt alta bir üstteki methodun dönüş değerine methodlar çağırırken, her methodun parametrelerini paranteze almamız gerekiyor yani.</p>
 <p>Bunun gibi şeyleri farketmem için yaklaşık 3 saat gerekti.</p>
 <p><strong>DÜZENLEME</strong>: Xaph’ın yorum olarak yazdıklarını mutlaka okuyun, CoffeeScript’in nesne gösteriminin nasıl çalıştığını daha iyi açıklıyor. Bir programlama dili trollü olarak CoffeeScript’in IRC kanalını bastım ve bu bahsettiklerimi orda da anlattım. Daha sonra farkettiğim bir problem bir fonksiyona birden fazla object göndermekti. Syntax kısmı yine her seferinde çakılıyordu. JS olarak şöyle birşey yapmak istiyordum yani:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="at">func</span>(<span class="op">{</span><span class="dt">a</span><span class="op">:</span> <span class="dv">1</span><span class="op">,</span>
-      <span class="dt">b</span><span class="op">:</span> <span class="dv">2</span><span class="op">},</span>
-     <span class="op">{</span><span class="dt">a</span><span class="op">:</span> <span class="dv">10</span><span class="op">,</span>
-      <span class="dt">b</span><span class="op">:</span> <span class="st">&quot;??&quot;</span><span class="op">}</span>)<span class="op">;</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="fu">func</span>({<span class="dt">a</span><span class="op">:</span> <span class="dv">1</span><span class="op">,</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>      <span class="dt">b</span><span class="op">:</span> <span class="dv">2</span>}<span class="op">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>     {<span class="dt">a</span><span class="op">:</span> <span class="dv">10</span><span class="op">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>      <span class="dt">b</span><span class="op">:</span> <span class="st">&quot;??&quot;</span>})<span class="op">;</span></span></code></pre></div>
 <p>Bulabildiğim tek çözüm, IRC kanalından birinin yardımıyla, şu oldu:</p>
 <pre><code>func({
    a: 1

@@ -20,21 +20,21 @@
             <div class="inner">
                 <h1 id="post-title">Some GHC extensions I use</h1>
 
-<p><strong>July 31, 2012</strong> - Tagged as: <a href="../tags/haskell.html">haskell</a>, <a href="../tags/en.html">en</a>.</p>
+<p><strong>July 31, 2012</strong> - Tagged as: <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>, <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
 
-<p>GHC is a huge compiler. On GHC 7.4.1, I can see 85 optional language extensions<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> Some of them are just adding some syntactic sugar(<code>NamedFieldPuns</code>, <code>RecordWildCards</code>), and some of them are extensions to type system(<code>GADTs</code>, <code>Rank2Types</code>). As a new Haskeller, I only know and use a small subset of this features, and in this post I’ll write about it.</p>
+<p>GHC is a huge compiler. On GHC 7.4.1, I can see 85 optional language extensions<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> Some of them are just adding some syntactic sugar(<code>NamedFieldPuns</code>, <code>RecordWildCards</code>), and some of them are extensions to type system(<code>GADTs</code>, <code>Rank2Types</code>). As a new Haskeller, I only know and use a small subset of this features, and in this post I’ll write about it.</p>
 <h4 id="namedfieldpuns-and-recordwildcards">NamedFieldPuns and RecordWildCards</h4>
 <p>This is some really simple syntactic sugar for pattern matching some names in records. Normally you’d do:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)
-someFun <span class="dt">T</span>{n2<span class="fu">=</span>n2, n3<span class="fu">=</span>n3} <span class="fu">=</span> (n2, n3)</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>someFun <span class="dt">T</span>{n2<span class="ot">=</span>n2, n3<span class="ot">=</span>n3} <span class="ot">=</span> (n2, n3)</span></code></pre></div>
 <p>But instead of assigning some names to members of a record with same names, with help of <code>NamedFieldPuns</code>, you could just write:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)
-someFun <span class="dt">T</span>{n3, n2} <span class="fu">=</span> (n2, n3)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="ot">someFun ::</span> <span class="dt">T</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>someFun <span class="dt">T</span>{n3, n2} <span class="ot">=</span> (n2, n3)</span></code></pre></div>
 <p>It’s that simple. <code>RecordWildCards</code> doing something similar. Instead of writing <code>someFun T{n1,n2,n3}</code>, you just write <code>someFun T{..}</code>.</p>
 <p>These are purely syntactic, so they can be used for any place that you can use pattern matching or destructuring(ie. <code>let .. in ..</code> or <code>where</code> clauses). Really helpful when working on data constructors that have 4+ members.</p>
 <p>Most interesting use of <code>RecordWildCards</code> I’ve seen was <a href="http://hpaste.org/71626">this implementation</a> of localised module imports(I think this implementation can also be used for first-class modules).</p>
 <h4 id="overloadedstrings">OverloadedStrings</h4>
-<p>This really helps when working on <a href="http://hackage.haskell.org/package/text-0.11.2.2"><code>Text</code></a> data. When you are passing a function a <code>Text</code> data, instead of using <code>pack &quot;some string&quot;</code>, you can just use <code>&quot;some string&quot;</code> and compiler resolves the type of the string, adds required code etc.</p>
+<p>This really helps when working on <a href="http://hackage.haskell.org/package/text-0.11.2.2"><code>Text</code></a> data. When you are passing a function a <code>Text</code> data, instead of using <code>pack "some string"</code>, you can just use <code>"some string"</code> and compiler resolves the type of the string, adds required code etc.</p>
 <p>Basically it provides a way to create instances of <code>class IsString a where fromString :: String -&gt; a</code> using string syntax. It’s mostly used with <code>Data.Text</code>, <code>ByteString.Text</code> etc.</p>
 <h4 id="gadts">GADTs</h4>
 <p>This is by far my favorite type system extension. This is mostly because I’m working on an interpreter, and GADTs are great for representing syntax trees.</p>
@@ -44,17 +44,17 @@ someFun <span class="dt">T</span>{n3, n2} <span class="fu">=</span> (n2, n3)</co
 &lt;app&gt;   = &quot;(&quot; &lt;term&gt; {&lt;term&gt; [&quot; &quot;]}* &quot;)&quot;
 &lt;term&gt;  = &lt;var&gt; | &lt;abst&gt; | &lt;app&gt;</code></pre>
 <p>So, variables, lambda abstractions, and applications. Just like in untyped lambda calculus. Now let’s try to encode this format in Haskell:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="dt">Var</span> <span class="dt">String</span>
-          <span class="fu">|</span> <span class="dt">Abst</span> [<span class="fu">??</span>] <span class="dt">Term</span>
-          <span class="fu">|</span> <span class="dt">App</span> <span class="dt">Term</span> <span class="dt">Term</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Term</span> <span class="ot">=</span> <span class="dt">Var</span> <span class="dt">String</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>          <span class="op">|</span> <span class="dt">Abst</span> [<span class="op">??</span>] <span class="dt">Term</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>          <span class="op">|</span> <span class="dt">App</span> <span class="dt">Term</span> <span class="dt">Term</span></span></code></pre></div>
 <p>What should we write in place of <code>??</code> ? Writing <code>Term</code> is obviously wrong, since then we could be ill-formed data(for instance, think about a syntax like that: <code>(λ ((λ (a) ..)) ...)</code> we used lambda abstraction in place of lambda parameter names).</p>
 <p>If the term <code>var</code> just consists of a String, then we can directly use String as a first member of <code>Abst</code> constructor, but think term <code>var</code> as a really complex constructor. I’m trying to make examples as clear and simple as possible.</p>
 <p>One way to fix that is to use “smart constructors”. What this really means is that we can hide some data constructors in our module(ie. write exported names in module explicitly) and export some constructor function in place of them. With the help of a trick we can give users a more controlled way of creating data(in our case this means that we can prevent caller from creating ill-formed syntax tree).</p>
 <p>First, let’s see the data type trick:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">T1</span>
-<span class="kw">data</span> <span class="dt">T2</span>
-<span class="kw">data</span> <span class="dt">SomeData</span> a <span class="fu">=</span> <span class="dt">Data1</span> <span class="dt">String</span> <span class="fu">|</span> <span class="dt">Data2</span> <span class="dt">Int</span>
-  <span class="kw">deriving</span> <span class="dt">Show</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">T1</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">T2</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">SomeData</span> a <span class="ot">=</span> <span class="dt">Data1</span> <span class="dt">String</span> <span class="op">|</span> <span class="dt">Data2</span> <span class="dt">Int</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>  <span class="kw">deriving</span> <span class="dt">Show</span></span></code></pre></div>
 <p>This is interesting because data types T1 and T2 don’t have any constructors. So there is literally no way to create data in that types. Second interesting point in <code>SomeData a</code> is, the <code>a</code> variable is not used by data constructors(<code>Data1</code> and <code>Data2</code>). This code still works:</p>
 <pre><code>ghci&gt; :t Data1 &quot;ok&quot;
 Data1 &quot;ok&quot; :: SomeData a
@@ -65,11 +65,11 @@ Data1 &quot;ok&quot;
 ghci&gt; Data1 &quot;ok&quot; :: SomeData Char
 Data1 &quot;ok&quot;</code></pre>
 <p>If we could find a way to distinguish types of data created with <code>Data1</code> and <code>Data2</code>, we’re done. This is where smart constructors take place:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">data1 ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T1</span>
-data1 <span class="fu">=</span> <span class="dt">Data1</span>
-<span class="ot">data2 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T2</span>
-data2 <span class="fu">=</span> <span class="dt">Data2</span></code></pre></div>
-<p>We’re telling to compiler that data created with <code>data1</code> constructor will be the type of <code>SomeData T1</code>. Now if we hide <code>Data1</code> and <code>Data2</code> data constructors and export <code>data1</code> and <code>data2</code> functions, there is no way for user create ill-formed data types like <code>Data1 &quot;ok&quot; :: SomeData SomeUnrelatedType</code> like we done in past example.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="ot">data1 ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T1</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>data1 <span class="ot">=</span> <span class="dt">Data1</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="ot">data2 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">SomeData</span> <span class="dt">T2</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>data2 <span class="ot">=</span> <span class="dt">Data2</span></span></code></pre></div>
+<p>We’re telling to compiler that data created with <code>data1</code> constructor will be the type of <code>SomeData T1</code>. Now if we hide <code>Data1</code> and <code>Data2</code> data constructors and export <code>data1</code> and <code>data2</code> functions, there is no way for user create ill-formed data types like <code>Data1 "ok" :: SomeData SomeUnrelatedType</code> like we done in past example.</p>
 <pre><code>ghci&gt; data1 &quot;ok&quot; :: SomeData Int
 
 &lt;interactive&gt;:48:1:
@@ -79,20 +79,20 @@ data2 <span class="fu">=</span> <span class="dt">Data2</span></code></pre></div>
     In the return type of a call of `data1'
     In the expression: data1 &quot;ok&quot; :: SomeData Int</code></pre>
 <p>Now we can encode our syntax in Haskell like this:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Var</span>
-<span class="kw">data</span> <span class="dt">Abst</span>
-<span class="kw">data</span> <span class="dt">App</span>
-<span class="kw">data</span> <span class="dt">AnyTerm</span>
-<span class="kw">data</span> <span class="dt">Term</span> a <span class="fu">=</span> <span class="dt">Var</span> <span class="dt">String</span>
-            <span class="fu">|</span> <span class="dt">Abst</span> [<span class="dt">Term</span> <span class="dt">Var</span>] (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)
-            <span class="fu">|</span> <span class="dt">App</span> (<span class="dt">Term</span> <span class="dt">AnyTerm</span>) (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)
-<span class="ot">var ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span>
-var <span class="fu">=</span> <span class="dt">Var</span>
-<span class="ot">abst ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span>
-abst <span class="fu">=</span> <span class="dt">Abst</span>
-<span class="ot">app ::</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span>
-app <span class="fu">=</span> <span class="dt">App</span>
-anyTerm <span class="fu">=</span> <span class="fu">id</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Var</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Abst</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">App</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">AnyTerm</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Term</span> a <span class="ot">=</span> <span class="dt">Var</span> <span class="dt">String</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a>            <span class="op">|</span> <span class="dt">Abst</span> [<span class="dt">Term</span> <span class="dt">Var</span>] (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a>            <span class="op">|</span> <span class="dt">App</span> (<span class="dt">Term</span> <span class="dt">AnyTerm</span>) (<span class="dt">Term</span> <span class="dt">AnyTerm</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a><span class="ot">var ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a>var <span class="ot">=</span> <span class="dt">Var</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a><span class="ot">abst ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true"></a>abst <span class="ot">=</span> <span class="dt">Abst</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true"></a><span class="ot">app ::</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true"></a>app <span class="ot">=</span> <span class="dt">App</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true"></a>anyTerm <span class="ot">=</span> <span class="fu">id</span></span></code></pre></div>
 <p>Now I’m omitting some parts without explaining since this post is already long enough. But the point should be clear by now. Let’s see this in action:</p>
 <pre><code>ghci&gt; abst [(abst [var &quot;p1&quot;] (anyTerm (var &quot;p1&quot;)))] (anyTerm (var &quot;somevar&quot;))
 
@@ -103,41 +103,41 @@ anyTerm <span class="fu">=</span> <span class="fu">id</span></code></pre></div>
     In the return type of a call of `abst'
     In the expression: (abst [var &quot;p1&quot;] (anyTerm (var &quot;p1&quot;)))</code></pre>
 <p>Nice! Just like what we wanted. GADTs help for creating smart “data constructors” so that we don’t have to hide data constructors and export some smart constructor functions. Here’s the same code with GADTs:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Var</span>
-<span class="kw">data</span> <span class="dt">Abst</span>
-<span class="kw">data</span> <span class="dt">App</span>
-<span class="kw">data</span> <span class="dt">Term</span> a <span class="kw">where</span>
-    <span class="dt">Var</span><span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span>
-    <span class="dt">Abst</span><span class="ot"> ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span>
-    <span class="dt">App</span><span class="ot"> ::</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span>
-<span class="kw">data</span> <span class="dt">AnyTerm</span> <span class="kw">where</span>
-    <span class="dt">AnyTerm</span><span class="ot"> ::</span><span class="dt">Term</span> a <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Var</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Abst</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">App</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Term</span> a <span class="kw">where</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>    <span class="dt">Var</span><span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Var</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a>    <span class="dt">Abst</span><span class="ot"> ::</span> [<span class="dt">Term</span> <span class="dt">Var</span>] <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">Abst</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a>    <span class="dt">App</span><span class="ot"> ::</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span> <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="dt">App</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">AnyTerm</span> <span class="kw">where</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a>    <span class="dt">AnyTerm</span><span class="ot"> ::</span><span class="dt">Term</span> a <span class="ot">-&gt;</span> <span class="dt">AnyTerm</span></span></code></pre></div>
 <p>This code should be clear. All we do is to specify constructor’s return type.</p>
 <p>This is really great improvement. Think of a more complex syntax tree, with a lot more constructors. The parser already checks for invalid syntax, so actually there’s no way to create ill-formed syntax tree since parser rejects the code.</p>
 <p>If you don’t use GADTs or phantom types, you have to check for ill-formed syntax in your evaluator(or reducer or compiler or whatever) even if there’s no way for parser to generate ill-formed syntax tree. For instance, you’d have to check for <code>Var [(App ..)] ...</code> in your <code>eval :: Env -&gt; Term -&gt; Val</code> function.</p>
 <p>The worst part of GADTs is that you can’t use <code>deriving</code> clause in data type declaration(can anyone explain why?). In my case, that means I have to write some big amounts of code just to be able to print out the data for debugging purposes. For instance, I had to write some repetitive code like this:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Show</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>
-    <span class="fu">...</span>
-    <span class="fu">show</span> (<span class="dt">Lambda</span> params ret body) <span class="fu">=</span> <span class="st">&quot;(lambda (&quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> params) <span class="fu">++</span> <span class="st">&quot;) : &quot;</span> <span class="fu">++</span> <span class="fu">show</span> ret <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> body) <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
-    <span class="fu">show</span> (<span class="dt">If</span> ifE thenE elseE) <span class="fu">=</span> <span class="st">&quot;(&quot;</span> <span class="fu">++</span> intercalate <span class="st">&quot;,&quot;</span> [<span class="fu">show</span> ifE, <span class="fu">show</span> thenE, <span class="fu">show</span> elseE] <span class="fu">++</span> <span class="st">&quot;)&quot;</span>
-    <span class="co">-- same repetitive code for each data constructor, it's really pain when the syntax grows bigger and when you frequently make some changes on it.</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Show</span> (<span class="dt">Expr</span> a) <span class="kw">where</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>    <span class="fu">show</span> (<span class="dt">Lambda</span> params ret body) <span class="ot">=</span> <span class="st">&quot;(lambda (&quot;</span> <span class="op">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> params) <span class="op">++</span> <span class="st">&quot;) : &quot;</span> <span class="op">++</span> <span class="fu">show</span> ret <span class="op">++</span> <span class="st">&quot; &quot;</span> <span class="op">++</span> <span class="fu">unwords</span> (<span class="fu">map</span> <span class="fu">show</span> body) <span class="op">++</span> <span class="st">&quot;)&quot;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>    <span class="fu">show</span> (<span class="dt">If</span> ifE thenE elseE) <span class="ot">=</span> <span class="st">&quot;(&quot;</span> <span class="op">++</span> intercalate <span class="st">&quot;,&quot;</span> [<span class="fu">show</span> ifE, <span class="fu">show</span> thenE, <span class="fu">show</span> elseE] <span class="op">++</span> <span class="st">&quot;)&quot;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a>    <span class="co">-- same repetitive code for each data constructor, it's really pain when the syntax grows bigger and when you frequently make some changes on it.</span></span></code></pre></div>
 <p>I also had to write same amount of code just to be able to run tests on my parser(ie. I need to compare hand-written syntax tree with parser generated syntax tree).</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Eq</span> (<span class="dt">Expr</span> a) <span class="kw">where</span>
-    <span class="fu">...</span>
-    <span class="dt">Lambda</span> p1 b1 <span class="fu">==</span> <span class="dt">Lambda</span> p2 b2 <span class="fu">=</span> p1 <span class="fu">==</span> p2 <span class="fu">&amp;&amp;</span> b1 <span class="fu">==</span> b2
-    <span class="dt">If</span> i1 t1 e1 <span class="fu">==</span> <span class="dt">If</span> i2 t2 e2 <span class="fu">=</span> i1 <span class="fu">==</span> i2 <span class="fu">&amp;&amp;</span> t1 <span class="fu">==</span> t2 <span class="fu">&amp;&amp;</span> e1 <span class="fu">==</span> e2
-    <span class="fu">...</span>
-    _ <span class="fu">==</span> _ <span class="fu">=</span> <span class="dt">False</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Eq</span> (<span class="dt">Expr</span> a) <span class="kw">where</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a>    <span class="dt">Lambda</span> p1 b1 <span class="op">==</span> <span class="dt">Lambda</span> p2 b2 <span class="ot">=</span> p1 <span class="op">==</span> p2 <span class="op">&amp;&amp;</span> b1 <span class="op">==</span> b2</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a>    <span class="dt">If</span> i1 t1 e1 <span class="op">==</span> <span class="dt">If</span> i2 t2 e2 <span class="ot">=</span> i1 <span class="op">==</span> i2 <span class="op">&amp;&amp;</span> t1 <span class="op">==</span> t2 <span class="op">&amp;&amp;</span> e1 <span class="op">==</span> e2</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a>    _ <span class="op">==</span> _ <span class="ot">=</span> <span class="dt">False</span></span></code></pre></div>
 <h4 id="further-reading">Further reading:</h4>
 <ul>
 <li><a href="http://www.haskell.org/haskellwiki/Phantom_type">Phantom type on Haskell wiki</a>. Phantom types are data types without constructors, like we’ve used in examples. I first met with this concept in <a href="http://vimeo.com/14313378">Yaron Minsky’s great talk on effective ML</a>. I highly recommend it.</li>
 <li><a href="http://www.haskell.org/ghc/docs/latest/html/users_guide/data-type-extensions.html#gadt">GHC user’s guide on GADTs</a>.</li>
 <li><a href="http://www.haskell.org/haskellwiki/GADT">GADTs on Haskell wiki</a>.</li>
 </ul>
-<section class="footnotes">
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>To list all extensions, I run GHCi, type <code>:set -X</code> and then run auto-complete, it says “Display all 167 possibilities?” on GHC 7.4.1, 82 of them are starting with <code>-XNo</code>.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>To list all extensions, I run GHCi, type <code>:set -X</code> and then run auto-complete, it says “Display all 167 possibilities?” on GHC 7.4.1, 82 of them are starting with <code>-XNo</code>.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

@@ -20,128 +20,128 @@
             <div class="inner">
                 <h1 id="post-title">Bil113 Lab 1. arasınav cevapları</h1>
 
-<p><strong>October 18, 2010</strong> - Tagged as: <a href="../tags/java.html">java</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>October 18, 2010</strong> - Tagged as: <a title="All pages tagged 'java'." href="../tags/java.html">java</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Birkaç güne dersin sayfasında cevaplar açıklanır muhtemelen, en azından alternatif olarak, sınavda benim yazdığım cevaplar:</p>
 <p>Soru 1: Girilen iki kesiri toplayıp çarpıp yine a/b şeklinde ifade etme:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import</span><span class="im"> java.util.Scanner;</span>
-<span class="kw">public</span> <span class="kw">class</span> Soru1 {
-
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
-    
-        <span class="bu">Scanner</span> girdi = <span class="kw">new</span> <span class="bu">Scanner</span>(<span class="bu">System</span>.<span class="fu">in</span>);
-        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İlk kesirin pay ve paydasını giriniz : &quot;</span>);
-        <span class="dt">int</span> pay1 = girdi.<span class="fu">nextInt</span>();
-        <span class="dt">int</span> payda1 = girdi.<span class="fu">nextInt</span>();
-        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İkinci kesirin pay ve paydasını giriniz : &quot;</span>);
-        <span class="dt">int</span> pay2 = girdi.<span class="fu">nextInt</span>();
-        <span class="dt">int</span> payda2 = girdi.<span class="fu">nextInt</span>();
-    
-        <span class="dt">int</span> sonucToplamPay, sonucToplamPayda, sonucCarpimPay, sonucCarpimPayda;
-    
-        sonucToplamPayda = payda1 * payda2;
-        sonucToplamPay = pay1*payda2 + pay2*payda1;
-    
-        sonucCarpimPay = pay1*pay2;
-        sonucCarpimPayda = payda1*payda2;
-    
-        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; + &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucToplamPay + <span class="st">&quot;/&quot;</span> + sonucToplamPayda);
-        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; * &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucCarpimPay + <span class="st">&quot;/&quot;</span> + sonucCarpimPayda);
-    }
-}</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">import</span><span class="im"> java.util.Scanner;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">public</span> <span class="kw">class</span> Soru1 {</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>        <span class="bu">Scanner</span> girdi = <span class="kw">new</span> <span class="bu">Scanner</span>(<span class="bu">System</span>.<span class="fu">in</span>);</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İlk kesirin pay ve paydasını giriniz : &quot;</span>);</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>        <span class="dt">int</span> pay1 = girdi.<span class="fu">nextInt</span>();</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>        <span class="dt">int</span> payda1 = girdi.<span class="fu">nextInt</span>();</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;İkinci kesirin pay ve paydasını giriniz : &quot;</span>);</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>        <span class="dt">int</span> pay2 = girdi.<span class="fu">nextInt</span>();</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>        <span class="dt">int</span> payda2 = girdi.<span class="fu">nextInt</span>();</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>    </span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>        <span class="dt">int</span> sonucToplamPay, sonucToplamPayda, sonucCarpimPay, sonucCarpimPayda;</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>    </span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>        sonucToplamPayda = payda1 * payda2;</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>        sonucToplamPay = pay1*payda2 + pay2*payda1;</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a>    </span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>        sonucCarpimPay = pay1*pay2;</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>        sonucCarpimPayda = payda1*payda2;</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>    </span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; + &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucToplamPay + <span class="st">&quot;/&quot;</span> + sonucToplamPayda);</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(pay1 + <span class="st">&quot;/&quot;</span> + payda1 + <span class="st">&quot; * &quot;</span> + pay2 + <span class="st">&quot;/&quot;</span> + payda2 + <span class="st">&quot; = &quot;</span> + sonucCarpimPay + <span class="st">&quot;/&quot;</span> + sonucCarpimPayda);</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>    }</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Soru 2: Girilen 3 sayıyı küçükten büyüğe sıralama. Aşağıdaki kod eşitlik durumunda da düzgün çalışıyor(<em>daha kısa bir şekilde çözen var mı?</em>):</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import</span><span class="im"> java.util.Scanner;</span>
-<span class="kw">public</span> <span class="kw">class</span> Soru2 {
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
-    
-        <span class="dt">boolean</span> devam = <span class="kw">true</span>;
-    
-        <span class="kw">while</span> (devam) {
-            <span class="bu">Scanner</span> girdi = <span class="kw">new</span> <span class="bu">Scanner</span>(<span class="bu">System</span>.<span class="fu">in</span>);
-            <span class="dt">int</span> a = girdi.<span class="fu">nextInt</span>();
-            <span class="dt">int</span> b = girdi.<span class="fu">nextInt</span>();
-            <span class="dt">int</span> c = girdi.<span class="fu">nextInt</span>();
-        
-            <span class="kw">if</span> (a &gt; b) {
-                <span class="kw">if</span> (b &gt; c) {
-                    <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + a);
-                } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; b veya b == c durumu</span>
-                    <span class="kw">if</span> (a &gt; c) {
-                        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + a);
-                    } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; a veya a == c durumu</span>
-                        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + c);
-                    }
-                }
-            } <span class="kw">else</span> { <span class="co">// b &gt; a veya b == a durumu</span>
-                <span class="kw">if</span> (a &gt; c) { <span class="co">// b &gt; a &gt; c</span>
-                    <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + b);
-                } <span class="kw">else</span> { <span class="co">// b &gt; a, c &gt; a veya a == c</span>
-                    <span class="kw">if</span> (b &gt; c) { <span class="co">// b &gt; c &gt; a</span>
-                        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + b);
-                    } <span class="kw">else</span> { <span class="co">// c &gt; b &gt; a veya c == b &gt; a</span>
-                        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + c);
-                    }
-                }
-            }
-        
-            <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Devam?&quot;</span>);
-            girdi.<span class="fu">nextLine</span>(); <span class="co">// bug gibi birşey</span>
-            <span class="kw">if</span> (girdi.<span class="fu">nextLine</span>().<span class="fu">equals</span>(<span class="st">&quot;hayır&quot;</span>)) {
-                devam = <span class="kw">false</span>;
-            }
-        }
-    }
-}</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">import</span><span class="im"> java.util.Scanner;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="kw">public</span> <span class="kw">class</span> Soru2 {</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    </span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>        <span class="dt">boolean</span> devam = <span class="kw">true</span>;</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>    </span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>        <span class="kw">while</span> (devam) {</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>            <span class="bu">Scanner</span> girdi = <span class="kw">new</span> <span class="bu">Scanner</span>(<span class="bu">System</span>.<span class="fu">in</span>);</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>            <span class="dt">int</span> a = girdi.<span class="fu">nextInt</span>();</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>            <span class="dt">int</span> b = girdi.<span class="fu">nextInt</span>();</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>            <span class="dt">int</span> c = girdi.<span class="fu">nextInt</span>();</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>        </span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>            <span class="kw">if</span> (a &gt; b) {</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>                <span class="kw">if</span> (b &gt; c) {</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a>                    <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + a);</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>                } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; b veya b == c durumu</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a>                    <span class="kw">if</span> (a &gt; c) {</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a>                        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + a);</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a>                    } <span class="kw">else</span> { <span class="co">// a &gt; b, c &gt; a veya a == c durumu</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true"></a>                        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(b + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + c);</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true"></a>                    }</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true"></a>                }</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true"></a>            } <span class="kw">else</span> { <span class="co">// b &gt; a veya b == a durumu</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true"></a>                <span class="kw">if</span> (a &gt; c) { <span class="co">// b &gt; a &gt; c</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true"></a>                    <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(c + <span class="st">&quot; &quot;</span> + a + <span class="st">&quot; &quot;</span> + b);</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true"></a>                } <span class="kw">else</span> { <span class="co">// b &gt; a, c &gt; a veya a == c</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true"></a>                    <span class="kw">if</span> (b &gt; c) { <span class="co">// b &gt; c &gt; a</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true"></a>                        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + c + <span class="st">&quot; &quot;</span> + b);</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true"></a>                    } <span class="kw">else</span> { <span class="co">// c &gt; b &gt; a veya c == b &gt; a</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true"></a>                        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(a + <span class="st">&quot; &quot;</span> + b + <span class="st">&quot; &quot;</span> + c);</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true"></a>                    }</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true"></a>                }</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true"></a>            }</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true"></a>        </span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true"></a>            <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Devam?&quot;</span>);</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true"></a>            girdi.<span class="fu">nextLine</span>(); <span class="co">// bug gibi birşey</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true"></a>            <span class="kw">if</span> (girdi.<span class="fu">nextLine</span>().<span class="fu">equals</span>(<span class="st">&quot;hayır&quot;</span>)) {</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true"></a>                devam = <span class="kw">false</span>;</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true"></a>            }</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true"></a>        }</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true"></a>    }</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Soru 3: Girilen cümledeki büyük harfleri küçük, küçük harfleri büyük harfe çevirme(türkçe karakter girilmeyecek). Her harf için, eğer harfin büyültülmüş hali kendisine eşitse, harfi küçülttüm, değilse büyülttüm. Bir arkadaş da ASCII tablosundan küçük ve büyük harflerin aralığını tespit edip yapmış.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import</span><span class="im"> java.util.Scanner;</span>
-<span class="kw">public</span> <span class="kw">class</span> Soru3 {
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
-    
-        <span class="bu">Scanner</span> girdi = <span class="kw">new</span> <span class="bu">Scanner</span>(<span class="bu">System</span>.<span class="fu">in</span>);
-        <span class="bu">String</span> str = girdi.<span class="fu">nextLine</span>();
-        <span class="bu">String</span> harf;
-    
-        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; str.<span class="fu">length</span>(); i++) {
-            harf = str.<span class="fu">substring</span>(i, i+<span class="dv">1</span>);
-            <span class="kw">if</span> (harf.<span class="fu">equals</span>(harf.<span class="fu">toLowerCase</span>())) { <span class="co">// harf zaten kucuk</span>
-                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toUpperCase</span>());
-            } <span class="kw">else</span> { <span class="co">// harf buyuk</span>
-                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toLowerCase</span>());
-            }
-        }
-    }
-}</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">import</span><span class="im"> java.util.Scanner;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">public</span> <span class="kw">class</span> Soru3 {</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>    </span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>        <span class="bu">Scanner</span> girdi = <span class="kw">new</span> <span class="bu">Scanner</span>(<span class="bu">System</span>.<span class="fu">in</span>);</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>        <span class="bu">String</span> str = girdi.<span class="fu">nextLine</span>();</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>        <span class="bu">String</span> harf;</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>    </span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>        <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; str.<span class="fu">length</span>(); i++) {</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>            harf = str.<span class="fu">substring</span>(i, i+<span class="dv">1</span>);</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>            <span class="kw">if</span> (harf.<span class="fu">equals</span>(harf.<span class="fu">toLowerCase</span>())) { <span class="co">// harf zaten kucuk</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toUpperCase</span>());</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a>            } <span class="kw">else</span> { <span class="co">// harf buyuk</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a>                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(harf.<span class="fu">toLowerCase</span>());</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a>            }</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a>        }</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a>    }</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Soru 4: Guess my number. 1 ile 100 arasında bir sayı tutulacak.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">import</span><span class="im"> java.util.Random;</span>
-<span class="kw">import</span><span class="im"> java.util.Scanner;</span>
-<span class="kw">public</span> <span class="kw">class</span> Soru4 {
-    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {
-    
-        <span class="bu">Scanner</span> girdi = <span class="kw">new</span> <span class="bu">Scanner</span>(<span class="bu">System</span>.<span class="fu">in</span>);
-    
-        <span class="bu">Random</span> r = <span class="kw">new</span> <span class="bu">Random</span>();
-        <span class="dt">int</span> randomNumber = <span class="bu">Math</span>.<span class="fu">abs</span>(r.<span class="fu">nextInt</span>());
-        randomNumber = (randomNumber % <span class="dv">100</span>) + <span class="dv">1</span>;
-    
-        <span class="dt">int</span> tahminSayisi = <span class="dv">1</span>;
-        <span class="dt">int</span> tahmin = -<span class="dv">1</span>;
-    
-        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Bilgisayar 1 ile 100 arasında bir sayı tuttu.&quot;</span>);
-    
-        <span class="kw">while</span> (!(tahmin == randomNumber)) {    
-            <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Tahmininiz? &quot;</span>);
-            tahmin = girdi.<span class="fu">nextInt</span>();
-            <span class="kw">if</span> (tahmin &lt; randomNumber) {
-                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi arttırın.&quot;</span>);
-            } <span class="kw">else</span> <span class="kw">if</span> (tahmin &gt; randomNumber) {
-                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi azaltın.&quot;</span>);
-            } <span class="kw">else</span> {
-                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tebrikler, &quot;</span> + tahminSayisi + <span class="st">&quot; tahminde sayıyı bildiniz.&quot;</span>);
-            }
-            tahminSayisi++;
-        } <span class="co">// while biter</span>
-    }
-}</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">import</span><span class="im"> java.util.Random;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">import</span><span class="im"> java.util.Scanner;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="kw">public</span> <span class="kw">class</span> Soru4 {</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) {</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>    </span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>        <span class="bu">Scanner</span> girdi = <span class="kw">new</span> <span class="bu">Scanner</span>(<span class="bu">System</span>.<span class="fu">in</span>);</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>    </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>        <span class="bu">Random</span> r = <span class="kw">new</span> <span class="bu">Random</span>();</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>        <span class="dt">int</span> randomNumber = <span class="bu">Math</span>.<span class="fu">abs</span>(r.<span class="fu">nextInt</span>());</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>        randomNumber = (randomNumber % <span class="dv">100</span>) + <span class="dv">1</span>;</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>    </span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a>        <span class="dt">int</span> tahminSayisi = <span class="dv">1</span>;</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a>        <span class="dt">int</span> tahmin = -<span class="dv">1</span>;</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>    </span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a>        <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Bilgisayar 1 ile 100 arasında bir sayı tuttu.&quot;</span>);</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a>    </span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true"></a>        <span class="kw">while</span> (!(tahmin == randomNumber)) {    </span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true"></a>            <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">print</span>(<span class="st">&quot;Tahmininiz? &quot;</span>);</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true"></a>            tahmin = girdi.<span class="fu">nextInt</span>();</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true"></a>            <span class="kw">if</span> (tahmin &lt; randomNumber) {</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true"></a>                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi arttırın.&quot;</span>);</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true"></a>            } <span class="kw">else</span> <span class="kw">if</span> (tahmin &gt; randomNumber) {</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true"></a>                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tahmininizi azaltın.&quot;</span>);</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true"></a>            } <span class="kw">else</span> {</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true"></a>                <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(<span class="st">&quot;Tebrikler, &quot;</span> + tahminSayisi + <span class="st">&quot; tahminde sayıyı bildiniz.&quot;</span>);</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true"></a>            }</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true"></a>            tahminSayisi++;</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true"></a>        } <span class="co">// while biter</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true"></a>    }</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Alternatif çözümü olan var mı?</p>
 
 <hr />

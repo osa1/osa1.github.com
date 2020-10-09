@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">A parallel scheduler in 50 lines of Haskell</h1>
 
-<p><strong>October 16, 2017</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>October 16, 2017</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>.</p>
 
 <p>Here’s a problem:</p>
 <ul>
@@ -34,66 +34,66 @@
 <hr />
 <p>The idea is simple; we implement resources as <code>MVar</code>s and tasks as threads. Threads (tasks) take the <code>MVar</code>s before performing the operation. Because threads are scheduled by GHC RTS, GHC handles scheduling of our tasks. Because of fairness properties of <code>MVar</code>s, our threads are scheduled “fairly”, e.g. all tasks eventually finish even when we have infinitely many tasks.</p>
 <p>A resource is an abstract object with a lock and unique identifier:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Resource</span> <span class="fu">=</span> <span class="dt">Resource</span>
-  {<span class="ot"> _resourceName ::</span> <span class="dt">T.Text</span>
-  ,<span class="ot"> _resourceId   ::</span> <span class="dt">Unique</span>
-  ,<span class="ot"> _resourceLock ::</span> <span class="dt">MVar</span> ()
-  }
-
-<span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Resource</span> <span class="kw">where</span>
-  <span class="fu">show</span> <span class="fu">=</span> T.unpack <span class="fu">.</span> _resourceName</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Resource</span> <span class="ot">=</span> <span class="dt">Resource</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>  {<span class="ot"> _resourceName ::</span> <span class="dt">T.Text</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>  ,<span class="ot"> _resourceId   ::</span> <span class="dt">Unique</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>  ,<span class="ot"> _resourceLock ::</span> <span class="dt">MVar</span> ()</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>  }</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Resource</span> <span class="kw">where</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>  <span class="fu">show</span> <span class="ot">=</span> T.unpack <span class="op">.</span> _resourceName</span></code></pre></div>
 <p><code>_resourceName</code> is just a string to be used for tracing program execution.</p>
 <p>A <code>Unique</code> is an integer that can be used in at most one resource:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Unique</span> <span class="fu">=</span> <span class="dt">Unique</span> <span class="dt">Int</span>
-  <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Ord</span>)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">Unique</span> <span class="ot">=</span> <span class="dt">Unique</span> <span class="dt">Int</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Ord</span>)</span></code></pre></div>
 <p>Using <code>Unique</code> we can define a total order for <code>Resource</code>:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Resource</span> <span class="kw">where</span>
-  (<span class="fu">==</span>) <span class="fu">=</span> (<span class="fu">==</span>) <span class="ot">`on`</span> _resourceId
-
-<span class="kw">instance</span> <span class="dt">Ord</span> <span class="dt">Resource</span> <span class="kw">where</span>
-  <span class="fu">compare</span> <span class="fu">=</span> comparing _resourceId</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Resource</span> <span class="kw">where</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>  (<span class="op">==</span>) <span class="ot">=</span> (<span class="op">==</span>) <span class="ot">`on`</span> _resourceId</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Ord</span> <span class="dt">Resource</span> <span class="kw">where</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>  <span class="fu">compare</span> <span class="ot">=</span> comparing _resourceId</span></code></pre></div>
 <p>A task that requires exclusive access to a subset of all resources can be implemented using <code>withResources</code>:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">withResources ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> m () <span class="ot">-&gt;</span> m ()
-withResources locks a <span class="fu">=</span> acquire_locks (S.toList locks)
-  <span class="kw">where</span>
-    acquire_locks ls <span class="fu">=</span> <span class="kw">case</span> ls <span class="kw">of</span>
-      [] <span class="ot">-&gt;</span>
-        a
-      l <span class="fu">:</span> ls' <span class="ot">-&gt;</span> <span class="kw">do</span>
-        logDebug (<span class="st">&quot;taking lock &quot;</span> <span class="fu">&lt;&gt;</span> (_resourceName l))
-        withMVar (_resourceLock l) <span class="fu">$</span> \() <span class="ot">-&gt;</span>
-          acquire_locks ls'</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="ot">withResources ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> m () <span class="ot">-&gt;</span> m ()</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>withResources locks a <span class="ot">=</span> acquire_locks (S.toList locks)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>    acquire_locks ls <span class="ot">=</span> <span class="kw">case</span> ls <span class="kw">of</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>      [] <span class="ot">-&gt;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>        a</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>      l <span class="op">:</span> ls' <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>        logDebug (<span class="st">&quot;taking lock &quot;</span> <span class="op">&lt;&gt;</span> (_resourceName l))</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>        withMVar (_resourceLock l) <span class="op">$</span> \() <span class="ot">-&gt;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>          acquire_locks ls'</span></code></pre></div>
 <p>Note that when all tasks are implemented using this function a deadlock won’t occur: resources are ordered, and <code>S.toList</code> generates a sorted list, which in turn causes <code>acquire_locks</code> to take locks in order, effectively implementing <a href="https://en.wikipedia.org/wiki/Dining_philosophers_problem">Dijkstra’s resource hierarchy solution to the dining philosophers problem</a>.</p>
 <p>Here are three task generators:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Task</span> <span class="fu">=</span> <span class="dt">Task</span>
-  {<span class="ot"> runTask ::</span> <span class="kw">forall</span> m <span class="fu">.</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> m () }
-
-<span class="ot">mkFastTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
-mkFastTask i res <span class="fu">=</span>
-    <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
-      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i))
-      threadDelay (<span class="dv">500</span><span class="ot"> ::</span> <span class="dt">Milliseconds</span>)
-      logDebug (<span class="st">&quot;Fast task done (&quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i) <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)
-
-<span class="ot">mkSlowTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
-mkSlowTask i res <span class="fu">=</span>
-    <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
-      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i))
-      threadDelay (<span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Seconds</span>)
-      logDebug (<span class="st">&quot;Slow task done (&quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i) <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)
-
-<span class="ot">mkCrashingTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span>
-mkCrashingTask i res <span class="fu">=</span>
-    <span class="dt">Task</span> <span class="fu">$</span> withResources res <span class="fu">$</span> <span class="kw">do</span>
-      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="fu">&lt;&gt;</span> T.pack (<span class="fu">show</span> i))
-      <span class="fu">error</span> <span class="st">&quot;task failed&quot;</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">Task</span> <span class="ot">=</span> <span class="dt">Task</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>  {<span class="ot"> runTask ::</span> <span class="kw">forall</span> m <span class="op">.</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m) <span class="ot">=&gt;</span> m () }</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="ot">mkFastTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>mkFastTask i res <span class="ot">=</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>    <span class="dt">Task</span> <span class="op">$</span> withResources res <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="op">&lt;&gt;</span> T.pack (<span class="fu">show</span> i))</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>      threadDelay (<span class="dv">500</span><span class="ot"> ::</span> <span class="dt">Milliseconds</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>      logDebug (<span class="st">&quot;Fast task done (&quot;</span> <span class="op">&lt;&gt;</span> T.pack (<span class="fu">show</span> i) <span class="op">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a><span class="ot">mkSlowTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>mkSlowTask i res <span class="ot">=</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>    <span class="dt">Task</span> <span class="op">$</span> withResources res <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="op">&lt;&gt;</span> T.pack (<span class="fu">show</span> i))</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a>      threadDelay (<span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Seconds</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a>      logDebug (<span class="st">&quot;Slow task done (&quot;</span> <span class="op">&lt;&gt;</span> T.pack (<span class="fu">show</span> i) <span class="op">&lt;&gt;</span> <span class="st">&quot;)&quot;</span>)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true"></a><span class="ot">mkCrashingTask ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">S.Set</span> <span class="dt">Resource</span> <span class="ot">-&gt;</span> <span class="dt">Task</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true"></a>mkCrashingTask i res <span class="ot">=</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true"></a>    <span class="dt">Task</span> <span class="op">$</span> withResources res <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true"></a>      logDebug (<span class="st">&quot;Performing &quot;</span> <span class="op">&lt;&gt;</span> T.pack (<span class="fu">show</span> i))</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true"></a>      <span class="fu">error</span> <span class="st">&quot;task failed&quot;</span></span></code></pre></div>
 <p>Integer arguments are just for tracing task execution in program output. <code>mkFastTask</code> generates a task that takes 500 milliseconds to run. <code>mkSlowTask</code> generates a task that takes 3 seconds. <code>mkCrashingTask</code> makes a task that throws an exception, demonstrating that we release resources properly on exceptions.</p>
 <p>Finally, the scheduler just spawns tasks using <code>forkIO</code> or <code>async</code>:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">schedule ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m, <span class="dt">Forall</span> (<span class="dt">Pure</span> m)) <span class="ot">=&gt;</span> [<span class="dt">Task</span>] <span class="ot">-&gt;</span> m ()
-schedule tasks <span class="fu">=</span> <span class="kw">do</span>
-    thrs <span class="ot">&lt;-</span> forM tasks <span class="fu">$</span> \(<span class="dt">Task</span> task) <span class="ot">-&gt;</span>
-              async (task <span class="ot">`catch`</span> (\(<span class="ot">e ::</span> <span class="dt">SomeException</span>) <span class="ot">-&gt;</span> logDebug <span class="st">&quot;Task failed&quot;</span>))
-    forM_ thrs wait</code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="ot">schedule ::</span> (<span class="dt">MonadLogger</span> m, <span class="dt">MonadBaseControl</span> <span class="dt">IO</span> m, <span class="dt">Forall</span> (<span class="dt">Pure</span> m)) <span class="ot">=&gt;</span> [<span class="dt">Task</span>] <span class="ot">-&gt;</span> m ()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>schedule tasks <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>    thrs <span class="ot">&lt;-</span> forM tasks <span class="op">$</span> \(<span class="dt">Task</span> task) <span class="ot">-&gt;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>              async (task <span class="ot">`catch`</span> (\(<span class="ot">e ::</span> <span class="dt">SomeException</span>) <span class="ot">-&gt;</span> logDebug <span class="st">&quot;Task failed&quot;</span>))</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>    forM_ thrs wait</span></code></pre></div>
 <p>Here’s an example run</p>
 <pre><code>taking lock resource5
 Performing 0

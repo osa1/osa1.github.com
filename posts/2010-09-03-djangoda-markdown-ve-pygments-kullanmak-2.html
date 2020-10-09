@@ -20,13 +20,13 @@
             <div class="inner">
                 <h1 id="post-title">Django'da Markdown ve Pygments kullanmak (2)</h1>
 
-<p><strong>September  3, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>September  3, 2010</strong> - Tagged as: <a title="All pages tagged 'python'." href="../tags/python.html">python</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Daha önce bu konu hakkında bir yazı yazmıştım. Gayet güzel işliyordu herşey fakat bugün bir arkadaş bir hata bildirdi.</p>
 <p>Eğer markdown’dan geçirdiğiniz yazıda <code>&lt;pre ...&gt;&lt;/pre&gt;</code> tagları varsa, normalde markdown bunlara dokunmuyor. Dolayısıyla daha sonra pygments uygulayabiliyorsunuz sorunsuz şekilde. Ama küçük bir farkla. Örneğin python kodu yazarken, eğer bir blokun içinde kod yazarken, boş bir satır bırakıyorsanız, boş satırdan sonraki kod bloktan dışarı çıkıyor. Örneğin aşağıdaki kod:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Test:
-    <span class="kw">def</span> bu_fonksiyon_bloktan_cikiyor():
-        <span class="cf">pass</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">class</span> Test:</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    <span class="kw">def</span> bu_fonksiyon_bloktan_cikiyor():</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>        <span class="cf">pass</span></span></code></pre></div>
 <p>Şu anda düzgün gözüken kodda, sitedeki değişiklikleri yapmadan önce fonksiyon bloktan dışarı çıkıyordu. Bunu nasıl çözerim diye araştrırken, Markdown’un aslında kendi pygments eklentisinin olduğunu farkettim(<a href="http://www.freewisdom.org/projects/python-markdown/CodeHilite">codehilite</a>). Bunu kullanmak için eski template filterınızda markdown’u çağırdığınız yeri <code>markdown.markdown(value, ['codehilite'])</code> şeklinde değiştirmeniz gerekli.</p>
 <p>Eğer daha önceden pygments kurduysanız codehilite eklentisinin dosyasından import şeklini kontrol etmeniz yeterli. Bu şekilde aslında daha hızlı olabilir. Önceden markdown’la html taglarını yerleştirdikten sonra, BeautifulSoup ile onu ayrıştırıp, gerekli yerleri pygments’e yolluyordum. Şimdi ise BeautifulSoup’a gerek kalmadan, markdown aşamasında pygments kullanılıyor.</p>
 

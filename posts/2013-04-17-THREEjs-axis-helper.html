@@ -20,45 +20,45 @@
             <div class="inner">
                 <h1 id="post-title">THREE.js axis helper</h1>
 
-<p><strong>April 17, 2013</strong> - Tagged as: <a href="../tags/threejs.html">threejs</a>, <a href="../tags/coffeescript.html">coffeescript</a>, <a href="../tags/en.html">en</a>.</p>
+<p><strong>April 17, 2013</strong> - Tagged as: <a title="All pages tagged 'threejs'." href="../tags/threejs.html">threejs</a>, <a title="All pages tagged 'coffeescript'." href="../tags/coffeescript.html">coffeescript</a>, <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
 
 <p>I’m using <a href="http://threejs.org">THREE.js</a> for a project I’m working on. This is my first experience programming a 3D environment and I’m having hard times wrapping my head around 3D coordinate system.</p>
 <p>So I wrote a helper function that draws axis arrows to the scene center to help me see how to translate/rotate my objects.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode coffee"><code class="sourceCode coffee">drawAxisHelpers <span class="kw">=</span> <span class="fu">(params = {}) -&gt;</span>
-    params<span class="kw">.</span>radius <span class="kw">=</span> params<span class="kw">.</span>radius <span class="kw">||</span> <span class="fl">0.05</span>
-    params<span class="kw">.</span>height <span class="kw">=</span> params<span class="kw">.</span>height <span class="kw">||</span> <span class="dv">2</span>
-    params<span class="kw">.</span>scene  <span class="kw">=</span> params<span class="kw">.</span>scene  <span class="kw">||</span> scene
-
-    arrowGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> <span class="dv">0</span><span class="kw">,</span> <span class="dv">2</span> <span class="kw">*</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">5</span>
-
-    xAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0xFF0000</span>
-    xAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height
-    xAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> xAxisGeometry<span class="kw">,</span> xAxisMaterial
-    xArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> xAxisMaterial
-    xAxisMesh<span class="kw">.</span>add xArrowMesh
-    xArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    xAxisMesh<span class="kw">.</span>rotation<span class="kw">.</span>z  <span class="kw">-=</span> <span class="dv">90</span> <span class="kw">*</span> <span class="ot">Math</span><span class="kw">.</span>PI <span class="kw">/</span> <span class="dv">180</span>
-    xAxisMesh<span class="kw">.</span>position<span class="kw">.</span>x  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    params<span class="kw">.</span>scene<span class="kw">.</span>add xAxisMesh
-
-    yAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0x00FF00</span>
-    yAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height
-    yAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> yAxisGeometry<span class="kw">,</span> yAxisMaterial
-    yArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> yAxisMaterial
-    yAxisMesh<span class="kw">.</span>add yArrowMesh
-    yArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    yAxisMesh<span class="kw">.</span>position<span class="kw">.</span>y  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    params<span class="kw">.</span>scene<span class="kw">.</span>add yAxisMesh
-
-    zAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0x0000FF</span>
-    zAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height
-    zAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> zAxisGeometry<span class="kw">,</span> zAxisMaterial
-    zArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> zAxisMaterial
-    zAxisMesh<span class="kw">.</span>add zArrowMesh
-    zAxisMesh<span class="kw">.</span>rotation<span class="kw">.</span>x  <span class="kw">+=</span> <span class="dv">90</span> <span class="kw">*</span> <span class="ot">Math</span><span class="kw">.</span>PI <span class="kw">/</span> <span class="dv">180</span>
-    zArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    zAxisMesh<span class="kw">.</span>position<span class="kw">.</span>z  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span>
-    params<span class="kw">.</span>scene<span class="kw">.</span>add zAxisMesh</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode coffee"><code class="sourceCode coffee"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>drawAxisHelpers <span class="kw">=</span> <span class="fu">(params = {}) -&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    params<span class="kw">.</span>radius <span class="kw">=</span> params<span class="kw">.</span>radius <span class="kw">||</span> <span class="fl">0.05</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>    params<span class="kw">.</span>height <span class="kw">=</span> params<span class="kw">.</span>height <span class="kw">||</span> <span class="dv">2</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>    params<span class="kw">.</span>scene  <span class="kw">=</span> params<span class="kw">.</span>scene  <span class="kw">||</span> scene</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>    arrowGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> <span class="dv">0</span><span class="kw">,</span> <span class="dv">2</span> <span class="kw">*</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">5</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    xAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0xFF0000</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>    xAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>    xAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> xAxisGeometry<span class="kw">,</span> xAxisMaterial</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>    xArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> xAxisMaterial</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>    xAxisMesh<span class="kw">.</span>add xArrowMesh</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>    xArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>    xAxisMesh<span class="kw">.</span>rotation<span class="kw">.</span>z  <span class="kw">-=</span> <span class="dv">90</span> <span class="kw">*</span> <span class="ot">Math</span><span class="kw">.</span>PI <span class="kw">/</span> <span class="dv">180</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>    xAxisMesh<span class="kw">.</span>position<span class="kw">.</span>x  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>    params<span class="kw">.</span>scene<span class="kw">.</span>add xAxisMesh</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a>    yAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0x00FF00</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>    yAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>    yAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> yAxisGeometry<span class="kw">,</span> yAxisMaterial</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>    yArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> yAxisMaterial</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>    yAxisMesh<span class="kw">.</span>add yArrowMesh</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>    yArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>    yAxisMesh<span class="kw">.</span>position<span class="kw">.</span>y  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>    params<span class="kw">.</span>scene<span class="kw">.</span>add yAxisMesh</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>    zAxisMaterial <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.MeshBasicMaterial</span> color<span class="kw">:</span> <span class="dv">0x0000FF</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a>    zAxisGeometry <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.CylinderGeometry</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>radius<span class="kw">,</span> params<span class="kw">.</span>height</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a>    zAxisMesh     <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> zAxisGeometry<span class="kw">,</span> zAxisMaterial</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a>    zArrowMesh    <span class="kw">=</span> <span class="kw">new</span> <span class="dt">THREE.Mesh</span> arrowGeometry<span class="kw">,</span> zAxisMaterial</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a>    zAxisMesh<span class="kw">.</span>add zArrowMesh</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a>    zAxisMesh<span class="kw">.</span>rotation<span class="kw">.</span>x  <span class="kw">+=</span> <span class="dv">90</span> <span class="kw">*</span> <span class="ot">Math</span><span class="kw">.</span>PI <span class="kw">/</span> <span class="dv">180</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a>    zArrowMesh<span class="kw">.</span>position<span class="kw">.</span>y <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true"></a>    zAxisMesh<span class="kw">.</span>position<span class="kw">.</span>z  <span class="kw">+=</span> params<span class="kw">.</span>height <span class="kw">/</span> <span class="dv">2</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true"></a>    params<span class="kw">.</span>scene<span class="kw">.</span>add zAxisMesh</span></code></pre></div>
 <p><code>drawAxisHelpers</code> function takes named parameters, all optional. <code>radius</code> and <code>height</code> are for sizes of arrows, and <code>scene</code> is the scene object to draw arrows. When isn’t provided, a global <code>scene</code> object is used.</p>
 <p>Here’s an example: (you can zoom in/out with mouse scroll, move around with left/right clicks)</p>
 <canvas id="target" width="600" height="600" style="background-color: #39342E; float: center;">

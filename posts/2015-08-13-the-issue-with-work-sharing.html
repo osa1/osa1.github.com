@@ -23,15 +23,15 @@
             <div class="inner">
                 <h1 id="post-title">The issue with work sharing (common subexpression elimination)</h1>
 
-<p><strong>August 13, 2015</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/supercompilation.html">supercompilation</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>August 13, 2015</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'supercompilation'." href="../tags/supercompilation.html">supercompilation</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>.</p>
 
-<p>I’d expect more work sharing to be always more beneficial. But apparently this is not the case, as pointed out in (Chitil, 1997)<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>.</p>
+<p>I’d expect more work sharing to be always more beneficial. But apparently this is not the case, as pointed out in (Chitil, 1997)<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.</p>
 <p>Here’s an example from the paper: (slightly changed)</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">sum</span> [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>] <span class="fu">+</span> <span class="fu">sum</span> [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="fu">sum</span> [<span class="dv">1</span> <span class="op">..</span> <span class="dv">1000</span>] <span class="op">+</span> <span class="fu">sum</span> [<span class="op">-</span><span class="dv">1000</span> <span class="op">..</span> <span class="op">-</span><span class="dv">1</span>] <span class="op">+</span> prod [<span class="dv">1</span> <span class="op">..</span> <span class="dv">1000</span>]</span></code></pre></div>
 <p>We can evaluate this expression to WHNF using heap space enough for a single list(to be more specific, we only need a single cons cell at any time). After evaluating a subexpression, we can deallocate and allocate for the next list etc.</p>
 <p>However, if we eliminate common subexpressions, and generate this code:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> v <span class="fu">=</span> [<span class="dv">1</span> <span class="fu">..</span> <span class="dv">1000</span>]
- <span class="kw">in</span> <span class="fu">sum</span> v <span class="fu">+</span> <span class="fu">sum</span> [<span class="fu">-</span><span class="dv">1000</span> <span class="fu">..</span> <span class="fu">-</span><span class="dv">1</span>] <span class="fu">+</span> prod v</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">let</span> v <span class="ot">=</span> [<span class="dv">1</span> <span class="op">..</span> <span class="dv">1000</span>]</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a> <span class="kw">in</span> <span class="fu">sum</span> v <span class="op">+</span> <span class="fu">sum</span> [<span class="op">-</span><span class="dv">1000</span> <span class="op">..</span> <span class="op">-</span><span class="dv">1</span>] <span class="op">+</span> prod v</span></code></pre></div>
 <p>Now <code>v</code> has to live until the let body is evaluated to a value. We win in allocation/deallocation side, but we lose in residency side. In paper’s words: “Whereas the transformation always decreases total heap usage, it may considerably influence heap residency.”</p>
 <p>In general, we can’t do this transformation, without risking increased residency:</p>
 <p>\[ e’[e,e] \leadsto \texttt{let}\; x = e\; \texttt{in}\; e’[x,x] \]</p>
@@ -46,12 +46,12 @@
 <p>Also, I’m wondering how is CSE is handled in current GHC.</p>
 <hr />
 <p>In supercompilation, we want to avoid evaluating same expressions in a loop forever, so we keep some kind of “history”, and when we come across a term that we evaluated before, we fold the process tree and avoid evaluating same term again.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell">(fib <span class="dv">1000</span>, fib <span class="dv">1000</span>)</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>(fib <span class="dv">1000</span>, fib <span class="dv">1000</span>)</span></code></pre></div>
 <p>Unless we make sure to split it in a way that branches of the process tree are unaware of each other, we may end up eliminating common subexpressions. However, since there are lots of cases where we may want CSE, a splitter that always prevents it is not always desirable. We should instead allow CSE in a controlled way.</p>
-<section class="footnotes">
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Olaf Chitil, “Common Subexpression Elimination in a Lazy Functional Language”, section 3.5.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>Olaf Chitil, “Common Subexpression Elimination in a Lazy Functional Language”, section 3.5.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

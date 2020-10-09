@@ -20,17 +20,17 @@
             <div class="inner">
                 <h1 id="post-title">call/cc [2]</h1>
 
-<p><strong>August  9, 2012</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>August  9, 2012</strong> - Tagged as: <a title="All pages tagged 'lisp'." href="../tags/lisp.html">lisp</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Scheme çok ilginç bir dil. Çok küçük olmasına rağmen(R5RS 50 sayfa, R6RS 90 sayfa, aradaki fark büyük oranda kütüphanelerden kaynaklanıyor) programlama dilleri camiasından sürekli tartışma konusu, ve bir sonraki standard konusundaki tartışmalar neredeyse hiçbir zaman bitmiyor. Çok fazla tartışmalı özelliği var. Kendisine göre devasa boyutlardaki dillerde bile Scheme’inkiler kadar tartışılan özellikler yoktur büyük ihtimalle(gerçi bu biraz da Scheme camiasının çok sayıda programlama dili meraklısı içermesi ile alakalı olabilir).</p>
 <p><code>call/cc</code> bu özelliklerden biri, hakkında buralarda birşeyler yazmıştım. <code>call/cc</code> benim gözümde, birazdan bahsedeceğim yazıdaki tabiriyle, “ultimate abstraction of control” idi. Kendi dilime de call/cc’yi programın kontrol akışı üzerinde değişiklikler gerektiren yapıları implement etmek için kullnacaktım.</p>
 <p>Bugün internetteki favori sayfalarımdan <a href="http://okmij.org/ftp/">okmij</a>de <a href="http://okmij.org/ftp/continuations/against-callcc.html">“An argument against call/cc”</a> adlı yazıya denk geldim. Meraklısı olan varsa kaçırmasın.</p>
 <p>call/cc’nin neden kötü bir soyutlama olduğunu 7 madde halinde incelemiş. Benim anladığım, tüm bu problemleri delimited continuationlarla çözebiliriz. Delimited continuationlara giriş için <a href="http://pllab.is.ocha.ac.jp/~asai/cw2011tutorial/main-e.pdf">Introduction to Programming with Shift and Reset</a>e bakabilirsiniz. Ben epey anlaşılır buldum(OchaCaml’ı yükleyip denemedim gerçi, içinde yama uygulamayı da içeren birkaç maddelik kurulum komutu var, şaka gibi). Bir maddede <code>dynamic-wind</code>den bahsetmiş. <code>dynamic-wind</code> ile ilk kez bu yazıda karşılaştım, ve anladığım kadarıyla delimited continuationlar buna olan ihtiyacı ortadan kaldırmıyor. Sonuçta örneğin bir dosyaya erişim yapıldığı durumda, continuation dosyanın referansını içerecektir ve daha sonradan bu continuation kullnıldığında, delimited olsa da olmasa da, aynı kaynakların alınıp(dosyanın açılması, sunucuya bağlanılması vs.), işlem sonrasında kapatılması gerekir.</p>
-<p>Static bir tip sistemi ve lexical scope ile call/cc implementasyonu benim için zaten yeterince zor bir problem. Belki de tamamen kaldırıp, Lua usulü biraz daha genelleştirilmiş generatorlar<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>ile yola devam etmeliyim.</p>
-<section class="footnotes">
+<p>Static bir tip sistemi ve lexical scope ile call/cc implementasyonu benim için zaten yeterince zor bir problem. Belki de tamamen kaldırıp, Lua usulü biraz daha genelleştirilmiş generatorlar<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>ile yola devam etmeliyim.</p>
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p><a href="http://dl.acm.org/citation.cfm?id=1462167&amp;CFID=125136476&amp;CFTOKEN=41020401">Revisiting coroutines</a><a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p><a href="http://dl.acm.org/citation.cfm?id=1462167&amp;CFID=125136476&amp;CFTOKEN=41020401">Revisiting coroutines</a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

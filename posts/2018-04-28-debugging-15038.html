@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Debugging #15038</h1>
 
-<p><strong>April 28, 2018</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/ghc.html">ghc</a>.</p>
+<p><strong>April 28, 2018</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>, <a title="All pages tagged 'ghc'." href="../tags/ghc.html">ghc</a>.</p>
 
 <p>I recently spent some time debugging GHC bug <a href="https://ghc.haskell.org/trac/ghc/ticket/15038">#15038</a> and to help with context switching between debugging and other tasks I took notes during debugging. After successfully debugging it and reading my notes from the beginning I thought it may be an interesting read, so I’m publishing it. It may not make much sense to anyone other than me, and it’s very lightly edited, so keep your expectations low :)</p>
 <hr />
@@ -389,18 +389,18 @@ $2 = {
   saved_info_field: []
   static_link_value: 3</code></pre>
 <p>So this object doesn’t get a static link field. This is because the condition</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell">staticClosureNeedsLink (mayHaveCafRefs caf_refs) info_tbl</code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a>staticClosureNeedsLink (mayHaveCafRefs caf_refs) info_tbl</span></code></pre></div>
 <p>doesn’t hold.</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">staticClosureNeedsLink ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">CmmInfoTable</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
-<span class="co">-- A static closure needs a link field to aid the GC when traversing</span>
-<span class="co">-- the static closure graph.  But it only needs such a field if either</span>
-<span class="co">--        a) it has an SRT</span>
-<span class="co">--        b) it's a constructor with one or more pointer fields</span>
-<span class="co">-- In case (b), the constructor's fields themselves play the role</span>
-<span class="co">-- of the SRT.</span>
-staticClosureNeedsLink has_srt <span class="dt">CmmInfoTable</span>{ cit_rep <span class="fu">=</span> smrep }
-  <span class="fu">|</span> isConRep smrep         <span class="fu">=</span> <span class="fu">not</span> (isStaticNoCafCon smrep)
-  <span class="fu">|</span> <span class="fu">otherwise</span>              <span class="fu">=</span> has_srt <span class="co">-- needsSRT (cit_srt info_tbl)</span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="ot">staticClosureNeedsLink ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">CmmInfoTable</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true"></a><span class="co">-- A static closure needs a link field to aid the GC when traversing</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true"></a><span class="co">-- the static closure graph.  But it only needs such a field if either</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true"></a><span class="co">--        a) it has an SRT</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true"></a><span class="co">--        b) it's a constructor with one or more pointer fields</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true"></a><span class="co">-- In case (b), the constructor's fields themselves play the role</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true"></a><span class="co">-- of the SRT.</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true"></a>staticClosureNeedsLink has_srt <span class="dt">CmmInfoTable</span>{ cit_rep <span class="ot">=</span> smrep }</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true"></a>  <span class="op">|</span> isConRep smrep         <span class="ot">=</span> <span class="fu">not</span> (isStaticNoCafCon smrep)</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true"></a>  <span class="op">|</span> <span class="fu">otherwise</span>              <span class="ot">=</span> has_srt <span class="co">-- needsSRT (cit_srt info_tbl)</span></span></code></pre></div>
 <p>So <code>has_srt</code> is <code>False</code> for this object and <code>idCafInfo</code> of this closure says it’s not caffy.</p>
 <p>Just to make sure this is the problem, I modify the code to treat all top-level closures as caffy. Indeed that fixes the bug.</p>
 <p>CAFness of bindings are decided in <code>hasCafRefs</code> in <code>TidyPgm</code>. Two conditions for CAFness are</p>

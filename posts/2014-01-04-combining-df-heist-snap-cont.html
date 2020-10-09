@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Combining digestive-functors and heist with Snap (continued from last tutorial)</h1>
 
-<p><strong>January  4, 2014</strong> - Tagged as: <a href="../tags/haskell.html">haskell</a>, <a href="../tags/en.html">en</a>.</p>
+<p><strong>January  4, 2014</strong> - Tagged as: <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>, <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
 
 <p>Here’s an high-level overview of last post:</p>
 <ul>
@@ -33,73 +33,73 @@
 <p>Recommended way fo starting a Snap applcation is by using <code>snap init</code> command. It creates a cabal project structure with <code>Application.hs</code>, <code>Site.hs</code> and <code>Main.hs</code>. According to Snap docs, we only rarely need to touch <code>Main.hs</code>. The other two files are used to create a new Snaplet, and only function we need to provide to <code>Main</code> module is <code>app :: SnapletInit App App</code> for some <code>App</code> type.</p>
 <p>In this post I’m assuming you created a Snap project using <code>snap init</code> command and have <code>Main.hs</code> file. You don’t need <code>Application.hs</code> file and in this post we’ll be writing <code>Site.hs</code> file.</p>
 <p>Required for some Snap features</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE TemplateHaskell     #-}</span></code></pre></div>
-<div class="sourceCode" id="cb2"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Tut2</span> (app) <span class="kw">where</span></code></pre></div>
-<div class="sourceCode" id="cb3"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import</span>           <span class="dt">Control.Applicative</span>        (<span class="dt">Applicative</span> (..), (&lt;$&gt;))
-<span class="kw">import</span>           <span class="dt">Data.Maybe</span>                 (isJust)
-<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Text</span>                  <span class="kw">as</span> <span class="dt">T</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE TemplateHaskell     #-}</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Tut2</span> (app) <span class="kw">where</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Control.Applicative</span>        (<span class="dt">Applicative</span> (..), (&lt;$&gt;))</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Data.Maybe</span>                 (isJust)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Text</span>                  <span class="kw">as</span> <span class="dt">T</span></span></code></pre></div>
 <p>from `digestive-functors’ package</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import</span>           <span class="dt">Text.Digestive</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Text.Digestive</span></span></code></pre></div>
 <p>from `digestive-functors-heist’ package</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import</span>           <span class="dt">Text.Digestive.Heist</span>       (bindDigestiveSplices)</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Text.Digestive.Heist</span>       (bindDigestiveSplices)</span></code></pre></div>
 <p>from <code>lens</code> package, required for Snaplets</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import</span>           <span class="dt">Control.Lens</span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import</span>           <span class="dt">Snap.Snaplet</span>
-<span class="kw">import</span>           <span class="dt">Snap.Snaplet.Heist</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Control.Lens</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Snap.Snaplet</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Snap.Snaplet.Heist</span></span></code></pre></div>
 <p>from <code>bytestring</code> package, required for some Snap functions</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.ByteString</span>            <span class="kw">as</span> <span class="dt">B</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.ByteString</span>            <span class="kw">as</span> <span class="dt">B</span></span></code></pre></div>
 <p>from <code>digestive-functors-snap</code> package, required for form rendering, we had handled that using <code>getForm</code> and <code>postForm</code> from <code>Text.Digestive.Heist</code> before.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import</span>           <span class="dt">Text.Digestive.Snap</span>        (runForm)</code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Text.Digestive.Snap</span>        (runForm)</span></code></pre></div>
 <p><code>snap init</code> creates a project with only this code in <code>Application.hs</code>:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">App</span> <span class="fu">=</span> <span class="dt">App</span>
-    {<span class="ot"> _heist ::</span> <span class="dt">Snaplet</span> (<span class="dt">Heist</span> <span class="dt">App</span>)
-    }
-
-makeLenses '<span class="dt">'App</span>
-
-<span class="kw">instance</span> <span class="dt">HasHeist</span> <span class="dt">App</span> <span class="kw">where</span>
-    heistLens <span class="fu">=</span> subSnaplet heist</code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">App</span> <span class="ot">=</span> <span class="dt">App</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a>    {<span class="ot"> _heist ::</span> <span class="dt">Snaplet</span> (<span class="dt">Heist</span> <span class="dt">App</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a>    }</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a>makeLenses '<span class="dt">'App</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">HasHeist</span> <span class="dt">App</span> <span class="kw">where</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a>    heistLens <span class="ot">=</span> subSnaplet heist</span></code></pre></div>
 <p>In this post I’m copying this code to <code>Site.hs</code> and removing <code>Application.hs</code> file. Here, I only changed the definition of <code>App</code>. Since our application is minimal, we only need Heist Snaplet nested in our App. When we need other functionalities in the future(like database access), we will extend this definition for new Snaplets.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">app ::</span> <span class="dt">SnapletInit</span> <span class="dt">App</span> <span class="dt">App</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="ot">app ::</span> <span class="dt">SnapletInit</span> <span class="dt">App</span> <span class="dt">App</span></span></code></pre></div>
 <p>First type parameter of SnapletInit is for type of parent Snaplet. In our case, we don’t have a parent Snaplet but I guess this is what you do in that case. Second type is currently initialized Snaplet’s type.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">app <span class="fu">=</span> makeSnaplet <span class="st">&quot;app&quot;</span> <span class="st">&quot;An snaplet example application&quot;</span> <span class="dt">Nothing</span> <span class="fu">$</span> <span class="kw">do</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a>app <span class="ot">=</span> makeSnaplet <span class="st">&quot;app&quot;</span> <span class="st">&quot;An snaplet example application&quot;</span> <span class="dt">Nothing</span> <span class="op">$</span> <span class="kw">do</span></span></code></pre></div>
 <p>Type of <code>makeSnaplet</code> is really helpful to understand what’s going on at the level of types:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell">makeSnaplet
-<span class="ot">  ::</span> <span class="dt">T.Text</span>                  <span class="co">-- ^ Default ID of the Snaplet, I have no idea where is this used.</span>
-     <span class="ot">-&gt;</span> <span class="dt">T.Text</span>               <span class="co">-- ^ Description of the Snaplet, again, no idea where is this used.</span>
-     <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IO</span> <span class="dt">FilePath</span>)  <span class="co">-- ^ Root folder for Snaplet's filesystem content. In case your Snaplet works on files.</span>
-     <span class="ot">-&gt;</span> <span class="dt">Initializer</span> b v v    <span class="co">-- ^ Initializer for the Snaplet.</span>
-     <span class="ot">-&gt;</span> <span class="dt">SnapletInit</span> b v      <span class="co">-- ^ SnapletInit is an opaque type for internal use. It's needed for embedding our snaplet to other snaplets.</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>makeSnaplet</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a><span class="ot">  ::</span> <span class="dt">T.Text</span>                  <span class="co">-- ^ Default ID of the Snaplet, I have no idea where is this used.</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a>     <span class="ot">-&gt;</span> <span class="dt">T.Text</span>               <span class="co">-- ^ Description of the Snaplet, again, no idea where is this used.</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a>     <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IO</span> <span class="dt">FilePath</span>)  <span class="co">-- ^ Root folder for Snaplet's filesystem content. In case your Snaplet works on files.</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a>     <span class="ot">-&gt;</span> <span class="dt">Initializer</span> b v v    <span class="co">-- ^ Initializer for the Snaplet.</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a>     <span class="ot">-&gt;</span> <span class="dt">SnapletInit</span> b v      <span class="co">-- ^ SnapletInit is an opaque type for internal use. It's needed for embedding our snaplet to other snaplets.</span></span></code></pre></div>
 <p>We’re nesting Heist snaplet provided by <code>Snap.Snaplet.Heist</code> from <code>snap</code> package</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">   h <span class="ot">&lt;-</span> nestSnaplet <span class="st">&quot;&quot;</span> heist <span class="fu">$</span> heistInit <span class="st">&quot;templates&quot;</span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a>   h <span class="ot">&lt;-</span> nestSnaplet <span class="st">&quot;&quot;</span> heist <span class="op">$</span> heistInit <span class="st">&quot;templates&quot;</span></span></code></pre></div>
 <p>self explanatory, see definition below</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">   addRoutes routes
-   <span class="fu">return</span> <span class="fu">$</span> <span class="dt">App</span> h
- <span class="kw">where</span>
-<span class="ot">   routes ::</span> [(<span class="dt">B.ByteString</span>, <span class="dt">Handler</span> <span class="dt">App</span> <span class="dt">App</span> ())]</code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a>   addRoutes routes</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a>   <span class="fu">return</span> <span class="op">$</span> <span class="dt">App</span> h</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true"></a> <span class="kw">where</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true"></a><span class="ot">   routes ::</span> [(<span class="dt">B.ByteString</span>, <span class="dt">Handler</span> <span class="dt">App</span> <span class="dt">App</span> ())]</span></code></pre></div>
 <p>routes are how we handle requests. <code>Handler</code> type takes 3 arguments, but I’m yet to figure out what do these arguments mean. I guess these are same as arguments in <code>SnapletInit</code> type, except the last one is for return values of Handler functions.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">   routes <span class="fu">=</span> [ (<span class="st">&quot;/&quot;</span>, mainHandler) ]</code></pre></div>
-<p><code>mainHandler</code> is our handler function. Thanks to <code>runForm</code> function provided by <code>Text.Digestive.Snap</code>, we don’t need to anything because it handles POST/GET requests and renders form templates depending on request data. <code>heistLocal</code> function is provided by <code>Snap.Snaplet.Heist</code> and runs a handler action(in our case, this is <code>render &quot;user_form&quot;</code>) on a modified Heist state. We’re modifying Heist state by binding our user form splices using <code>bindDigestiveSplices</code> as we did in previous post.</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mainHandler ::</span> <span class="dt">Handler</span> <span class="dt">App</span> <span class="dt">App</span> ()
-mainHandler <span class="fu">=</span> <span class="kw">do</span>
-    (formView, maybeUser) <span class="ot">&lt;-</span> runForm <span class="st">&quot;userform&quot;</span> userForm
-    heistLocal (bindDigestiveSplices formView) <span class="fu">$</span> render <span class="st">&quot;user_form&quot;</span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a>   routes <span class="ot">=</span> [ (<span class="st">&quot;/&quot;</span>, mainHandler) ]</span></code></pre></div>
+<p><code>mainHandler</code> is our handler function. Thanks to <code>runForm</code> function provided by <code>Text.Digestive.Snap</code>, we don’t need to anything because it handles POST/GET requests and renders form templates depending on request data. <code>heistLocal</code> function is provided by <code>Snap.Snaplet.Heist</code> and runs a handler action(in our case, this is <code>render "user_form"</code>) on a modified Heist state. We’re modifying Heist state by binding our user form splices using <code>bindDigestiveSplices</code> as we did in previous post.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="ot">mainHandler ::</span> <span class="dt">Handler</span> <span class="dt">App</span> <span class="dt">App</span> ()</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a>mainHandler <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a>    (formView, maybeUser) <span class="ot">&lt;-</span> runForm <span class="st">&quot;userform&quot;</span> userForm</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true"></a>    heistLocal (bindDigestiveSplices formView) <span class="op">$</span> render <span class="st">&quot;user_form&quot;</span></span></code></pre></div>
 <p>This is some code from previous post.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">User</span> <span class="fu">=</span> <span class="dt">User</span>
-    {<span class="ot"> uUsername ::</span> <span class="dt">T.Text</span>
-    ,<span class="ot"> uEmail    ::</span> <span class="dt">T.Text</span>
-    ,<span class="ot"> uKarma    ::</span> <span class="dt">Int</span>
-    } <span class="kw">deriving</span> (<span class="dt">Show</span>)
-
-
-<span class="ot">userForm ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span>
-userForm <span class="fu">=</span> <span class="dt">User</span>
-    <span class="fu">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="fu">.:</span> text <span class="dt">Nothing</span>
-    <span class="fu">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="fu">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="dt">Nothing</span>)
-    <span class="fu">&lt;*&gt;</span> <span class="fu">pure</span> <span class="dv">0</span>
-  <span class="kw">where</span>
-<span class="ot">    validateEmail ::</span> <span class="dt">T.Text</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
-    validateEmail <span class="fu">=</span> isJust <span class="fu">.</span> T.find (<span class="fu">==</span> <span class="ch">'@'</span>)</code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">User</span> <span class="ot">=</span> <span class="dt">User</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a>    {<span class="ot"> uUsername ::</span> <span class="dt">T.Text</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a>    ,<span class="ot"> uEmail    ::</span> <span class="dt">T.Text</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a>    ,<span class="ot"> uKarma    ::</span> <span class="dt">Int</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a>    } <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a><span class="ot">userForm ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Form</span> <span class="dt">T.Text</span> m <span class="dt">User</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a>userForm <span class="ot">=</span> <span class="dt">User</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a>    <span class="op">&lt;$&gt;</span> <span class="st">&quot;username&quot;</span>  <span class="op">.:</span> text <span class="dt">Nothing</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> <span class="st">&quot;email&quot;</span>     <span class="op">.:</span> check <span class="st">&quot;invalid email&quot;</span> validateEmail (text <span class="dt">Nothing</span>)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> <span class="fu">pure</span> <span class="dv">0</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true"></a><span class="ot">    validateEmail ::</span> <span class="dt">T.Text</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true"></a>    validateEmail <span class="ot">=</span> isJust <span class="op">.</span> T.find (<span class="op">==</span> <span class="ch">'@'</span>)</span></code></pre></div>
 <p>As last thing, we need to copy our template file to <code>snaplets/heist/templates</code>. This is because of the way Snap handles Snaplets. I think what happens is for every Snaplet nested in a Snap application, Snap creates a folder in <code>snaplets/snaplet_name</code> and later when that Snaplet requires some filesystem operations, all paths are handled relative to this directory.</p>
 <p>After that, if you compile and run the application, you can see our form at http://0.0.0.0:8000 and you can test error messages.</p>
 

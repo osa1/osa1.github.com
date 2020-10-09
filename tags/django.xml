@@ -30,7 +30,7 @@
     <published>2010-11-15T00:00:00Z</published>
     <updated>2010-11-15T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Python’da IDE/editor olayı çok sıkıntılı geliyor bana. Aslında bir sürü alternatif var ama hepsi bazı sebeplerden dolayı çok kötü geliyor bana. Örneğin Eclipse/Pydev çok ağır geliyor, sahip olduğu özelliklerinin çoğunu <em>en azından şimdilik</em> kullanmıyorum. NetBeans aynı şekilde, üstelik Python için neredeyse hiçbir şey sağlamıyor. Sadece Aptana Studio işime yarıyor, o da HTML/CSS desteği ile PyDev’i buluşturduğu için, Django’da çok yardımcı oluyor.</p>
-<p>Editor deyince, Gedit, Kate gibi araçlar için bir sürü eklentiler var, fakat emin olabilirsiniz, neredeyse tüm eklentileri denedim, hiçbir türlü işe yarar hale gelmiyorlar.. Aradığım özelliker: syntax renklendirme, otomatik indentation(düzgün çalışacak, return’den sonra diğer bloka geçmeli mesela), açtığım <code>[ ( { &quot;</code> gibi karakterleri nerde kapatığımı görmeliyim, tek tuşla programımı çalıştırabilmeliyim, hatta gerekirse parametreler ekleyip onları başka kısayollara atayabilmeliyim, mümkünse file browser..</p>
+<p>Editor deyince, Gedit, Kate gibi araçlar için bir sürü eklentiler var, fakat emin olabilirsiniz, neredeyse tüm eklentileri denedim, hiçbir türlü işe yarar hale gelmiyorlar.. Aradığım özelliker: syntax renklendirme, otomatik indentation(düzgün çalışacak, return’den sonra diğer bloka geçmeli mesela), açtığım <code>[ ( { "</code> gibi karakterleri nerde kapatığımı görmeliyim, tek tuşla programımı çalıştırabilmeliyim, hatta gerekirse parametreler ekleyip onları başka kısayollara atayabilmeliyim, mümkünse file browser..</p>
 <p>Vim, Emacs gibi araçlar en baştan beri aklımdaydı fakat öğrenmesi/kurulumları çok zaman aldığından bir türlü başlayamıyordum, Emacs öğreneceğim vakitle Common Lisp öğrenmek daha mantıklı geliyor örneğin. Üstelik bu araçlar için tüm detayların olduğu, tek bir tutorial gibi birşey yok. Araştırıp öğrenmek gerekiyor.</p>
 <p>Common Lisp ve Haskell ile ilgilenmeye başlayınca farkettim ki, belki de dünyadaki tüm diller için ortak 2 tane editor var, Vim ve Emacs. Haskell yazacaksınız, IDE/editor arıyorsunuz, ama Eclipse gibi devasa araçlara ihtiyacınız yok, hızlı, pratik bir çözüm arıyorsunuz. 2 alternatifiniz var: Vim ve Emacs. Common Lisp için aynısını isteseniz, bu sefer tek alternatif, Emacs. Ki yeterince öğrendikten sonra Java için bile kullanılabiliyorlar(<em>Java için bile</em> diyorum, çünkü Java’da gerçekten gelişmiş IDE özelliklerinize ihtiyacınız oluyor, yeni başlayan ben bile Eclipse’in özelliklerini kullanıyorum).</p>
 <p>Python’da da basit, hızlı, kullanışlı bir editor ararken <a href="http://www.activestate.com/komodo-edit">Komodo Edit</a>’i keşfettmiştim. Aslında bayaa kullanışlı bir araç, kendi çalıştırma komutlarınızı kolayca tanımlayabilir, çalıştırırkenki çevre değişkenlerinizi belirleyebiliyorsunuz falan. Kullanışlı ve küçük bir araç, ama çok büyük bir sorunu var; çok yavaş. Birkaç yüz satırlık kodda bile rahatlıkla gezinemiyorum, her nedense çok yavaş çalışıyor.</p>
@@ -96,29 +96,29 @@ guid            varchar(100)
 comment_count   int(11)
 post_type       varchar(20)</code></pre>
 <p>Bunu <a href="http://docs.djangoproject.com/en/dev/topics/db/models/">Django ORM</a>’ine şu şekilde çevirdim(tam olarak aynısı olmasa da, eğer sadece yazıları okuyacaksanız gayet güzel çalışıyor, yazı eklemek için denemedim):</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1"><span class="co"># models.py</span></a>
-<a class="sourceLine" id="cb2-2" title="2"><span class="im">from</span> django.db <span class="im">import</span> models</a>
-<a class="sourceLine" id="cb2-3" title="3"><span class="kw">class</span> Posts(models.Model):</a>
-<a class="sourceLine" id="cb2-4" title="4">    post_date <span class="op">=</span> models.DateTimeField()</a>
-<a class="sourceLine" id="cb2-5" title="5">    post_content <span class="op">=</span> models.TextField()</a>
-<a class="sourceLine" id="cb2-6" title="6">    post_title <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">100</span>)</a>
-<a class="sourceLine" id="cb2-7" title="7">    post_content <span class="op">=</span> models.TextField()</a>
-<a class="sourceLine" id="cb2-8" title="8">    post_excerpt <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">100</span>)</a>
-<a class="sourceLine" id="cb2-9" title="9">    post_status <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">20</span>)</a>
-<a class="sourceLine" id="cb2-10" title="10">    guid <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">100</span>)</a>
-<a class="sourceLine" id="cb2-11" title="11">    comment_count <span class="op">=</span> models.IntegerField()</a>
-<a class="sourceLine" id="cb2-12" title="12">    post_type <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">20</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co"># models.py</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="im">from</span> django.db <span class="im">import</span> models</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="kw">class</span> Posts(models.Model):</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    post_date <span class="op">=</span> models.DateTimeField()</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>    post_content <span class="op">=</span> models.TextField()</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>    post_title <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">100</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>    post_content <span class="op">=</span> models.TextField()</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>    post_excerpt <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">100</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>    post_status <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>    guid <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">100</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>    comment_count <span class="op">=</span> models.IntegerField()</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>    post_type <span class="op">=</span> models.CharField(max_length<span class="op">=</span><span class="dv">20</span>)</span></code></pre></div>
 <p>Daha sonra views.py dosyamdan şu şekilde çekiyorum:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb3-1" title="1"><span class="im">from</span> wp.models <span class="im">import</span> Posts</a>
-<a class="sourceLine" id="cb3-2" title="2"><span class="kw">def</span> wp():</a>
-<a class="sourceLine" id="cb3-3" title="3">    <span class="cf">return</span> [post <span class="cf">for</span> post <span class="kw">in</span> Posts.objects.order_by(<span class="st">&quot;-post_date&quot;</span>) <span class="cf">if</span> post.post_type <span class="op">==</span> <span class="st">&quot;post&quot;</span> <span class="kw">and</span> post.post_status <span class="op">==</span> <span class="st">&quot;publish&quot;</span>]</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="im">from</span> wp.models <span class="im">import</span> Posts</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">def</span> wp():</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    <span class="cf">return</span> [post <span class="cf">for</span> post <span class="kw">in</span> Posts.objects.order_by(<span class="st">&quot;-post_date&quot;</span>) <span class="cf">if</span> post.post_type <span class="op">==</span> <span class="st">&quot;post&quot;</span> <span class="kw">and</span> post.post_status <span class="op">==</span> <span class="st">&quot;publish&quot;</span>]</span></code></pre></div>
 <p>Bundan sonrası normal Django işlemleri. wp() fonksiyonunu istediğim sayfaya gönderdikten sonra(render_to_response ile mesela) aşağıdaki template kodları ile wordpress yazılarıma ait verileri çekiyorum:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb4-1" title="1">{<span class="op">%</span> <span class="cf">for</span> yazi <span class="kw">in</span> wp <span class="op">%</span>}</a>
-<a class="sourceLine" id="cb4-2" title="2">        {{ yazi.post_title }} <span class="op">*</span>baslik<span class="op">*</span></a>
-<a class="sourceLine" id="cb4-3" title="3">        {{ yazi.post_date }} <span class="op">*</span>tarih<span class="op">*</span></a>
-<a class="sourceLine" id="cb4-4" title="4">        {{ yazi.post_content }} <span class="op">*</span>icerik<span class="op">*</span></a>
-<a class="sourceLine" id="cb4-5" title="5">        {{ yazi.coment_count }} <span class="op">*</span>yorum sayisi<span class="op">*</span></a>
-<a class="sourceLine" id="cb4-6" title="6">{<span class="op">%</span> endfor <span class="op">%</span>}</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>{<span class="op">%</span> <span class="cf">for</span> yazi <span class="kw">in</span> wp <span class="op">%</span>}</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>        {{ yazi.post_title }} <span class="op">*</span>baslik<span class="op">*</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>        {{ yazi.post_date }} <span class="op">*</span>tarih<span class="op">*</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>        {{ yazi.post_content }} <span class="op">*</span>icerik<span class="op">*</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>        {{ yazi.coment_count }} <span class="op">*</span>yorum sayisi<span class="op">*</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>{<span class="op">%</span> endfor <span class="op">%</span>}</span></code></pre></div>
 <p>Tabii bunları çekerken bazı <a href="http://docs.djangoproject.com/en/dev/ref/templates/builtins/#built-in-filter-reference">builtin template tag</a>lardan yararlanıyorum. Bu arada, Django, 1.2 sürümüyle beraber artık birden fazla veritabanına bağlanabiliyor, wordpress yazılarınızı çekmek istiyorsanız bunu kullanabilirsiniz(ben aynı veritabanını kullanıyorum.</p>]]></summary>
 </entry>
 <entry>
@@ -130,39 +130,39 @@ post_type       varchar(20)</code></pre>
     <summary type="html"><![CDATA[<p>Daha önceden <a href="http://test.osa1.net/djangoya-markdown-destegi/">burada</a> Django’ya <a href="http://daringfireball.net/projects/markdown/">Markdown</a> desteği eklenmesinden bahsetmiştim(Django’nun Markdown eklentisi olduğunu farkettim çok sonradan). Bu sefer de syntax renklendirme için <a href="http://pygments.org/">Pygments</a> desteği ekledim. Pygments’den önce <a href="http://code.google.com/p/syntaxhighlighter/">syntaxhighlighter</a> kullanıyordum benim amacım için biraz fazla gelişmiş ve kompleks kaçıyordu.</p>
 <p>Öncelikle django’ya pygments desteği için 2 tane çok iyi kaynak var(<a href="http://www.saltycrane.com/blog/2008/08/django-blog-project-12-adding-pygments-syntax-highlighting/">1</a>, <a href="http://djangosnippets.org/snippets/360/">2</a>), fakat bu kaynaklardaki yöntemlerden ilki, veritabanına gerekli html tagları eklenmiş bir şekilde yazıyor, dolayısıyla bir daha düzenlemek istediğinizde kodunuz okunmaz bir halde oluyor. Benim yapmak istediğim şey, daha önceden markdown için de yaptığım gibi, bir <a href="http://docs.djangoproject.com/en/dev/howto/custom-template-tags/">template filter</a> oluşturup istediğim yerde kullanabilmek. Hem bu şekilde daha esnek olabilirim. İkinci yöntem ise, açıkçası ne yaptığını anlamaya çalışmadım, markdown ve pygments’i beraber uyguluyor. Bu da benim istediğim şey değil. Benim amacım, istediğim yere markdown, istediğim yere pygments, istediğim yere de ikisini beraber uygulamak.</p>
 <p>Bunun için verdiğim ilk kaynaktaki kodu kullandım aslında. Tek farkı, sonucu veritabanına yazdırmak yerine, fonksiyonu template filter haline getirdim.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" title="1"><span class="co"># pygmentsf.py</span></a>
-<a class="sourceLine" id="cb1-2" title="2"><span class="im">from</span> django <span class="im">import</span> template</a>
-<a class="sourceLine" id="cb1-3" title="3"><span class="im">from</span> BeautifulSoup.BeautifulSoup <span class="im">import</span> BeautifulSoup <span class="co">#saka gibi</span></a>
-<a class="sourceLine" id="cb1-4" title="4"><span class="im">from</span> pygments <span class="im">import</span> lexers, highlight, formatters</a>
-<a class="sourceLine" id="cb1-5" title="5"><span class="im">from</span> django.template.defaultfilters <span class="im">import</span> stringfilter</a>
-<a class="sourceLine" id="cb1-6" title="6">register <span class="op">=</span> template.Library()</a>
-<a class="sourceLine" id="cb1-7" title="7"><span class="at">@register.filter</span></a>
-<a class="sourceLine" id="cb1-8" title="8"><span class="at">@stringfilter</span></a>
-<a class="sourceLine" id="cb1-9" title="9"><span class="kw">def</span> pygmentsf(html):</a>
-<a class="sourceLine" id="cb1-10" title="10">    <span class="co">&quot;String&#39;i Pygments&#39;den gecirir. BeautifulSoup ile pre taglarini ayristirir.&quot;</span></a>
-<a class="sourceLine" id="cb1-11" title="11">    soup <span class="op">=</span> BeautifulSoup(html)</a>
-<a class="sourceLine" id="cb1-12" title="12">    preblocks <span class="op">=</span> soup.findAll(<span class="st">&#39;pre&#39;</span>)</a>
-<a class="sourceLine" id="cb1-13" title="13">    <span class="cf">for</span> pre <span class="kw">in</span> preblocks:</a>
-<a class="sourceLine" id="cb1-14" title="14">        <span class="cf">if</span> pre.has_key(<span class="st">&#39;class&#39;</span>):</a>
-<a class="sourceLine" id="cb1-15" title="15">            <span class="cf">try</span>:</a>
-<a class="sourceLine" id="cb1-16" title="16">                code <span class="op">=</span> <span class="st">&#39;&#39;</span>.join([<span class="bu">unicode</span>(item) <span class="cf">for</span> item <span class="kw">in</span> pre.contents])</a>
-<a class="sourceLine" id="cb1-17" title="17">                code <span class="op">=</span> unescape_html(code)</a>
-<a class="sourceLine" id="cb1-18" title="18">                preclass <span class="op">=</span> pre[<span class="st">&#39;class&#39;</span>]</a>
-<a class="sourceLine" id="cb1-19" title="19">                <span class="co"># syntaxhighlighter icin yazilmis kodlar icin</span></a>
-<a class="sourceLine" id="cb1-20" title="20">                <span class="cf">if</span> preclass <span class="op">==</span> <span class="st">&#39;brush: python&#39;</span> <span class="kw">or</span> preclass <span class="op">==</span> <span class="st">&#39;brush; python&#39;</span>:</a>
-<a class="sourceLine" id="cb1-21" title="21">                    preclass <span class="op">=</span> <span class="st">&#39;python&#39;</span></a>
-<a class="sourceLine" id="cb1-22" title="22">                lexer <span class="op">=</span> lexers.get_lexer_by_name(preclass)</a>
-<a class="sourceLine" id="cb1-23" title="23">                formatter <span class="op">=</span> formatters.HtmlFormatter()</a>
-<a class="sourceLine" id="cb1-24" title="24">                code_hl <span class="op">=</span> highlight(code, lexer, formatter)</a>
-<a class="sourceLine" id="cb1-25" title="25">                pre.replaceWith(BeautifulSoup(code_hl))</a>
-<a class="sourceLine" id="cb1-26" title="26">            <span class="cf">except</span>:</a>
-<a class="sourceLine" id="cb1-27" title="27">                <span class="cf">pass</span></a>
-<a class="sourceLine" id="cb1-28" title="28">    <span class="cf">return</span> <span class="bu">unicode</span>(soup)</a>
-<a class="sourceLine" id="cb1-29" title="29"><span class="kw">def</span> unescape_html(html):</a>
-<a class="sourceLine" id="cb1-30" title="30">    html <span class="op">=</span> html.replace(<span class="st">&#39;&amp;lt;&#39;</span>, <span class="st">&#39;&lt;&#39;</span>)</a>
-<a class="sourceLine" id="cb1-31" title="31">    html <span class="op">=</span> html.replace(<span class="st">&#39;&amp;gt;&#39;</span>, <span class="st">&#39;&gt;&#39;</span>)</a>
-<a class="sourceLine" id="cb1-32" title="32">    html <span class="op">=</span> html.replace(<span class="st">&#39;&amp;amp;&#39;</span>, <span class="st">&#39;&amp;&#39;</span>)</a>
-<a class="sourceLine" id="cb1-33" title="33">    <span class="cf">return</span> html</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="co"># pygmentsf.py</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="im">from</span> django <span class="im">import</span> template</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="im">from</span> BeautifulSoup.BeautifulSoup <span class="im">import</span> BeautifulSoup <span class="co">#saka gibi</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="im">from</span> pygments <span class="im">import</span> lexers, highlight, formatters</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="im">from</span> django.template.defaultfilters <span class="im">import</span> stringfilter</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>register <span class="op">=</span> template.Library()</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="at">@register.filter</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="at">@stringfilter</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a><span class="kw">def</span> pygmentsf(html):</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>    <span class="co">&quot;String&#39;i Pygments&#39;den gecirir. BeautifulSoup ile pre taglarini ayristirir.&quot;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>    soup <span class="op">=</span> BeautifulSoup(html)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>    preblocks <span class="op">=</span> soup.findAll(<span class="st">&#39;pre&#39;</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>    <span class="cf">for</span> pre <span class="kw">in</span> preblocks:</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>        <span class="cf">if</span> pre.has_key(<span class="st">&#39;class&#39;</span>):</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>            <span class="cf">try</span>:</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>                code <span class="op">=</span> <span class="st">&#39;&#39;</span>.join([<span class="bu">unicode</span>(item) <span class="cf">for</span> item <span class="kw">in</span> pre.contents])</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>                code <span class="op">=</span> unescape_html(code)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a>                preclass <span class="op">=</span> pre[<span class="st">&#39;class&#39;</span>]</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>                <span class="co"># syntaxhighlighter icin yazilmis kodlar icin</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>                <span class="cf">if</span> preclass <span class="op">==</span> <span class="st">&#39;brush: python&#39;</span> <span class="kw">or</span> preclass <span class="op">==</span> <span class="st">&#39;brush; python&#39;</span>:</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>                    preclass <span class="op">=</span> <span class="st">&#39;python&#39;</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>                lexer <span class="op">=</span> lexers.get_lexer_by_name(preclass)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>                formatter <span class="op">=</span> formatters.HtmlFormatter()</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>                code_hl <span class="op">=</span> highlight(code, lexer, formatter)</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>                pre.replaceWith(BeautifulSoup(code_hl))</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a>            <span class="cf">except</span>:</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>                <span class="cf">pass</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a>    <span class="cf">return</span> <span class="bu">unicode</span>(soup)</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a><span class="kw">def</span> unescape_html(html):</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a>    html <span class="op">=</span> html.replace(<span class="st">&#39;&amp;lt;&#39;</span>, <span class="st">&#39;&lt;&#39;</span>)</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a>    html <span class="op">=</span> html.replace(<span class="st">&#39;&amp;gt;&#39;</span>, <span class="st">&#39;&gt;&#39;</span>)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a>    html <span class="op">=</span> html.replace(<span class="st">&#39;&amp;amp;&#39;</span>, <span class="st">&#39;&amp;&#39;</span>)</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a>    <span class="cf">return</span> html</span></code></pre></div>
 <p>Ayrıca küçük bir düzenlemeyle daha önceden syntaxhighlighter için yazdığım yazılarla da uyumlu olmasını sağladım. Bu dosyayı uygulamanız altında eğer templatetags klasörüne attıktan sonra template dosyanızdan <code>{% load pygmentsf %}</code> dedikten sonra, istediğiniz değişkene uygulayabilirsiniz. <code>{{ blog.body|pygmentsf|safe|escape }}</code> gibi. Ya da isterseniz markdown yazımdaki template filter ile beraber <code>{{ blog.body|markdown|pygmentsf|safe|escape }}</code> şeklinde kullanabilirsiniz.</p>
 <p>Unutmadan, HTML’i ayrıştırmak için <a href="http://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> kullanılıyor. Mükemmel bir kütüphane.</p>
 <div class="alert">
@@ -176,63 +176,63 @@ Eğer <a href="http://osa1.net/djangoya-markdown-destegi/">markdown</a> ile bera
     <published>2010-08-15T00:00:00Z</published>
     <updated>2010-08-15T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>Python ile Django’dan sonra pygame’e el attım biraz. Daha yeni başladım ve henüz pygame’in özelliklerinin çok azından yararlanarak birşeyler yapabiliyorum. Aşağıdaki kod ilk yazdığım basit bir çarpışma şeyi(neyi ben de bilmiyorum). İstediğiniz büyüklükte ekrana istediğiniz kadar top ekleyip onları rastgele hızlarda bir yerlere yolluyor ve çarpıştırıyor.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" title="1"><span class="im">import</span> pygame, random, math</a>
-<a class="sourceLine" id="cb1-2" title="2">screenx, screeny <span class="op">=</span> <span class="dv">500</span>, <span class="dv">500</span> <span class="co">#ekran buyuklugu</span></a>
-<a class="sourceLine" id="cb1-3" title="3"><span class="kw">class</span> Ball:</a>
-<a class="sourceLine" id="cb1-4" title="4">    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, surface):</a>
-<a class="sourceLine" id="cb1-5" title="5">        <span class="va">self</span>.surface <span class="op">=</span> surface</a>
-<a class="sourceLine" id="cb1-6" title="6">        <span class="va">self</span>.radius <span class="op">=</span> <span class="dv">10</span></a>
-<a class="sourceLine" id="cb1-7" title="7">        <span class="va">self</span>.color <span class="op">=</span> (<span class="dv">255</span>, <span class="dv">255</span>, <span class="dv">255</span>)</a>
-<a class="sourceLine" id="cb1-8" title="8">        <span class="va">self</span>.x <span class="op">=</span> random.randint(<span class="dv">0</span><span class="op">+</span><span class="va">self</span>.radius, screenx<span class="op">-</span><span class="va">self</span>.radius)</a>
-<a class="sourceLine" id="cb1-9" title="9">        <span class="va">self</span>.y <span class="op">=</span> random.randint(<span class="dv">0</span><span class="op">+</span><span class="va">self</span>.radius, screeny<span class="op">-</span><span class="va">self</span>.radius)</a>
-<a class="sourceLine" id="cb1-10" title="10">        <span class="va">self</span>.vx <span class="op">=</span> random.randint(<span class="dv">1</span>, <span class="dv">10</span>)</a>
-<a class="sourceLine" id="cb1-11" title="11">        <span class="va">self</span>.vy <span class="op">=</span> random.randint(<span class="dv">1</span>, <span class="dv">10</span>)</a>
-<a class="sourceLine" id="cb1-12" title="12">        </a>
-<a class="sourceLine" id="cb1-13" title="13">    <span class="kw">def</span> move(<span class="va">self</span>, time_passed):</a>
-<a class="sourceLine" id="cb1-14" title="14">        <span class="cf">if</span> <span class="va">self</span>.x <span class="op">&gt;=</span> screenx<span class="op">-</span><span class="va">self</span>.radius <span class="kw">or</span> <span class="va">self</span>.x <span class="op">&lt;=</span> <span class="va">self</span>.radius:</a>
-<a class="sourceLine" id="cb1-15" title="15">            <span class="va">self</span>.vx <span class="op">*=</span> <span class="dv">-1</span></a>
-<a class="sourceLine" id="cb1-16" title="16">        <span class="cf">if</span> <span class="va">self</span>.y <span class="op">&gt;=</span> screeny<span class="op">-</span><span class="va">self</span>.radius <span class="kw">or</span> <span class="va">self</span>.y <span class="op">&lt;=</span> <span class="va">self</span>.radius:</a>
-<a class="sourceLine" id="cb1-17" title="17">            <span class="va">self</span>.vy <span class="op">*=</span> <span class="dv">-1</span></a>
-<a class="sourceLine" id="cb1-18" title="18">        <span class="va">self</span>.x <span class="op">+=</span> <span class="va">self</span>.vx <span class="op">*</span> time_passed</a>
-<a class="sourceLine" id="cb1-19" title="19">        <span class="va">self</span>.y <span class="op">+=</span> <span class="va">self</span>.vy <span class="op">*</span> time_passed</a>
-<a class="sourceLine" id="cb1-20" title="20">        </a>
-<a class="sourceLine" id="cb1-21" title="21">    <span class="kw">def</span> draw(<span class="va">self</span>):</a>
-<a class="sourceLine" id="cb1-22" title="22">        pygame.draw.circle(<span class="va">self</span>.surface, <span class="va">self</span>.color, (<span class="va">self</span>.x, <span class="va">self</span>.y),</a>
-<a class="sourceLine" id="cb1-23" title="23">                           <span class="va">self</span>.radius)</a>
-<a class="sourceLine" id="cb1-24" title="24">pygame.init()</a>
-<a class="sourceLine" id="cb1-25" title="25">clock <span class="op">=</span> pygame.time.Clock()</a>
-<a class="sourceLine" id="cb1-26" title="26">screen <span class="op">=</span> pygame.display.set_mode((screenx, screeny), <span class="dv">0</span>, <span class="dv">32</span>)</a>
-<a class="sourceLine" id="cb1-27" title="27">running <span class="op">=</span> <span class="va">True</span></a>
-<a class="sourceLine" id="cb1-28" title="28">balls <span class="op">=</span> []</a>
-<a class="sourceLine" id="cb1-29" title="29"><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">21</span>): <span class="co">#top sayisi</span></a>
-<a class="sourceLine" id="cb1-30" title="30">    balls.append(Ball(screen))</a>
-<a class="sourceLine" id="cb1-31" title="31"><span class="kw">def</span> CollisionDetect(b1):</a>
-<a class="sourceLine" id="cb1-32" title="32">    <span class="cf">for</span> b2 <span class="kw">in</span> balls:</a>
-<a class="sourceLine" id="cb1-33" title="33">        <span class="cf">if</span> b1 <span class="kw">is</span> <span class="kw">not</span> b2:</a>
-<a class="sourceLine" id="cb1-34" title="34">            <span class="bu">range</span> <span class="op">=</span> math.sqrt((b1.x <span class="op">-</span> b2.x)<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> (b1.y <span class="op">-</span> b2.y)<span class="op">**</span><span class="dv">2</span>)</a>
-<a class="sourceLine" id="cb1-35" title="35">            <span class="cf">if</span> <span class="bu">range</span> <span class="op">&lt;</span> (b1.radius <span class="op">+</span> b2.radius):</a>
-<a class="sourceLine" id="cb1-36" title="36">                b1.vx, b2.vx <span class="op">=</span> b2.vx, b1.vx</a>
-<a class="sourceLine" id="cb1-37" title="37">                b1.vy, b2.vy <span class="op">=</span> b2.vy, b1.vy</a>
-<a class="sourceLine" id="cb1-38" title="38">                <span class="co">#b1.move(); b2.move()</span></a>
-<a class="sourceLine" id="cb1-39" title="39"><span class="cf">while</span> running:</a>
-<a class="sourceLine" id="cb1-40" title="40">    <span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():</a>
-<a class="sourceLine" id="cb1-41" title="41">        <span class="co">#print event</span></a>
-<a class="sourceLine" id="cb1-42" title="42">        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.QUIT:</a>
-<a class="sourceLine" id="cb1-43" title="43">            running <span class="op">=</span> <span class="va">False</span></a>
-<a class="sourceLine" id="cb1-44" title="44">    </a>
-<a class="sourceLine" id="cb1-45" title="45">    time_passed <span class="op">=</span> clock.tick(<span class="dv">50</span>)</a>
-<a class="sourceLine" id="cb1-46" title="46">    screen.fill((<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>))</a>
-<a class="sourceLine" id="cb1-47" title="47">    <span class="cf">for</span> b <span class="kw">in</span> balls:</a>
-<a class="sourceLine" id="cb1-48" title="48">        b.draw()</a>
-<a class="sourceLine" id="cb1-49" title="49">        CollisionDetect(b)</a>
-<a class="sourceLine" id="cb1-50" title="50">        b.move(time_passed)</a>
-<a class="sourceLine" id="cb1-51" title="51">    </a>
-<a class="sourceLine" id="cb1-52" title="52">    pygame.display.flip()</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="im">import</span> pygame, random, math</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>screenx, screeny <span class="op">=</span> <span class="dv">500</span>, <span class="dv">500</span> <span class="co">#ekran buyuklugu</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="kw">class</span> Ball:</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, surface):</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>        <span class="va">self</span>.surface <span class="op">=</span> surface</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>        <span class="va">self</span>.radius <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>        <span class="va">self</span>.color <span class="op">=</span> (<span class="dv">255</span>, <span class="dv">255</span>, <span class="dv">255</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>        <span class="va">self</span>.x <span class="op">=</span> random.randint(<span class="dv">0</span><span class="op">+</span><span class="va">self</span>.radius, screenx<span class="op">-</span><span class="va">self</span>.radius)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>        <span class="va">self</span>.y <span class="op">=</span> random.randint(<span class="dv">0</span><span class="op">+</span><span class="va">self</span>.radius, screeny<span class="op">-</span><span class="va">self</span>.radius)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>        <span class="va">self</span>.vx <span class="op">=</span> random.randint(<span class="dv">1</span>, <span class="dv">10</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>        <span class="va">self</span>.vy <span class="op">=</span> random.randint(<span class="dv">1</span>, <span class="dv">10</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>        </span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>    <span class="kw">def</span> move(<span class="va">self</span>, time_passed):</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>        <span class="cf">if</span> <span class="va">self</span>.x <span class="op">&gt;=</span> screenx<span class="op">-</span><span class="va">self</span>.radius <span class="kw">or</span> <span class="va">self</span>.x <span class="op">&lt;=</span> <span class="va">self</span>.radius:</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>            <span class="va">self</span>.vx <span class="op">*=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>        <span class="cf">if</span> <span class="va">self</span>.y <span class="op">&gt;=</span> screeny<span class="op">-</span><span class="va">self</span>.radius <span class="kw">or</span> <span class="va">self</span>.y <span class="op">&lt;=</span> <span class="va">self</span>.radius:</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>            <span class="va">self</span>.vy <span class="op">*=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a>        <span class="va">self</span>.x <span class="op">+=</span> <span class="va">self</span>.vx <span class="op">*</span> time_passed</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>        <span class="va">self</span>.y <span class="op">+=</span> <span class="va">self</span>.vy <span class="op">*</span> time_passed</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>        </span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>    <span class="kw">def</span> draw(<span class="va">self</span>):</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>        pygame.draw.circle(<span class="va">self</span>.surface, <span class="va">self</span>.color, (<span class="va">self</span>.x, <span class="va">self</span>.y),</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>                           <span class="va">self</span>.radius)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>pygame.init()</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>clock <span class="op">=</span> pygame.time.Clock()</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a>screen <span class="op">=</span> pygame.display.set_mode((screenx, screeny), <span class="dv">0</span>, <span class="dv">32</span>)</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>running <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a>balls <span class="op">=</span> []</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">21</span>): <span class="co">#top sayisi</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a>    balls.append(Ball(screen))</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a><span class="kw">def</span> CollisionDetect(b1):</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a>    <span class="cf">for</span> b2 <span class="kw">in</span> balls:</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a>        <span class="cf">if</span> b1 <span class="kw">is</span> <span class="kw">not</span> b2:</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true"></a>            <span class="bu">range</span> <span class="op">=</span> math.sqrt((b1.x <span class="op">-</span> b2.x)<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> (b1.y <span class="op">-</span> b2.y)<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true"></a>            <span class="cf">if</span> <span class="bu">range</span> <span class="op">&lt;</span> (b1.radius <span class="op">+</span> b2.radius):</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true"></a>                b1.vx, b2.vx <span class="op">=</span> b2.vx, b1.vx</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true"></a>                b1.vy, b2.vy <span class="op">=</span> b2.vy, b1.vy</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true"></a>                <span class="co">#b1.move(); b2.move()</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true"></a><span class="cf">while</span> running:</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true"></a>    <span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true"></a>        <span class="co">#print event</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true"></a>        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.QUIT:</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true"></a>            running <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true"></a>    </span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true"></a>    time_passed <span class="op">=</span> clock.tick(<span class="dv">50</span>)</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true"></a>    screen.fill((<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>))</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true"></a>    <span class="cf">for</span> b <span class="kw">in</span> balls:</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true"></a>        b.draw()</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true"></a>        CollisionDetect(b)</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true"></a>        b.move(time_passed)</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true"></a>    </span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true"></a>    pygame.display.flip()</span></code></pre></div>
 <p>Onun dışında kendime bir okunacaklar listesi hazırladım, ilk fırsatta okuyacaklarım:</p>
 <ul>
-<li><a href="http://www.pygame.org/docs/tut/MoveIt.html" class="uri">http://www.pygame.org/docs/tut/MoveIt.html</a></li>
-<li><a href="http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/" class="uri">http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/</a></li>
-<li><a href="http://ezide.com/games/writing-games.html" class="uri">http://ezide.com/games/writing-games.html</a></li>
+<li><a href="http://www.pygame.org/docs/tut/MoveIt.html">http://www.pygame.org/docs/tut/MoveIt.html</a></li>
+<li><a href="http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/">http://eli.thegreenplace.net/2008/12/13/writing-a-game-in-python-with-pygame-part-i/</a></li>
+<li><a href="http://ezide.com/games/writing-games.html">http://ezide.com/games/writing-games.html</a></li>
 <li><a href="http://stackoverflow.com/questions/739654/understanding-python-decorators">StackOverflow - Understanding Python Decorators</a></li>
 <li><a href="http://stackoverflow.com/questions/231767/the-python-yield-keyword-explained">StackOverflow - Python yield Keyword</a></li>
 </ul>]]></summary>
@@ -247,30 +247,30 @@ Eğer <a href="http://osa1.net/djangoya-markdown-destegi/">markdown</a> ile bera
 <blockquote>
 <p>Markdown is a text-to-HTML conversion tool for web writers. Markdown allows you to write using an easy-to-read, easy-to-write plain text format, then convert it to structurally valid XHTML (or HTML).</p>
 </blockquote>
-<p>Python modülünü <a href="http://pypi.python.org/pypi/Markdown/2.0.3" class="uri">http://pypi.python.org/pypi/Markdown/2.0.3</a> adresinden indirebilirsiniz.</p>
+<p>Python modülünü <a href="http://pypi.python.org/pypi/Markdown/2.0.3">http://pypi.python.org/pypi/Markdown/2.0.3</a> adresinden indirebilirsiniz.</p>
 <p>Henüz isteğim doğrultusunda nasıl geliştirebileceğimi bulamasam da ilk haliyle bile çok yardımcı oluyor. Django’yla kullanmak için iki farklı yol izleyebilirsiniz. Birincisi, hangi modelinizde uygulamak istiyorsanız, onun save metodunu override edersiniz. Örneğin modelimdeki “post” alanına uygulamak istiyorsam, markdown modülünü import ettikten sonra şöyle yapıyorum:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">def</span> save(<span class="va">self</span>, <span class="op">*</span>args, <span class="op">**</span>kargs):</a>
-<a class="sourceLine" id="cb1-2" title="2">    <span class="va">self</span>.post <span class="op">=</span> markdown.markdown(<span class="va">self</span>.post)</a>
-<a class="sourceLine" id="cb1-3" title="3">    <span class="bu">super</span>(Post, <span class="va">self</span>).save()</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">def</span> save(<span class="va">self</span>, <span class="op">*</span>args, <span class="op">**</span>kargs):</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    <span class="va">self</span>.post <span class="op">=</span> markdown.markdown(<span class="va">self</span>.post)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>    <span class="bu">super</span>(Post, <span class="va">self</span>).save()</span></code></pre></div>
 <p>Bu yöntemin kötü yanı, eğer o yazıyı bir daha düzenlemek isterseniz, size markdown’ın eklediği html taglarıyla beraber gelecek. Yani yazıyı bir kere eklediniz mi, düzenlemek için yine html ile uğraşmanız gerekir. Kötü bir yöntem yani.</p>
 <p>İkinci yöntem de, markdown fonksiyonu için bir template tag’ı oluşturup, istediğiniz yere uygulamanız. Bu yöntem her yönden çok daha mantıklı gözüküyor, hem istediğiniz şeye uygulayabilirsiniz. Bunun için markdown’u proje klasörüne kopyaladıktan sonra ayar dosyanızdan markdown’u ISTALLED_APPS altında eklemeniz gerekiyor. Daha sonra <a href="http://docs.djangoproject.com/en/dev/howto/custom-template-tags/">şu belgedeki</a> adımları izlemelisiniz. Ya da:</p>
 <ul>
 <li>markdown klasörünün altında templatetags klasörü oluşturursunuz.</li>
 <li>markdown.py diye bir dosya açarsınız. İçine şu kodu yapıştırırsınız:</li>
 </ul>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1">    <span class="im">from</span> django <span class="im">import</span> template</a>
-<a class="sourceLine" id="cb2-2" title="2">    <span class="im">from</span> ..markdown <span class="im">import</span> markdown <span class="im">as</span> Markdown</a>
-<a class="sourceLine" id="cb2-3" title="3">    <span class="im">from</span> django.template.defaultfilters <span class="im">import</span> stringfilter</a>
-<a class="sourceLine" id="cb2-4" title="4">    register <span class="op">=</span> template.Library()</a>
-<a class="sourceLine" id="cb2-5" title="5">    <span class="at">@register.filter</span> <span class="co"># detayli bilgi icin http://docs.djangoproject.com/en/dev/howto/custom-template-tags/</span></a>
-<a class="sourceLine" id="cb2-6" title="6">    <span class="at">@stringfilter</span> <span class="co"># sadece stringlerle calissin</span></a>
-<a class="sourceLine" id="cb2-7" title="7">    <span class="kw">def</span> markdown(value):</a>
-<a class="sourceLine" id="cb2-8" title="8">        <span class="co">&quot;String&#39;i Markdown&#39;dan gecirir.&quot;</span></a>
-<a class="sourceLine" id="cb2-9" title="9">        <span class="cf">return</span> Markdown(value)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>    <span class="im">from</span> django <span class="im">import</span> template</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>    <span class="im">from</span> ..markdown <span class="im">import</span> markdown <span class="im">as</span> Markdown</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>    <span class="im">from</span> django.template.defaultfilters <span class="im">import</span> stringfilter</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    register <span class="op">=</span> template.Library()</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>    <span class="at">@register.filter</span> <span class="co"># detayli bilgi icin http://docs.djangoproject.com/en/dev/howto/custom-template-tags/</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>    <span class="at">@stringfilter</span> <span class="co"># sadece stringlerle calissin</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>    <span class="kw">def</span> markdown(value):</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>        <span class="co">&quot;String&#39;i Markdown&#39;dan gecirir.&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>        <span class="cf">return</span> Markdown(value)</span></code></pre></div>
 <ul>
 <li>Daha sonra template tagımızı kullanmak istediğimiz templateimize <code>{% load markdown %}</code> satırını ekleyip, hangi string’de kullanmak istiyorsak ona markdown filter’ını uygularsınız. Örneğin <code>{{ post|markdown|safe|escape }}</code>.</li>
 </ul>
-<p>Daha sonra <a href="http://daringfireball.net/projects/markdown/syntax" class="uri">http://daringfireball.net/projects/markdown/syntax</a> adresindeki gibi yazarsınız. Eklenti desteği sayesinden markdown’a tablo bile çizdirebilirsiniz(eklenti klasörüne bakın).</p>]]></summary>
+<p>Daha sonra <a href="http://daringfireball.net/projects/markdown/syntax">http://daringfireball.net/projects/markdown/syntax</a> adresindeki gibi yazarsınız. Eklenti desteği sayesinden markdown’a tablo bile çizdirebilirsiniz(eklenti klasörüne bakın).</p>]]></summary>
 </entry>
 <entry>
     <title>Python yapılacaklar listem</title>

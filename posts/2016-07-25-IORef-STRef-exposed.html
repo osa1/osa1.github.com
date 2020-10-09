@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">IORef and STRef under the hood</h1>
 
-<p><strong>July 25, 2016</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>.</p>
+<p><strong>July 25, 2016</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>.</p>
 
 <p>In this post we’ll take a look at internals of GHC’s mutable variables, and how they’re used by <a href="http://hackage.haskell.org/package/base-4.9.0.0/docs/Data-IORef.html"><code>IORef</code></a> and <a href="http://hackage.haskell.org/package/base-4.9.0.0/docs/Data-STRef.html"><code>STRef</code></a>. The code is copied from GHC, with minor changes for clarity.</p>
 <hr />
@@ -31,33 +31,33 @@ newtype IORef a
         -- Defined in ‘GHC.IORef’
 instance Eq (IORef a) -- Defined in ‘GHC.IORef’</code></pre>
 <p><code>GHC.IORef</code> is defined in <code>libraries/base/GHC/IORef.hs</code>:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A mutable variable in the 'IO' monad</span>
-<span class="kw">newtype</span> <span class="dt">IORef</span> a <span class="fu">=</span> <span class="dt">IORef</span> (<span class="dt">STRef</span> <span class="dt">RealWorld</span> a)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co">-- | A mutable variable in the 'IO' monad</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="kw">newtype</span> <span class="dt">IORef</span> a <span class="ot">=</span> <span class="dt">IORef</span> (<span class="dt">STRef</span> <span class="dt">RealWorld</span> a)</span></code></pre></div>
 <p>We’ll look at 3 operations: read, write, and atomic modify.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Read the value of an 'IORef'</span>
-<span class="ot">readIORef   ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
-readIORef  (<span class="dt">IORef</span> var) <span class="fu">=</span> stToIO (readSTRef var)
-
-<span class="co">-- | Write a new value into an 'IORef'</span>
-<span class="ot">writeIORef  ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-writeIORef (<span class="dt">IORef</span> var) v <span class="fu">=</span> stToIO (writeSTRef var v)
-
-<span class="ot">atomicModifyIORef ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> (a,b)) <span class="ot">-&gt;</span> <span class="dt">IO</span> b
-atomicModifyIORef (<span class="dt">IORef</span> (<span class="dt">STRef</span> r<span class="fu">#</span>)) f <span class="fu">=</span> <span class="dt">IO</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> atomicModifyMutVar<span class="fu">#</span> r<span class="fu">#</span> f s</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="co">-- | Read the value of an 'IORef'</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="ot">readIORef   ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>readIORef  (<span class="dt">IORef</span> var) <span class="ot">=</span> stToIO (readSTRef var)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="co">-- | Write a new value into an 'IORef'</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="ot">writeIORef  ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>writeIORef (<span class="dt">IORef</span> var) v <span class="ot">=</span> stToIO (writeSTRef var v)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="ot">atomicModifyIORef ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> (a,b)) <span class="ot">-&gt;</span> <span class="dt">IO</span> b</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>atomicModifyIORef (<span class="dt">IORef</span> (<span class="dt">STRef</span> r<span class="op">#</span>)) f <span class="ot">=</span> <span class="dt">IO</span> <span class="op">$</span> \s <span class="ot">-&gt;</span> atomicModifyMutVar<span class="op">#</span> r<span class="op">#</span> f s</span></code></pre></div>
 <p><code>STRef</code> is defined in <code>libraries/base/GHC/STRef.hs</code>:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A value of type `STRef s a` is a mutable variable in state thread `s`,</span>
-<span class="co">-- containing a value of type `a`</span>
-<span class="kw">data</span> <span class="dt">STRef</span> s a <span class="fu">=</span> <span class="dt">STRef</span> (<span class="dt">MutVar</span><span class="fu">#</span> s a)
-
-<span class="co">-- | Read the value of an 'STRef'</span>
-<span class="ot">readSTRef ::</span> <span class="dt">STRef</span> s a <span class="ot">-&gt;</span> <span class="dt">ST</span> s a
-readSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) <span class="fu">=</span> <span class="dt">ST</span> <span class="fu">$</span> \s1<span class="fu">#</span> <span class="ot">-&gt;</span> readMutVar<span class="fu">#</span> var<span class="fu">#</span> s1<span class="fu">#</span>
-
-<span class="co">-- | Write a new value into an 'STRef'</span>
-<span class="ot">writeSTRef ::</span> <span class="dt">STRef</span> s a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">ST</span> s ()
-writeSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) val <span class="fu">=</span> <span class="dt">ST</span> <span class="fu">$</span> \s1<span class="fu">#</span> <span class="ot">-&gt;</span>
-    <span class="kw">case</span> writeMutVar<span class="fu">#</span> var<span class="fu">#</span> val s1<span class="fu">#</span> <span class="kw">of</span>
-      s2<span class="fu">#</span> <span class="ot">-&gt;</span> (<span class="fu">#</span> s2<span class="fu">#</span>, () <span class="fu">#</span>)</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="co">-- | A value of type `STRef s a` is a mutable variable in state thread `s`,</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="co">-- containing a value of type `a`</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">STRef</span> s a <span class="ot">=</span> <span class="dt">STRef</span> (<span class="dt">MutVar</span><span class="op">#</span> s a)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a><span class="co">-- | Read the value of an 'STRef'</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a><span class="ot">readSTRef ::</span> <span class="dt">STRef</span> s a <span class="ot">-&gt;</span> <span class="dt">ST</span> s a</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>readSTRef (<span class="dt">STRef</span> var<span class="op">#</span>) <span class="ot">=</span> <span class="dt">ST</span> <span class="op">$</span> \s1<span class="op">#</span> <span class="ot">-&gt;</span> readMutVar<span class="op">#</span> var<span class="op">#</span> s1<span class="op">#</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a><span class="co">-- | Write a new value into an 'STRef'</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a><span class="ot">writeSTRef ::</span> <span class="dt">STRef</span> s a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">ST</span> s ()</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>writeSTRef (<span class="dt">STRef</span> var<span class="op">#</span>) val <span class="ot">=</span> <span class="dt">ST</span> <span class="op">$</span> \s1<span class="op">#</span> <span class="ot">-&gt;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a>    <span class="kw">case</span> writeMutVar<span class="op">#</span> var<span class="op">#</span> val s1<span class="op">#</span> <span class="kw">of</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a>      s2<span class="op">#</span> <span class="ot">-&gt;</span> (<span class="op">#</span> s2<span class="op">#</span>, () <span class="op">#</span>)</span></code></pre></div>
 <p>Note that there’s no <code>atomicModifySTRef</code>, because that only makes sense in IO context. So <code>atomicModifyIORef</code> directly calls the primop.</p>
 <p>In summary:</p>
 <ul>
@@ -75,16 +75,16 @@ writeSTRef (<span class="dt">STRef</span> var<span class="fu">#</span>) val <spa
    has_side_effects = True
    can_fail         = True</code></pre>
 <p>Code generation is handled by <code>StgCmmPrim.emitPrimOp</code>:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">emitPrimOp ::</span> <span class="dt">DynFlags</span>
-           <span class="ot">-&gt;</span> [<span class="dt">LocalReg</span>]        <span class="co">-- where to put the results</span>
-           <span class="ot">-&gt;</span> <span class="dt">PrimOp</span>            <span class="co">-- the op</span>
-           <span class="ot">-&gt;</span> [<span class="dt">CmmExpr</span>]         <span class="co">-- arguments</span>
-           <span class="ot">-&gt;</span> <span class="dt">FCode</span> ()
-
-<span class="fu">...</span>
-
-emitPrimOp dflags [res] <span class="dt">ReadMutVarOp</span> [mutv]
-   <span class="fu">=</span> emitAssign (<span class="dt">CmmLocal</span> res) (cmmLoadIndexW dflags mutv (fixedHdrSizeW dflags) (gcWord dflags))</code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="ot">emitPrimOp ::</span> <span class="dt">DynFlags</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>           <span class="ot">-&gt;</span> [<span class="dt">LocalReg</span>]        <span class="co">-- where to put the results</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>           <span class="ot">-&gt;</span> <span class="dt">PrimOp</span>            <span class="co">-- the op</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>           <span class="ot">-&gt;</span> [<span class="dt">CmmExpr</span>]         <span class="co">-- arguments</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>           <span class="ot">-&gt;</span> <span class="dt">FCode</span> ()</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a><span class="op">...</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>emitPrimOp dflags [res] <span class="dt">ReadMutVarOp</span> [mutv]</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>   <span class="ot">=</span> emitAssign (<span class="dt">CmmLocal</span> res) (cmmLoadIndexW dflags mutv (fixedHdrSizeW dflags) (gcWord dflags))</span></code></pre></div>
 <p>This is just relative addressing, base is the <code>MutVar#</code> we’re reading, and we skip the closure header to read the contents.</p>
 <h2 id="writemutvar">writeMutVar#</h2>
 <p>Primop definition:</p>
@@ -97,70 +97,70 @@ emitPrimOp dflags [res] <span class="dt">ReadMutVarOp</span> [mutv]
                          -- for the write barrier
    can_fail         = True</code></pre>
 <p>Code generation is again implemented in <code>emitPrimOp</code>:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell">emitPrimOp dflags [] <span class="dt">WriteMutVarOp</span> [mutv,var]
-   <span class="fu">=</span> <span class="kw">do</span> emitStore (cmmOffsetW dflags mutv (fixedHdrSizeW dflags)) var
-        emitCCall [<span class="co">{-no results-}</span>]
-                  (<span class="dt">CmmLit</span> (<span class="dt">CmmLabel</span> mkDirty_MUT_VAR_Label))
-                  [(<span class="dt">CmmReg</span> (<span class="dt">CmmGlobal</span> <span class="dt">BaseReg</span>), <span class="dt">AddrHint</span>), (mutv,<span class="dt">AddrHint</span>)]</code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a>emitPrimOp dflags [] <span class="dt">WriteMutVarOp</span> [mutv,var]</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>   <span class="ot">=</span> <span class="kw">do</span> emitStore (cmmOffsetW dflags mutv (fixedHdrSizeW dflags)) var</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>        emitCCall [<span class="co">{-no results-}</span>]</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>                  (<span class="dt">CmmLit</span> (<span class="dt">CmmLabel</span> mkDirty_MUT_VAR_Label))</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>                  [(<span class="dt">CmmReg</span> (<span class="dt">CmmGlobal</span> <span class="dt">BaseReg</span>), <span class="dt">AddrHint</span>), (mutv,<span class="dt">AddrHint</span>)]</span></code></pre></div>
 <p>This is more involved than <code>readMutVar#</code>. First, we write the variable to the <code>MutVar#</code> in the first line (<code>emitStore</code>). Then, we call a function, specified by the variable <code>mkDirty_MUT_VAR_Label</code>, passing two arguments: a global called <code>BaseReg</code>, and the <code>MutVar#</code>. <code>mkDirty_MUT_VAR_Label</code> just holds the name of this function: (defined in <code>rts/sm/Storage.c</code>)</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode c"><code class="sourceCode c"><span class="co">/*</span>
-<span class="co">   This is the write barrier for MUT_VARs, a.k.a. IORefs.  A</span>
-<span class="co">   MUT_VAR_CLEAN object is not on the mutable list; a MUT_VAR_DIRTY</span>
-<span class="co">   is.  When written to, a MUT_VAR_CLEAN turns into a MUT_VAR_DIRTY</span>
-<span class="co">   and is put on the mutable list.</span>
-<span class="co">*/</span>
-<span class="dt">void</span> dirty_MUT_VAR(StgRegTable *reg, StgClosure *p)
-{
-    Capability *cap = regTableToCapability(reg);
-    <span class="cf">if</span> (p-&gt;header.info == &amp;stg_MUT_VAR_CLEAN_info) {
-        p-&gt;header.info = &amp;stg_MUT_VAR_DIRTY_info;
-        recordClosureMutated(cap,p);
-    }
-}</code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="co">/*</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="co">   This is the write barrier for MUT_VARs, a.k.a. IORefs.  A</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a><span class="co">   MUT_VAR_CLEAN object is not on the mutable list; a MUT_VAR_DIRTY</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a><span class="co">   is.  When written to, a MUT_VAR_CLEAN turns into a MUT_VAR_DIRTY</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a><span class="co">   and is put on the mutable list.</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a><span class="co">*/</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a><span class="dt">void</span> dirty_MUT_VAR(StgRegTable *reg, StgClosure *p)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a>{</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a>    Capability *cap = regTableToCapability(reg);</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a>    <span class="cf">if</span> (p-&gt;header.info == &amp;stg_MUT_VAR_CLEAN_info) {</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true"></a>        p-&gt;header.info = &amp;stg_MUT_VAR_DIRTY_info;</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true"></a>        recordClosureMutated(cap,p);</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true"></a>    }</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Remember that for the first argument we passed something called <code>BaseReg</code>, and for the second argument we passed the <code>MutVar#</code>.</p>
 <p>This function gets a <code>Capability</code> from the register table, and if the <code>MutVar#</code> is “clean”, it marks it as “dirty” and records in the capability that it’s now mutated.</p>
 <p><code>Capability</code> lacks documentation, but it’s not too important, so we just skip that and look at <code>recordClsoureMutated</code>.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordClosureMutated(Capability *cap, StgClosure *p)
-{
-    bdescr *bd = Bdescr((StgPtr)p);
-    <span class="cf">if</span> (bd-&gt;gen_no != <span class="dv">0</span>) recordMutableCap(p,cap,bd-&gt;gen_no);
-}</code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="dt">void</span> recordClosureMutated(Capability *cap, StgClosure *p)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a>{</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a>    bdescr *bd = Bdescr((StgPtr)p);</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>    <span class="cf">if</span> (bd-&gt;gen_no != <span class="dv">0</span>) recordMutableCap(p,cap,bd-&gt;gen_no);</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a>}</span></code></pre></div>
 <p><code>p</code> is our <code>MutVar#</code> here. <code>bdescr</code> stands for “block descriptor”. GHC RTS allocates memory in blocks, and every block belongs to a generation. First generation is special in that if a <code>MutVar#</code> is in the first generation, it can’t point to a younger generation, as the first generation is already the youngest generation. This is from <code>includes/rts/storage/GC.h</code>:</p>
 <pre><code>- generation 0 is the allocation area.  It is given a fixed set of blocks
   during initialisation, and these blocks normally stay in G0S0.  In parallel
   execution, each Capability has its own nursery.</code></pre>
 <p>This code basically checks if the <code>MutVar#</code> belongs to first generation (generation 0). If that’s not the case, we record the <code>MutVar#</code> in the generation’s “mut list”:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> recordMutableCap(<span class="dt">const</span> StgClosure *p, Capability *cap, <span class="dt">uint32_t</span> gen)
-{
-    bdescr* bd = cap-&gt;mut_lists[gen];
-    <span class="cf">if</span> (bd-&gt;free &gt;= bd-&gt;start + BLOCK_SIZE_W) {
-        bdescr *new_bd = allocBlockOnNode_lock(cap-&gt;node);
-        new_bd-&gt;link = bd;
-        bd = new_bd;
-        cap-&gt;mut_lists[gen] = bd;
-    }
-    *bd-&gt;free++ = (StgWord)p;
-}</code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="dt">void</span> recordMutableCap(<span class="dt">const</span> StgClosure *p, Capability *cap, <span class="dt">uint32_t</span> gen)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>{</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>    bdescr* bd = cap-&gt;mut_lists[gen];</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>    <span class="cf">if</span> (bd-&gt;free &gt;= bd-&gt;start + BLOCK_SIZE_W) {</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a>        bdescr *new_bd = allocBlockOnNode_lock(cap-&gt;node);</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a>        new_bd-&gt;link = bd;</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a>        bd = new_bd;</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a>        cap-&gt;mut_lists[gen] = bd;</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a>    }</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a>    *bd-&gt;free++ = (StgWord)p;</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Garbage collector then checks that list when collecting younger generations, to avoid collecting young objects kept alive by older generations (i.e. pointers from older generations to younger generations, see <code>scavenge_capability_mut_lists</code> in <code>rts/sm/Scav.c</code>).</p>
 <p>We saw in <code>dirty_MUT_VAR</code> that the <code>MutVar#</code> is marked as “dirty” when it’s mutated. When is it marked as “clean” again?</p>
 <p>When a <code>MutVar#</code> is copied during GC, the object pointed by it is also copied to the same generation, and then the <code>MutVar#</code> becomes clean again, because it no longer points to a younger generation. This is the related code:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">static</span> <span class="dt">void</span>
-scavenge_block(bdescr *bd)
-{
-    ...
-    <span class="cf">case</span> MUT_VAR_DIRTY:
-        gct-&gt;eager_promotion = rtsFalse;
-        evacuate(&amp;((StgMutVar *)p)-&gt;var);
-        gct-&gt;eager_promotion = saved_eager_promotion;
-        <span class="cf">if</span> (gct-&gt;failed_to_evac) {
-            ((StgClosure *)q)-&gt;header.info = &amp;stg_MUT_VAR_DIRTY_info;
-        } <span class="cf">else</span> {
-            ((StgClosure *)q)-&gt;header.info = &amp;stg_MUT_VAR_CLEAN_info;
-        }
-        p += sizeofW(StgMutVar);
-        <span class="cf">break</span>;
-    ...
-}</code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="dt">static</span> <span class="dt">void</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>scavenge_block(bdescr *bd)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a>{</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a>    ...</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a>    <span class="cf">case</span> MUT_VAR_DIRTY:</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a>        gct-&gt;eager_promotion = rtsFalse;</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true"></a>        evacuate(&amp;((StgMutVar *)p)-&gt;var);</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true"></a>        gct-&gt;eager_promotion = saved_eager_promotion;</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true"></a>        <span class="cf">if</span> (gct-&gt;failed_to_evac) {</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true"></a>            ((StgClosure *)q)-&gt;header.info = &amp;stg_MUT_VAR_DIRTY_info;</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true"></a>        } <span class="cf">else</span> {</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true"></a>            ((StgClosure *)q)-&gt;header.info = &amp;stg_MUT_VAR_CLEAN_info;</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true"></a>        }</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true"></a>        p += sizeofW(StgMutVar);</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true"></a>        <span class="cf">break</span>;</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true"></a>    ...</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true"></a>}</span></code></pre></div>
 <h2 id="atomicmodifymutvar">atomicModifyMutVar#</h2>
 <p>Primop definition:</p>
 <pre><code>primop  AtomicModifyMutVarOp &quot;atomicModifyMutVar#&quot; GenPrimOp
@@ -170,41 +170,41 @@ scavenge_block(bdescr *bd)
    has_side_effects = True
    can_fail         = True</code></pre>
 <p><code>out_of_line = True</code> basically tells code generator that this primop is implemented as a function. Code generator then just generates a function call:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cgOpApp ::</span> <span class="dt">StgOp</span>        <span class="co">-- The op</span>
-        <span class="ot">-&gt;</span> [<span class="dt">StgArg</span>]     <span class="co">-- Arguments</span>
-        <span class="ot">-&gt;</span> <span class="dt">Type</span>         <span class="co">-- Result type (always an unboxed tuple)</span>
-        <span class="ot">-&gt;</span> <span class="dt">FCode</span> <span class="dt">ReturnKind</span>
-
-<span class="fu">...</span>
-
-cgOpApp (<span class="dt">StgPrimOp</span> primop) args res_ty <span class="fu">=</span> <span class="kw">do</span>
-    dflags <span class="ot">&lt;-</span> getDynFlags
-    cmm_args <span class="ot">&lt;-</span> getNonVoidArgAmodes args
-    <span class="kw">case</span> shouldInlinePrimOp dflags primop cmm_args <span class="kw">of</span>
-        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>  <span class="co">-- out-of-line</span>
-          <span class="kw">let</span> fun <span class="fu">=</span> <span class="dt">CmmLit</span> (<span class="dt">CmmLabel</span> (mkRtsPrimOpLabel primop))
-          emitCall (<span class="dt">NativeNodeCall</span>, <span class="dt">NativeReturn</span>) fun cmm_args
-        <span class="fu">...</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="ot">cgOpApp ::</span> <span class="dt">StgOp</span>        <span class="co">-- The op</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a>        <span class="ot">-&gt;</span> [<span class="dt">StgArg</span>]     <span class="co">-- Arguments</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true"></a>        <span class="ot">-&gt;</span> <span class="dt">Type</span>         <span class="co">-- Result type (always an unboxed tuple)</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true"></a>        <span class="ot">-&gt;</span> <span class="dt">FCode</span> <span class="dt">ReturnKind</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true"></a><span class="op">...</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true"></a>cgOpApp (<span class="dt">StgPrimOp</span> primop) args res_ty <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true"></a>    dflags <span class="ot">&lt;-</span> getDynFlags</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true"></a>    cmm_args <span class="ot">&lt;-</span> getNonVoidArgAmodes args</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true"></a>    <span class="kw">case</span> shouldInlinePrimOp dflags primop cmm_args <span class="kw">of</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true"></a>        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>  <span class="co">-- out-of-line</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true"></a>          <span class="kw">let</span> fun <span class="ot">=</span> <span class="dt">CmmLit</span> (<span class="dt">CmmLabel</span> (mkRtsPrimOpLabel primop))</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true"></a>          emitCall (<span class="dt">NativeNodeCall</span>, <span class="dt">NativeReturn</span>) fun cmm_args</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true"></a>        <span class="op">...</span></span></code></pre></div>
 <p>The primop is implemented in Cmm, in <code>rts/PrimOps.cmm</code>. The code is a mess, but here’s the important part:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode c"><code class="sourceCode c">stg_atomicModifyMutVarzh ( gcptr mv, gcptr f )
-{
-  ...
-  retry:
-    x = StgMutVar_var(mv);
-    StgThunk_payload(z,<span class="dv">1</span>) = x;
-<span class="pp">#ifdef THREADED_RTS</span>
-    (h) = ccall cas(mv + SIZEOF_StgHeader + OFFSET_StgMutVar_var, x, y);
-    <span class="cf">if</span> (h != x) { <span class="cf">goto</span> retry; }
-<span class="pp">#else</span>
-    StgMutVar_var(mv) = y;
-<span class="pp">#endif</span>
-
-    <span class="cf">if</span> (GET_INFO(mv) == stg_MUT_VAR_CLEAN_info) {
-        ccall dirty_MUT_VAR(BaseReg <span class="st">&quot;ptr&quot;</span>, mv <span class="st">&quot;ptr&quot;</span>);
-    }
-
-    <span class="cf">return</span> (r);
-}</code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a>stg_atomicModifyMutVarzh ( gcptr mv, gcptr f )</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a>{</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a>  ...</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true"></a>  retry:</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true"></a>    x = StgMutVar_var(mv);</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true"></a>    StgThunk_payload(z,<span class="dv">1</span>) = x;</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true"></a><span class="pp">#ifdef THREADED_RTS</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true"></a>    (h) = ccall cas(mv + SIZEOF_StgHeader + OFFSET_StgMutVar_var, x, y);</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true"></a>    <span class="cf">if</span> (h != x) { <span class="cf">goto</span> retry; }</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true"></a><span class="pp">#else</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true"></a>    StgMutVar_var(mv) = y;</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true"></a><span class="pp">#endif</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true"></a></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true"></a>    <span class="cf">if</span> (GET_INFO(mv) == stg_MUT_VAR_CLEAN_info) {</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true"></a>        ccall dirty_MUT_VAR(BaseReg <span class="st">&quot;ptr&quot;</span>, mv <span class="st">&quot;ptr&quot;</span>);</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true"></a>    }</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true"></a></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true"></a>    <span class="cf">return</span> (r);</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true"></a>}</span></code></pre></div>
 <p>It’s basically a compare-and-swap loop, and in the end it marks the <code>MutVar#</code> as “dirty”, using the same <code>dirty_MUT_VAR</code> function used by the code generated for <code>writeMutVar#</code>.</p>
 <h2 id="the-mutvar-struct">The <code>MutVar#</code> struct</h2>
 <p>As the last thing, we look at the definition of <code>MutVar#</code>: (in <code>includes/rts/storage/Closures.h</code>)</p>
@@ -220,23 +220,23 @@ cgOpApp (<span class="dt">StgPrimOp</span> primop) args res_ty <span class="fu">
 <li><p>Unpacking an <code>IORef</code> in a data constructor field does not really make the constructor mutable. Instead, it inlines the <code>MutVar#</code>, which has a mutable pointer field.</p></li>
 </ol>
 <p>If you think about it a little bit, you may realize that optimizing (2) is actually quite tricky. Imagine having something like this:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">D</span> <span class="fu">=</span> <span class="dt">D</span> {<span class="ot"> f1 ::</span> <span class="ot">{-# UNPACK #-}</span> <span class="fu">!</span>(<span class="dt">IORef</span> <span class="dt">Int</span>)
-           ,<span class="ot"> f2 ::</span> <span class="dt">Int</span>
-           }
-
-<span class="ot">bumpf1 ::</span> <span class="dt">D</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-bumpf1 (<span class="dt">D</span> f1 _) <span class="fu">=</span> modifyIORef f1 (<span class="fu">+</span> <span class="dv">1</span>)
-
-<span class="ot">bumpf2 ::</span> <span class="dt">D</span> <span class="ot">-&gt;</span> <span class="dt">D</span>
-bumpf2 (<span class="dt">D</span> f1 f2) <span class="fu">=</span> <span class="dt">D</span> f1 (f2 <span class="fu">+</span> <span class="dv">1</span>)</code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">D</span> <span class="ot">=</span> <span class="dt">D</span> {<span class="ot"> f1 ::</span> <span class="ot">{-# UNPACK #-}</span> <span class="op">!</span>(<span class="dt">IORef</span> <span class="dt">Int</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a>           ,<span class="ot"> f2 ::</span> <span class="dt">Int</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a>           }</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a><span class="ot">bumpf1 ::</span> <span class="dt">D</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a>bumpf1 (<span class="dt">D</span> f1 _) <span class="ot">=</span> modifyIORef f1 (<span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a><span class="ot">bumpf2 ::</span> <span class="dt">D</span> <span class="ot">-&gt;</span> <span class="dt">D</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a>bumpf2 (<span class="dt">D</span> f1 f2) <span class="ot">=</span> <span class="dt">D</span> f1 (f2 <span class="op">+</span> <span class="dv">1</span>)</span></code></pre></div>
 <p>You’d expect this to print <code>True</code>:</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> ref <span class="ot">&lt;-</span> newIORef <span class="dv">0</span>
-   <span class="kw">let</span> d1 <span class="fu">=</span> <span class="dt">D</span> ref <span class="dv">0</span>
-       d2 <span class="fu">=</span> bumpD2 d1
-   bumpf1 d1
-   rv1 <span class="ot">&lt;-</span> readIORef (f1 d1)
-   rv2 <span class="ot">&lt;-</span> readIORef (f1 d2)
-   <span class="fu">print</span> (rv1 <span class="fu">==</span> rv2)</code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="kw">do</span> ref <span class="ot">&lt;-</span> newIORef <span class="dv">0</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a>   <span class="kw">let</span> d1 <span class="ot">=</span> <span class="dt">D</span> ref <span class="dv">0</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true"></a>       d2 <span class="ot">=</span> bumpD2 d1</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true"></a>   bumpf1 d1</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true"></a>   rv1 <span class="ot">&lt;-</span> readIORef (f1 d1)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true"></a>   rv2 <span class="ot">&lt;-</span> readIORef (f1 d2)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true"></a>   <span class="fu">print</span> (rv1 <span class="op">==</span> rv2)</span></code></pre></div>
 <p>If <code>D</code> becomes mutable after the <code>UNPACK</code>, this code doesn’t work anymore, because we lose sharing after the functional update in line <code>bumpD2 d1</code>.</p>
 <p>See also <a href="https://ghc.haskell.org/trac/ghc/ticket/7662#comment:3">this discussion</a> for how other compilers improve this.</p>
 

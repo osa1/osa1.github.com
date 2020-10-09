@@ -20,32 +20,32 @@
             <div class="inner">
                 <h1 id="post-title">Nautilus için CleanCSS scripti</h1>
 
-<p><strong>December 19, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>December 19, 2010</strong> - Tagged as: <a title="All pages tagged 'python'." href="../tags/python.html">python</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Yarın fizik finalim var ve nautilus için basit bir <a href="http://www.cleancss.com/">CleanCSS</a> scripti yazdım.</p>
 <p>Scriptin yaptığı şey, seçtiğiniz CSS dosyasını CleanCSS’e gönderip, çıktığı isminde bir değişiklik yaparak gönderdiğiniz dosyayla aynı yere kaydediyor. Sıkıştırma düzeyi, satır 19’da belirtiliyor(default 3, yani en küçük çıktıyı alırsınız).</p>
 <p>Program çok küçük olduğu için kodu buraya yapıştıracağım. Yapmanız gereken, scripte istediğiniz adı verip(formatı olmak zorunda değil, .py gerekli değil yani), çalıştırılabilir hale getirip, ~/.gnome2/nautilus-scripts/ klasörüne atmak. Daha sonra 1 veya daha fazla CSS dosyasını seçip sağ tıklayıp nautilus scriptleri bölümünden bu scripti seçmek.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="co">#!/usr/bin/env python</span>
-<span class="im">import</span> mechanize, BeautifulSoup, os.path
-dosyalar <span class="op">=</span> [f.strip() <span class="cf">for</span> f <span class="kw">in</span> os.environ[<span class="st">'NAUTILUS_SCRIPT_SELECTED_URIS'</span>].split(<span class="st">'file://'</span>) <span class="cf">if</span> <span class="bu">len</span>(f) <span class="op">&gt;</span> <span class="dv">0</span>]
-<span class="co">#dosyalar = [&quot;/home/osa1/Desktop/deneme.css&quot;]</span>
-forms <span class="op">=</span> mechanize.ParseFile(mechanize.urlopen(<span class="st">&quot;http://www.cleancss.com&quot;</span>), <span class="st">&quot;http://www.cleancss.com&quot;</span>)
-form <span class="op">=</span> forms[<span class="op">^</span><span class="dv">0</span>]<span class="cf">for</span> dosya <span class="kw">in</span> dosyalar:
-    dosya_ <span class="op">=</span> <span class="bu">open</span>(dosya, <span class="st">&quot;r&quot;</span>)
-    css <span class="op">=</span> dosya_.read()
-    dosya_.close()
-    form[<span class="st">&quot;css_text&quot;</span>] <span class="op">=</span> css
-    template <span class="op">=</span> form.find_control(<span class="st">&quot;template&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="st">&quot;select&quot;</span>)
-    template.value <span class="op">=</span> [<span class="st">&quot;3&quot;</span>] <span class="co"># s1k1st1ma seviyesi</span>
-    request <span class="op">=</span> form.click()
-    response <span class="op">=</span> BeautifulSoup.BeautifulSoup(mechanize.urlopen(request).read())
-    yeni_kod <span class="op">=</span> <span class="st">&quot;&quot;</span>.join(response.findAll(<span class="st">&quot;code&quot;</span>)[<span class="op">^</span><span class="dv">0</span>]text.split(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>))
-    yeni_kod <span class="op">=</span> <span class="bu">unicode</span>(BeautifulSoup.BeautifulStoneSoup(yeni_kod,
-        convertEntities<span class="op">=</span>BeautifulSoup.BeautifulStoneSoup.HTML_ENTITIES)) 
-    dosya_adi <span class="op">=</span> os.path.basename(dosya_.name).split(<span class="st">&quot;.&quot;</span>)[<span class="op">^</span><span class="dv">0</span>]    yeni_dosya_adi <span class="op">=</span> os.path.join(os.path.dirname(dosya_.name), dosya_adi <span class="op">+</span> <span class="st">&quot;_duzenli.css&quot;</span>)
-    yeni_dosya <span class="op">=</span> <span class="bu">open</span>(yeni_dosya_adi, <span class="st">&quot;w&quot;</span>)
-    yeni_dosya.write(yeni_kod)
-    yeni_dosya.close()</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="co">#!/usr/bin/env python</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="im">import</span> mechanize, BeautifulSoup, os.path</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>dosyalar <span class="op">=</span> [f.strip() <span class="cf">for</span> f <span class="kw">in</span> os.environ[<span class="st">'NAUTILUS_SCRIPT_SELECTED_URIS'</span>].split(<span class="st">'file://'</span>) <span class="cf">if</span> <span class="bu">len</span>(f) <span class="op">&gt;</span> <span class="dv">0</span>]</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="co">#dosyalar = [&quot;/home/osa1/Desktop/deneme.css&quot;]</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>forms <span class="op">=</span> mechanize.ParseFile(mechanize.urlopen(<span class="st">&quot;http://www.cleancss.com&quot;</span>), <span class="st">&quot;http://www.cleancss.com&quot;</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>form <span class="op">=</span> forms[<span class="op">^</span><span class="dv">0</span>]<span class="cf">for</span> dosya <span class="kw">in</span> dosyalar:</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>    dosya_ <span class="op">=</span> <span class="bu">open</span>(dosya, <span class="st">&quot;r&quot;</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    css <span class="op">=</span> dosya_.read()</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>    dosya_.close()</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>    form[<span class="st">&quot;css_text&quot;</span>] <span class="op">=</span> css</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>    template <span class="op">=</span> form.find_control(<span class="st">&quot;template&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="st">&quot;select&quot;</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>    template.value <span class="op">=</span> [<span class="st">&quot;3&quot;</span>] <span class="co"># s1k1st1ma seviyesi</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>    request <span class="op">=</span> form.click()</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>    response <span class="op">=</span> BeautifulSoup.BeautifulSoup(mechanize.urlopen(request).read())</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>    yeni_kod <span class="op">=</span> <span class="st">&quot;&quot;</span>.join(response.findAll(<span class="st">&quot;code&quot;</span>)[<span class="op">^</span><span class="dv">0</span>]text.split(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>))</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>    yeni_kod <span class="op">=</span> <span class="bu">unicode</span>(BeautifulSoup.BeautifulStoneSoup(yeni_kod,</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>        convertEntities<span class="op">=</span>BeautifulSoup.BeautifulStoneSoup.HTML_ENTITIES)) </span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a>    dosya_adi <span class="op">=</span> os.path.basename(dosya_.name).split(<span class="st">&quot;.&quot;</span>)[<span class="op">^</span><span class="dv">0</span>]    yeni_dosya_adi <span class="op">=</span> os.path.join(os.path.dirname(dosya_.name), dosya_adi <span class="op">+</span> <span class="st">&quot;_duzenli.css&quot;</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>    yeni_dosya <span class="op">=</span> <span class="bu">open</span>(yeni_dosya_adi, <span class="st">&quot;w&quot;</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>    yeni_dosya.write(yeni_kod)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>    yeni_dosya.close()</span></code></pre></div>
 <p>Bu arada, bağımlılıklar mechanize ve BeautifulSoup. İkisi de Ubuntu(ve sanırım Debian) depolarında var. Paket adları; python-mechanize ve python-beautifulsoup. Bu boyutta bir program için bağımlılıklar biraz abartı kaçmış gibi gözükebilir, ama zaten bu kütüphaneleri kullandığım için script bu boyutta.</p>
 <p>Bu arada, iki kütüphane de mükemmel. <a href="http://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a>’un zaten hastasıyız, uzun süredir kullanıyordum, <a href="http://wwwsearch.sourceforge.net/mechanize/">mechanize</a>’ı da bu iş için keşfettim. Webde neredeyse tarayıcı rahatlığında gezinmenizi sağlıyor. Aslında sanırım html parse için de kullanılabiliyor, ben BeautifulSoup bildiğim için hiç dökümantasyon okumakla falan uğraşmak istemedim, onu kullandım.</p>
 <p>Asıl amacım bu scripti Vim için yazmaktı. Kendi belirlediğim bir kısayol tuşuyla .css formatlı dosyalara bu işlemi yapacaktım, fakat henüz Vim’e Python ile nasıl eklenti yazabileceğimi çözebilmiş değilim. Ondan önce birkaç deneme yapayım dedim, ortaya bu çıktı.</p>

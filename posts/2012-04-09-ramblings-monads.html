@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Ramblings on monads</h1>
 
-<p><strong>April  9, 2012</strong> - Tagged as: <a href="../tags/haskell.html">haskell</a>, <a href="../tags/en.html">en</a>.</p>
+<p><strong>April  9, 2012</strong> - Tagged as: <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>, <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
 
 <p>I had written a short post about Haskell and monads to <a href="http://nathansuniversity.com/">Nathan’s University</a> forum as a first homework, and I wanted to add it to my blog too:</p>
 <hr />
@@ -28,43 +28,43 @@
 <p>Every monad in Haskell is potentially a DSL. You can define commands(ie. functions) in a syntax that looks almost like syntax in imperative languages even if you’re doing a purely functional computation(for imperative computations, see IO monad). When you write a monad and some functions working with this monad, you basically write operations of a kind of computations, and a way to combine this computations(with <code>&gt;&gt;=</code> function, read as bind).</p>
 <p>This gives you two great advantages. First, monads give you an elegant way to separate combination and calculation logic, and second, it gives you an opportunity to create syntactic abstractions.</p>
 <p>For example, you don’t have to pass some states around functions thank to monads. You can just create a monad with functions getting a state and returning some values and the new state. Then you can define your combination logic(bind functions) and with the help of <code>do</code> notation, you can write almost imperative looking code, passing states automatically. See example:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> <span class="dt">Control.Monad.State</span>
-<span class="kw">import</span> <span class="dt">Control.Monad</span>
-<span class="kw">type</span> <span class="dt">AvgState</span> <span class="fu">=</span> <span class="dt">State</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="dt">Int</span>
-state0 <span class="fu">=</span> (<span class="dv">0</span>, <span class="dv">0</span>)
- 
-<span class="ot">addAvg ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">AvgState</span>
-addAvg x <span class="fu">=</span> <span class="kw">do</span>
-    (count, total) <span class="ot">&lt;-</span> get
-    put (count<span class="fu">+</span><span class="dv">1</span>, total<span class="fu">+</span>x)
-    <span class="fu">return</span> <span class="fu">$</span> (total<span class="fu">+</span>x) <span class="ot">`div`</span> (count<span class="fu">+</span><span class="dv">1</span>)
- 
-<span class="ot">test ::</span> <span class="dt">AvgState</span>
-test <span class="fu">=</span> <span class="kw">do</span>
-    addAvg <span class="dv">10</span>
-    addAvg <span class="dv">20</span>
-    addAvg <span class="dv">30</span>
- 
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-    <span class="fu">print</span> <span class="fu">$</span> evalState test state0</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Monad.State</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Monad</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="kw">type</span> <span class="dt">AvgState</span> <span class="ot">=</span> <span class="dt">State</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="dt">Int</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>state0 <span class="ot">=</span> (<span class="dv">0</span>, <span class="dv">0</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a> </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="ot">addAvg ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">AvgState</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>addAvg x <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    (count, total) <span class="ot">&lt;-</span> get</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>    put (count<span class="op">+</span><span class="dv">1</span>, total<span class="op">+</span>x)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>    <span class="fu">return</span> <span class="op">$</span> (total<span class="op">+</span>x) <span class="ot">`div`</span> (count<span class="op">+</span><span class="dv">1</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a> </span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a><span class="ot">test ::</span> <span class="dt">AvgState</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>test <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>    addAvg <span class="dv">10</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>    addAvg <span class="dv">20</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>    addAvg <span class="dv">30</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a> </span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>    <span class="fu">print</span> <span class="op">$</span> evalState test state0</span></code></pre></div>
 <p>Here I’m calculating arithmetic average of some integers. <code>type AvgState</code> is my data type representing the sum of the numbers I give and the total count of numbers. Here I don’t write a new monad, instead I use Haskell’s State monad, contained in <code>Control.Monad.State</code> package.</p>
 <p><code>addAvg</code> functions is the main logic. If you look at it, it almost looks like an imperative program, I’m reading some values and changing them by adding them one, and returning a new value(note that I’m not returning any new states, it’s being handled my the monad itself), but still it’s purely functional.</p>
 <p>Now how’s that a DSL? Look at <code>test</code> function and hopefully you’ll see :) .</p>
 <p>I want to give another example about DSL-like monads: <code>Parsec</code>.</p>
 <p>I’ve been working on a Websocket based chat protocol written in Haskell lately and this code is directly from my project:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">chanName ::</span> <span class="dt">Parser</span> <span class="dt">ChanName</span>
-chanName <span class="fu">=</span> many1 (letter <span class="fu">&lt;|&gt;</span> oneOf <span class="st">&quot;-&quot;</span> <span class="fu">&lt;|&gt;</span> digit)
- 
-<span class="ot">msgCmd ::</span> <span class="dt">Parser</span> <span class="dt">Cmd</span>
-msgCmd <span class="fu">=</span> <span class="kw">do</span>
-    string <span class="st">&quot;msg&quot;</span>
-    spaces
-    chan <span class="ot">&lt;-</span> chanName
-    spaces
-    msg <span class="ot">&lt;-</span> many1 anyChar
-    eof
-    <span class="fu">return</span> <span class="fu">$</span> <span class="dt">MsgCmd</span> chan msg</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="ot">chanName ::</span> <span class="dt">Parser</span> <span class="dt">ChanName</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>chanName <span class="ot">=</span> many1 (letter <span class="op">&lt;|&gt;</span> oneOf <span class="st">&quot;-&quot;</span> <span class="op">&lt;|&gt;</span> digit)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a> </span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="ot">msgCmd ::</span> <span class="dt">Parser</span> <span class="dt">Cmd</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>msgCmd <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>    string <span class="st">&quot;msg&quot;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>    spaces</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>    chan <span class="ot">&lt;-</span> chanName</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>    spaces</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>    msg <span class="ot">&lt;-</span> many1 anyChar</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>    eof</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>    <span class="fu">return</span> <span class="op">$</span> <span class="dt">MsgCmd</span> chan msg</span></code></pre></div>
 <p>I’m using Parsec’s <code>Parser</code> monads with <code>do</code> notation and it looks almost like Backus–Naur Form. chanName mathes list of letters, ‘-’ character, or digits with at least one element. This is a parser. And then I’m using this parser in my <code>msgCmd</code> parser. It matches a string “msg”, then arbitrary number of spaces, then <code>chanName</code>, then spaces again, and at last any characters.</p>
 
 <hr />

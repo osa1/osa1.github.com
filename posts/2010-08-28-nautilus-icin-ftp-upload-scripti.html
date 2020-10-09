@@ -20,67 +20,67 @@
             <div class="inner">
                 <h1 id="post-title">Nautilus için FTP upload scripti</h1>
 
-<p><strong>August 28, 2010</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>August 28, 2010</strong> - Tagged as: <a title="All pages tagged 'python'." href="../tags/python.html">python</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <div class="information">
 30-08-2010. Biraz daha geliştirdim, artık eğer bilgisayarınızda pynotify kuruluysa(eğer nautilus kullanıyorsanız büyük ihtimalle gnome kullanıyorsunuzdur, dolayısıyla sorun yok) script çalışmaya başladığında ve çalışmayı bitirdiğinde bir uyarı veriyor(kaç dosya upload ettiği yazıyor). Arkaplanda ne olduğunu göremesek de, hiç yoktan iyidir.
 </div>
 <figure>
-<img src="../images/uploadbitti.png" alt="“Upload bitti!”" /><figcaption>“Upload bitti!”</figcaption>
+<img src="../images/uploadbitti.png" alt /><figcaption>“Upload bitti!”</figcaption>
 </figure>
 <p>Nautilus scriptleri işimi acayip kolaylaştırıyor, yazımı da çok kolay, bir gün içerisinde bir şeyi birden fazla kez yapıyorsam, o işlemi nautilus scripti aracılığıyla yapmaya çalışıyorum artık. Python ile tabii ki..</p>
 <p>Bu seferki seçtiğiniz dosyaları(veya klasörleri)(birden fazla seçebilirsiniz), FTP sunucunuzda belirttiğiniz klasöre gönderiyor. Harici bir kütüphane kullanmadım, FTP işlemleri için <a href="http://docs.python.org/library/ftplib.html">ftplib</a> kullandım. ftplib neredeyse bir kütüphane değil istemci, çok basit birkaç komutla her işinizi halledebilirsiniz.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="co">#!/usr/bin/env python</span>
-<span class="co"># -*- coding: utf-8 -*-</span>
-<span class="im">import</span> ftplib, os, sys
-<span class="cf">try</span>:
-    <span class="im">import</span> pynotify
-<span class="cf">except</span> <span class="pp">ImportError</span>:
-    uyar <span class="op">=</span> <span class="va">False</span>
-<span class="cf">else</span>:
-    uyar <span class="op">=</span> <span class="va">True</span>
-sayac <span class="op">=</span> <span class="dv">0</span>
-<span class="co"># Debug icin, silinebilir</span>
-<span class="co"># sys.stderr = open('/home/osa1/Desktop/stderr.txt', 'w')</span>
-<span class="co"># sys.stdout = open('/home/osa1/Desktop/stdout.txt', 'w')</span>
-ftp <span class="op">=</span> ftplib.FTP(<span class="st">'ftp sunucunuz'</span>)
-ftp.login(user<span class="op">=</span><span class="st">'kullanici adiniz'</span>, passwd<span class="op">=</span><span class="st">'sifreniz'</span>)
-yerler <span class="op">=</span> [f.strip() <span class="cf">for</span> f <span class="kw">in</span> os.environ[<span class="st">'NAUTILUS_SCRIPT_SELECTED_URIS'</span>].split(<span class="st">'file://'</span>) <span class="cf">if</span> <span class="bu">len</span>(f) <span class="op">&gt;</span> <span class="dv">0</span>]
-
-<span class="kw">def</span> gonder(local, baslangic<span class="op">=</span><span class="st">'/media'</span>): <span class="co"># upload edilecek klasor</span>
-    <span class="kw">global</span> sayac
-    <span class="cf">if</span> os.path.isdir(local):
-        basename <span class="op">=</span> os.path.basename(local)
-        sunucuKlasor <span class="op">=</span> <span class="st">'</span><span class="sc">%s</span><span class="st">/</span><span class="sc">%s</span><span class="st">'</span> <span class="op">%</span> (baslangic, basename)
-        
-        <span class="cf">try</span>:
-            ftp.mkd(sunucuKlasor)
-        <span class="cf">except</span> ftplib.error_perm:
-            <span class="cf">pass</span>
-        
-        <span class="cf">for</span> dosya <span class="kw">in</span> os.listdir(local):
-            localYeni <span class="op">=</span> <span class="st">'</span><span class="sc">%s</span><span class="st">/</span><span class="sc">%s</span><span class="st">'</span> <span class="op">%</span> (local, dosya)
-            gonder(localYeni, baslangic<span class="op">=</span>sunucuKlasor)
-    <span class="cf">else</span>:
-        dosyalar <span class="op">=</span> ftp.nlst(baslangic)
-        <span class="cf">if</span> os.path.basename(local) <span class="kw">in</span> baslangic:
-            ftp.delete(os.path.basename(local))
-        ftp.storbinary(<span class="st">'STOR </span><span class="sc">%s</span><span class="st">/</span><span class="sc">%s</span><span class="st">'</span> <span class="op">%</span> (baslangic, os.path.basename(local)),
-                       <span class="bu">open</span>(local, <span class="st">'rb'</span>))
-        sayac <span class="op">+=</span> <span class="dv">1</span>
-
-<span class="cf">if</span> uyar:
-    n <span class="op">=</span> pynotify.Notification(<span class="st">&quot;Upload basladi&quot;</span>,
-                              <span class="st">&quot;</span><span class="sc">%s</span><span class="st"> dosya ve/veya klasor&quot;</span> <span class="op">%</span> <span class="bu">len</span>(yerler))
-    n.show()
-<span class="cf">for</span> yer <span class="kw">in</span> yerler:
-    gonder(yer)
-<span class="cf">if</span> uyar:
-    n <span class="op">=</span> pynotify.Notification(<span class="st">&quot;Upload bitti&quot;</span>,
-                              <span class="st">&quot;</span><span class="sc">%s</span><span class="st"> dosya upload edildi&quot;</span> <span class="op">%</span> sayac,
-                              <span class="st">&quot;gnome-netstatus-txrx&quot;</span>)
-    n.show()
-ftp.close()</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="co">#!/usr/bin/env python</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="co"># -*- coding: utf-8 -*-</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="im">import</span> ftplib, os, sys</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="cf">try</span>:</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    <span class="im">import</span> pynotify</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="cf">except</span> <span class="pp">ImportError</span>:</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>    uyar <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="cf">else</span>:</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>    uyar <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>sayac <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a><span class="co"># Debug icin, silinebilir</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a><span class="co"># sys.stderr = open('/home/osa1/Desktop/stderr.txt', 'w')</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a><span class="co"># sys.stdout = open('/home/osa1/Desktop/stdout.txt', 'w')</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>ftp <span class="op">=</span> ftplib.FTP(<span class="st">'ftp sunucunuz'</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>ftp.login(user<span class="op">=</span><span class="st">'kullanici adiniz'</span>, passwd<span class="op">=</span><span class="st">'sifreniz'</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>yerler <span class="op">=</span> [f.strip() <span class="cf">for</span> f <span class="kw">in</span> os.environ[<span class="st">'NAUTILUS_SCRIPT_SELECTED_URIS'</span>].split(<span class="st">'file://'</span>) <span class="cf">if</span> <span class="bu">len</span>(f) <span class="op">&gt;</span> <span class="dv">0</span>]</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a><span class="kw">def</span> gonder(local, baslangic<span class="op">=</span><span class="st">'/media'</span>): <span class="co"># upload edilecek klasor</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>    <span class="kw">global</span> sayac</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>    <span class="cf">if</span> os.path.isdir(local):</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>        basename <span class="op">=</span> os.path.basename(local)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a>        sunucuKlasor <span class="op">=</span> <span class="st">'</span><span class="sc">%s</span><span class="st">/</span><span class="sc">%s</span><span class="st">'</span> <span class="op">%</span> (baslangic, basename)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>        </span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>        <span class="cf">try</span>:</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>            ftp.mkd(sunucuKlasor)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a>        <span class="cf">except</span> ftplib.error_perm:</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>            <span class="cf">pass</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a>        </span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a>        <span class="cf">for</span> dosya <span class="kw">in</span> os.listdir(local):</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a>            localYeni <span class="op">=</span> <span class="st">'</span><span class="sc">%s</span><span class="st">/</span><span class="sc">%s</span><span class="st">'</span> <span class="op">%</span> (local, dosya)</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a>            gonder(localYeni, baslangic<span class="op">=</span>sunucuKlasor)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a>    <span class="cf">else</span>:</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a>        dosyalar <span class="op">=</span> ftp.nlst(baslangic)</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true"></a>        <span class="cf">if</span> os.path.basename(local) <span class="kw">in</span> baslangic:</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true"></a>            ftp.delete(os.path.basename(local))</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true"></a>        ftp.storbinary(<span class="st">'STOR </span><span class="sc">%s</span><span class="st">/</span><span class="sc">%s</span><span class="st">'</span> <span class="op">%</span> (baslangic, os.path.basename(local)),</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true"></a>                       <span class="bu">open</span>(local, <span class="st">'rb'</span>))</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true"></a>        sayac <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true"></a></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true"></a><span class="cf">if</span> uyar:</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true"></a>    n <span class="op">=</span> pynotify.Notification(<span class="st">&quot;Upload basladi&quot;</span>,</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true"></a>                              <span class="st">&quot;</span><span class="sc">%s</span><span class="st"> dosya ve/veya klasor&quot;</span> <span class="op">%</span> <span class="bu">len</span>(yerler))</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true"></a>    n.show()</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true"></a><span class="cf">for</span> yer <span class="kw">in</span> yerler:</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true"></a>    gonder(yer)</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true"></a><span class="cf">if</span> uyar:</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true"></a>    n <span class="op">=</span> pynotify.Notification(<span class="st">&quot;Upload bitti&quot;</span>,</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true"></a>                              <span class="st">&quot;</span><span class="sc">%s</span><span class="st"> dosya upload edildi&quot;</span> <span class="op">%</span> sayac,</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true"></a>                              <span class="st">&quot;gnome-netstatus-txrx&quot;</span>)</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true"></a>    n.show()</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true"></a>ftp.close()</span></code></pre></div>
 
 <hr />
 

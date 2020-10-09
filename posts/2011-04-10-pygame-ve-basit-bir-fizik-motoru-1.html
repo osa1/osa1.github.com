@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Pygame ve basit bir fizik motoru 1</h1>
 
-<p><strong>April 10, 2011</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/pygame.html">pygame</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>April 10, 2011</strong> - Tagged as: <a title="All pages tagged 'python'." href="../tags/python.html">python</a>, <a title="All pages tagged 'pygame'." href="../tags/pygame.html">pygame</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Hazırlıktayken Pygame ile bir süre uğraşmıştım, hiçbir zaman oynanabilir bir oyun üretemedim ama birkaç deneme ile bu işlerin zorluğunu az da olsa tecrübe etmiştim.</p>
 <p>Bugün <a href="http://www.wildbunny.co.uk/blog/2011/04/06/physics-engines-for-dummies/">şu</a> sayfayı gördüm. Basit bir fizik motoru yapımından bahsediyor. Ordaki ilk örneği zaten <a href="http://osa1.net/pygame-denemeleri-1-ve-okunacaklar/">yapmıştım</a>(yöntemim biraz farklı ama olsun). Diğerleri de çok zor gözükmedi gözüme. Sonuçta, adım adım ilerleyerek zor gibi gözüken en son örnek bile halledilebilir.</p>
@@ -29,27 +29,27 @@
 <p>Yani ekranın üst sol köşesi (0, 0) noktası, Y ekseni aşağı indikçe artıyor. Bilgiğimiz kartezyen düzlemin X eksenine göre döndürülmüş hali gibi yani. Bu tüm işleri zorlaştırıyor.</p>
 <p>Topları falan eklemeden önce, 2. örnekteki siyah çerçeveyi yapmaya başladım. Aklımdaki fikir şuydu, ekranın ortasından(orijin) mouse’u gösteren bir birim vektör yardımıyla, ona paralel ve dik doğrular çizip kaydıracaktım. Tabii ekranın ortası, üstteki şekildeki düzene göre, (150, 150) oluyor.</p>
 <p>Bu şu ana kadar alıştığımız düzenden çok farklı ve üzerinde hesap yapmak çok zor. Bunun yerine benim yapmaya çalıştığım, ekranın ortasını (0, 0) noktası alıp, işlemleri yapıp, daha sonra bir fonksiyondan geçirerek koordinatları ve vektörleri Pygame’deki düzleme uyarlamaktı. Şöyle bir fonksiyonla örneğin:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> _(v):
-    <span class="cf">return</span> v[<span class="op">^</span><span class="dv">0</span>]SCREENX<span class="op">/</span><span class="dv">2</span>, SCREENY<span class="op">/</span><span class="dv">2</span><span class="op">-</span>v[<span class="op">^</span><span class="dv">1</span>]</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">def</span> _(v):</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    <span class="cf">return</span> v[<span class="op">^</span><span class="dv">0</span>]SCREENX<span class="op">/</span><span class="dv">2</span>, SCREENY<span class="op">/</span><span class="dv">2</span><span class="op">-</span>v[<span class="op">^</span><span class="dv">1</span>]</span></code></pre></div>
 <p>Ekranın ortasını (0, 0) alarak hesapladığınız vektörü veya koordinat çiftini Pygame düzenine getiriyor. Bundan sonrası biraz daha kolay.</p>
 <p>3 adımda tamamladım, ilk başta ekranın ortasından, mouse’u gösteren birim vektörle aynı ve zıt yönlerde doğrular çizdirdim. Daha sonra birim vektöre dik yönlerde. Fakat burda dikkat edilmesi gereken şey, Pygame mouse koordinatlarını verirken kendi düzenine göre veriyor, yani kullanabilmek için önce ekranın ortasının (0, 0) olduğu düzene dönüştürmemiz gerekiyor. Şu şekilde:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python">posx <span class="op">=</span> ekran_genisligi <span class="op">/</span> <span class="dv">2</span>
-posy <span class="op">=</span> ekran_yuksekligi <span class="op">/</span> <span class="dv">2</span>
-<span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():
-        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.MOUSEMOTION:
-            r <span class="op">=</span> [event.pos[<span class="op">^</span><span class="dv">0</span>]posx, <span class="op">-</span>event.pos[<span class="op">^</span><span class="dv">1</span>]posy]</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>posx <span class="op">=</span> ekran_genisligi <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>posy <span class="op">=</span> ekran_yuksekligi <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="cf">for</span> event <span class="kw">in</span> pygame.event.get():</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>        <span class="cf">if</span> event.<span class="bu">type</span> <span class="op">==</span> pygame.MOUSEMOTION:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>            r <span class="op">=</span> [event.pos[<span class="op">^</span><span class="dv">0</span>]posx, <span class="op">-</span>event.pos[<span class="op">^</span><span class="dv">1</span>]posy]</span></code></pre></div>
 <p>Bunu şöyle bir fonksiyondan geçirerek birim vektör haline getiriyorum:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> birim_vektor(n1, n2):
-    <span class="co">&quot;&quot;&quot;</span>
-<span class="co">    n1, n2 noktalar ([x, y])</span>
-<span class="co">    iki vektor nokta arasindaki birim vektoru verir.</span>
-<span class="co">    baslangic n1, bitis n2 seklinde</span>
-<span class="co">    &quot;&quot;&quot;</span>
-    v <span class="op">=</span> [n2[<span class="op">^</span><span class="dv">0</span>]n1[<span class="op">^</span><span class="dv">0</span>] n2[<span class="op">^</span><span class="dv">1</span>]n1[<span class="op">^</span><span class="dv">1</span>]
-    uzaklik <span class="op">=</span> sqrt(v[<span class="op">^</span><span class="dv">0</span>]<span class="op">*</span><span class="dv">2</span> <span class="op">+</span> v[<span class="op">^</span><span class="dv">1</span>]<span class="op">*</span><span class="dv">2</span>)
-    v[<span class="op">^</span><span class="dv">0</span>]<span class="op">/=</span> uzaklik
-    v[<span class="op">^</span><span class="dv">1</span>]<span class="op">/=</span> uzaklik
-    <span class="cf">return</span> v</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">def</span> birim_vektor(n1, n2):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>    <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="co">    n1, n2 noktalar ([x, y])</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="co">    iki vektor nokta arasindaki birim vektoru verir.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="co">    baslangic n1, bitis n2 seklinde</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>    v <span class="op">=</span> [n2[<span class="op">^</span><span class="dv">0</span>]n1[<span class="op">^</span><span class="dv">0</span>] n2[<span class="op">^</span><span class="dv">1</span>]n1[<span class="op">^</span><span class="dv">1</span>]</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>    uzaklik <span class="op">=</span> sqrt(v[<span class="op">^</span><span class="dv">0</span>]<span class="op">*</span><span class="dv">2</span> <span class="op">+</span> v[<span class="op">^</span><span class="dv">1</span>]<span class="op">*</span><span class="dv">2</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>    v[<span class="op">^</span><span class="dv">0</span>]<span class="op">/=</span> uzaklik</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>    v[<span class="op">^</span><span class="dv">1</span>]<span class="op">/=</span> uzaklik</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>    <span class="cf">return</span> v</span></code></pre></div>
 <p>Daha sonra bu vektöre dik ve zıt yönlü vektörler elde edip(koordinatlarını değiştirerek, - ile çarparak), ne uzunlukta istiyorsam koordinatlarını çarparak çizeceğim doğrunun diğer ucunu elde ediyorum(ilk ucu ekranın ortası zaten). Şöyle birşey:</p>
 <p><img src="../images/pyg1.png" /></p>
 <p>Bundan sonra yapmam gereken, merkezden başlayarak, çizgilerin uç kısımlarına kalan olan kısmı vektör haline getirip, toplamam. Toplam vektörü bana oluşturmaya çalıştığım karenin köşelerini verecek:</p>

@@ -20,19 +20,19 @@
             <div class="inner">
                 <h1 id="post-title">Pygame ve basit bir fizik motoru 2, çarpışma tespiti ve yansıma</h1>
 
-<p><strong>April 11, 2011</strong> - Tagged as: <a href="../tags/python.html">python</a>, <a href="../tags/pygame.html">pygame</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>April 11, 2011</strong> - Tagged as: <a title="All pages tagged 'python'." href="../tags/python.html">python</a>, <a title="All pages tagged 'pygame'." href="../tags/pygame.html">pygame</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Geçen yazıda <a href="http://www.wildbunny.co.uk/blog/2011/04/06/physics-engines-for-dummies/">şurdaki</a> örnekleri Pygame’de yazmaya çalıştığımdan bahsetmiştim ve ilk örnek için mouse pozisyonuna göre yönü ayarlanabilen bir çerçeve çizmek için birkaç bilgi vermiştim(kaynaklar github’da).</p>
 <p>Bugün çarpışma tespiti ve yansımaları da hallettim. Çarpışma tespiti için çok fazla yöntem var, ben Stack Overflow’da gördüğüm <a href="http://stackoverflow.com/questions/1073336/circle-line-collision-detection">şu yazıdakilerden</a> birinden esinlendim.</p>
 <p>Yaptığım şey kısaca şu:</p>
 <p>vm1, çarpacak cismimizin merkezinden, 1. yüzeyin merkezine vektör olsun. m1b, 1. yüzeyin merkezinden düzlem merkezini gösteren birim vektör olsun vm1’in m1b izdüşümü(<a href="http://en.wikipedia.org/wiki/Vector_projection">projection</a>) yeterince küçükse(örneğin cisim topsa, yarıçapından küçükse), çarpışacaklar demektir.</p>
 <p>Kendi yazdığım Vector sınıfıyla beraber kod şöyle birşey oluyor:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span class="cf">if</span> <span class="bu">abs</span>((m1b<span class="op">*</span>vm1.dot_product(m1b)).length) <span class="op">&lt;</span> <span class="dv">5</span>:
-        <span class="co"># carpisma!</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="cf">if</span> <span class="bu">abs</span>((m1b<span class="op">*</span>vm1.dot_product(m1b)).length) <span class="op">&lt;</span> <span class="dv">5</span>:</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>        <span class="co"># carpisma!</span></span></code></pre></div>
 <p>Bu yöntemi başka bir yöntemden esinlenerek kendim ürettiğimden, pek sağlıklı olmayabilir. Bu uygulama için gayet güzel çalışıyor ama. Zaten çarptıracağınız yüzeye ve çarpan cisme göre farklı algoritmalar daha mantıklı oluyor.</p>
 <p>Yansıma için de <a href="http://pfirth.co.uk/Reflection.html">reflection vector</a> kullandım. Şöyle birşey:</p>
 <p>R = V - 2<em>N</em>(V DOT N) . Bizim şartlar altında, R yansıyan hız vektörü, V gelen hız, N de yüzeyin normal vektörü. Yine kendi yazdığım Vector sınıfımla beraber şöyle birşey yani:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python">ref_v <span class="op">=</span> v_hiz <span class="op">-</span> m1b<span class="op">*</span><span class="dv">2</span><span class="op">*</span>(v_hiz.dot_product(m1b))</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>ref_v <span class="op">=</span> v_hiz <span class="op">-</span> m1b<span class="op">*</span><span class="dv">2</span><span class="op">*</span>(v_hiz.dot_product(m1b))</span></code></pre></div>
 <p>Programdaki küçük(ya da bir daha düşündüm de, büyük) hata ise, toplar yüzeylere çarpmak üzereyken yüzeyleri hareket ettirirseniz, toplar alandan dışarı çıkıyorlar. Ekranın dışına çıktıklarında diğer taraftan tekrar girmelerini sağladığımdan, tekrardan alan içerisine alabiliyorum, ehaeuhe. Neden olduğu hakkında az da olsa fikrim var, bir şekilde çözeceğiz artık.</p>
 <p><img src="../images/collision.png" /></p>
 <p>Bundan sonra 3. örnek, zıplayan toplar var. Önce topların alandan dışarı çıkmasını engellemeye çalışacağım sanırım.</p>

@@ -20,49 +20,49 @@
             <div class="inner">
                 <h1 id="post-title">Getting different distributions out of uniform distribution</h1>
 
-<p><strong>December 19, 2012</strong> - Tagged as: <a href="../tags/lua.html">lua</a>, <a href="../tags/en.html">en</a>.</p>
+<p><strong>December 19, 2012</strong> - Tagged as: <a title="All pages tagged 'lua'." href="../tags/lua.html">lua</a>, <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
 
 <p>I don’t know much about statistics and distributions, but I needed some differently distributed pseudo-random numbers for a project I’m working on.</p>
 <p>I think most programming languages have a pseudo-random number generator, and that generators probably generate <a href="http://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">uniformly-distributed</a> pseudo-randoms. I’m using Lua and Lua’s <a href="http://www.lua.org/manual/5.2/manual.html#pdf-math.random">math.random</a> generates pretty much uniformly distributed numbers:</p>
 <p><img src="../images/distroyazi/uniformdistro.png" /></p>
 <p>It’s written in Lua’s manual(link is given above) that it’s statistical properties cannot be guaranteed. It still works fine for my purposes as a uniformly distributed number generator.</p>
-<p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
+<p>If you’re working with <a href="http://processing.org/">Processing</a> or some other visualization libraries, you probably also have uniformly-distributed generator<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> in stdlib. But if you’re like me, you have to hack yourself one. I found a method called <a href="http://en.wikipedia.org/wiki/Box-Muller_transform">Box-Muller transform</a> that generates normally-distributed numbers out of uniformly-distributed ones.</p>
 <p>I also read some discussions on why one shouldn’t use that, and instead move to other methods like <a href="http://en.wikipedia.org/wiki/Ziggurat_algorithm">Ziggurat algorithm</a>(and some other I can’t remember now), but I think Box-Muller method is easy to implement and works fine for my purposes, so I’m using it now:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> box_muller<span class="op">()</span>
-    <span class="cf">return</span> <span class="fu">math.sqrt</span><span class="op">(-</span><span class="dv">2</span> <span class="op">*</span> <span class="fu">math.log</span><span class="op">(</span><span class="fu">math.random</span><span class="op">()))</span> <span class="op">*</span> <span class="fu">math.cos</span><span class="op">(</span><span class="dv">2</span> <span class="op">*</span> <span class="va">math.pi</span> <span class="op">*</span> <span class="fu">math.random</span><span class="op">())</span> <span class="op">/</span> <span class="dv">2</span>
-<span class="cf">end</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">function</span> box_muller<span class="op">()</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>    <span class="cf">return</span> <span class="fu">math.sqrt</span><span class="op">(-</span><span class="dv">2</span> <span class="op">*</span> <span class="fu">math.log</span><span class="op">(</span><span class="fu">math.random</span><span class="op">()))</span> <span class="op">*</span> <span class="fu">math.cos</span><span class="op">(</span><span class="dv">2</span> <span class="op">*</span> <span class="va">math.pi</span> <span class="op">*</span> <span class="fu">math.random</span><span class="op">())</span> <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
 <p>This function returns numbers in range [-1,1]. I’m using it with some code like that:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">local</span> dev <span class="op">=</span> <span class="dv">100</span>
-<span class="kw">local</span> rand <span class="op">=</span> box_muller<span class="op">()</span>
-<span class="cf">return</span> <span class="fu">math.floor</span><span class="op">(</span>rand <span class="op">*</span> dev <span class="op">+</span> myLimit<span class="op">/</span><span class="dv">2</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">local</span> dev <span class="op">=</span> <span class="dv">100</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="kw">local</span> rand <span class="op">=</span> box_muller<span class="op">()</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="cf">return</span> <span class="fu">math.floor</span><span class="op">(</span>rand <span class="op">*</span> dev <span class="op">+</span> myLimit<span class="op">/</span><span class="dv">2</span><span class="op">)</span></span></code></pre></div>
 <p>Here the variable <code>dev</code> stands for <a href="http://en.wikipedia.org/wiki/Standard_deviation">standard deviation</a>, though note that it’s value is not <em>standard deviation</em>, but just a value to play with to set standard deviation. I don’t know how can I set standard deviation with Box-Muller method. By playing this value you can get distributions with different standard deviations.</p>
 <p><img src="../images/distroyazi/normaldistro.png" /></p>
 <p>I also generated two custom distributions, I don’t know if people gave them any special names, first one is this:</p>
 <p><img src="../images/distroyazi/customdistro.png" /></p>
 <p>I think this is a very useful one, this means that if I give some <em>actions</em> in my game different numbers depending on their <em>priority</em> and use this random number generator, I get numbers of actions with more priority more than the ones with less priority. Here’s the code:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="op">()</span>
-    <span class="cf">while</span> <span class="kw">true</span> <span class="cf">do</span>
-        <span class="kw">local</span> r1 <span class="op">=</span> <span class="fu">math.random</span><span class="op">(</span>range<span class="op">)</span>
-        <span class="kw">local</span> r2 <span class="op">=</span> <span class="fu">math.random</span><span class="op">(</span>range<span class="op">)</span>
-        <span class="cf">if</span> <span class="op">(</span>r2 <span class="op">&lt;</span> r1<span class="op">)</span> <span class="cf">then</span>
-            <span class="cf">return</span> r1
-        <span class="cf">end</span>
-    <span class="cf">end</span>
-<span class="cf">end</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">function</span> <span class="op">()</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>    <span class="cf">while</span> <span class="kw">true</span> <span class="cf">do</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>        <span class="kw">local</span> r1 <span class="op">=</span> <span class="fu">math.random</span><span class="op">(</span>range<span class="op">)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>        <span class="kw">local</span> r2 <span class="op">=</span> <span class="fu">math.random</span><span class="op">(</span>range<span class="op">)</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>        <span class="cf">if</span> <span class="op">(</span>r2 <span class="op">&lt;</span> r1<span class="op">)</span> <span class="cf">then</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>            <span class="cf">return</span> r1</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>        <span class="cf">end</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>    <span class="cf">end</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
 <p>Last one is similar:</p>
 <p><img src="../images/distroyazi/customdistro2.png" /></p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> <span class="op">()</span>
-    <span class="kw">local</span> rate <span class="op">=</span> <span class="dv">3</span>
-    <span class="kw">local</span> r <span class="op">=</span> <span class="fu">math.random</span><span class="op">(</span><span class="dv">500</span><span class="op">^</span>rate<span class="op">)</span>
-    <span class="fu">print</span><span class="op">(</span>r<span class="op">)</span>
-    <span class="cf">return</span> <span class="fu">math.floor</span><span class="op">(</span>r<span class="op">^(</span><span class="dv">1</span><span class="op">/</span>rate<span class="op">))</span>
-<span class="cf">end</span></code></pre></div>
-<p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>.</p>
-<section class="footnotes">
+<div class="sourceCode" id="cb4"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">function</span> <span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>    <span class="kw">local</span> rate <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>    <span class="kw">local</span> r <span class="op">=</span> <span class="fu">math.random</span><span class="op">(</span><span class="dv">500</span><span class="op">^</span>rate<span class="op">)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>    <span class="fu">print</span><span class="op">(</span>r<span class="op">)</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>    <span class="cf">return</span> <span class="fu">math.floor</span><span class="op">(</span>r<span class="op">^(</span><span class="dv">1</span><span class="op">/</span>rate<span class="op">))</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
+<p>In this code, if you make <code>rate</code> variable 2, you get pretty much same distribution with the last one above. In my case, for some reason, making it 4 gives a value that doesn’t fit into 32bit, and so <code>math.random</code> call fails. When I tried with Lua 5.2 compiled by myself on my 64bit machine, <code>math.random</code> works fine with 64bit values, so I think it’s a problem with the app I’m using<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>and you may even have a <a href="http://en.wikipedia.org/wiki/Perlin_noise">Perlin noise</a> <a href="http://processing.org/reference/noise_.html">generator</a> too!<a href="#fnref1" class="footnote-back">↩</a></p></li>
-<li id="fn2"><p>For those interested: It’s <a href="http://love2d.org">Love2d</a>. Recently(while working on this code) I realized that Love2d is not a Lua library, but a complete C++ program that has Lua interpreter. In most cases you can’t see the difference but there are some edge cases like I mentioned above that makes your program runs fine with Lua, but fails with Love2d programs.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>and you may even have a <a href="http://en.wikipedia.org/wiki/Perlin_noise">Perlin noise</a> <a href="http://processing.org/reference/noise_.html">generator</a> too!<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>For those interested: It’s <a href="http://love2d.org">Love2d</a>. Recently(while working on this code) I realized that Love2d is not a Lua library, but a complete C++ program that has Lua interpreter. In most cases you can’t see the difference but there are some edge cases like I mentioned above that makes your program runs fine with Lua, but fails with Love2d programs.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

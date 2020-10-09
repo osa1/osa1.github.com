@@ -20,153 +20,153 @@
             <div class="inner">
                 <h1 id="post-title">Go channel examples ported to Haskell</h1>
 
-<p><strong>April  8, 2013</strong> - Tagged as: <a href="../tags/haskell.html">haskell</a>, <a href="../tags/en.html">en</a>.</p>
+<p><strong>April  8, 2013</strong> - Tagged as: <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>, <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
 
 <p>I’ve been skimming over <a href="http://tour.golang.org/">gotour</a> recently. I think it’s great introduction to language; it’s short, but concise and it shows some of the interesting features of language.</p>
 <p>Last part of the tour is about goroutines and channels. My concurrent programming experience is very limited, and since Haskell is my favorite language, I decided to port goroutine examples to Haskell as a learning exercise.</p>
 <p>Any criticism would be appreciated.</p>
 <h3 id="goroutines"><a href="http://tour.golang.org/#62">62 - Goroutines</a></h3>
 <p>This is a very basic example of a program creating two threads and printing some strings.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-<span class="kw">import</span> <span class="dt">Control.Concurrent</span>
-<span class="kw">import</span> <span class="dt">Control.Monad</span>
-
-<span class="ot">say ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-say s <span class="fu">=</span> forM_ [<span class="dv">1</span><span class="fu">..</span><span class="dv">5</span>] <span class="fu">$</span> \ _ <span class="ot">-&gt;</span> <span class="kw">do</span>
-  threadDelay <span class="dv">100000</span>
-  <span class="fu">putStrLn</span> s
-
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-  forkIO <span class="fu">$</span> say <span class="st">&quot;world&quot;</span>
-  say <span class="st">&quot;hello&quot;</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Concurrent</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Monad</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="ot">say ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>say s <span class="ot">=</span> forM_ [<span class="dv">1</span><span class="op">..</span><span class="dv">5</span>] <span class="op">$</span> \ _ <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>  threadDelay <span class="dv">100000</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>  <span class="fu">putStrLn</span> s</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>  forkIO <span class="op">$</span> say <span class="st">&quot;world&quot;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>  say <span class="st">&quot;hello&quot;</span></span></code></pre></div>
 <h3 id="channels"><a href="http://tour.golang.org/#63">63 - Channels</a></h3>
 <p>Simple channels example</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-<span class="kw">import</span> <span class="dt">Control.Concurrent</span>
-
-<span class="ot">sum' ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Chan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-sum' ints chan <span class="fu">=</span> writeChan chan (<span class="fu">sum</span> ints)
-<span class="co">-- alternative, `pointfree` style: </span>
-<span class="co">-- sum' = flip writeChan . sum</span>
-
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-  <span class="kw">let</span> lst <span class="fu">=</span> [<span class="dv">7</span>, <span class="dv">2</span>, <span class="dv">8</span>, <span class="fu">-</span><span class="dv">9</span>, <span class="dv">4</span>, <span class="dv">0</span>]
-  chan <span class="ot">&lt;-</span> newChan
-  <span class="kw">let</span> (l1, l2) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">floor</span> <span class="fu">$</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> lst) <span class="fu">/</span> <span class="dv">2</span>) lst
-  forkIO <span class="fu">$</span> sum' l1 chan
-  forkIO <span class="fu">$</span> sum' l2 chan
-  x <span class="ot">&lt;-</span> readChan chan
-  y <span class="ot">&lt;-</span> readChan chan
-  <span class="fu">putStrLn</span> <span class="fu">$</span> <span class="fu">unwords</span> [ <span class="fu">show</span> x, <span class="fu">show</span> y, <span class="fu">show</span> <span class="fu">$</span> x <span class="fu">+</span> y ]</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Concurrent</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a><span class="ot">sum' ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Chan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>sum' ints chan <span class="ot">=</span> writeChan chan (<span class="fu">sum</span> ints)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a><span class="co">-- alternative, `pointfree` style: </span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a><span class="co">-- sum' = flip writeChan . sum</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>  <span class="kw">let</span> lst <span class="ot">=</span> [<span class="dv">7</span>, <span class="dv">2</span>, <span class="dv">8</span>, <span class="op">-</span><span class="dv">9</span>, <span class="dv">4</span>, <span class="dv">0</span>]</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>  chan <span class="ot">&lt;-</span> newChan</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>  <span class="kw">let</span> (l1, l2) <span class="ot">=</span> <span class="fu">splitAt</span> (<span class="fu">floor</span> <span class="op">$</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> lst) <span class="op">/</span> <span class="dv">2</span>) lst</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a>  forkIO <span class="op">$</span> sum' l1 chan</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>  forkIO <span class="op">$</span> sum' l2 chan</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a>  x <span class="ot">&lt;-</span> readChan chan</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a>  y <span class="ot">&lt;-</span> readChan chan</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a>  <span class="fu">putStrLn</span> <span class="op">$</span> <span class="fu">unwords</span> [ <span class="fu">show</span> x, <span class="fu">show</span> y, <span class="fu">show</span> <span class="op">$</span> x <span class="op">+</span> y ]</span></code></pre></div>
 <h3 id="buffered-channels"><a href="http://tour.golang.org/#64">64 - Buffered Channels</a></h3>
 <p>This is where porting started getting tricky. Haskell channels are basically linked lists, and do not have length or size. In order to get a similar effect, I created a new channel type:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span>
-<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-<span class="kw">import</span> <span class="dt">Control.Concurrent</span>
-
-<span class="co">-- Buffered chan</span>
-<span class="kw">data</span> <span class="dt">BChan</span> a <span class="fu">=</span> <span class="dt">BChan</span> {<span class="ot"> chan ::</span> <span class="dt">Chan</span> a,<span class="ot"> size ::</span> <span class="dt">MVar</span> <span class="dt">Int</span>,<span class="ot"> limit ::</span> <span class="dt">Int</span> }
-
-<span class="ot">newBChan ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">BChan</span> a)
-newBChan bufsize <span class="fu">=</span> <span class="kw">do</span>
-  chan <span class="ot">&lt;-</span> newChan
-  bvar <span class="ot">&lt;-</span> newMVar <span class="dv">0</span>
-  <span class="fu">return</span> <span class="dt">BChan</span>{chan<span class="fu">=</span>chan, size<span class="fu">=</span>bvar, limit<span class="fu">=</span>bufsize}
-
-<span class="ot">readBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
-readBChan <span class="dt">BChan</span>{chan, size, limit} <span class="fu">=</span> <span class="kw">do</span>
-  ret <span class="ot">&lt;-</span> readChan chan
-  modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">-</span><span class="dv">1</span>)
-  <span class="fu">return</span> ret
-
-<span class="ot">writeBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-writeBChan bchan<span class="fu">@</span><span class="dt">BChan</span>{chan, size, limit} val <span class="fu">=</span> <span class="kw">do</span>
-  size' <span class="ot">&lt;-</span> readMVar size
-  <span class="kw">if</span> size' <span class="fu">==</span> limit
-    <span class="kw">then</span> <span class="kw">do</span>
-      threadDelay <span class="dv">100000</span>
-      writeBChan bchan val
-    <span class="kw">else</span> <span class="kw">do</span>
-      modifyMVar_ size <span class="fu">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="fu">+</span><span class="dv">1</span>)
-      writeChan chan val
-
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-  chan <span class="ot">&lt;-</span> newBChan <span class="dv">2</span>
-  writeBChan chan <span class="dv">1</span>
-  writeBChan chan <span class="dv">2</span>
-
-  v1 <span class="ot">&lt;-</span> readBChan chan
-  <span class="fu">print</span> v1
-
-  v2 <span class="ot">&lt;-</span> readBChan chan
-  <span class="fu">print</span> v2</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Concurrent</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="co">-- Buffered chan</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">BChan</span> a <span class="ot">=</span> <span class="dt">BChan</span> {<span class="ot"> chan ::</span> <span class="dt">Chan</span> a,<span class="ot"> size ::</span> <span class="dt">MVar</span> <span class="dt">Int</span>,<span class="ot"> limit ::</span> <span class="dt">Int</span> }</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="ot">newBChan ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">BChan</span> a)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>newBChan bufsize <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>  chan <span class="ot">&lt;-</span> newChan</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>  bvar <span class="ot">&lt;-</span> newMVar <span class="dv">0</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a>  <span class="fu">return</span> <span class="dt">BChan</span>{chan<span class="ot">=</span>chan, size<span class="ot">=</span>bvar, limit<span class="ot">=</span>bufsize}</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a><span class="ot">readBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a>readBChan <span class="dt">BChan</span>{chan, size, limit} <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a>  ret <span class="ot">&lt;-</span> readChan chan</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a>  modifyMVar_ size <span class="op">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a>  <span class="fu">return</span> ret</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a><span class="ot">writeBChan ::</span> <span class="dt">BChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a>writeBChan bchan<span class="op">@</span><span class="dt">BChan</span>{chan, size, limit} val <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a>  size' <span class="ot">&lt;-</span> readMVar size</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a>  <span class="kw">if</span> size' <span class="op">==</span> limit</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a>    <span class="kw">then</span> <span class="kw">do</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true"></a>      threadDelay <span class="dv">100000</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true"></a>      writeBChan bchan val</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true"></a>    <span class="kw">else</span> <span class="kw">do</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true"></a>      modifyMVar_ size <span class="op">$</span> \i <span class="ot">-&gt;</span> <span class="fu">return</span> (i<span class="op">+</span><span class="dv">1</span>)</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true"></a>      writeChan chan val</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true"></a></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true"></a>  chan <span class="ot">&lt;-</span> newBChan <span class="dv">2</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true"></a>  writeBChan chan <span class="dv">1</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true"></a>  writeBChan chan <span class="dv">2</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true"></a></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true"></a>  v1 <span class="ot">&lt;-</span> readBChan chan</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true"></a>  <span class="fu">print</span> v1</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true"></a></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true"></a>  v2 <span class="ot">&lt;-</span> readBChan chan</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true"></a>  <span class="fu">print</span> v2</span></code></pre></div>
 <p>Here one difference is that Haskell doesn’t fail with a “deadlock!!” error when an extra <code>writeBChan</code> operation is added(or one of them is removed), but just waits forever(like in a <em>real</em> deadlock :-P ). I wonder whether there is a way to get an exception like that, it’s awesome.</p>
 <h3 id="range-and-close"><a href="http://tour.golang.org/#65">65 - Range and Close</a></h3>
 <p>Same as above, Haskell channels are not working like Go channels. I had to simulate Go channels’ behavior.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NamedFieldPuns, MultiWayIf #-}</span>
-<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
-
-<span class="kw">import</span> <span class="dt">Control.Concurrent</span>
-<span class="kw">import</span> <span class="dt">Control.Monad</span> (liftM)
-
-<span class="co">-- Closable channel</span>
-<span class="kw">data</span> <span class="dt">CChan</span> a <span class="fu">=</span> <span class="dt">CChan</span> (<span class="dt">MVar</span> ([a], <span class="dt">Int</span>, <span class="dt">Bool</span>))
-
-<span class="ot">newCChan ::</span> <span class="dt">IO</span> (<span class="dt">CChan</span> a)
-newCChan <span class="fu">=</span> liftM <span class="dt">CChan</span> (newMVar ([], <span class="dv">0</span>, <span class="dt">False</span>))
-
-<span class="ot">readCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Maybe</span> a)
-readCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span> <span class="kw">do</span>
-  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
-  <span class="kw">if</span> <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="fu">&amp;&amp;</span> <span class="fu">not</span> closed <span class="ot">-&gt;</span> <span class="kw">do</span>
-         putMVar mvar (contents, size, closed)
-         readCChan (<span class="dt">CChan</span> mvar)
-     <span class="fu">|</span> size <span class="fu">==</span> <span class="dv">0</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
-         putMVar mvar (contents, size, closed)
-         <span class="fu">return</span> <span class="dt">Nothing</span>
-     <span class="fu">|</span> <span class="fu">otherwise</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
-         <span class="kw">let</span> r <span class="fu">=</span> <span class="fu">head</span> contents
-         putMVar mvar (<span class="fu">tail</span> contents, size<span class="fu">-</span><span class="dv">1</span>, closed)
-         <span class="fu">return</span> <span class="fu">$</span> <span class="dt">Just</span> r
-
-<span class="ot">writeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-writeCChan (<span class="dt">CChan</span> mvar) val <span class="fu">=</span> <span class="kw">do</span>
-  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar
-  <span class="kw">if</span> closed
-    <span class="kw">then</span> <span class="fu">error</span> <span class="st">&quot;writing to a closed chan&quot;</span>
-    <span class="kw">else</span> putMVar mvar (val <span class="fu">:</span> contents, size<span class="fu">+</span><span class="dv">1</span>, closed)
-
-<span class="ot">forChan_ ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-forChan_ cchan f <span class="fu">=</span> <span class="kw">do</span>
-  v <span class="ot">&lt;-</span> readCChan cchan
-  <span class="kw">case</span> v <span class="kw">of</span>
-    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">return</span> ()
-    <span class="dt">Just</span> v' <span class="ot">-&gt;</span> f v' <span class="fu">&gt;&gt;</span> forChan_ cchan f
-
-<span class="ot">closeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-closeCChan (<span class="dt">CChan</span> mvar) <span class="fu">=</span>
-    modifyMVar_ mvar <span class="fu">$</span> \(contents, size, closed) <span class="ot">-&gt;</span> <span class="fu">return</span> (contents, size, <span class="dt">True</span>)
-
-<span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">CChan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-fib i chan <span class="fu">=</span> <span class="kw">do</span>
-    iter i <span class="dv">0</span> <span class="dv">1</span>
-    closeCChan chan
-  <span class="kw">where</span> iter <span class="dv">1</span> x y <span class="fu">=</span> writeCChan chan x
-        iter n x y <span class="fu">=</span> <span class="kw">do</span>
-          writeCChan chan x
-          iter (n<span class="fu">-</span><span class="dv">1</span>) y (x<span class="fu">+</span>y)
-
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-  chan <span class="ot">&lt;-</span> newCChan
-  forkIO <span class="fu">$</span> fib <span class="dv">10</span> chan
-  forChan_ chan <span class="fu">print</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE NamedFieldPuns, MultiWayIf #-}</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Concurrent</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Monad</span> (liftM)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a><span class="co">-- Closable channel</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">CChan</span> a <span class="ot">=</span> <span class="dt">CChan</span> (<span class="dt">MVar</span> ([a], <span class="dt">Int</span>, <span class="dt">Bool</span>))</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a><span class="ot">newCChan ::</span> <span class="dt">IO</span> (<span class="dt">CChan</span> a)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>newCChan <span class="ot">=</span> liftM <span class="dt">CChan</span> (newMVar ([], <span class="dv">0</span>, <span class="dt">False</span>))</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a><span class="ot">readCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Maybe</span> a)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>readCChan (<span class="dt">CChan</span> mvar) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a>  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a>  <span class="kw">if</span> <span class="op">|</span> size <span class="op">==</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> <span class="fu">not</span> closed <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true"></a>         putMVar mvar (contents, size, closed)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true"></a>         readCChan (<span class="dt">CChan</span> mvar)</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true"></a>     <span class="op">|</span> size <span class="op">==</span> <span class="dv">0</span> <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true"></a>         putMVar mvar (contents, size, closed)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true"></a>         <span class="fu">return</span> <span class="dt">Nothing</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true"></a>     <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true"></a>         <span class="kw">let</span> r <span class="ot">=</span> <span class="fu">head</span> contents</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true"></a>         putMVar mvar (<span class="fu">tail</span> contents, size<span class="op">-</span><span class="dv">1</span>, closed)</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true"></a>         <span class="fu">return</span> <span class="op">$</span> <span class="dt">Just</span> r</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true"></a></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true"></a><span class="ot">writeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true"></a>writeCChan (<span class="dt">CChan</span> mvar) val <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true"></a>  (contents, size, closed) <span class="ot">&lt;-</span> takeMVar mvar</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true"></a>  <span class="kw">if</span> closed</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true"></a>    <span class="kw">then</span> <span class="fu">error</span> <span class="st">&quot;writing to a closed chan&quot;</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true"></a>    <span class="kw">else</span> putMVar mvar (val <span class="op">:</span> contents, size<span class="op">+</span><span class="dv">1</span>, closed)</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true"></a></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true"></a><span class="ot">forChan_ ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true"></a>forChan_ cchan f <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true"></a>  v <span class="ot">&lt;-</span> readCChan cchan</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true"></a>  <span class="kw">case</span> v <span class="kw">of</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true"></a>    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">return</span> ()</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true"></a>    <span class="dt">Just</span> v' <span class="ot">-&gt;</span> f v' <span class="op">&gt;&gt;</span> forChan_ cchan f</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true"></a></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true"></a><span class="ot">closeCChan ::</span> <span class="dt">CChan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true"></a>closeCChan (<span class="dt">CChan</span> mvar) <span class="ot">=</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true"></a>    modifyMVar_ mvar <span class="op">$</span> \(contents, size, closed) <span class="ot">-&gt;</span> <span class="fu">return</span> (contents, size, <span class="dt">True</span>)</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true"></a></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true"></a><span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">CChan</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true"></a>fib i chan <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true"></a>    iter i <span class="dv">0</span> <span class="dv">1</span></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true"></a>    closeCChan chan</span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true"></a>  <span class="kw">where</span> iter <span class="dv">1</span> x y <span class="ot">=</span> writeCChan chan x</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true"></a>        iter n x y <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true"></a>          writeCChan chan x</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true"></a>          iter (n<span class="op">-</span><span class="dv">1</span>) y (x<span class="op">+</span>y)</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true"></a></span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true"></a>  chan <span class="ot">&lt;-</span> newCChan</span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true"></a>  forkIO <span class="op">$</span> fib <span class="dv">10</span> chan</span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true"></a>  forChan_ chan <span class="fu">print</span></span></code></pre></div>
 <p>This example still doesn’t quite work like Go code. This is because I used a stack instead of a queue. It should be trivial to fix this code though.</p>
 <h3 id="select-and-67---default-selection"><a href="http://tour.golang.org/#66">66 - Select</a> and <a href="http://tour.golang.org/#67">67 - Default Selection</a></h3>
 <p>Now this is hard. In 66, example program listens multiple channels, and runs some code when any of the channels is ready. If multiple channels are ready at the same time, one of them is chosen randomly. 67 is similar, only difference is when none of the channels are ready, some default action is taken.</p>

@@ -20,7 +20,7 @@
             <div class="inner">
                 <h1 id="post-title">Loading dynamic Haskell libs in Lua</h1>
 
-<p><strong>January 16, 2015</strong> - Tagged as: <a href="../tags/en.html">en</a>, <a href="../tags/haskell.html">haskell</a>, <a href="../tags/lua.html">lua</a>, <a href="../tags/hslua.html">hslua</a>.</p>
+<p><strong>January 16, 2015</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>, <a title="All pages tagged 'lua'." href="../tags/lua.html">lua</a>, <a title="All pages tagged 'hslua'." href="../tags/hslua.html">hslua</a>.</p>
 
 <p>Last year I wrote <a href="http://osa1.net/posts/2014-04-27-calling-haskell-lua.html">a blog post</a> in which I explained how to call Lua from Haskell and Haskell from Lua using <a href="http://hackage.haskell.org/package/hslua">hslua</a> library. At the end of that blog post I mentioned that it should be possible to compile Haskell code to shared library and load that in Lua.</p>
 <p>Today a friend in our research group <a href="https://github.com/iu-parfunc">parfunc</a> asked a question about compiling Haskell to shared libraries and loading generated libraries in other programs and I thought while I’m at it I can just update my blog post as well. So in this post I’m going to explain how to compile Haskell functions to shared libraries and load them in Lua.</p>
@@ -35,21 +35,21 @@
 <p>Let’s start.</p>
 <h2 id="defining-lua-function-in-haskell">Defining Lua function in Haskell</h2>
 <p>This is exactly the same as before: We just define a function with type: <code>LuaState -&gt; IO Int</code>. To keep the code simple, we don’t do error handling at all.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span>
-
-<span class="kw">import</span> <span class="dt">Data.Maybe</span>
-<span class="kw">import</span> <span class="dt">Scripting.Lua</span> <span class="co">-- this one from hslua</span>
-
-foreign export ccall
-<span class="ot">  add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-
-<span class="ot">add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-add l <span class="fu">=</span> <span class="kw">do</span>
-  i1 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">1</span>
-  i2 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">2</span>
-  pop l <span class="dv">2</span>
-  push l (i1 <span class="fu">+</span><span class="ot"> i2 ::</span> <span class="dt">Int</span>)
-  <span class="fu">return</span> <span class="dv">1</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">LibArith</span> <span class="kw">where</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Maybe</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Scripting.Lua</span> <span class="co">-- this one from hslua</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>foreign export ccall</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="ot">  add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a><span class="ot">add ::</span> <span class="dt">LuaState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>add l <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>  i1 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">1</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>  i2 <span class="ot">&lt;-</span> fromJust <span class="ot">`fmap`</span> peek l <span class="dv">2</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>  pop l <span class="dv">2</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a>  push l (i1 <span class="op">+</span><span class="ot"> i2 ::</span> <span class="dt">Int</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>  <span class="fu">return</span> <span class="dv">1</span></span></code></pre></div>
 <h2 id="implementing-intermediate-c">Implementing intermediate C</h2>
 <p>In our C glue code, we do two things:</p>
 <ol type="1">
@@ -57,31 +57,31 @@ add l <span class="fu">=</span> <span class="kw">do</span>
 <li>Implement Lua C module interface in which we register our functions to Lua. (see <a href="http://www.lua.org/manual/5.1/manual.html#pdf-package.loaders">related docs</a> for details)</li>
 </ol>
 <p>Here’s the code:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;LibArith_stub.h&quot;</span>
-<span class="pp">#include </span><span class="im">&quot;lua.h&quot;</span>
-
-<span class="dt">int</span> hs_init_lua(lua_State *L)
-{
-  hs_init(NULL, NULL);
-  <span class="cf">return</span> <span class="dv">0</span>;
-}
-
-<span class="dt">int</span> hs_exit_lua(lua_State *L)
-{
-  hs_exit();
-  <span class="cf">return</span> <span class="dv">0</span>;
-}
-
-<span class="dt">int</span> luaopen_lualibhelper(lua_State *L)
-{
-  lua_pushcfunction(L, add);
-  lua_setglobal(L, <span class="st">&quot;add_in_haskell&quot;</span>);
-  lua_pushcfunction(L, hs_init_lua);
-  lua_setglobal(L, <span class="st">&quot;hs_init&quot;</span>);
-  lua_pushcfunction(L, hs_exit_lua);
-  lua_setglobal(L, <span class="st">&quot;hs_exit&quot;</span>);
-  <span class="cf">return</span> <span class="dv">0</span>;
-}</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;LibArith_stub.h&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;lua.h&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="dt">int</span> hs_init_lua(lua_State *L)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>{</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>  hs_init(NULL, NULL);</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>  <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>}</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a><span class="dt">int</span> hs_exit_lua(lua_State *L)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>{</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>  hs_exit();</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>  <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>}</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a><span class="dt">int</span> luaopen_lualibhelper(lua_State *L)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a>{</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a>  lua_pushcfunction(L, add);</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a>  lua_setglobal(L, <span class="st">&quot;add_in_haskell&quot;</span>);</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true"></a>  lua_pushcfunction(L, hs_init_lua);</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true"></a>  lua_setglobal(L, <span class="st">&quot;hs_init&quot;</span>);</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true"></a>  lua_pushcfunction(L, hs_exit_lua);</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true"></a>  lua_setglobal(L, <span class="st">&quot;hs_exit&quot;</span>);</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true"></a>  <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true"></a>}</span></code></pre></div>
 <p>Some things to note:</p>
 <ul>
 <li><code>LibArith_stub.h</code> is generated by GHC. I’ll explain how to compile and link next.</li>

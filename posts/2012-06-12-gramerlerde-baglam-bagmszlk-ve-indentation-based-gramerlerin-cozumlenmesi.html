@@ -20,14 +20,14 @@
             <div class="inner">
                 <h1 id="post-title">Gramerlerde bağlam bağımsızlık ve indentation-based gramerlerin çözümlenmesi</h1>
 
-<p><strong>June 12, 2012</strong> - Tagged as: <a href="../tags/haskell.html">haskell</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>June 12, 2012</strong> - Tagged as: <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>(Yazıda terimleri Türkçe kullanmaya çalıştım, bağlam bağımsız = context-free, çözümleme = parsing, indentation-based ve lexing/lexer için güzel bir Türkçe karşılık bulamadım, önerilere açığım.)</p>
 <p>Indentation-based gramerlerin çözümlenmesi her zamankinden biraz daha zor. Sebebi bunların aslında bağlam bağımsız(bu kelime grubu bana çok anlamsız geliyor, context-free yani) olmaması. Birazdan bunun ne anlama geldiğinden bahsedeceğim. <code>lex</code> programının Haskell karşılığı olan Alex için kod örnekleri vereceğim. Şu anda elimde çalışan bir derleyici olsa da, kaynak kodunu açmam için epey bir vakit var sanırım.</p>
 <p>Çoğu ayrıştırıcı kütüphane/programlar aslında bağlam bağımsız gramerlerin bazı alt kümelerini ayrıştırabiliyor(yeterince esnek olanlarıyla bağlam bağımsız olmayan bazı örnekleri de çözümleyebiliyorsunuz, örneğin çözümleme aşamasında bazı durum değişkenleri tutarak). Örneğin aşağıdan yukarı(bottom-up) veya yukarıdan aşağı(top-down) bir yol izlemelerine göre, LL(n), LR(n), LALR, SLR, PEG(packrat çözümleyiciler) gibi. Genel olarak tüm bağlam bağımsız gramerleri(BNF şeklinde gösterilebildikleri sürece, ve tüm bağlam bağımsız gramerler BNF formunda gösterilebiliyorlar) çözümleyebilen algoritmalar olsa da(örneğin CYK, Unger algoritmaları), bu yöntemler zaman ve bazen bellek kullanımı açısından verimsiz olduklarındaın ve aslında programlama dilleri gramerlerinde çoğu zaman bağlam bağımsız gramerlerin bazı özelliklere sahip olabilen alt kümelerini kullandığımızdan, çözümleyiciler de bağlam-bağımsız gramerlerin çeşitli alt kümeleri üzerinde çalışıyorlar.</p>
 <p>Bir dilin bağlam bağımsız olduğunu bağlam bağımsız bir gramerle ifade edilip edilemeyeceğinden anlıyoruz. Bağlam bağımsız gramerde şu anlama geliyor: tüm dönüşümler, <code>A</code> bir değişken ve <code>a</code> değişkenler ve terminaller dizisi olmak üzere, <code>A -&gt; a</code> şeklinde olmalı. Dönüşümün sol tarafında sadece bir değişken oluyor yani. Bu aslında şu anlama geliyor: <code>A</code> gördüğümüz her yerde, herhangi bir başka duruma(yani _context_e) bakmaksızın dönüşümü yapabiliyorz. Bağlam bağımlı olma durumda ise örneğin şöyle oluyor: <code>xAb -&gt; xab</code>. Burda <code>A</code>yı dönüştürebilmek için, etrafını da kontrol etmemiz, yani durum/içerikten haberdar olmamız gerekiyor.</p>
 <p>Peki indentation-based gramerlerle ne alakası var? Bu tip gramerleri kullanan bir dil düşünelim, Python veya YAML mesela. Bu dillerde bir blokun bittiğini anlamamız için, önceki satır hakkında bilgi sahibi olmamız gerekiyor. Örneğin bir önceki satırın kaç birim girintilenmiş olduğunu bilmemiz lazım. Eğer şu anda incelemdiğimiz satır ondan çok girintilenmişse, yeni bir blok başlangıcı, az girintilenmişse bir veya birde fazla blok bitişi anlamına geliyor.</p>
-<p>Bu da indentation-based gramerleri <em>bağlam bağımlı</em> yapıyor. Yani şu anda kullanılan neredeyse hiçbir çözümleyici kütüphane/programla bunu ayrıştıramazsınız<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> Çoğu zaten tüm bağlam bağımsız gramerleri bile çözümleyemiyor.</p>
+<p>Bu da indentation-based gramerleri <em>bağlam bağımlı</em> yapıyor. Yani şu anda kullanılan neredeyse hiçbir çözümleyici kütüphane/programla bunu ayrıştıramazsınız<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> Çoğu zaten tüm bağlam bağımsız gramerleri bile çözümleyemiyor.</p>
 <p>İşin sırrı lexing aşamasında, satır satır girintilemeleri takip edip, satır başlarında ne kadar değişiklik olduğuna göre gerekli <code>indent</code> ve <code>dedent</code> tokenlarını oluşturmak. Çözümleme aşamasında yapamayıp, daha güçsüz olmasına rağmen(bkz. düzenli diller, DFA) lexing aşamasında bunu yapabilmemizin sebebi şu, çözümleme aşaması daha kompleks olduğundan, kütüphaneler kullanıcıya daha az imkan veriyor. Çoğunda BNF formuna yakın bir formda(dilin izin verdiği ölçüde, veya kimisi farklı bir formattan programlama diline derleme yapıyor, mesela Bison, ANTLR, bu yazıda bahsettiğim Happy) ifade edilmiş bağlam bağımlı gramerlerden direkt olarak parse tree oluşturuyor ve bu sürece çok fazla müdahele edemiyoruz. Lexing aşamasında bunu çözdüğümüzde çözümleme aşamasına bağlam bağımsız bir gramer ile çözümleyebileceğimiz bir dil sunmuş oluyoruz.</p>
 <p>Algoritma şu: Tamamen boşluk karakterlerinden oluşmayan her satır için, eğer bir önceki satırdaki girintileme daha azsa, bir tane <em>indent</em> tokenı oluştur, eğer daha azsa, ne kadar daha az olduğuna göre, bir veya birkaç tane <em>dedent</em> tokenı oluştur. Bu tokenlar aslında <code>{</code> ve <code>}</code> kullanan dillerdeki bu karakterlerle tamamen aynı anlama geliyor yani(veya Pascal tarzı syntax kullanılıyorsa, <em>begin/do</em> ve <em>end</em> kelimeleri).</p>
 <p>Alex’de bu işi şöyle yapıyorum(kodun sadece alakalı kısımlarını koyuyorum):</p>
@@ -40,65 +40,65 @@ $whitespace+       { skip }
 ...</code></pre>
 <p>İkinci satır tamamen boşluklardan oluşan satırı hiç hesaba katmıyor. Üçüncü satır eğer satırda boşluklardan başka karakter varsa, girintilemeyi hesap ediyor ve gerekli işlemleri yapıyor(birazdan geleceğiz). 3. satır da satır içindeki normal boşluk karakterleri.</p>
 <p>Bir önceki satırın girintileme sayısını tutmak istediğimizden, wrapper olarak <code>monadUserState</code> kullanmamız gerekiyor. Bu durumda Alex bir veri tipi ve veri tipi için bir başlangıç durumu istiyor:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">AlexUserState</span> <span class="fu">=</span> <span class="dt">AlexUserState</span> {<span class="ot"> indent ::</span> <span class="dt">Int</span> }
-<span class="ot">alexInitUserState ::</span> <span class="dt">AlexUserState</span>
-alexInitUserState <span class="fu">=</span> <span class="dt">AlexUserState</span> <span class="dv">0</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">AlexUserState</span> <span class="ot">=</span> <span class="dt">AlexUserState</span> {<span class="ot"> indent ::</span> <span class="dt">Int</span> }</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="ot">alexInitUserState ::</span> <span class="dt">AlexUserState</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>alexInitUserState <span class="ot">=</span> <span class="dt">AlexUserState</span> <span class="dv">0</span></span></code></pre></div>
 <p>Artık burda başka ne gibi durumlara ihtiyacınız varsa eklersiniz. Bu durum(state) üzerinde çalışmak için 2 tane yardımcı fonksiyon tanımlayacağım:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getLexerIndentLevel ::</span> <span class="dt">Alex</span> <span class="dt">Int</span>
-getLexerIndentLevel <span class="fu">=</span> <span class="dt">Alex</span> <span class="fu">$</span> \s<span class="fu">@</span><span class="dt">AlexState</span>{alex_ust<span class="fu">=</span>ust} <span class="ot">-&gt;</span> <span class="dt">Right</span> (s, indent ust)
-<span class="ot">setLexerIndentLevel ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Alex</span> ()
-setLexerIndentLevel i <span class="fu">=</span> <span class="dt">Alex</span> <span class="fu">$</span> \s<span class="fu">@</span><span class="dt">AlexState</span>{alex_ust<span class="fu">=</span>ust} <span class="ot">-&gt;</span> <span class="dt">Right</span> (s{alex_ust<span class="fu">=</span>(<span class="dt">AlexUserState</span> i)}, ())</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="ot">getLexerIndentLevel ::</span> <span class="dt">Alex</span> <span class="dt">Int</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>getLexerIndentLevel <span class="ot">=</span> <span class="dt">Alex</span> <span class="op">$</span> \s<span class="op">@</span><span class="dt">AlexState</span>{alex_ust<span class="ot">=</span>ust} <span class="ot">-&gt;</span> <span class="dt">Right</span> (s, indent ust)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="ot">setLexerIndentLevel ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Alex</span> ()</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>setLexerIndentLevel i <span class="ot">=</span> <span class="dt">Alex</span> <span class="op">$</span> \s<span class="op">@</span><span class="dt">AlexState</span>{alex_ust<span class="ot">=</span>ust} <span class="ot">-&gt;</span> <span class="dt">Right</span> (s{alex_ust<span class="ot">=</span>(<span class="dt">AlexUserState</span> i)}, ())</span></code></pre></div>
 <p>Ne yaptıkları sanırım barizdir. Bu aşamadan sonra asıl işi <code>setIndent</code> fonksiyonu yapıyor. Bu fonksiyon İlk verdiğim kod parçasındaki regex ne zaman bir eşleşse, eşlesen karakter dizisi ile çağırılacak:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">...</span>
-<span class="kw">data</span> <span class="dt">LexemeClass</span>
-    <span class="fu">...</span>
-    <span class="fu">|</span> <span class="dt">LTIndent</span> <span class="dt">Int</span>
-    <span class="fu">|</span> <span class="dt">LTDedent</span> <span class="dt">Int</span>
-    <span class="fu">|</span> <span class="dt">LIndent</span>
-    <span class="fu">|</span> <span class="dt">LDedent</span>
-    <span class="fu">...</span>
-    <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)
-<span class="fu">...</span>
-<span class="ot">setIndent ::</span> <span class="dt">AlexInput</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Alex</span> <span class="dt">Lexeme</span>
-setIndent input<span class="fu">@</span>(p, _, _, str) i <span class="fu">=</span> <span class="kw">do</span>
-    <span class="co">--let !x = unsafePerformIO $ putStrLn str</span>
-    lastIndent <span class="ot">&lt;-</span> getLexerIndentLevel
-    currIndent <span class="ot">&lt;-</span> countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) <span class="dv">0</span> <span class="co">-- first char is always \n</span>
-    <span class="kw">if</span> (lastIndent <span class="fu">&lt;</span> currIndent) <span class="kw">then</span>
-        <span class="kw">do</span> setLexerIndentLevel currIndent
-           mkL (<span class="dt">LTIndent</span> (currIndent <span class="fu">-</span> lastIndent)) input i
-    <span class="kw">else</span> <span class="kw">if</span> (lastIndent <span class="fu">&gt;</span> currIndent) <span class="kw">then</span>
-        <span class="kw">do</span> setLexerIndentLevel currIndent
-           mkL (<span class="dt">LTDedent</span> (lastIndent <span class="fu">-</span> currIndent)) input i
-    <span class="kw">else</span> alexMonadScan
-  <span class="kw">where</span>
-    countIndent str total
-        <span class="fu">|</span> <span class="fu">take</span> <span class="dv">1</span> str <span class="fu">==</span> <span class="st">&quot;\t&quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">1</span>
-                                  countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
-        <span class="fu">|</span> <span class="fu">take</span> <span class="dv">4</span> str <span class="fu">==</span> <span class="st">&quot;    &quot;</span> <span class="fu">=</span> <span class="kw">do</span> skip input <span class="dv">4</span>
-                                    countIndent (<span class="fu">drop</span> <span class="dv">4</span> str) (total<span class="fu">+</span><span class="dv">1</span>)
-        <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="fu">return</span> total</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="op">...</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">LexemeClass</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>    <span class="op">|</span> <span class="dt">LTIndent</span> <span class="dt">Int</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>    <span class="op">|</span> <span class="dt">LTDedent</span> <span class="dt">Int</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>    <span class="op">|</span> <span class="dt">LIndent</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>    <span class="op">|</span> <span class="dt">LDedent</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>    <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a><span class="op">...</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a><span class="ot">setIndent ::</span> <span class="dt">AlexInput</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Alex</span> <span class="dt">Lexeme</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a>setIndent input<span class="op">@</span>(p, _, _, str) i <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a>    <span class="co">--let !x = unsafePerformIO $ putStrLn str</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>    lastIndent <span class="ot">&lt;-</span> getLexerIndentLevel</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a>    currIndent <span class="ot">&lt;-</span> countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) <span class="dv">0</span> <span class="co">-- first char is always \n</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a>    <span class="kw">if</span> (lastIndent <span class="op">&lt;</span> currIndent) <span class="kw">then</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true"></a>        <span class="kw">do</span> setLexerIndentLevel currIndent</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true"></a>           mkL (<span class="dt">LTIndent</span> (currIndent <span class="op">-</span> lastIndent)) input i</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true"></a>    <span class="kw">else</span> <span class="kw">if</span> (lastIndent <span class="op">&gt;</span> currIndent) <span class="kw">then</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true"></a>        <span class="kw">do</span> setLexerIndentLevel currIndent</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true"></a>           mkL (<span class="dt">LTDedent</span> (lastIndent <span class="op">-</span> currIndent)) input i</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true"></a>    <span class="kw">else</span> alexMonadScan</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true"></a>    countIndent str total</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true"></a>        <span class="op">|</span> <span class="fu">take</span> <span class="dv">1</span> str <span class="op">==</span> <span class="st">&quot;\t&quot;</span> <span class="ot">=</span> <span class="kw">do</span> skip input <span class="dv">1</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true"></a>                                  countIndent (<span class="fu">drop</span> <span class="dv">1</span> str) (total<span class="op">+</span><span class="dv">1</span>)</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true"></a>        <span class="op">|</span> <span class="fu">take</span> <span class="dv">4</span> str <span class="op">==</span> <span class="st">&quot;    &quot;</span> <span class="ot">=</span> <span class="kw">do</span> skip input <span class="dv">4</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true"></a>                                    countIndent (<span class="fu">drop</span> <span class="dv">4</span> str) (total<span class="op">+</span><span class="dv">1</span>)</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true"></a>        <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="fu">return</span> total</span></code></pre></div>
 <p>Burda bir problem, aslında bir eşleşmede birden fazla token oluşturamadığımızdan(Alex’in bir kısıtlaması, belki de bir yolu vardır ama ben bulamamışımdır), ben <code>LTDedent</code> adlı bir lexeme oluşturuyorum, burdaki <code>T</code> temporary, yani geçici anlamına geliyor. Çünkü daha sonra token listesinden bu elemanları silip başka tokenlar ekleyeceğim. Bu tokenların her biri ne kadar <em>indent</em> veya <em>dedent</em> olduğunu tutuyor. Yani örneğin bir önceki satıra göre 2 birim dışarı çıkmışsa, <code>LTIndent 2</code> ile bir <code>LexemeClass</code> oluşturuyorum. Daha sonra bunu 2 ayrı <code>LIndent</code>e dönüştürmeliyim ki, dilimin <code>{</code> ve <code>}</code> gibi karakterler kullanan dillerden hiçbir farkı kalmasın(bu arada şimdi farkettim, <code>LTIndent</code> diye bir sınıfa ihtiyacım yok, çünkü zaten bir önceki satırdan daha fazla girintilenmişse kesin olarak bir yeni blok oluşmuştur, bir ara düzeltirim artık :).</p>
 <p><code>runAlex</code> fonksiyonu yardımıyla <code>Lexeme</code> listesini elde ettikten sonra şu şekilde bu tokenları ayrı ayrı girintileme tokenları ile değiştiriyorum(kod tekrarı için kusura bakmayın :P )</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addIndentations ::</span> [<span class="dt">Lexeme</span>] <span class="ot">-&gt;</span> [<span class="dt">Lexeme</span>]
-<span class="co">-- ML style pattern matching for patterns with same cases or maybe view patterns</span>
-<span class="co">-- could be useful here</span>
-addIndentations (lex<span class="fu">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTIndent</span> c) _)<span class="fu">:</span>ls) <span class="fu">=</span>
-    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]
-  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
-                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LIndent</span> <span class="dt">Nothing</span>)<span class="fu">:</span>(iter <span class="fu">lex</span> (c<span class="fu">-</span><span class="dv">1</span>))
-addIndentations (lex<span class="fu">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTDedent</span> c) _)<span class="fu">:</span>ls) <span class="fu">=</span>
-    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]
-  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="fu">=</span> <span class="kw">if</span> c <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> []
-                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LDedent</span> <span class="dt">Nothing</span>)<span class="fu">:</span>(iter <span class="fu">lex</span> (c<span class="fu">-</span><span class="dv">1</span>))
-addIndentations (l<span class="fu">:</span>ls) <span class="fu">=</span> l<span class="fu">:</span>(addIndentations ls)
-addIndentations [] <span class="fu">=</span> []</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="ot">addIndentations ::</span> [<span class="dt">Lexeme</span>] <span class="ot">-&gt;</span> [<span class="dt">Lexeme</span>]</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="co">-- ML style pattern matching for patterns with same cases or maybe view patterns</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="co">-- could be useful here</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>addIndentations (lex<span class="op">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTIndent</span> c) _)<span class="op">:</span>ls) <span class="ot">=</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="ot">=</span> <span class="kw">if</span> c <span class="op">==</span> <span class="dv">0</span> <span class="kw">then</span> []</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LIndent</span> <span class="dt">Nothing</span>)<span class="op">:</span>(iter <span class="fu">lex</span> (c<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>addIndentations (lex<span class="op">@</span>(<span class="dt">Lexeme</span> pos (<span class="dt">LTDedent</span> c) _)<span class="op">:</span>ls) <span class="ot">=</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>    <span class="fu">concat</span> [iter <span class="fu">lex</span> c, addIndentations ls]</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>  <span class="kw">where</span> iter <span class="fu">lex</span> c <span class="ot">=</span> <span class="kw">if</span> c <span class="op">==</span> <span class="dv">0</span> <span class="kw">then</span> []</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>                     <span class="kw">else</span> (<span class="dt">Lexeme</span> pos <span class="dt">LDedent</span> <span class="dt">Nothing</span>)<span class="op">:</span>(iter <span class="fu">lex</span> (c<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>addIndentations (l<span class="op">:</span>ls) <span class="ot">=</span> l<span class="op">:</span>(addIndentations ls)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>addIndentations [] <span class="ot">=</span> []</span></code></pre></div>
 <p>Ve böylece bağlam bağımlı bir grameri, lexing aşamasında basit bir hileyle bağlam bağımsız hale getirmiş oluyoruz. Indentation-based gramerlerde yapılabilecek en mantıklı iş bu gibi. Bağlam bağımlı gramerleri çözümlemek için bilinen çok iyi algoritmalar/kütüphaneler/programlar var ve bu iş lexing aşamasında çok kolay yapılabiliyor.</p>
 <p>Değişik olduğunu düşündüğüm bir programlama dili üzerinde çalışıyorum, beklemede kalın :P .</p>
-<section class="footnotes">
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Tabii ki istisnalar olabilir. Bunu yapabilen kütüphanelerin nasıl yapabildiğini birazdan anlatacağım, bağlam bağımsızlığın dışına çıkıyorlar.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>Tabii ki istisnalar olabilir. Bunu yapabilen kütüphanelerin nasıl yapabildiğini birazdan anlatacağım, bağlam bağımsızlığın dışına çıkıyorlar.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 

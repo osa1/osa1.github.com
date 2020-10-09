@@ -20,59 +20,59 @@
             <div class="inner">
                 <h1 id="post-title">Common Lisp için Clojure usulü multimethodlar</h1>
 
-<p><strong>January  8, 2012</strong> - Tagged as: <a href="../tags/lisp.html">lisp</a>, <a href="../tags/tr.html">tr</a>.</p>
+<p><strong>January  8, 2012</strong> - Tagged as: <a title="All pages tagged 'lisp'." href="../tags/lisp.html">lisp</a>, <a title="All pages tagged 'tr'." href="../tags/tr.html">tr</a>.</p>
 
 <p>Bir önceki yazımda biraz bahsetmiştim Clojure ve Common Lisp multimethodları arasındaki farklardan. Bugün Common Lisp için olabilecek en basit Clojure usulü multimethod implementasyonu yaptım. 2 macro ve toplamda 14 satır sürdü. Örnek olarak Joy of Clojure kitabındaki bir kod parçasını Common Lisp ile yazacağım. Clojure hali şöyle:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">defmulti</span><span class="fu"> compiler </span><span class="at">:os</span>)
-(<span class="bu">defmethod</span><span class="fu"> compiler </span><span class="at">::unix</span> [m] (<span class="kw">get</span> m <span class="at">:c-compiler</span>))
-(<span class="bu">defmethod</span><span class="fu"> compiler </span><span class="at">::osx</span>  [m] (<span class="kw">get</span> m <span class="at">:c-compiler</span>))</code></pre></div>
-<p>Burda yapılan şey şu, <code>compiler</code> adlı bir multimethod oluşturuluyor ve dispatch fonksiyonunu seçmek için kullanılacak fonksiyon olarak <code>:os</code> keywordu olarak belirleniyor<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> Daha sonra iki tane method tanımlanıyor, ilkinde test fonksiyonumuz(yani <code>:os</code> fonksiyonu) <code>:unix</code> keywordünü dönerse çalıştırılacak fonksiyon, ikincisinde de <code>:osx</code> keywordünü dönerse çalıştırılacak fonksiyonu belirleniyor. Test fonksiyonuna da <code>m</code> parametresinin aktarıldığına dikkat. Yani <code>m</code> önce test fonksiyonu tarafından kullanılıyor, sonra da dönüş değerine göre dispatch fonksiyonlarından biri tarafından.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode clojure"><code class="sourceCode clojure"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>(<span class="bu">defmulti</span><span class="fu"> compiler </span><span class="at">:os</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>(<span class="bu">defmethod</span><span class="fu"> compiler </span><span class="at">::unix</span> [m] (<span class="kw">get</span> m <span class="at">:c-compiler</span>))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>(<span class="bu">defmethod</span><span class="fu"> compiler </span><span class="at">::osx</span>  [m] (<span class="kw">get</span> m <span class="at">:c-compiler</span>))</span></code></pre></div>
+<p>Burda yapılan şey şu, <code>compiler</code> adlı bir multimethod oluşturuluyor ve dispatch fonksiyonunu seçmek için kullanılacak fonksiyon olarak <code>:os</code> keywordu olarak belirleniyor<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> Daha sonra iki tane method tanımlanıyor, ilkinde test fonksiyonumuz(yani <code>:os</code> fonksiyonu) <code>:unix</code> keywordünü dönerse çalıştırılacak fonksiyon, ikincisinde de <code>:osx</code> keywordünü dönerse çalıştırılacak fonksiyonu belirleniyor. Test fonksiyonuna da <code>m</code> parametresinin aktarıldığına dikkat. Yani <code>m</code> önce test fonksiyonu tarafından kullanılıyor, sonra da dönüş değerine göre dispatch fonksiyonlarından biri tarafından.</p>
 <p>Kullanımı şöyle:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">def</span><span class="fu"> unix </span>{<span class="at">:os</span> <span class="at">::unix</span>, <span class="at">:c-compiler</span> <span class="st">&quot;cc&quot;</span>})
-(<span class="bu">def</span><span class="fu"> osx  </span>{<span class="at">:os</span> <span class="at">::osx</span>,  <span class="at">:c-compiler</span> <span class="st">&quot;gcc&quot;</span>})
-(compiler unix)
-=&gt; <span class="st">&quot;cc&quot;</span>
-(compiler osx)
-=&gt; <span class="st">&quot;gcc&quot;</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode clojure"><code class="sourceCode clojure"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>(<span class="bu">def</span><span class="fu"> unix </span>{<span class="at">:os</span> <span class="at">::unix</span>, <span class="at">:c-compiler</span> <span class="st">&quot;cc&quot;</span>})</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>(<span class="bu">def</span><span class="fu"> osx  </span>{<span class="at">:os</span> <span class="at">::osx</span>,  <span class="at">:c-compiler</span> <span class="st">&quot;gcc&quot;</span>})</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>(compiler unix)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>=&gt; <span class="st">&quot;cc&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>(compiler osx)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>=&gt; <span class="st">&quot;gcc&quot;</span></span></code></pre></div>
 <p>multimethodların test fonksiyonunu ve bunun dönüş değerlerine karşılık gelen dispatch fonksiyonlarını tutmaları lazım. dönüş değeri-dispatch fonksiyonu ikililerini bir hash-table’da tuttum. Her bir multimethod için 2 tane closure oluşturdum, bir tanesi yeni methodlar eklemek istediğimizde çağırılık dönüş değeri-dispatch fonksiyonları ikililerini tutan hash-table’ı güncelleyecek, diğeri de testi yapıp hash-table’dan fonksiyonu çekip çağıracak.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defmulti </span>(name (&amp;<span class="kw">rest</span> args) dispatch-fn)
-  (<span class="kw">let</span> ((dispatch-table (<span class="kw">gensym</span>)))
-    `(<span class="kw">let</span> ((,dispatch-table (<span class="kw">make-hash-table</span> <span class="bu">:test</span> #'equal)))
-       (<span class="kw">defun</span><span class="fu"> </span>,name (,@args)
-         (<span class="kw">funcall</span> (<span class="kw">gethash</span> (<span class="kw">funcall</span> ,dispatch-fn ,@args) ,dispatch-table)
-                  ,@args))
-       (<span class="kw">defun</span><span class="fu"> </span>,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string (<span class="kw">string</span> name) <span class="st">&quot;-ADD-METHOD&quot;</span>))
-           (dispatch-fn-return-val <span class="kw">method</span>)
-         (<span class="kw">setf</span> (<span class="kw">gethash</span> dispatch-fn-return-val ,dispatch-table) <span class="kw">method</span>)))))</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>(<span class="kw">defmacro</span><span class="fu"> defmulti </span>(name (&amp;<span class="kw">rest</span> args) dispatch-fn)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>  (<span class="kw">let</span> ((dispatch-table (<span class="kw">gensym</span>)))</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    `(<span class="kw">let</span> ((,dispatch-table (<span class="kw">make-hash-table</span> <span class="bu">:test</span> #'equal)))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>       (<span class="kw">defun</span><span class="fu"> </span>,name (,@args)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>         (<span class="kw">funcall</span> (<span class="kw">gethash</span> (<span class="kw">funcall</span> ,dispatch-fn ,@args) ,dispatch-table)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>                  ,@args))</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>       (<span class="kw">defun</span><span class="fu"> </span>,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string (<span class="kw">string</span> name) <span class="st">&quot;-ADD-METHOD&quot;</span>))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>           (dispatch-fn-return-val <span class="kw">method</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>         (<span class="kw">setf</span> (<span class="kw">gethash</span> dispatch-fn-return-val ,dispatch-table) <span class="kw">method</span>)))))</span></code></pre></div>
 <p>Görüldüğü gibi multimethodlar aslında normal fonksiyonlar(aslında closure, <code>dispatch-table</code>ı tutuyor). Bu sayede herhangi bir fonksiyona aktarılabilirler. Özel bir yapı yok yani ortada. Bir de aslında çaktırmadan tanımladığımız multimethod’a <code>-add-method</code> eki getirerek bir fonksiyon daha oluşturuyoyruz. Bunu kullanıcının çağırmasına hiç gerek yok, sadece yeni method ekleme işlemini kolaylaştırmak için.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defmacro</span><span class="fu"> defmulmethod </span>(name dispatch-fn-return-val <span class="kw">method</span>)
-  `(,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string (<span class="kw">string</span> name) <span class="st">&quot;-ADD-METHOD&quot;</span>))
-    ,dispatch-fn-return-val
-    ,<span class="kw">method</span>))</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>(<span class="kw">defmacro</span><span class="fu"> defmulmethod </span>(name dispatch-fn-return-val <span class="kw">method</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>  `(,(<span class="kw">intern</span> (<span class="kw">concatenate</span> 'string (<span class="kw">string</span> name) <span class="st">&quot;-ADD-METHOD&quot;</span>))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>    ,dispatch-fn-return-val</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>    ,<span class="kw">method</span>))</span></code></pre></div>
 <p><code>defmethod</code> adı Common Lisp’e ait olduğundan adını <code>defmulmethod</code> yaptım. Önceki macroda oluşturulan <code>-add-method</code> fonksiyonu yardımıyla <code>dispatch-table</code>a yeni fonksiyonu ekliyor. Bundan sonra aynı örneği Common Lisp ile şöyle yapabiliriz.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(defmulti compiler (x) (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :os x)))
-(defmulmethod compiler :unix (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :c-compiler x)))
-(defmulmethod compiler :osx (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :c-compiler x)))
-
-(<span class="kw">setf</span> unix (<span class="kw">make-hash-table</span>))
-(<span class="kw">setf</span> (<span class="kw">gethash</span> :os unix) :unix)
-(<span class="kw">setf</span> (<span class="kw">gethash</span> :c-compiler unix) :cc)
-
-
-(<span class="kw">setf</span> osx (<span class="kw">make-hash-table</span>))
-(<span class="kw">setf</span> (<span class="kw">gethash</span> :os osx) :osx)
-(<span class="kw">setf</span> (<span class="kw">gethash</span> :c-compiler osx) :gcc)</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a>(defmulti compiler (x) (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :os x)))</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>(defmulmethod compiler :unix (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :c-compiler x)))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>(defmulmethod compiler :osx (<span class="kw">lambda</span> (x) (<span class="kw">gethash</span> :c-compiler x)))</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>(<span class="kw">setf</span> unix (<span class="kw">make-hash-table</span>))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>(<span class="kw">setf</span> (<span class="kw">gethash</span> :os unix) :unix)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>(<span class="kw">setf</span> (<span class="kw">gethash</span> :c-compiler unix) :cc)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>(<span class="kw">setf</span> osx (<span class="kw">make-hash-table</span>))</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>(<span class="kw">setf</span> (<span class="kw">gethash</span> :os osx) :osx)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>(<span class="kw">setf</span> (<span class="kw">gethash</span> :c-compiler osx) :gcc)</span></code></pre></div>
 <pre><code>CL-USER&gt; (compiler unix)
 :CC
 
 CL-USER&gt; (compiler osx)
 :GCC</code></pre>
-<p>Common Lisp halinin çok daha uzun olmasının birkaç sebebi var: Birincisi, Common Lisp hash-tablelarının başlangıç değerlerini belirlemenin bir yolu yok. hash-table’ların özel bir syntax’ı da yok. <code>make-hash-table</code> ile oluşturup teker teker elemanları koymamız gerekiyor. İkincisi, <a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a> notta yazdığım şey.</p>
-<section class="footnotes">
+<p>Common Lisp halinin çok daha uzun olmasının birkaç sebebi var: Birincisi, Common Lisp hash-tablelarının başlangıç değerlerini belirlemenin bir yolu yok. hash-table’ların özel bir syntax’ı da yok. <code>make-hash-table</code> ile oluşturup teker teker elemanları koymamız gerekiyor. İkincisi, <a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> notta yazdığım şey.</p>
+<section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Clojure hakkında sevdiğim bir özellik, keywordler aynı zamanda fonksiyon, çağırıldıklarında parametre olarak bir map alıyorlar ve anahtar görevi görerek değeri dönüyorlar.<a href="#fnref1" class="footnote-back">↩</a></p></li>
-<li id="fn2"><p>Clojure hakkında sevdiğim bir özellik, keywordler aynı zamanda fonksiyon, çağırıldıklarında parametre olarak bir map alıyorlar ve anahtar görevi görerek değeri dönüyorlar.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn1" role="doc-endnote"><p>Clojure hakkında sevdiğim bir özellik, keywordler aynı zamanda fonksiyon, çağırıldıklarında parametre olarak bir map alıyorlar ve anahtar görevi görerek değeri dönüyorlar.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>Clojure hakkında sevdiğim bir özellik, keywordler aynı zamanda fonksiyon, çağırıldıklarında parametre olarak bir map alıyorlar ve anahtar görevi görerek değeri dönüyorlar.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 
