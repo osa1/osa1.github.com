@@ -8,8 +8,128 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragaca@gmail.com</email>
     </author>
-    <updated>2020-06-30T00:00:00Z</updated>
+    <updated>2020-12-24T00:00:00Z</updated>
     <entry>
+    <title>Conditional compilation based on crate type</title>
+    <link href="http://osa1.net/posts/2020-12-24-crate-type-conditional.html" />
+    <id>http://osa1.net/posts/2020-12-24-crate-type-conditional.html</id>
+    <published>2020-12-24T00:00:00Z</published>
+    <updated>2020-12-24T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Suppose you have a <code>no_std</code> crate that you want to use in two ways:</p>
+<ol type="1">
+<li>As a self-contained static library, to link with other (non-Rust) code</li>
+<li>As a Rust library, to import from another crate to test it</li>
+</ol>
+<p>(1) is the main use case for this library. (2) is because you want to test this library and you want to be able to use Rust’s <code>std</code> and other Rust libraries for testing.</p>
+<p>The Rust crate type for (1) is <code>staticlib</code>. For (2) you need <code>rlib</code>. (<a href="https://doc.rust-lang.org/reference/linkage.html">documentation on crate types</a>)</p>
+<p>Here’s the problem. To be able to generate <code>staticlib</code> you need to implement a <a href="https://doc.rust-lang.org/nomicon/panic-handler.html">panic handler</a> as otherwise the code won’t know how to panic<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. However, if you define a panic handler, you won’t be able to use your crate in other crates anymore as your panic handler will clash with the <code>std</code> panic handler.</p>
+<p>4 files needed to demonstrate this:</p>
+<pre><code>-- Cargo.toml for the library
+[package]
+name = &quot;nostd_lib&quot;
+version = &quot;0.1.0&quot;
+authors = []
+edition = &quot;2018&quot;
+
+[lib]
+crate-type = [&quot;staticlib&quot;, &quot;rlib&quot;]
+
+[profile.dev]
+panic = &quot;abort&quot;
+
+[profile.release]
+panic = &quot;abort&quot;
+
+-- lib.rs
+#![no_std]
+
+#[panic_handler]
+fn panic(_: &amp;core::panic::PanicInfo) -&gt; ! {
+    loop {}
+}
+
+-- Cargo.toml for the importing crate
+[package]
+name = &quot;nostd_bin&quot;
+version = &quot;0.1.0&quot;
+authors = []
+edition = &quot;2018&quot;
+
+[dependencies]
+nostd_lib = { path = &quot;../nostd_lib&quot; }
+
+-- main.rs
+extern crate nostd_lib;
+
+fn main() {}</code></pre>
+<p>The library builds fine, but if you try to build <code>nostd_bin</code> you’ll get this error:</p>
+<pre><code>error: duplicate lang item in crate `nostd_lib` (which `nostd_bin` depends on): `panic_impl`.
+  |
+  = note: the lang item is first defined in crate `std` (which `nostd_bin` depends on)
+  = note: first definition in `std` loaded from ...
+  = note: second definition in `nostd_lib` loaded from ...</code></pre>
+<p>Which says you now have two panic handlers: one in <code>std</code> and one in your library.</p>
+<p>If you remove the panic handler in the library then you won’t be able to build the library anymore:</p>
+<pre><code>error: `#[panic_handler]` function required, but not found</code></pre>
+<p>So you need some kind of conditional compilation, to generate panic handler only when generating <code>staticlib</code>. Unfortunately conditional compilation based on crate type is <a href="https://github.com/rust-lang/rust/issues/20267">currently not possible</a>. It is also <a href="https://github.com/rust-lang/cargo/issues/6160">not possible to specify target crate type when invoking cargo</a>.</p>
+<p>The least hacky way I could find to solve this (and without using anything other than just <code>cargo build</code> to build) is by having two <code>Cargo.toml</code> files.</p>
+<p>Cargo really wants manifest files to be named <code>Cargo.toml</code>, so we put the files in different directories. In my case the top-level one is for <code>staticlib</code> and it looks like this:</p>
+<pre><code>[package]
+name = &quot;nostd_lib&quot;
+version = &quot;0.1.0&quot;
+authors = []
+edition = &quot;2018&quot;
+
+[features]
+default = [&quot;panic_handler&quot;]
+panic_handler = []
+
+[lib]
+crate-type = [&quot;staticlib&quot;]
+
+[profile.dev]
+panic = &quot;abort&quot;
+
+[profile.release]
+panic = &quot;abort&quot;</code></pre>
+<p>I also update <code>lib.rs</code> to only define the panic handler when the feature is enabled:</p>
+<pre><code>#[cfg(feature = &quot;panic_handler&quot;)]
+#[panic_handler]
+fn panic(_: &amp;core::panic::PanicInfo) -&gt; ! {
+    ...
+}</code></pre>
+<p>Now I can build the library at the library’s top-level with just <code>cargo build</code>. Because the <code>panic_handler</code> feature is enabled by default in this <code>Cargo.toml</code>, the panic handler will be defined by default with just <code>cargo build</code> and static library will build and work fine.</p>
+<p>For the <code>rlib</code> I create a similar <code>Cargo.toml</code> in <code>rlib</code> directory:</p>
+<pre><code>[package]
+name = &quot;nostd_lib&quot;
+version = &quot;0.1.0&quot;
+authors = []
+edition = &quot;2018&quot;
+
+[lib]
+crate-type = [&quot;rlib&quot;]
+path = &quot;../src/lib.rs&quot;
+
+[profile.dev]
+panic = &quot;abort&quot;
+
+[profile.release]
+panic = &quot;abort&quot;</code></pre>
+<p>The differences are: this one only generates <code>rlib</code>, doesn’t define the <code>panic_handler</code> feature, and specifies the library source path explicitly (as it’s not in the default location relative to this <code>Cargo.toml</code>). It’s fine to refer to a feature that you never define in <code>Cargo.toml</code> in your code, so <code>lib.rs</code> is still fine, and the panic handler will never be built when you build the crate with this <code>Cargo.toml</code>.</p>
+<p>Now in the importing crate I use this <code>Cargo.toml</code> instead of the top-level one:</p>
+<pre><code>[dependencies]
+nostd_lib = { path = &quot;../nostd_lib/rlib&quot; }</code></pre>
+<p>And it works fine. The downside is I have two <code>Cargo.toml</code> files now, but in my case that’s not a big deal, as my <code>Cargo.toml</code> is quite small and have no dependencies other than <code>libc</code><a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
+<p>I hope this is helpful. If you know any better way to do conditional compilation based on crate types, or to solve the problem of generating usable <code>staticlib</code> and <code>rlib</code>s from a single <code>no_std</code> crate, let me know!</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>You need a <code>panic_handler</code> even if you never panic in your crate (assuming that’s possible). For example, you can’t compile <code>fn main() {}</code> with <code>no_std</code>, <code>panic=abort</code>, and without a <code>panic_handler</code>: the compiler complains about the missing panic handler.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>If you’re working on a <code>no_std</code> crate I think you won’t be able to find a lot of libraries that you can use anyway.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>]]></summary>
+</entry>
+<entry>
     <title>8 years of Haskell</title>
     <link href="http://osa1.net/posts/2020-06-30-8-years-of-haskell.html" />
     <id>http://osa1.net/posts/2020-06-30-8-years-of-haskell.html</id>
@@ -1796,87 +1916,6 @@ lvl3_rctu
 <li>Mark <code>absentError</code> as non-CAF (I don’t know if it has to be a CAF, I think error ids are conservatively marked as CAFs)</li>
 </ul>
 <p>The whole thing took 4:47 hours.</p>]]></summary>
-</entry>
-<entry>
-    <title>On malloc and brk/sbrk</title>
-    <link href="http://osa1.net/posts/2018-04-08-malloc-brk-sbrk.html" />
-    <id>http://osa1.net/posts/2018-04-08-malloc-brk-sbrk.html</id>
-    <published>2018-04-08T00:00:00Z</published>
-    <updated>2018-04-08T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Read about <code>malloc()</code> on Linux in lecture notes and even non-ancient books like The Linux Programming Interface (published on 2010) and you’ll see a lot of mentions to <code>brk()</code> and <code>sbrk()</code> system calls. They then move on to talk about <code>mmap()</code>, and at that point you probably start wondering how they interact.</p>
-<p>The problem is, because <code>mmap()</code> lets you map stuff in your program’s address space, it seems like you can easily break <code>brk</code>/<code>sbrk</code> by mapping stuff right after the current program break. Here’s a program that does exactly that:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="co">// mmap() something right after program break, then increase it by malloc-ing stuff</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;assert.h&gt;</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;stdint.h&gt;</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;sys/mman.h&gt;</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;unistd.h&gt;</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a><span class="dt">int</span> main()</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>{</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>    <span class="dt">long</span> page_size = sysconf(_SC_PAGESIZE);</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>    printf(<span class="st">&quot;Page size:             %ld</span><span class="sc">\n</span><span class="st">&quot;</span>, page_size);</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>    <span class="dt">void</span>* brk = sbrk(<span class="dv">0</span>);</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>    printf(<span class="st">&quot;Current program break: %p</span><span class="sc">\n</span><span class="st">&quot;</span>, brk);</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a>    <span class="co">// mmap() right after program break</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>    <span class="dt">void</span>* mmap_ret = mmap(</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a>            brk, page_size, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -<span class="dv">1</span>, <span class="dv">0</span>);</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>    printf(<span class="st">&quot;mmap() returned:       %p</span><span class="sc">\n</span><span class="st">&quot;</span>, mmap_ret);</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>    assert(mmap_ret == brk);</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>    <span class="co">// Allocate until brk changes</span></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a>    <span class="dt">void</span>* new_brk = sbrk(<span class="dv">0</span>);</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>    <span class="dt">void</span>* ret = malloc(page_size);</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a>    <span class="cf">for</span> (;;)</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a>    {</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a>        <span class="cf">if</span> (!ret)</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a>        {</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a>            printf(<span class="st">&quot;malloc() failed</span><span class="sc">\n</span><span class="st">&quot;</span>);</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a>            <span class="cf">break</span>;</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true"></a>        }</span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true"></a></span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true"></a>        <span class="cf">if</span> (new_brk != brk)</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true"></a>        {</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true"></a>            printf(<span class="st">&quot;brk changed</span><span class="sc">\n</span><span class="st">&quot;</span>);</span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true"></a>            <span class="cf">break</span>;</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true"></a>        }</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true"></a></span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true"></a>        <span class="cf">if</span> (ret &gt; brk)</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true"></a>        {</span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true"></a>            printf(<span class="st">&quot;ret &gt; brk</span><span class="sc">\n</span><span class="st">&quot;</span>);</span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true"></a>            <span class="cf">break</span>;</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true"></a>        }</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true"></a></span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true"></a>        ret = malloc(page_size);</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true"></a>        new_brk = sbrk(<span class="dv">0</span>);</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true"></a>    }</span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true"></a></span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true"></a>    printf(<span class="st">&quot;New brk:               %p</span><span class="sc">\n</span><span class="st">&quot;</span>, new_brk);</span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true"></a>    printf(<span class="st">&quot;ret:                   %p</span><span class="sc">\n</span><span class="st">&quot;</span>, ret);</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true"></a></span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true"></a>}</span></code></pre></div>
-<p>So we read the program break, <code>mmap()</code> stuff right after it, then <code>malloc()</code> page-sized space until the program break changes. The idea is if we actually increment the program break, we’ll end up re-using <code>mmap()</code>d area.</p>
-<p>Of course this does not happen. If you run this, you’ll see something like:</p>
-<pre><code>Page size:             4096
-Current program break: 0x1efb000
-mmap() returned:       0x1efb000
-ret &gt; brk
-New brk:               0x1efb000
-ret:                   0x7fdb72d8f010</code></pre>
-<p>So the <code>malloc()</code> implementation doesn’t care about program break at all, instead it uses <code>mmap()</code>, probably with <code>NULL</code> as the <code>addr</code> parameter, to get a fresh location in the address space.</p>
-<p>Of course this is all obvious if you’re already familiar with this stuff. <code>sbrk()</code> just can’t work with <code>mmap()</code>. Try adding these lines to the program above, right before the return statement:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>    <span class="co">// Try to increment program break manually</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>    <span class="dt">void</span>* sbrk_ret = sbrk(page_size);</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    printf(<span class="st">&quot;sbrk_ret:              %p</span><span class="sc">\n</span><span class="st">&quot;</span>, sbrk_ret);</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>    printf(<span class="st">&quot;New brk:               %p</span><span class="sc">\n</span><span class="st">&quot;</span>, sbrk(<span class="dv">0</span>));</span></code></pre></div>
-<p>You’ll see that <code>sbrk()</code> returns something like <code>0xffffffffffffffff</code> ( <code>(void*)-1</code> ) and the program break does not change.</p>
-<p>Really what confused me is all these over-simplified lecture notes and book chapters.</p>]]></summary>
 </entry>
 
 </feed>
