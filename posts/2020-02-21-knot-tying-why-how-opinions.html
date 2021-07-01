@@ -76,7 +76,7 @@
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> }))</span></code></pre></div>
 <p>Here we only have one heap object for <code>f</code>, and all uses refer to that one object.</p>
 <p>This is actually not hard to fix: we maintain a map from <code>Id</code> names to the actual <code>Id</code>s. When we see a <code>let</code> we add the LHS to the map. When we see an identifier we lookup. Easy.</p>
-<h2 id="problem-2-invalidating-the-information-during-transformations">Problem 2: invalidating the information during transformations</h2>
+<h2 id="problem-2-invalidating-information-during-transformations">Problem 2: invalidating information during transformations</h2>
 <p>Suppose I want to implement a pass that drops unused bindings. For example:</p>
 <pre><code>let f = let a = e1
          in \x . e2
