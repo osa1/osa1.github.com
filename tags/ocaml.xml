@@ -148,7 +148,7 @@ print_string &quot;bye&quot;</code></pre>
 </section>]]></summary>
 </entry>
 <entry>
-    <title>ANNOUNCE: My first academic work is now open source</title>
+    <title>My first academic work is now open source</title>
     <link href="http://osa1.net/posts/2013-07-22-sqml-open-sourced.html" />
     <id>http://osa1.net/posts/2013-07-22-sqml-open-sourced.html</id>
     <published>2013-07-22T00:00:00Z</published>
@@ -264,18 +264,6 @@ Nothing</code></pre>
 </ul>
 <p>Several other ideas also discussed at IRC channel, some of them were using delimited continuations, or passing a handler function as parameter and just calling it instead of raising an exception. I’ll continue investigating this stuff later.</p>
 <p>I also came across this <a href="http://stackoverflow.com/questions/6915701/is-non-local-return-in-scala-new">StackOverflow post</a> that explains how Scala’s non-local returns implemented as exceptions internally. Interesting stuff.</p>]]></summary>
-</entry>
-<entry>
-    <title>Epic OCamlYacc fail</title>
-    <link href="http://osa1.net/posts/2013-03-01-ocamlyacc-fail.html" />
-    <id>http://osa1.net/posts/2013-03-01-ocamlyacc-fail.html</id>
-    <published>2013-03-01T00:00:00Z</published>
-    <updated>2013-03-01T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I’ve been trying to compile <a href="http://gallium.inria.fr/~fpottier/wallace/">an OCaml library from 2000</a> recently and I came up against a strange OCamlYacc error; OCamlYacc doesn’t compile the parser file because parser function has a polymorphic type(with a type variable <code>'a</code>).</p>
-<p>At first I tried to understand with which concrete type <code>'a</code> type variable is being equated, so that I could replace it with the concrete type and the program would be compiled.</p>
-<p>After several hours wasted, I decided to follow some different path. I replaced type variables in <code>.mly</code> with some dummy type like <code>my_epic_dummy_type</code> and compiled it with OCamlYacc. Then I replaced <code>my_epic_dummy_type</code> types with the type variable <code>'a</code> in compiled <code>.ml</code> and <code>.mli</code> files.</p>
-<p>And the library worked as expected.</p>
-<p>Now the question naturally arises: Why does OCamlYacc refuse to compile parser function with polymorphic type ? I have no idea.</p>]]></summary>
 </entry>
 <entry>
     <title>Rowlar, kindlar ve tip çıkarımı hakkında öylesine bir yazı</title>
