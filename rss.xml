@@ -8,8 +8,317 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2023-04-24T00:00:00Z</updated>
+    <updated>2024-10-09T00:00:00Z</updated>
     <entry>
+    <title>OOP is not that bad, actually</title>
+    <link href="http://osa1.net/posts/2024-10-09-oop-good.html" />
+    <id>http://osa1.net/posts/2024-10-09-oop-good.html</id>
+    <published>2024-10-09T00:00:00Z</published>
+    <updated>2024-10-09T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>OOP is certainly not my favorite paradigm, but I think mainstream statically-typed OOP does a few things right that are very important for programming with many people, over long periods of time.</p>
+<p>In this post I want to explain what I think is the most important one of these things that the mainstream statically-typed OOP languages do well.</p>
+<p>I will then compare the OOP code with Haskell, to try to make the point that OOP is not as bad in everything as some functional programmers seem to think.</p>
+<h1 id="what-even-is-oop">What even is OOP?</h1>
+<p>In this post I use the word “OOP” to mean programming in statically-typed language with:</p>
+<ol type="1">
+<li>Classes, that combine state and methods that can modify the state.</li>
+<li>Inheritance, which allows classes to reuse state and methods of other classes.</li>
+<li>Subtyping, where if a type <code>B</code> implements the public interface of type <code>A</code>, values of type <code>B</code> can be passed as <code>A</code>.</li>
+<li>Virtual calls, where receiver class of a method call is not determined by the static type of the receiver but it’s runtime type.</li>
+</ol>
+<p>Examples of OO languages according to this definition: C++, Java, C#, Dart.</p>
+<h1 id="an-example-of-what-this-allows">An example of what this allows</h1>
+<p>This set of features allows a simple and convenient way of developing composable libraries, and extending the libraries with new functionality in a backwards compatible way.</p>
+<p>It’s probably best explained with an example. Suppose we have a simple logger library:</p>
+<pre><code>class Logger {
+  // Private constructor: initializes state, returns an instance of `Logger`.
+  Logger._();
+
+  // Public factory: can return `Logger` or any of the subtypes.
+  factory Logger() =&gt; Logger._();
+
+  void log(String message, Severity severity) { /* ... */ }
+}
+
+enum Severity {
+  Info,
+  Error,
+  Fatal,
+}</code></pre>
+<p>and another library that does some database stuff:</p>
+<pre><code>class DatabaseHandle {
+  /* ... */
+}</code></pre>
+<p>and an application that uses both:</p>
+<pre><code>class MyApp {
+  final Logger _logger;
+  final DatabaseHandle _dbHandle;
+
+  MyApp()
+      : _logger = Logger(),
+        _dbHandle = DatabaseHandle(...);
+}</code></pre>
+<p>As is usually the case, things that make network connections, change shared state etc. need to be mocked, faked, or stubbed to be able to test applications. We may also want to extend the libraries with new functionality. With the features that we have, we don’t have to see this coming and prepare the types based on this.</p>
+<p>In the first iteration we might just add a concrete class that is just the copy of the current class, and make the current class abstract:</p>
+<pre><code>// The class is now abstract.
+abstract class Logger {
+  // Public factory now returns an instance of a concrete subtype.
+  factory Logger() =&gt; _SimpleLogger();
+
+  Logger._();
+
+  // `log` is now abstract.
+  void log(String message, Severity severity);
+}
+
+class _SimpleLogger extends Logger {
+  factory _SimpleLogger() =&gt; _SimpleLogger._();
+
+  _SimpleLogger._() : super._() {/* ... */}
+
+  @override
+  void log(String message, Severity severity) {/* ... */}
+}</code></pre>
+<p>This change is backwards compatible, requires no changes in user code.</p>
+<p>Now we might add more implementations, e.g. for ignoring log messages:</p>
+<pre><code>abstract class Logger {
+  factory Logger() =&gt; _SimpleLogger();
+
+  // New.
+  factory Logger.ignoring() =&gt; _IgnoringLogger();
+
+  Logger._();
+
+  void log(String message, Severity severity);
+}
+
+class _IgnoringLogger extends Logger {
+  factory _IgnoringLogger() =&gt; _IgnoringLogger._();
+
+  _IgnoringLogger._() : super._() {}
+
+  @override
+  void log(String message, Severity severity) {}
+}</code></pre>
+<p>Similarly we can add a logger that logs to a file, to a DB, etc.</p>
+<p>We can do the same for the database handle class, but for mocking, faking, or stubbing, in tests.</p>
+<p>To be able to use these new subtypes in our app, we implement a factory, or add a constructor to allow passing a logger and a db handle:</p>
+<pre><code>class MyApp {
+  final Logger _logger;
+  final DatabaseHandle _dbHandle;
+
+  MyApp()
+      : _logger = Logger(),
+        _dbHandle = DatabaseHandle();
+
+  MyApp.withLoggerAndDb(this._logger, this._dbHandle);
+}</code></pre>
+<p>Note that we did not have to change any types, or add type parameters. Any methods of <code>MyApp</code> that use the <code>_logger</code> and <code>_dbHandle</code> fields do not have to know about the changes.</p>
+<p>Now suppose one of the <code>DatabaseHandle</code> implementations also start using the logger library:</p>
+<pre><code>abstract class DatabaseHandle {
+  factory DatabaseHandle.withLogger(Logger logger) =&gt;
+      _LoggingDatabaseHandle._(logger);
+
+  factory DatabaseHandle() =&gt; _LoggingDatabaseHandle._(Logger.ignoring());
+
+  DatabaseHandle._();
+
+  /* ... */
+}
+
+class _LoggingDatabaseHandle extends DatabaseHandle {
+  final Logger _logger;
+
+  _LoggingDatabaseHandle._(this._logger) : super._();
+
+  /* ... */
+}</code></pre>
+<p>In our app, we might test by disabling logging in the db library, but start logging db operations in production:</p>
+<pre><code>class MyApp {
+  // New
+  MyApp.testingSetup()
+      : _logger = Logger(),
+        _dbHandle = DatabaseHandle.withLogger(Logger.ignoring());
+
+  // Updated to start using the logging feature of the DB library.
+  MyApp()
+      : _logger = Logger(),
+        _dbHandle = DatabaseHandle.withLogger(Logger.toFile(...));
+
+  /* ... */
+}</code></pre>
+<p>As an example that adds more state to the types, we can add a logger implementation that only logs messages above certain severity:</p>
+<pre><code>class _LogAboveSeverity extends _SimpleLogger {
+  // Only logs messages with this severity or more severe.
+  final Severity _severity;
+
+  _LogAboveSeverity(this._severity) : super._();
+
+  @override
+  void log(String message, Severity severity) { /* ... */ }
+}</code></pre>
+<p>We can add another factory to the <code>Logger</code> abstract class that returns this type, or we can even implement this in another library:</p>
+<pre><code>// Implemented in another library, not in `Logger`&#39;s library.
+class LogAboveSeverity implements Logger {
+  // Only logs messages with this severity or more severe.
+  final Severity _severity;
+
+  final Logger _logger;
+
+  LogAboveSeverity(this._severity) : _logger = Logger();
+
+  LogAboveSeverity.withLogger(this._severity, this._logger);
+
+  @override
+  void log(String message, Severity severity) { /* ... */ }
+}</code></pre>
+<p>As a final example to demonstrate adding more operations (rather than more state), we can have a logger that logs to a file, with a <code>flush</code> operation:</p>
+<pre><code>class FileLogger implements Logger {
+  final File _file;
+
+  FileLogger(this._file);
+
+  @override
+  void log(String message, Severity severity) {/* ... */}
+
+  void flush() {/* ... */}
+}</code></pre>
+<p>In summary:</p>
+<ul>
+<li>We started with a simple logging and database library and wrote an app.</li>
+<li>We added more capabilities to the logging and database libraries for testing and also in production use. In particular, we added:
+<ul>
+<li>New functionality to the logger library, to disable logging, or logging to a file.</li>
+<li>A new dependency to the database library for logging database operations. We also allowed the users to override the default logger used.</li>
+</ul></li>
+</ul>
+<p>Crucially, we didn’t have to change any types while doing these changes, and the new code is still as type safe as before.</p>
+<p>The logger and database libraries evolved in a completely backwards compatible way.</p>
+<p>Since none of the types used in our application changed, <code>MyApp</code> methods didn’t have to change at all.</p>
+<p>When we decide to take advantage of the new functionality, we updated only how we construct the logger and db handle instances in our app. Rest of the app didn’t change.</p>
+<p>Now let’s consider how something like this could be done in Haskell.</p>
+<h1 id="attempting-it-in-haskell">Attempting it in Haskell</h1>
+<p>Immediately at the start, we have a few choices on how to represent it.</p>
+<p><strong>Option 1:</strong> An ADT, with callback fields to be able to add different types of loggers later:</p>
+<pre><code>data Logger = MkLogger
+    { _log :: Message -&gt; Severity -&gt; IO ()
+    }
+
+simpleLogger :: IO Logger
+
+data Severity = Info | Error | Fatal
+    deriving (Eq, Ord)
+
+log :: Logger -&gt; String -&gt; Severity -&gt; IO ()</code></pre>
+<p>In this representation, extra state like the minimum severity level in our <code>_LogAboveSeverity</code> is not added to the type, but captured by the closures:</p>
+<pre><code>logAboveSeverity :: Severity -&gt; IO Logger
+logAboveSeverity minSeverity = MkLogger
+    { _log = \message severity -&gt; if severity &gt;= minSeverity then ... else pure ()
+    }</code></pre>
+<p>If we need to update some of the state shared by the closures, the state needs to be stored in some kind of reference type like <code>IORef</code>.</p>
+<p>Similar to the OOP code, the <code>FileLogger</code> needs to be a separate type:</p>
+<pre><code>data FileLogger = MkFileLogger
+  { _logger :: Logger   -- callbacks capture the file descriptor/buffer and write to it
+  , _flush  :: IO ()    -- similarly captures the file descriptor/buffer, flushes it
+  }
+
+logFileLogger :: FileLogger -&gt; String -&gt; Severity -&gt; IO ()
+logFileLogger = log . _logger</code></pre>
+<p>However, unlike our OOP example, existing code that uses the <code>Logger</code> type and <code>log</code> function cannot work with this new type. There needs to be some refactoring, and how the user code will need to be refactored depends on how we want to expose this new type to the users.</p>
+<p><strong>Option 2:</strong> A typeclass that we can implement for our concrete logger types:</p>
+<pre><code>class Logger a where
+    log :: a -&gt; String -&gt; Severity -&gt; IO ()
+
+data SimpleLogger = MkSimpleLogger { ... }
+
+simpleLogger :: IO SimpleLogger
+simpleLogger = ...
+
+instance Logger SimpleLogger where
+  log = ...</code></pre>
+<p>To allow backwards-compatible changes in the logger library, we need to hide the concrete logger class:</p>
+<pre><code>module Logger
+    ( Logger
+    , simpleLogger -- I can export this without exporting its return type
+    ) where
+
+...</code></pre>
+<p>With this module, we have to either add a type parameter to the functions and other types that use <code>Logger</code>, or use existentials.</p>
+<p>Adding a type parameter is not a backwards compatible change, and in general it can cause snowball effect of propagating the type parameter to the direct users, and then their users, and so on, creating a massive change and difficult to use types.</p>
+<p>The problem with existentials is that they are limited in how you can use them, and are somewhat strange in some areas. In our application we can do this:</p>
+<pre><code>data MyApp = forall a . Logger a =&gt; MkMyApp
+  { _logger :: a
+  }</code></pre>
+<p>But we can’t have a local variable with this existential type:</p>
+<pre><code>createMyApp :: IO MyApp
+createMyApp = do
+  -- I can&#39;t add a type annotation to myLogger without the concrete type
+  myLogger &lt;- simpleLogger      -- simpleLogger :: IO SimpleLogger
+  return MkMyApp { _logger = myLogger }</code></pre>
+<p>I also cannot have an existential type in a function argument:</p>
+<pre><code>-- The type signature is accepted by the compiler, but the value cannot be used.
+doStuffWithLogging :: (forall a . Logger a =&gt; a) -&gt; IO ()
+doStuffWithLogging logger = log logger &quot;test&quot; Info -- some obscure type error</code></pre>
+<p>Instead we have to “pack” the logger value with its typeclass dictionary in a new type:</p>
+<pre><code>data LoggerBox = forall a . Logger a =&gt; LoggerBox a
+
+doStuffWithLogging :: LoggerBox -&gt; IO ()
+doStuffWithLogging (LoggerBox logger) = log logger &quot;test&quot; Info</code></pre>
+<p>Other problems and limitations of this approach:</p>
+<ul>
+<li>The syntax is just awful to the point where it’s deterrent: <code>forall a . Logger a =&gt; ... a ...</code> instead of just <code>Logger</code>.</li>
+<li>It allows implementing <code>FileLogger</code>, but
+<ul>
+<li>All subtypes need to be a new typeclass + an implementation (in OOP: just one class).</li>
+<li>This cannot be used for safe downcasting of a <code>Logger</code> value to <code>FileLogger</code>, without knowing the concrete type of the <code>FileLogger</code>.</li>
+</ul></li>
+</ul>
+<h1 id="effect-monad-approach">Effect monad approach</h1>
+<p>The effect monad approach is a variation of option (2) without existentials. Instead of</p>
+<pre><code>class Logger a where
+    log :: a -&gt; String -&gt; Severity -&gt; IO ()</code></pre>
+<p>We add the ability to log in a monad type parameter:</p>
+<pre><code>class MonadLogger m where
+    log :: String -&gt; Severity -&gt; m ()</code></pre>
+<p>Then provide a “monad transformer” for each of the logger implementations:</p>
+<pre><code>newtype SimpleLoggerT m a = SimpleLoggerT { runSimpleLoggerT :: m a }
+
+instance MonadIO m =&gt; MonadLogger (SimpleLoggerT m) where
+  log msg sev = SimpleLoggerT { runSimpleLoggerT = liftIO (logStdout msg sev) }
+
+newtype FileLoggerT m a = FileLoggerT { runFileLoggerT :: Handle -&gt; m a }
+
+instance MonadIO m =&gt; MonadLogger (FileLoggerT m) where
+  log msg sev = FileLoggerT { runFileLoggerT = \handle -&gt; liftIO (logFile handle msg sev) }</code></pre>
+<p>The database library does the same, and the app combines these together:</p>
+<pre><code>newtype MyAppMonad a = ...
+
+instance MonadLogger MyAppMonad where ...
+
+instance MonadDb MyAppMonad where ...</code></pre>
+<p>Because we have one type parameter that encapsulates all side effects (instead of one for logging, one for database operations), this avoids the issues with snowballed type parameters in the use sites.</p>
+<p>The database library can also add a logger dependency without breaking the user code.</p>
+<p>I think this is the best we can get in Haskell, and it’s quite similar to our OOP solution in terms of code changes needed to be done in the user code.</p>
+<p>However for this to work the entire ecosystem of libraries need to do things this way. If the database library decides to use the ADT approach, we will need an “adapter”, e.g. a monad typeclass for the DB operations, with a concrete monad transformer type to call the DB library functions.</p>
+<p>This is also the main problem with the composable effects libraries.</p>
+<p>(There are also issues with how this kind of code performs in runtime, but that’s probably a topic for another blog post.)</p>
+<h1 id="composable-effects">Composable effects</h1>
+<p>Haskellers have been developing various ways of modelling side effects (such as DB operations, logging) as “effects” and various ways of composing them.</p>
+<p>A simple and widespread way of doing this is via the effect monads, as we’ve seen in the previous section.</p>
+<p>However these systems have a few drawbacks, compared to our OOP solution:</p>
+<ul>
+<li><p>Different effect libraries generally don’t work together. For example, <a href="https://hackage.haskell.org/package/mtl">mtl</a> and <a href="https://github.com/hasura/eff">eff</a> functions won’t work together without some kind of adapter turning one into the other.</p></li>
+<li><p>Even if the entire Haskell ecosystem decides to use one particular effect system, things like using two different handlers for different parts of the program, such as the example of using different logger in the db library and the main app, requires type juggling. In some effect libraries this is not even possible.</p></li>
+<li><p>Finally, note that the OOP code shown in this post are very basic and straightforward code that even a beginner in OOP can write. Any new person who joins the project, or any one time contributor who just wants to fix a bug and move on, will be able to work on either one of the libraries or the application code. It’s difficult to say the same with the composable effects libraries in Haskell.</p></li>
+</ul>
+<h1 id="conclusions">Conclusions</h1>
+<p>Mainstream statically-typed OOP allows straightforward backwards compatible evolution of types, while keeping them easy to compose. I consider this to be one of the killer features of mainstream statically-typed OOP, and I believe it is an essential feature for programming with many people, over long periods of time.</p>
+<p>Just like OOP, Haskell has design patterns, such as the effect monad pattern we’ve shown above. Some of these design patterns solve the problem nicely, but they need an entire ecosystem to follow the same pattern to be useful.</p>
+<p>I think it would be beneficial for the functional programming community to stop dismissing OOP’s successes in the industry as an accident of history and try to understand what OOP does well.</p>
+<hr />
+<p>Thanks to Chris Penner and Matthías Páll Gissurarson for reviewing a draft of this blog post.</p>]]></summary>
+</entry>
+<entry>
     <title>My thoughts on OCaml</title>
     <link href="http://osa1.net/posts/2023-04-24-ocaml-thoughts.html" />
     <id>http://osa1.net/posts/2023-04-24-ocaml-thoughts.html</id>
@@ -1990,71 +2299,6 @@ Just
 <span id="cb24-150"><a href="#cb24-150" aria-hidden="true"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> (ppShow (dropUnusedBindings pgm))</span></code></pre></div>
 </details>
 <p>Thanks to Oleg Grenrus for reading a draft of this.</p>]]></summary>
-</entry>
-<entry>
-    <title>Some arguments against small syntax extensions in GHC</title>
-    <link href="http://osa1.net/posts/2020-01-22-no-small-syntax-extensions.html" />
-    <id>http://osa1.net/posts/2020-01-22-no-small-syntax-extensions.html</id>
-    <published>2020-01-22T00:00:00Z</published>
-    <updated>2020-01-22T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I recently realized that I haven’t published a single post in 2019. I think that’s the longest break I ever took to blogging, and it kinda made me motivated to publish some of the draft posts that I’ve been keeping in private Github gists.</p>
-<p>This post is originally written in 11 January 2019. Because it is more of an angry rant than a constructive piece, I wasn’t sure at the time that publishing it is a good idea. However reading it again now, I see that it’s not directed at a person, a group, or a specific proposal/patch, so I think it shouldn’t be offensive to anyone and I should be able to publish it on my personal blog.</p>
-<p>(original post starts below)</p>
-<hr />
-<p>So I woke up at 5AM today and felt like writing about one of my frustrations. These are my personal opinions, and I don’t represent GHC HQ here.</p>
-<hr />
-<p>At this point adding new syntax to GHC/Haskell is a bad idea. Before moving on to examples, here are some facts:</p>
-<ul>
-<li><p>The language that GHC supports is incredibly complex. GHC 8.6.3 man page lists 115 language pragmas.</p></li>
-<li><p>You just can’t have a good understanding of <em>all</em> of these features and know interactions of the proposed syntax with all combinations of these.</p></li>
-<li><p>GHC is a complex and old compiler with parts that today no active contributor knows well. The compiler (ignoring all the libraries, the RTS, tools etc.) currently has 189,699 lines of code (ignoring comments and whitespace). That’s a lot of complexity to deal with.</p></li>
-<li><p>When you propose a new syntax, what you’re actually proposing is:</p>
-<ul>
-<li>At least one more pragma</li>
-<li>More user manual sections</li>
-<li>MVP implementation of your syntax (which is usually not bug-free)</li>
-<li>A few common-case tests (which are usually not enough)</li>
-<li>More headache for tool developers</li>
-<li>Scaring more potential new Haskell developers away</li>
-<li>Adding to the frustration of existing Haskell developers</li>
-<li>Adding maintenance burden to GHC devs</li>
-</ul></li>
-<li><p>Because you can’t predict all the interactions of your new syntax (conceptually, or in the implementation) your syntax will cause a ton of problems.</p></li>
-<li><p>Those problems will sit there unfixed for months/years.</p></li>
-<li><p>GHC maintainers barely have enough time and manpower to provide stable releases. 8.6.1 and 8.6.2 are completely broken (<a href="https://gitlab.haskell.org/ghc/ghc/issues/15544">#15544</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/15696">#15696</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/15892">#15892</a>), and 8.6.3 doesn’t <a href="https://gitlab.haskell.org/ghc/ghc/issues/16057">work well on Windows</a>.</p></li>
-</ul>
-<p>You might not accept some of these, however in my experience these are facts. If you disagree with any of these let me know and I can elaborate.</p>
-<p>I’ll have only two examples for now, because I don’t normally work on front-end parts of the compiler I don’t notice most of the problems.</p>
-<h1 id="example-1-tiny-addition-to-ghci-syntax">Example 1: Tiny addition to GHCi syntax</h1>
-<p><a href="https://gitlab.haskell.org/ghc/ghc/issues/7253">#7253</a> proposed a tiny new syntax in GHCi. A few years later a new contributor picked it up and submitted a <a href="https://phabricator.haskell.org/D1299">patch</a>. This trivial new syntax later caused <a href="https://gitlab.haskell.org/ghc/ghc/issues/11606">#11606</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/12091">#12091</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/15721">#15721</a>. That’s 3 too many tickets for a trivial syntax that buys us so little. It also generated at least one <a href="https://stackoverflow.com/questions/53898220/sprint-and-seq-together-missing-evaluation">SO question</a>, and invalidated an answer to <a href="https://stackoverflow.com/questions/14052093/ghci-let-what-does-it-do/14052220#14052220">another SO question</a> by making things more complicated.</p>
-<p>The implementation is finally <a href="https://gitlab.haskell.org/ghc/ghc/merge_requests/97">fixed by a frustrated maintainer</a>, but the additional complexity (both in the implementation, and as the GHCi syntax to be explained to users) it added won’t be fixed.</p>
-<h1 id="example-2--xblockarguments">Example 2: -XBlockArguments</h1>
-<p>This was proposed as <a href="https://github.com/ghc-proposals/ghc-proposals/pull/90">a GHC proposal</a>. It’s a trivial syntax change that in the best case can save 3 characters (including spaces). So far it generated two tickets: <a href="https://gitlab.haskell.org/ghc/ghc/issues/16137">#16137</a>, <a href="https://gitlab.haskell.org/ghc/ghc/issues/16097">#16097</a>. Even worse than the previous example is none of these tickets mention <code>-XBlockArguments</code>, they don’t even use it! Yet the error messages got significantly worse because of it.</p>
-<hr />
-<h1 id="just-to-be-clear">Just to be clear</h1>
-<p>I think some of the extensions are quite useful. However I also think that at this point new syntax extensions are doing more harm than good. Problems from a maintainer’s point of view are as listed above (arguably maintainers’ problems are also users’ problems because they lead to poor product, but let’s ignore this aspect for now). Now I want to add one more problem, this time from a software developer/engineer’s point of view:</p>
-<ul>
-<li>Adding a different way of doing things, especially when the difference is so small, does more harm than good.</li>
-</ul>
-<p>Here’s why. Now that we have two ways of using <code>do</code> syntax:</p>
-<pre><code>-- (1)
-atomically $ do
-  ...
-
--- (2) with -XBlockArguments
-atomically do
-  ...</code></pre>
-<p>with my team I have to do one of these</p>
-<ol type="1">
-<li>Decide which one to use, and somehow manually make sure to use it consistently (this can’t be done automatically as we lack the tooling)</li>
-<li>Let everyone use whatever they want.</li>
-</ol>
-<p>(1) means wasting the team’s time and energy on endless bikeshedding. (2) means being inconsistent in the source code. Either way we lose.</p>
-<p>You might argue that with good tooling (1) is not a problem, and I’d agree. However as we add new syntax the tooling story will only get worse. GHC Haskell syntax is already so complex we don’t even have a good formatter. We should first stop making it even more complex if we want the tooling story to get better.</p>
-<h1 id="what-we-need">What we need</h1>
-<p>In my opinion what we need is principles to guide the language and the compiler. Currently <a href="https://github.com/ghc-proposals/ghc-proposals/pull/190#issuecomment-450440245">we don’t have this</a> (last paragraph), and the result is 100+ pragmas, a buggy compiler, and frustrated users and maintainers.</p>
-<h1 id="my-advice-to-users">My advice to users</h1>
-<p>If you’re proposing a new syntax; don’t! If you know someone who will, point them to this blog post.</p>]]></summary>
 </entry>
 
 </feed>
