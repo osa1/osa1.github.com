@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Subtyping and subsumption</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="https://gitlab.haskell.org/osa1">gitlab</a></span>
+    <span class="menu-item"><a href="https://twitter.com/_osa1">twitter</a></span>
+    <span class="menu-item"><a href="../cv.html">cv</a></span>
+    <span class="menu-item"><a href="../rss.xml">rss</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Subtyping and subsumption</h1>
+
+<p><strong>October 21, 2024</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'plt'." href="../tags/plt.html">plt</a>.</p>
+
+<p>Subtyping is a relation between two types. It often comes with a typing rule called “subsumption”, which says that if type B is a subtype of type A (usually shown as <code>B &lt;: A</code>), then a value of type B can be assumed to have type A.</p>
+<p>The crucial part is that subsumption is <em>implicit</em>, the programmer doesn’t explicitly cast the value with type <code>B</code> to type <code>A</code>.</p>
+<p>When we make an operation implicit in a language, we need to make sure that it is (1) safe (2) performant. Users will be doing it without realizing, and we don’t want to accidentally break things or make them slow.</p>
+<p>Let’s consider how we can make subsumption safe and performant.</p>
+<h2 id="safety-of-subsumption">Safety of subsumption</h2>
+<p>Different languages give different safety guarantees. High-level languages often guarantee:</p>
+<ol type="1">
+<li><p>Memory safety: a memory read or write shouldn’t cause undefined behavior.</p>
+<p>Examples: out-of-bounds array accesses should be caught, dangling pointers shouldn’t be allowed or dereferencing them should be caught in runtime.</p></li>
+<li><p>Type safety: static guarantees of the language’s type system should be uphold.</p>
+<p>Example: if I have a function <code>f : A -&gt; B</code> and a value <code>x : A</code> after subsumption, <code>f(x)</code> shouldn’t fail in compile time or runtime.</p></li>
+</ol>
+<p>There could be different safeties that the language guarantees. Some of those safeties may also be checked in runtime instead of compile time.</p>
+<p>Whatever safeties the language guarantees, they must be preserved with subsumption.</p>
+<p>From a programmer’s perspective however, these are not enough to make sure that the program will work as before when subsumption is used. If I can pass a value of type <code>B</code> where <code>A</code> is expected, I need to make sure <code>B</code>, when used as <code>A</code>, acts like <code>A</code>.</p>
+<p>This is called “behavioral subtyping” (or “substitutability”), and it depends on not the types of <code>A</code>’s operations but the observable behaviors of <code>A</code> and its subtypes.</p>
+<p>I don’t have a good real-world example of this, but you can imagine two types with the same public APIs that work differently. Since the public APIs are the same one can be made subtype of the other and (1) and (2) would still be satisfied, but doing that would cause bugs when one is accidentally passed as the other.</p>
+<h2 id="performance-of-subsumption">Performance of subsumption</h2>
+<p>Definition of “fast” or “performant” also depends on the language. A C++ programmer’s fast and Python programmer’s fast are often not the same.</p>
+<p>However in general, heap allocation should be avoided.</p>
+<p>Object-oriented languages (as defined in my <a href="https://osa1.net/posts/2024-10-09-oop-good.html">previous post</a>) without multiple inheritance can often implement subsumption of reference values as no-op, i.e. values of type <code>B</code> work as <code>A</code> in runtime without any changes or copying.</p>
+<p>Multiple inheritance makes things more complicated, but a reference to an object can still be converted to a reference of one of its supertypes by just <a href="https://people.montefiore.uliege.be/declercq/INFO0004/documents/vtable.html">adjusting the pointer value</a>.</p>
+<p>With unboxed/value types, conceptually, the value needs to be copied as its supertype, but that operation is often no-op. Consider an unboxed record <code>(x: Int, y: Int, z: Int)</code> that we store in a variable <code>a</code>. In runtime, <code>a</code> actually holds multiple stack locations or registers. When we move it as <code>let b: (x: Int, y: Int) = a</code>, we don’t have to allocate new stack locations for <code>b.x</code> and <code>b.y</code>, we just map those locations to the same locations as <code>a.x</code> and <code>a.y</code>. When we pass <code>b</code> to a function, we pass <code>a.x</code> and <code>a.y</code>.</p>
+<p>Where copying becomes a requirement and prohibitive is when you have something like <code>ReadOnlyList&lt;(x: Int, y: Int, z: Int)&gt;</code> and want to upcast it to <code>ReadOnlyList&lt;(x: Int, y: Int)&gt;</code> (the records are unboxed). From the safety perspective this operation is fine, but you have to allocate a new list and copy all the values.</p>
+<p>I think this is rarely a problem in practice though, because most generic types, like <code>List&lt;T&gt;</code>, end up being invariant in <code>T</code> anyway, because their API often uses <code>T</code> in both covariant and contravariant positions. So <code>List&lt;(x: Int, y: Int)&gt;</code> is not a supertype of <code>List&lt;(x: Int, y: Int, z: Int)&gt;</code> and subsumption does not apply.</p>
+<h2 id="no-conclusions-this-time">No conclusions this time</h2>
+<p>In this short post I just wanted to give some definitions that I’m hoping to refer to in future posts.</p>
+
+<hr />
+
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -8,8 +8,42 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2024-10-09T00:00:00Z</updated>
+    <updated>2024-10-21T00:00:00Z</updated>
     <entry>
+    <title>Subtyping and subsumption</title>
+    <link href="http://osa1.net/posts/2024-10-21-subtyping-subsumption.html" />
+    <id>http://osa1.net/posts/2024-10-21-subtyping-subsumption.html</id>
+    <published>2024-10-21T00:00:00Z</published>
+    <updated>2024-10-21T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Subtyping is a relation between two types. It often comes with a typing rule called “subsumption”, which says that if type B is a subtype of type A (usually shown as <code>B &lt;: A</code>), then a value of type B can be assumed to have type A.</p>
+<p>The crucial part is that subsumption is <em>implicit</em>, the programmer doesn’t explicitly cast the value with type <code>B</code> to type <code>A</code>.</p>
+<p>When we make an operation implicit in a language, we need to make sure that it is (1) safe (2) performant. Users will be doing it without realizing, and we don’t want to accidentally break things or make them slow.</p>
+<p>Let’s consider how we can make subsumption safe and performant.</p>
+<h1 id="safety-of-subsumption">Safety of subsumption</h1>
+<p>Different languages give different safety guarantees. High-level languages often guarantee:</p>
+<ol type="1">
+<li><p>Memory safety: a memory read or write shouldn’t cause undefined behavior.</p>
+<p>Examples: out-of-bounds array accesses should be caught, dangling pointers shouldn’t be allowed or dereferencing them should be caught in runtime.</p></li>
+<li><p>Type safety: static guarantees of the language’s type system should be uphold.</p>
+<p>Example: if I have a function <code>f : A -&gt; B</code> and a value <code>x : A</code> after subsumption, <code>f(x)</code> shouldn’t fail in compile time or runtime.</p></li>
+</ol>
+<p>There could be different safeties that the language guarantees. Some of those safeties may also be checked in runtime instead of compile time.</p>
+<p>Whatever safeties the language guarantees, they must be preserved with subsumption.</p>
+<p>From a programmer’s perspective however, these are not enough to make sure that the program will work as before when subsumption is used. If I can pass a value of type <code>B</code> where <code>A</code> is expected, I need to make sure <code>B</code>, when used as <code>A</code>, acts like <code>A</code>.</p>
+<p>This is called “behavioral subtyping” (or “substitutability”), and it depends on not the types of <code>A</code>’s operations but the observable behaviors of <code>A</code> and its subtypes.</p>
+<p>I don’t have a good real-world example of this, but you can imagine two types with the same public APIs that work differently. Since the public APIs are the same one can be made subtype of the other and (1) and (2) would still be satisfied, but doing that would cause bugs when one is accidentally passed as the other.</p>
+<h1 id="performance-of-subsumption">Performance of subsumption</h1>
+<p>Definition of “fast” or “performant” also depends on the language. A C++ programmer’s fast and Python programmer’s fast are often not the same.</p>
+<p>However in general, heap allocation should be avoided.</p>
+<p>Object-oriented languages (as defined in my <a href="https://osa1.net/posts/2024-10-09-oop-good.html">previous post</a>) without multiple inheritance can often implement subsumption of reference values as no-op, i.e. values of type <code>B</code> work as <code>A</code> in runtime without any changes or copying.</p>
+<p>Multiple inheritance makes things more complicated, but a reference to an object can still be converted to a reference of one of its supertypes by just <a href="https://people.montefiore.uliege.be/declercq/INFO0004/documents/vtable.html">adjusting the pointer value</a>.</p>
+<p>With unboxed/value types, conceptually, the value needs to be copied as its supertype, but that operation is often no-op. Consider an unboxed record <code>(x: Int, y: Int, z: Int)</code> that we store in a variable <code>a</code>. In runtime, <code>a</code> actually holds multiple stack locations or registers. When we move it as <code>let b: (x: Int, y: Int) = a</code>, we don’t have to allocate new stack locations for <code>b.x</code> and <code>b.y</code>, we just map those locations to the same locations as <code>a.x</code> and <code>a.y</code>. When we pass <code>b</code> to a function, we pass <code>a.x</code> and <code>a.y</code>.</p>
+<p>Where copying becomes a requirement and prohibitive is when you have something like <code>ReadOnlyList&lt;(x: Int, y: Int, z: Int)&gt;</code> and want to upcast it to <code>ReadOnlyList&lt;(x: Int, y: Int)&gt;</code> (the records are unboxed). From the safety perspective this operation is fine, but you have to allocate a new list and copy all the values.</p>
+<p>I think this is rarely a problem in practice though, because most generic types, like <code>List&lt;T&gt;</code>, end up being invariant in <code>T</code> anyway, because their API often uses <code>T</code> in both covariant and contravariant positions. So <code>List&lt;(x: Int, y: Int)&gt;</code> is not a supertype of <code>List&lt;(x: Int, y: Int, z: Int)&gt;</code> and subsumption does not apply.</p>
+<h1 id="no-conclusions-this-time">No conclusions this time</h1>
+<p>In this short post I just wanted to give some definitions that I’m hoping to refer to in future posts.</p>]]></summary>
+</entry>
+<entry>
     <title>OOP is not that bad, actually</title>
     <link href="http://osa1.net/posts/2024-10-09-oop-good.html" />
     <id>http://osa1.net/posts/2024-10-09-oop-good.html</id>
@@ -1872,433 +1906,6 @@ arity &lt;- getIdUnfolding id</code></pre>
 <span id="cb12-237"><a href="#cb12-237" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">ShowErrorComponent</span> [<span class="dt">Char</span>] <span class="kw">where</span></span>
 <span id="cb12-238"><a href="#cb12-238" aria-hidden="true"></a>    showErrorComponent x <span class="ot">=</span> x</span></code></pre></div>
 </details>]]></summary>
-</entry>
-<entry>
-    <title>Knot-tying: why and how (and my opinions on it)</title>
-    <link href="http://osa1.net/posts/2020-02-21-knot-tying-why-how-opinions.html" />
-    <id>http://osa1.net/posts/2020-02-21-knot-tying-why-how-opinions.html</id>
-    <published>2020-02-21T00:00:00Z</published>
-    <updated>2020-02-21T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Suppose I have this simple language:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Expr</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>  <span class="ot">=</span> <span class="dt">IdE</span> <span class="dt">Id</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IntE</span> <span class="dt">Int</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span></code></pre></div>
-<p>When generating code, for an identifier that stands for a lambda, I want to know the arity of the lambda, so that I can generate more efficient code. While in this language a lambda takes only one argument, if I have something like</p>
-<pre><code>let f = \x . \y . \z . ...
- in ...</code></pre>
-<p>I consider <code>f</code> as having arity 3.</p>
-<p>One way to implement this is having this information attached to every <code>Id</code>:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Id</span> <span class="ot">=</span> <span class="dt">Id</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>  {<span class="ot"> idName ::</span> <span class="dt">String</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    <span class="co">-- ^ Unique name of the identifier</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>  }</span></code></pre></div>
-<p>This way of associating information to <code>Id</code>s makes some things very simple. For example, if I’m generating code for this application:</p>
-<pre><code>f 1 2</code></pre>
-<p>In AST:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> (<span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span>, idArity <span class="ot">=</span> <span class="dv">3</span> })) (<span class="dt">IntE</span> <span class="dv">1</span>)) (<span class="dt">IntE</span> <span class="dv">2</span>)</span></code></pre></div>
-<p>I can simply use the <code>idArity</code> field to see the arity of the function being applied. It doesn’t get any simpler than this.</p>
-<h1 id="problem-1-redundant-allocations">Problem 1: redundant allocations</h1>
-<p>In a program we usually have many references to a single Id, whether it’s for a top-level function or an argument. If we allocate an Id for every occurrence that’s a lot of redundant allocations that make the AST representation larger, and affects compiler performance.</p>
-<p>For example, if I have this expression:</p>
-<pre><code>f x + f y</code></pre>
-<p>A naive representation of this would be</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="dt">App</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>  (<span class="dt">App</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="ot">=</span> <span class="dv">2</span> })</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>     (<span class="dt">App</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })))</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>  (<span class="dt">App</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> }))</span></code></pre></div>
-<p>Here for every occurrence of <code>f</code> we have a new <code>Id</code>, and these <code>Id</code>s all have the same arity. This is two <code>Id</code> heap objects used for the same identifier.</p>
-<p>A more efficient representation would be</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">let</span> f <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span>, idArity <span class="ot">=</span> <span class="dv">0</span> } <span class="kw">in</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="dt">App</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>  (<span class="dt">App</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="ot">=</span> <span class="dv">2</span> })</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>     (<span class="dt">App</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>        (<span class="dt">IdE</span> f)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })))</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>  (<span class="dt">App</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>     (<span class="dt">IdE</span> f)</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>     (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> }))</span></code></pre></div>
-<p>Here we only have one heap object for <code>f</code>, and all uses refer to that one object.</p>
-<p>This is actually not hard to fix: we maintain a map from <code>Id</code> names to the actual <code>Id</code>s. When we see a <code>let</code> we add the LHS to the map. When we see an identifier we lookup. Easy.</p>
-<h1 id="problem-2-invalidating-information-during-transformations">Problem 2: invalidating information during transformations</h1>
-<p>Suppose I want to implement a pass that drops unused bindings. For example:</p>
-<pre><code>let f = let a = e1
-         in \x . e2
- in f z + f t</code></pre>
-<p>Here if <code>e2</code> doesn’t use <code>a</code> I want to drop the binding:</p>
-<pre><code>let f = \x . e2
- in f z + f t</code></pre>
-<p>The AST for the original program is:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="dt">Let</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a>  <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> }</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>  (<span class="dt">Let</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a>     <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;a&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> }</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>     <span class="op">&lt;</span>e1<span class="op">&gt;</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a>     (<span class="dt">Lam</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;x&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> } <span class="op">&lt;</span>e2<span class="op">&gt;</span>))</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a>  (<span class="dt">App</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a>     (<span class="dt">App</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="ot">=</span> <span class="dv">2</span> })</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true"></a>        (<span class="dt">App</span></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a>           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true"></a>           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })))</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true"></a>     (<span class="dt">App</span></span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })</span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })))</span></code></pre></div>
-<p>Here’s a naive implementation of this pass:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>dropUnusedBindings <span class="ot">=</span> <span class="fu">snd</span> <span class="op">.</span> go Set.empty</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>    go free_vars e0 <span class="ot">=</span> <span class="kw">case</span> e0 <span class="kw">of</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a>      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a>        (Set.insert (idName <span class="fu">id</span>) free_vars, e0)</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a>      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a>        (free_vars, e0)</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a></span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true"></a>      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span></span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true"></a>        bimap (Set.delete (idName arg)) (<span class="dt">Lam</span> arg)</span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true"></a>              (go free_vars body)</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true"></a></span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true"></a>      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span></span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true"></a>        <span class="kw">let</span></span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true"></a>          (free1, e1&#39;) <span class="ot">=</span> go free_vars e1</span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true"></a>          (free2, e2&#39;) <span class="ot">=</span> go free_vars e2</span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true"></a>        <span class="kw">in</span></span>
-<span id="cb12-21"><a href="#cb12-21" aria-hidden="true"></a>          (Set.union free1 free2, <span class="dt">App</span> e1&#39; e2&#39;)</span>
-<span id="cb12-22"><a href="#cb12-22" aria-hidden="true"></a></span>
-<span id="cb12-23"><a href="#cb12-23" aria-hidden="true"></a>      <span class="dt">IfE</span> e1 e2 <span class="ot">-&gt;</span></span>
-<span id="cb12-24"><a href="#cb12-24" aria-hidden="true"></a>        <span class="kw">let</span></span>
-<span id="cb12-25"><a href="#cb12-25" aria-hidden="true"></a>          (free1, e1&#39;) <span class="ot">=</span> go free_vars e1</span>
-<span id="cb12-26"><a href="#cb12-26" aria-hidden="true"></a>          (free2, e2&#39;) <span class="ot">=</span> go free_vars e2</span>
-<span id="cb12-27"><a href="#cb12-27" aria-hidden="true"></a>          (free3, e3&#39;) <span class="ot">=</span> go free_vars e3</span>
-<span id="cb12-28"><a href="#cb12-28" aria-hidden="true"></a>        <span class="kw">in</span></span>
-<span id="cb12-29"><a href="#cb12-29" aria-hidden="true"></a>          (Set.unions [free1, free2, free3], <span class="dt">IfE</span> e1&#39; e2&#39; e3&#39;)</span>
-<span id="cb12-30"><a href="#cb12-30" aria-hidden="true"></a></span>
-<span id="cb12-31"><a href="#cb12-31" aria-hidden="true"></a>      <span class="dt">Let</span> bndr e1 e2 <span class="ot">-&gt;</span></span>
-<span id="cb12-32"><a href="#cb12-32" aria-hidden="true"></a>        <span class="kw">let</span></span>
-<span id="cb12-33"><a href="#cb12-33" aria-hidden="true"></a>          (free1, e1&#39;) <span class="ot">=</span> first (Set.delete (idName bndr)) (go free_vars e1)</span>
-<span id="cb12-34"><a href="#cb12-34" aria-hidden="true"></a>          (free2, e2&#39;) <span class="ot">=</span> go free_vars e2</span>
-<span id="cb12-35"><a href="#cb12-35" aria-hidden="true"></a>        <span class="kw">in</span></span>
-<span id="cb12-36"><a href="#cb12-36" aria-hidden="true"></a>          <span class="kw">if</span> Set.member (idName bndr) free2</span>
-<span id="cb12-37"><a href="#cb12-37" aria-hidden="true"></a>            <span class="kw">then</span> (Set.delete (idName bndr) (Set.union free1 free2),</span>
-<span id="cb12-38"><a href="#cb12-38" aria-hidden="true"></a>                  <span class="dt">Let</span> (updateIdArity bndr e1&#39;) e1&#39; e2&#39;)</span>
-<span id="cb12-39"><a href="#cb12-39" aria-hidden="true"></a>            <span class="kw">else</span> (free2, e2&#39;)</span>
-<span id="cb12-40"><a href="#cb12-40" aria-hidden="true"></a></span>
-<span id="cb12-41"><a href="#cb12-41" aria-hidden="true"></a><span class="ot">updateIdArity ::</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Id</span></span>
-<span id="cb12-42"><a href="#cb12-42" aria-hidden="true"></a>updateIdArity <span class="fu">id</span> rhs <span class="ot">=</span> <span class="fu">id</span>{ idArity <span class="ot">=</span> countLambdas rhs }</span>
-<span id="cb12-43"><a href="#cb12-43" aria-hidden="true"></a></span>
-<span id="cb12-44"><a href="#cb12-44" aria-hidden="true"></a><span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb12-45"><a href="#cb12-45" aria-hidden="true"></a>countLambdas (<span class="dt">Lam</span> _ rhs) <span class="ot">=</span> <span class="dv">1</span> <span class="op">+</span> countLambdas rhs</span>
-<span id="cb12-46"><a href="#cb12-46" aria-hidden="true"></a>countLambdas _ <span class="ot">=</span> <span class="dv">0</span></span></code></pre></div>
-<p>The problem with this pass is that it changes arity of binders, but doesn’t update the <code>idArity</code>s of occurrences. Here’s what I get if I run this over the original AST:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="dt">Let</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>  <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="ot">=</span> <span class="dv">1</span> }</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a>  (<span class="dt">Lam</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;x&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> } <span class="op">&lt;</span>e2<span class="op">&gt;</span>)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a>  (<span class="dt">App</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a>     (<span class="dt">App</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="ot">=</span> <span class="dv">2</span> })</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true"></a>        (<span class="dt">App</span></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true"></a>           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true"></a>           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })))</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true"></a>     (<span class="dt">App</span></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })))</span></code></pre></div>
-<p>Note how <code>f</code>, which was not a lambda binder previously, became a lambda binder with arity 1. The pass correctly updated <code>f</code>’s <code>idArity</code> in the binder position, but it did not update it in the occurrences! Indeed, in this representation it’s not easy to do this efficiently.</p>
-<p>Even if we solved the first problem and had only one closure for <code>f</code>, the <code>updateIdArity</code> step in this pass allocates a new <code>Id</code> and loses sharing. So we would end up with something like:</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="kw">let</span> f <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span>, idArity <span class="ot">=</span> <span class="dv">0</span> } <span class="kw">in</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a><span class="dt">Let</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a>  <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;f&quot;</span> , idArity <span class="ot">=</span> <span class="dv">1</span> }</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true"></a>  (<span class="dt">Lam</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;x&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> } <span class="op">&lt;</span>e2<span class="op">&gt;</span>)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true"></a>  (<span class="dt">App</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true"></a>     (<span class="dt">App</span></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;+&quot;</span> , idArity <span class="ot">=</span> <span class="dv">2</span> })</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true"></a>        (<span class="dt">App</span></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true"></a>           (<span class="dt">IdE</span> f)</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true"></a>           (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;z&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })))</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true"></a>     (<span class="dt">App</span></span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true"></a>        (<span class="dt">IdE</span> f)</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true"></a>        (<span class="dt">IdE</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;t&quot;</span> , idArity <span class="ot">=</span> <span class="dv">0</span> })))</span></code></pre></div>
-<p>The arity of <code>f</code> in the use sites are still wrong, and we lost sharing.</p>
-<h1 id="knot-tying">Knot-tying</h1>
-<p>Knot-tying is a way of solving both of these in one step. I find it quite hard to explain in words so I’ll show the code (only the interesting bits):</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a>dropUnusedBindings <span class="ot">=</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true"></a>    <span class="fu">snd</span> <span class="op">.</span> go Map.empty Set.empty</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true"></a><span class="ot">    go ::</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true"></a>    go binders free_vars e0 <span class="ot">=</span> <span class="kw">case</span> e0 <span class="kw">of</span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true"></a></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true"></a>      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true"></a>        (Set.insert (idName <span class="fu">id</span>) free_vars, <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (Map.lookup (idName <span class="fu">id</span>) binders)))</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true"></a></span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true"></a>      <span class="dt">Let</span> bndr<span class="op">@</span><span class="dt">Id</span>{ idName <span class="ot">=</span> bndr_name } e1 e2 <span class="ot">-&gt;</span></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true"></a>        <span class="kw">let</span></span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true"></a>          bndr&#39; <span class="ot">=</span> updateIdArity bndr e1&#39;</span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true"></a>          binders&#39; <span class="ot">=</span> Map.insert bndr_name bndr&#39; binders</span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true"></a>          (free1, e1&#39;) <span class="ot">=</span> first (Set.delete bndr_name) (go binders&#39; free_vars e1)</span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true"></a>          (free2, e2&#39;) <span class="ot">=</span> go binders&#39; free_vars e2</span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true"></a>        <span class="kw">in</span></span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true"></a>          <span class="kw">if</span> Set.member bndr_name free2</span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true"></a>            <span class="kw">then</span> (Set.delete bndr_name (Set.union free1 free2),</span>
-<span id="cb15-20"><a href="#cb15-20" aria-hidden="true"></a>                  <span class="dt">Let</span> bndr&#39; e1&#39; e2&#39;)</span>
-<span id="cb15-21"><a href="#cb15-21" aria-hidden="true"></a>            <span class="kw">else</span> (free2, e2&#39;)</span>
-<span id="cb15-22"><a href="#cb15-22" aria-hidden="true"></a></span>
-<span id="cb15-23"><a href="#cb15-23" aria-hidden="true"></a>      <span class="op">...</span></span></code></pre></div>
-<p>The differences from the original version:</p>
-<ul>
-<li><p>We now pass around a “binders” map that maps identifier names to actual <code>Id</code>s. This is used to common-up uses of identifiers with one shared heap object with correct arity info.</p></li>
-<li><p>In <code>IdE</code> case we now do lookup on this map, and replace the <code>Id</code> with the shared <code>Id</code> with correct arity info from the map.</p></li>
-<li><p>The tricky bit is the <code>Let</code> case where we have a cyclic group of let bindings. <code>binders'</code> is the binder map with <code>bndr</code> with correct arity information. However to be able to generate that map we first need to process <code>e1</code>, and while processing <code>e1</code> we want to replace any occurrences of <code>bndr</code> with correct <code>Id</code> too! This gives us the cyclic bindings:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a>bndr&#39; <span class="ot">=</span> updateIdArity bndr e1&#39;</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a>binders&#39; <span class="ot">=</span> Map.insert bndr_name bndr&#39; binders</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a>(<span class="op">...</span>, e1&#39;) <span class="ot">=</span> <span class="op">...</span> (go binders&#39; free_vars e1)</span></code></pre></div></li>
-</ul>
-<p>This technique relies heavily on lazy evaluation. In the original example the AST is not recursive, but suppose we also want to record RHSs of let binders in <code>Id</code>s, to be used for inlining:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Id</span> <span class="ot">=</span> <span class="dt">Id</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a>  { <span class="op">...</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a>  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true"></a>    <span class="co">-- ^ RHS of a let binding, used for inlining</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true"></a>  }</span></code></pre></div>
-<p>Now once we implement sharing (solving problem 1) ASTs with recursive definitions will become cyclic. A simple example:</p>
-<pre><code>let fac = \x . if x then x * fac (x - 1) else 1 in fac 5</code></pre>
-<p>This will be represented as something like</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a>pgm <span class="ot">=</span> <span class="dt">Let</span> fac_id rhs body</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true"></a>    fac_id <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;fac&quot;</span>, idArity <span class="ot">=</span> <span class="dv">0</span>, idUnfolding <span class="ot">=</span> <span class="dt">Just</span> rhs }</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true"></a>    rhs <span class="ot">=</span> <span class="dt">Lam</span> x_id (<span class="dt">IfE</span> (<span class="dt">IdE</span> x_id)</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true"></a>                        (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> star_id) (<span class="dt">IdE</span> x_id))</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true"></a>                             (<span class="dt">App</span> (<span class="dt">IdE</span> fac_id) (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> minus_id) (<span class="dt">IdE</span> x_id))</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true"></a>                                                    (<span class="dt">IntE</span> <span class="dv">1</span>))))</span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true"></a>                                  (<span class="dt">IntE</span> <span class="dv">1</span>))</span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true"></a>    body <span class="ot">=</span> <span class="dt">App</span> (<span class="dt">IdE</span> fac_id) (<span class="dt">IntE</span> <span class="dv">5</span>)</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true"></a></span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true"></a>    x_id <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;x&quot;</span>, idArity <span class="ot">=</span> <span class="dv">0</span>, idUnfolding <span class="ot">=</span> <span class="dt">Nothing</span> }</span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true"></a>    star_id <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;*&quot;</span>, idArity <span class="ot">=</span> <span class="dv">2</span>, idUnfolding <span class="ot">=</span> <span class="dt">Nothing</span> }</span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true"></a>    minus_id <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;-&quot;</span>, idArity <span class="ot">=</span> <span class="dv">2</span>, idUnfolding <span class="ot">=</span> <span class="dt">Nothing</span> }</span></code></pre></div>
-<p>Here <code>fac_id</code> refers to <code>rhs</code>, which refers to <code>fac_id</code>, forming a cycle.</p>
-<p>The knot-tying implementation of <code>dropUnusedBindings</code> works even in cases like this. We just need to update <code>updateIdArity</code> to update the unfolding, when it’s available:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a><span class="ot">updateIdArity ::</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Id</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a>updateIdArity <span class="fu">id</span> rhs <span class="ot">=</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true"></a>    <span class="fu">id</span>{ idArity <span class="ot">=</span> countLambdas rhs</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true"></a>      , idUnfolding <span class="ot">=</span> idUnfolding <span class="fu">id</span> <span class="op">$&gt;</span> rhs }</span></code></pre></div>
-<p>This is a bit hard to try, but if I implement a <code>Show</code> instance for <code>Id</code> that doesn’t print the unfolding (to avoid looping), make <code>fac_id</code>’s arity <code>0</code>, and call <code>dropUnusedBindings</code> this is the AST I get:</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="dt">Let</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a>  (<span class="dt">Id</span> <span class="st">&quot;fac&quot;</span> <span class="dv">1</span>)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a>  (<span class="dt">Lam</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true"></a>     (<span class="dt">Id</span> <span class="st">&quot;x&quot;</span> <span class="dv">0</span>)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true"></a>     (<span class="dt">IfE</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true"></a>        (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;x&quot;</span> <span class="dv">0</span>))</span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true"></a>        (<span class="dt">App</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true"></a>           (<span class="dt">App</span> (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;*&quot;</span> <span class="dv">2</span>)) (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;x&quot;</span> <span class="dv">0</span>)))</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true"></a>           (<span class="dt">App</span></span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true"></a>              (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;fac&quot;</span> <span class="dv">1</span>))</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true"></a>              (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;-&quot;</span> <span class="dv">2</span>)) (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;x&quot;</span> <span class="dv">0</span>))) (<span class="dt">IntE</span> <span class="dv">1</span>))))</span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true"></a>        (<span class="dt">IntE</span> <span class="dv">1</span>)))</span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true"></a>  (<span class="dt">App</span> (<span class="dt">IdE</span> (<span class="dt">Id</span> <span class="st">&quot;fac&quot;</span> <span class="dv">1</span>)) (<span class="dt">IntE</span> <span class="dv">5</span>))</span></code></pre></div>
-<p>All uses of <code>fac</code> have correct arity! Similarly I can do something hacky like this in GHCi to check that the unfolding has correct arity for uses of <code>fac</code> too:</p>
-<pre><code>ghci&gt; let Let lhs _ _ = dropUnusedBindings pgm
-ghci&gt; putStrLn (ppShow (idUnfolding lhs))
-Just
-  (Lam
-     (Id &quot;x&quot; 0)
-     (IfE
-        (IdE (Id &quot;x&quot; 0))
-        (App
-           (App (IdE (Id &quot;*&quot; 2)) (IdE (Id &quot;x&quot; 0)))
-           (App
-              (IdE (Id &quot;fac&quot; 1))
-              (App (App (IdE (Id &quot;-&quot; 2)) (IdE (Id &quot;x&quot; 0))) (IntE 1))))
-        (IntE 1)))</code></pre>
-<p>Nice!</p>
-<h1 id="or-is-it">… or is it?</h1>
-<p>The main problem with this technique is that it’s very difficult to understand. Even after working on different knot-tying code in GHC and implementing my own knot-tying passes, the recursive let bindings in the <code>Let</code> case above is still mind-boggling to me.</p>
-<p>Secondly, it’s really hard to reason about the evaluation order of things in knot-tying code. You might think that this shouldn’t be an issue in a purely functional implementation, but in my experience any non-trivial compiler pass, even when implemented in a purely functional style, still needs debugging. Even if it’s not buggy, you may want to trace the evaluation and print a few things to understand how the code works.</p>
-<p>Knot-tying code makes this, which should be absolutely trivial in any reasonable code base, very difficult. If you end up evaluating just the right places with your print statements you end looping. For example, here’s our AST with a few bang patterns:</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Expr</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a>  <span class="ot">=</span> <span class="dt">IdE</span> <span class="op">!</span><span class="dt">Id</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IntE</span> <span class="dt">Int</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">App</span> <span class="op">!</span><span class="dt">Expr</span> <span class="op">!</span><span class="dt">Expr</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="op">!</span><span class="dt">Expr</span> <span class="dt">Expr</span></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true"></a></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Id</span> <span class="ot">=</span> <span class="dt">Id</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true"></a>  {<span class="ot"> idName ::</span> <span class="dt">String</span></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true"></a>  ,<span class="ot"> idArity ::</span> <span class="op">!</span><span class="dt">Int</span></span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true"></a>  }</span></code></pre></div>
-<p>If you run the same program above using this AST definition you’ll see that the pass now loops. Note that I’ve removed the <code>idUnfolding</code> field just to demonstrate that this doesn’t happen because we have a loop in the AST.</p>
-<p>It’s even more frustrating when what you’re debugging is a loop. You add a few prints, and scratch your head thinking why none of your prints are working even though the algorithm is clearly looping. What’s really happening is that the code is indeed looping, but for a different reason…</p>
-<p>Finally, because making things more strict potentially breaks things, knot-tying makes fixing some memory leaks very hard. For example, we may have many passes on our AST, one of them being our knot-tying pass. Some of these passes may be very leaky, and instead of adding strict applications or bang patterns to dozens of places, we may want to add bangs to only a few places in the AST. But that, as demonstrated above, causes our knot-tying pass to loop.</p>
-<h1 id="opinions">Opinions</h1>
-<p>GHC makes use of knot-tying extensively, which has always been one of the pain points for me since my first days contributing to GHC. I vaguely remember, I was a graduate student at Indiana University at the time, making my first contributions to GHC. I remember finding it refreshing to be able to simply do <code>idType</code> and get type of an identifier in GHC, as opposed to using a symbol table, which I’d been doing in some of the other compilers I worked on in the past.</p>
-<p>At the same time, I was constantly confused that my simple print statements added in some front-end pass makes the compiler loop. I had no idea what could be the reason. I had no idea that the thing I found so refreshing is also the reason why debugging and tracing were so much harder.</p>
-<p>Suffice it to say, I don’t like knot-tying. If I had to use knot-tying in my project I’d probably reconsider how I represent my data instead. For example, if we simply used an unique number for our identifiers and maintained a symbol table to map the unique numbers to actual <code>Id</code>s then we wouldn’t have cycles for recursive functions in the AST and wouldn’t need knot-tying. Updating something about an <code>Id</code> would be a simple update in the symbol table.</p>
-<details>
-<p><summary>Full code</summary></p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="co">-- Tried with GHC 8.6.4</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a><span class="ot">{-# OPTIONS_GHC -Wall #-}</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true"></a></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true"></a></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Bifunctor</span></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Functor</span></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Maybe</span></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Prelude</span> <span class="kw">hiding</span> (id)</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true"></a></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true"></a><span class="co">-- containers-0.6</span></span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span></span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true"></a></span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true"></a><span class="co">-- pretty-show-1.10</span></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Show.Pretty</span></span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true"></a></span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true"></a><span class="co">{-</span></span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true"></a><span class="co">data Expr</span></span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true"></a><span class="co">  = IdE !Id</span></span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true"></a><span class="co">  | IntE Int</span></span>
-<span id="cb24-23"><a href="#cb24-23" aria-hidden="true"></a><span class="co">  | Lam Id Expr</span></span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true"></a><span class="co">  | App !Expr !Expr</span></span>
-<span id="cb24-25"><a href="#cb24-25" aria-hidden="true"></a><span class="co">  | IfE Expr !Expr Expr</span></span>
-<span id="cb24-26"><a href="#cb24-26" aria-hidden="true"></a><span class="co">  | Let Id Expr Expr</span></span>
-<span id="cb24-27"><a href="#cb24-27" aria-hidden="true"></a><span class="co">  | Placeholder String</span></span>
-<span id="cb24-28"><a href="#cb24-28" aria-hidden="true"></a><span class="co">  deriving (Show)</span></span>
-<span id="cb24-29"><a href="#cb24-29" aria-hidden="true"></a></span>
-<span id="cb24-30"><a href="#cb24-30" aria-hidden="true"></a><span class="co">data Id = Id</span></span>
-<span id="cb24-31"><a href="#cb24-31" aria-hidden="true"></a><span class="co">  { idName :: String</span></span>
-<span id="cb24-32"><a href="#cb24-32" aria-hidden="true"></a><span class="co">    -- ^ Unique name of the identifier</span></span>
-<span id="cb24-33"><a href="#cb24-33" aria-hidden="true"></a><span class="co">  , idArity :: !Int</span></span>
-<span id="cb24-34"><a href="#cb24-34" aria-hidden="true"></a><span class="co">    -- ^ Arity of a lambda. 0 for non-lambdas.</span></span>
-<span id="cb24-35"><a href="#cb24-35" aria-hidden="true"></a><span class="co">  }</span></span>
-<span id="cb24-36"><a href="#cb24-36" aria-hidden="true"></a><span class="co">-}</span></span>
-<span id="cb24-37"><a href="#cb24-37" aria-hidden="true"></a></span>
-<span id="cb24-38"><a href="#cb24-38" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Expr</span></span>
-<span id="cb24-39"><a href="#cb24-39" aria-hidden="true"></a>  <span class="ot">=</span> <span class="dt">IdE</span> <span class="dt">Id</span></span>
-<span id="cb24-40"><a href="#cb24-40" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IntE</span> <span class="dt">Int</span></span>
-<span id="cb24-41"><a href="#cb24-41" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Lam</span> <span class="dt">Id</span> <span class="dt">Expr</span></span>
-<span id="cb24-42"><a href="#cb24-42" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">App</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
-<span id="cb24-43"><a href="#cb24-43" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">IfE</span> <span class="dt">Expr</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
-<span id="cb24-44"><a href="#cb24-44" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Let</span> <span class="dt">Id</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span>
-<span id="cb24-45"><a href="#cb24-45" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Placeholder</span> <span class="dt">String</span></span>
-<span id="cb24-46"><a href="#cb24-46" aria-hidden="true"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
-<span id="cb24-47"><a href="#cb24-47" aria-hidden="true"></a></span>
-<span id="cb24-48"><a href="#cb24-48" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Id</span> <span class="ot">=</span> <span class="dt">Id</span></span>
-<span id="cb24-49"><a href="#cb24-49" aria-hidden="true"></a>  {<span class="ot"> idName ::</span> <span class="dt">String</span></span>
-<span id="cb24-50"><a href="#cb24-50" aria-hidden="true"></a>    <span class="co">-- ^ Unique name of the identifier</span></span>
-<span id="cb24-51"><a href="#cb24-51" aria-hidden="true"></a>  ,<span class="ot"> idArity ::</span> <span class="dt">Int</span></span>
-<span id="cb24-52"><a href="#cb24-52" aria-hidden="true"></a>    <span class="co">-- ^ Arity of a lambda. 0 for non-lambdas.</span></span>
-<span id="cb24-53"><a href="#cb24-53" aria-hidden="true"></a>  ,<span class="ot"> idUnfolding ::</span> <span class="dt">Maybe</span> <span class="dt">Expr</span></span>
-<span id="cb24-54"><a href="#cb24-54" aria-hidden="true"></a>    <span class="co">-- ^ RHS of a binder, used for inlining</span></span>
-<span id="cb24-55"><a href="#cb24-55" aria-hidden="true"></a>  }</span>
-<span id="cb24-56"><a href="#cb24-56" aria-hidden="true"></a></span>
-<span id="cb24-57"><a href="#cb24-57" aria-hidden="true"></a><span class="kw">instance</span> <span class="dt">Show</span> <span class="dt">Id</span> <span class="kw">where</span></span>
-<span id="cb24-58"><a href="#cb24-58" aria-hidden="true"></a>  <span class="fu">show</span> (<span class="dt">Id</span> name arity _) <span class="ot">=</span> <span class="st">&quot;(Id &quot;</span> <span class="op">++</span> <span class="fu">show</span> name <span class="op">++</span> <span class="st">&quot; &quot;</span> <span class="op">++</span> <span class="fu">show</span> arity <span class="op">++</span> <span class="st">&quot;)&quot;</span></span>
-<span id="cb24-59"><a href="#cb24-59" aria-hidden="true"></a></span>
-<span id="cb24-60"><a href="#cb24-60" aria-hidden="true"></a><span class="co">{-</span></span>
-<span id="cb24-61"><a href="#cb24-61" aria-hidden="true"></a><span class="co">f_id = Id { idName = &quot;f&quot;, idArity = 0 }</span></span>
-<span id="cb24-62"><a href="#cb24-62" aria-hidden="true"></a><span class="co">a_id = Id { idName = &quot;a&quot;, idArity = 0 }</span></span>
-<span id="cb24-63"><a href="#cb24-63" aria-hidden="true"></a><span class="co">x_id = Id { idName = &quot;x&quot;, idArity = 0 }</span></span>
-<span id="cb24-64"><a href="#cb24-64" aria-hidden="true"></a><span class="co">z_id = Id { idName = &quot;z&quot;, idArity = 0 }</span></span>
-<span id="cb24-65"><a href="#cb24-65" aria-hidden="true"></a><span class="co">t_id = Id { idName = &quot;t&quot;, idArity = 0 }</span></span>
-<span id="cb24-66"><a href="#cb24-66" aria-hidden="true"></a><span class="co">plus_id = Id { idName = &quot;+&quot;, idArity = 2 }</span></span>
-<span id="cb24-67"><a href="#cb24-67" aria-hidden="true"></a></span>
-<span id="cb24-68"><a href="#cb24-68" aria-hidden="true"></a></span>
-<span id="cb24-69"><a href="#cb24-69" aria-hidden="true"></a><span class="co">f_x_plus_f_y = (App (App (IdE plus_id) (App (IdE f_id) (IdE z_id)))</span></span>
-<span id="cb24-70"><a href="#cb24-70" aria-hidden="true"></a><span class="co">                     (App (IdE f_id) (IdE t_id)))</span></span>
-<span id="cb24-71"><a href="#cb24-71" aria-hidden="true"></a></span>
-<span id="cb24-72"><a href="#cb24-72" aria-hidden="true"></a><span class="co">ast1 = Let f_id (Let a_id (Placeholder &quot;e1&quot;) (Lam x_id (Placeholder &quot;e2&quot;))) f_x_plus_f_y</span></span>
-<span id="cb24-73"><a href="#cb24-73" aria-hidden="true"></a></span>
-<span id="cb24-74"><a href="#cb24-74" aria-hidden="true"></a><span class="co">ast2 = Let a_id (Placeholder &quot;e1&quot;)</span></span>
-<span id="cb24-75"><a href="#cb24-75" aria-hidden="true"></a><span class="co">           (Let f_id (Lam x_id (Placeholder &quot;e2&quot;))</span></span>
-<span id="cb24-76"><a href="#cb24-76" aria-hidden="true"></a><span class="co">                     f_x_plus_f_y)</span></span>
-<span id="cb24-77"><a href="#cb24-77" aria-hidden="true"></a><span class="co">-}</span></span>
-<span id="cb24-78"><a href="#cb24-78" aria-hidden="true"></a></span>
-<span id="cb24-79"><a href="#cb24-79" aria-hidden="true"></a><span class="ot">updateIdArity ::</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Id</span></span>
-<span id="cb24-80"><a href="#cb24-80" aria-hidden="true"></a>updateIdArity <span class="fu">id</span> rhs <span class="ot">=</span></span>
-<span id="cb24-81"><a href="#cb24-81" aria-hidden="true"></a>  <span class="fu">id</span>{ idArity <span class="ot">=</span> countLambdas rhs,</span>
-<span id="cb24-82"><a href="#cb24-82" aria-hidden="true"></a>      idUnfolding <span class="ot">=</span> idUnfolding <span class="fu">id</span> <span class="op">$&gt;</span> rhs }</span>
-<span id="cb24-83"><a href="#cb24-83" aria-hidden="true"></a></span>
-<span id="cb24-84"><a href="#cb24-84" aria-hidden="true"></a><span class="ot">countLambdas ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb24-85"><a href="#cb24-85" aria-hidden="true"></a>countLambdas (<span class="dt">Lam</span> _ rhs) <span class="ot">=</span> <span class="dv">1</span> <span class="op">+</span> countLambdas rhs</span>
-<span id="cb24-86"><a href="#cb24-86" aria-hidden="true"></a>countLambdas _ <span class="ot">=</span> <span class="dv">0</span></span>
-<span id="cb24-87"><a href="#cb24-87" aria-hidden="true"></a></span>
-<span id="cb24-88"><a href="#cb24-88" aria-hidden="true"></a><span class="ot">dropUnusedBindings ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span></span>
-<span id="cb24-89"><a href="#cb24-89" aria-hidden="true"></a>dropUnusedBindings <span class="ot">=</span></span>
-<span id="cb24-90"><a href="#cb24-90" aria-hidden="true"></a>    <span class="fu">snd</span> <span class="op">.</span> go Map.empty Set.empty</span>
-<span id="cb24-91"><a href="#cb24-91" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb24-92"><a href="#cb24-92" aria-hidden="true"></a><span class="ot">    go ::</span> <span class="dt">Map.Map</span> <span class="dt">String</span> <span class="dt">Id</span> <span class="ot">-&gt;</span> <span class="dt">Set.Set</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> (<span class="dt">Set.Set</span> <span class="dt">String</span>, <span class="dt">Expr</span>)</span>
-<span id="cb24-93"><a href="#cb24-93" aria-hidden="true"></a>    go binders free_vars e0 <span class="ot">=</span> <span class="kw">case</span> e0 <span class="kw">of</span></span>
-<span id="cb24-94"><a href="#cb24-94" aria-hidden="true"></a></span>
-<span id="cb24-95"><a href="#cb24-95" aria-hidden="true"></a>      <span class="dt">IdE</span> <span class="fu">id</span> <span class="ot">-&gt;</span></span>
-<span id="cb24-96"><a href="#cb24-96" aria-hidden="true"></a>        (Set.insert (idName <span class="fu">id</span>) free_vars, <span class="dt">IdE</span> (fromMaybe <span class="fu">id</span> (Map.lookup (idName <span class="fu">id</span>) binders)))</span>
-<span id="cb24-97"><a href="#cb24-97" aria-hidden="true"></a></span>
-<span id="cb24-98"><a href="#cb24-98" aria-hidden="true"></a>      <span class="dt">IntE</span>{} <span class="ot">-&gt;</span></span>
-<span id="cb24-99"><a href="#cb24-99" aria-hidden="true"></a>        (free_vars, e0)</span>
-<span id="cb24-100"><a href="#cb24-100" aria-hidden="true"></a></span>
-<span id="cb24-101"><a href="#cb24-101" aria-hidden="true"></a>      <span class="dt">Lam</span> arg body <span class="ot">-&gt;</span></span>
-<span id="cb24-102"><a href="#cb24-102" aria-hidden="true"></a>        bimap (Set.delete (idName arg)) (<span class="dt">Lam</span> arg)</span>
-<span id="cb24-103"><a href="#cb24-103" aria-hidden="true"></a>              (go binders free_vars body)</span>
-<span id="cb24-104"><a href="#cb24-104" aria-hidden="true"></a></span>
-<span id="cb24-105"><a href="#cb24-105" aria-hidden="true"></a>      <span class="dt">App</span> e1 e2 <span class="ot">-&gt;</span></span>
-<span id="cb24-106"><a href="#cb24-106" aria-hidden="true"></a>        <span class="kw">let</span></span>
-<span id="cb24-107"><a href="#cb24-107" aria-hidden="true"></a>          (free1, e1&#39;) <span class="ot">=</span> go binders free_vars e1</span>
-<span id="cb24-108"><a href="#cb24-108" aria-hidden="true"></a>          (free2, e2&#39;) <span class="ot">=</span> go binders free_vars e2</span>
-<span id="cb24-109"><a href="#cb24-109" aria-hidden="true"></a>        <span class="kw">in</span></span>
-<span id="cb24-110"><a href="#cb24-110" aria-hidden="true"></a>          (Set.union free1 free2, <span class="dt">App</span> e1&#39; e2&#39;)</span>
-<span id="cb24-111"><a href="#cb24-111" aria-hidden="true"></a></span>
-<span id="cb24-112"><a href="#cb24-112" aria-hidden="true"></a>      <span class="dt">IfE</span> e1 e2 e3 <span class="ot">-&gt;</span></span>
-<span id="cb24-113"><a href="#cb24-113" aria-hidden="true"></a>        <span class="kw">let</span></span>
-<span id="cb24-114"><a href="#cb24-114" aria-hidden="true"></a>          (free1, e1&#39;) <span class="ot">=</span> go binders free_vars e1</span>
-<span id="cb24-115"><a href="#cb24-115" aria-hidden="true"></a>          (free2, e2&#39;) <span class="ot">=</span> go binders free_vars e2</span>
-<span id="cb24-116"><a href="#cb24-116" aria-hidden="true"></a>          (free3, e3&#39;) <span class="ot">=</span> go binders free_vars e3</span>
-<span id="cb24-117"><a href="#cb24-117" aria-hidden="true"></a>        <span class="kw">in</span></span>
-<span id="cb24-118"><a href="#cb24-118" aria-hidden="true"></a>          (Set.unions [free1, free2, free3], <span class="dt">IfE</span> e1&#39; e2&#39; e3&#39;)</span>
-<span id="cb24-119"><a href="#cb24-119" aria-hidden="true"></a></span>
-<span id="cb24-120"><a href="#cb24-120" aria-hidden="true"></a>      <span class="dt">Let</span> bndr<span class="op">@</span><span class="dt">Id</span>{ idName <span class="ot">=</span> bndr_name } e1 e2 <span class="ot">-&gt;</span></span>
-<span id="cb24-121"><a href="#cb24-121" aria-hidden="true"></a>        <span class="kw">let</span></span>
-<span id="cb24-122"><a href="#cb24-122" aria-hidden="true"></a>          bndr&#39; <span class="ot">=</span> updateIdArity bndr e1&#39;</span>
-<span id="cb24-123"><a href="#cb24-123" aria-hidden="true"></a>          binders&#39; <span class="ot">=</span> Map.insert bndr_name bndr&#39; binders</span>
-<span id="cb24-124"><a href="#cb24-124" aria-hidden="true"></a>          (free1, e1&#39;) <span class="ot">=</span> first (Set.delete bndr_name) (go binders&#39; free_vars e1)</span>
-<span id="cb24-125"><a href="#cb24-125" aria-hidden="true"></a>          (free2, e2&#39;) <span class="ot">=</span> go binders&#39; free_vars e2</span>
-<span id="cb24-126"><a href="#cb24-126" aria-hidden="true"></a>        <span class="kw">in</span></span>
-<span id="cb24-127"><a href="#cb24-127" aria-hidden="true"></a>          <span class="kw">if</span> Set.member bndr_name free2</span>
-<span id="cb24-128"><a href="#cb24-128" aria-hidden="true"></a>            <span class="kw">then</span> (Set.delete bndr_name (Set.union free1 free2),</span>
-<span id="cb24-129"><a href="#cb24-129" aria-hidden="true"></a>                  <span class="dt">Let</span> bndr&#39; e1&#39; e2&#39;)</span>
-<span id="cb24-130"><a href="#cb24-130" aria-hidden="true"></a>            <span class="kw">else</span> (free2, e2&#39;)</span>
-<span id="cb24-131"><a href="#cb24-131" aria-hidden="true"></a></span>
-<span id="cb24-132"><a href="#cb24-132" aria-hidden="true"></a>      <span class="dt">Placeholder</span>{} <span class="ot">-&gt;</span></span>
-<span id="cb24-133"><a href="#cb24-133" aria-hidden="true"></a>        (free_vars, e0)</span>
-<span id="cb24-134"><a href="#cb24-134" aria-hidden="true"></a></span>
-<span id="cb24-135"><a href="#cb24-135" aria-hidden="true"></a><span class="ot">pgm ::</span> <span class="dt">Expr</span></span>
-<span id="cb24-136"><a href="#cb24-136" aria-hidden="true"></a>pgm <span class="ot">=</span> <span class="dt">Let</span> fac_id rhs body</span>
-<span id="cb24-137"><a href="#cb24-137" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb24-138"><a href="#cb24-138" aria-hidden="true"></a>    fac_id <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;fac&quot;</span>, idArity <span class="ot">=</span> <span class="dv">0</span>, idUnfolding <span class="ot">=</span> <span class="dt">Just</span> rhs }</span>
-<span id="cb24-139"><a href="#cb24-139" aria-hidden="true"></a>    rhs <span class="ot">=</span> <span class="dt">Lam</span> x_id (<span class="dt">IfE</span> (<span class="dt">IdE</span> x_id) (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> star_id) (<span class="dt">IdE</span> x_id))</span>
-<span id="cb24-140"><a href="#cb24-140" aria-hidden="true"></a>                                        (<span class="dt">App</span> (<span class="dt">IdE</span> fac_id)</span>
-<span id="cb24-141"><a href="#cb24-141" aria-hidden="true"></a>                                             (<span class="dt">App</span> (<span class="dt">App</span> (<span class="dt">IdE</span> minus_id) (<span class="dt">IdE</span> x_id)) (<span class="dt">IntE</span> <span class="dv">1</span>))))</span>
-<span id="cb24-142"><a href="#cb24-142" aria-hidden="true"></a>                                   (<span class="dt">IntE</span> <span class="dv">1</span>))</span>
-<span id="cb24-143"><a href="#cb24-143" aria-hidden="true"></a>    body <span class="ot">=</span> <span class="dt">App</span> (<span class="dt">IdE</span> fac_id) (<span class="dt">IntE</span> <span class="dv">5</span>)</span>
-<span id="cb24-144"><a href="#cb24-144" aria-hidden="true"></a></span>
-<span id="cb24-145"><a href="#cb24-145" aria-hidden="true"></a>    x_id <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;x&quot;</span>, idArity <span class="ot">=</span> <span class="dv">0</span>, idUnfolding <span class="ot">=</span> <span class="dt">Nothing</span> }</span>
-<span id="cb24-146"><a href="#cb24-146" aria-hidden="true"></a>    star_id <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;*&quot;</span>, idArity <span class="ot">=</span> <span class="dv">2</span>, idUnfolding <span class="ot">=</span> <span class="dt">Nothing</span> }</span>
-<span id="cb24-147"><a href="#cb24-147" aria-hidden="true"></a>    minus_id <span class="ot">=</span> <span class="dt">Id</span> { idName <span class="ot">=</span> <span class="st">&quot;-&quot;</span>, idArity <span class="ot">=</span> <span class="dv">2</span>, idUnfolding <span class="ot">=</span> <span class="dt">Nothing</span> }</span>
-<span id="cb24-148"><a href="#cb24-148" aria-hidden="true"></a></span>
-<span id="cb24-149"><a href="#cb24-149" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb24-150"><a href="#cb24-150" aria-hidden="true"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> (ppShow (dropUnusedBindings pgm))</span></code></pre></div>
-</details>
-<p>Thanks to Oleg Grenrus for reading a draft of this.</p>]]></summary>
 </entry>
 
 </feed>
