@@ -8,8 +8,317 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2020-06-30T00:00:00Z</updated>
+    <updated>2024-10-09T00:00:00Z</updated>
     <entry>
+    <title>OOP is not that bad, actually</title>
+    <link href="http://osa1.net/posts/2024-10-09-oop-good.html" />
+    <id>http://osa1.net/posts/2024-10-09-oop-good.html</id>
+    <published>2024-10-09T00:00:00Z</published>
+    <updated>2024-10-09T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>OOP is certainly not my favorite paradigm, but I think mainstream statically-typed OOP does a few things right that are very important for programming with many people, over long periods of time.</p>
+<p>In this post I want to explain what I think is the most important one of these things that the mainstream statically-typed OOP languages do well.</p>
+<p>I will then compare the OOP code with Haskell, to try to make the point that OOP is not as bad in everything as some functional programmers seem to think.</p>
+<h1 id="what-even-is-oop">What even is OOP?</h1>
+<p>In this post I use the word “OOP” to mean programming in statically-typed language with:</p>
+<ol type="1">
+<li>Classes, that combine state and methods that can modify the state.</li>
+<li>Inheritance, which allows classes to reuse state and methods of other classes.</li>
+<li>Subtyping, where if a type <code>B</code> implements the public interface of type <code>A</code>, values of type <code>B</code> can be passed as <code>A</code>.</li>
+<li>Virtual calls, where receiver class of a method call is not determined by the static type of the receiver but its runtime type.</li>
+</ol>
+<p>Examples of OO languages according to this definition: C++, Java, C#, Dart.</p>
+<h1 id="an-example-of-what-this-allows">An example of what this allows</h1>
+<p>This set of features allows a simple and convenient way of developing composable libraries, and extending the libraries with new functionality in a backwards compatible way.</p>
+<p>It’s probably best explained with an example. Suppose we have a simple logger library:</p>
+<pre><code>class Logger {
+  // Private constructor: initializes state, returns an instance of `Logger`.
+  Logger._();
+
+  // Public factory: can return `Logger` or any of the subtypes.
+  factory Logger() =&gt; Logger._();
+
+  void log(String message, Severity severity) { /* ... */ }
+}
+
+enum Severity {
+  Info,
+  Error,
+  Fatal,
+}</code></pre>
+<p>and another library that does some database stuff:</p>
+<pre><code>class DatabaseHandle {
+  /* ... */
+}</code></pre>
+<p>and an application that uses both:</p>
+<pre><code>class MyApp {
+  final Logger _logger;
+  final DatabaseHandle _dbHandle;
+
+  MyApp()
+      : _logger = Logger(),
+        _dbHandle = DatabaseHandle(...);
+}</code></pre>
+<p>As is usually the case, things that make network connections, change shared state etc. need to be mocked, faked, or stubbed to be able to test applications. We may also want to extend the libraries with new functionality. With the features that we have, we don’t have to see this coming and prepare the types based on this.</p>
+<p>In the first iteration we might just add a concrete class that is just the copy of the current class, and make the current class abstract:</p>
+<pre><code>// The class is now abstract.
+abstract class Logger {
+  // Public factory now returns an instance of a concrete subtype.
+  factory Logger() =&gt; _SimpleLogger();
+
+  Logger._();
+
+  // `log` is now abstract.
+  void log(String message, Severity severity);
+}
+
+class _SimpleLogger extends Logger {
+  factory _SimpleLogger() =&gt; _SimpleLogger._();
+
+  _SimpleLogger._() : super._() {/* ... */}
+
+  @override
+  void log(String message, Severity severity) {/* ... */}
+}</code></pre>
+<p>This change is backwards compatible, requires no changes in user code.</p>
+<p>Now we might add more implementations, e.g. for ignoring log messages:</p>
+<pre><code>abstract class Logger {
+  factory Logger() =&gt; _SimpleLogger();
+
+  // New.
+  factory Logger.ignoring() =&gt; _IgnoringLogger();
+
+  Logger._();
+
+  void log(String message, Severity severity);
+}
+
+class _IgnoringLogger extends Logger {
+  factory _IgnoringLogger() =&gt; _IgnoringLogger._();
+
+  _IgnoringLogger._() : super._() {}
+
+  @override
+  void log(String message, Severity severity) {}
+}</code></pre>
+<p>Similarly we can add a logger that logs to a file, to a DB, etc.</p>
+<p>We can do the same for the database handle class, but for mocking, faking, or stubbing, in tests.</p>
+<p>To be able to use these new subtypes in our app, we implement a factory, or add a constructor to allow passing a logger and a db handle:</p>
+<pre><code>class MyApp {
+  final Logger _logger;
+  final DatabaseHandle _dbHandle;
+
+  MyApp()
+      : _logger = Logger(),
+        _dbHandle = DatabaseHandle();
+
+  MyApp.withLoggerAndDb(this._logger, this._dbHandle);
+}</code></pre>
+<p>Note that we did not have to change any types, or add type parameters. Any methods of <code>MyApp</code> that use the <code>_logger</code> and <code>_dbHandle</code> fields do not have to know about the changes.</p>
+<p>Now suppose one of the <code>DatabaseHandle</code> implementations also start using the logger library:</p>
+<pre><code>abstract class DatabaseHandle {
+  factory DatabaseHandle.withLogger(Logger logger) =&gt;
+      _LoggingDatabaseHandle._(logger);
+
+  factory DatabaseHandle() =&gt; _LoggingDatabaseHandle._(Logger.ignoring());
+
+  DatabaseHandle._();
+
+  /* ... */
+}
+
+class _LoggingDatabaseHandle extends DatabaseHandle {
+  final Logger _logger;
+
+  _LoggingDatabaseHandle._(this._logger) : super._();
+
+  /* ... */
+}</code></pre>
+<p>In our app, we might test by disabling logging in the db library, but start logging db operations in production:</p>
+<pre><code>class MyApp {
+  // New
+  MyApp.testingSetup()
+      : _logger = Logger(),
+        _dbHandle = DatabaseHandle.withLogger(Logger.ignoring());
+
+  // Updated to start using the logging feature of the DB library.
+  MyApp()
+      : _logger = Logger(),
+        _dbHandle = DatabaseHandle.withLogger(Logger.toFile(...));
+
+  /* ... */
+}</code></pre>
+<p>As an example that adds more state to the types, we can add a logger implementation that only logs messages above certain severity:</p>
+<pre><code>class _LogAboveSeverity extends _SimpleLogger {
+  // Only logs messages with this severity or more severe.
+  final Severity _severity;
+
+  _LogAboveSeverity(this._severity) : super._();
+
+  @override
+  void log(String message, Severity severity) { /* ... */ }
+}</code></pre>
+<p>We can add another factory to the <code>Logger</code> abstract class that returns this type, or we can even implement this in another library:</p>
+<pre><code>// Implemented in another library, not in `Logger`&#39;s library.
+class LogAboveSeverity implements Logger {
+  // Only logs messages with this severity or more severe.
+  final Severity _severity;
+
+  final Logger _logger;
+
+  LogAboveSeverity(this._severity) : _logger = Logger();
+
+  LogAboveSeverity.withLogger(this._severity, this._logger);
+
+  @override
+  void log(String message, Severity severity) { /* ... */ }
+}</code></pre>
+<p>As a final example to demonstrate adding more operations (rather than more state), we can have a logger that logs to a file, with a <code>flush</code> operation:</p>
+<pre><code>class FileLogger implements Logger {
+  final File _file;
+
+  FileLogger(this._file);
+
+  @override
+  void log(String message, Severity severity) {/* ... */}
+
+  void flush() {/* ... */}
+}</code></pre>
+<p>In summary:</p>
+<ul>
+<li>We started with a simple logging and database library and wrote an app.</li>
+<li>We added more capabilities to the logging and database libraries for testing and also in production use. In particular, we added:
+<ul>
+<li>New functionality to the logger library, to disable logging, or logging to a file.</li>
+<li>A new dependency to the database library for logging database operations. We also allowed the users to override the default logger used.</li>
+</ul></li>
+</ul>
+<p>Crucially, we didn’t have to change any types while doing these changes, and the new code is still as type safe as before.</p>
+<p>The logger and database libraries evolved in a completely backwards compatible way.</p>
+<p>Since none of the types used in our application changed, <code>MyApp</code> methods didn’t have to change at all.</p>
+<p>When we decide to take advantage of the new functionality, we updated only how we construct the logger and db handle instances in our app. Rest of the app didn’t change.</p>
+<p>Now let’s consider how something like this could be done in Haskell.</p>
+<h1 id="attempting-it-in-haskell">Attempting it in Haskell</h1>
+<p>Immediately at the start, we have a few choices on how to represent it.</p>
+<p><strong>Option 1:</strong> An ADT, with callback fields to be able to add different types of loggers later:</p>
+<pre><code>data Logger = MkLogger
+    { _log :: Message -&gt; Severity -&gt; IO ()
+    }
+
+simpleLogger :: IO Logger
+
+data Severity = Info | Error | Fatal
+    deriving (Eq, Ord)
+
+log :: Logger -&gt; String -&gt; Severity -&gt; IO ()</code></pre>
+<p>In this representation, extra state like the minimum severity level in our <code>_LogAboveSeverity</code> is not added to the type, but captured by the closures:</p>
+<pre><code>logAboveSeverity :: Severity -&gt; IO Logger
+logAboveSeverity minSeverity = MkLogger
+    { _log = \message severity -&gt; if severity &gt;= minSeverity then ... else pure ()
+    }</code></pre>
+<p>If we need to update some of the state shared by the closures, the state needs to be stored in some kind of reference type like <code>IORef</code>.</p>
+<p>Similar to the OOP code, the <code>FileLogger</code> needs to be a separate type:</p>
+<pre><code>data FileLogger = MkFileLogger
+  { _logger :: Logger   -- callbacks capture the file descriptor/buffer and write to it
+  , _flush  :: IO ()    -- similarly captures the file descriptor/buffer, flushes it
+  }
+
+logFileLogger :: FileLogger -&gt; String -&gt; Severity -&gt; IO ()
+logFileLogger = log . _logger</code></pre>
+<p>However, unlike our OOP example, existing code that uses the <code>Logger</code> type and <code>log</code> function cannot work with this new type. There needs to be some refactoring, and how the user code will need to be refactored depends on how we want to expose this new type to the users.</p>
+<p><strong>Option 2:</strong> A typeclass that we can implement for our concrete logger types:</p>
+<pre><code>class Logger a where
+    log :: a -&gt; String -&gt; Severity -&gt; IO ()
+
+data SimpleLogger = MkSimpleLogger { ... }
+
+simpleLogger :: IO SimpleLogger
+simpleLogger = ...
+
+instance Logger SimpleLogger where
+  log = ...</code></pre>
+<p>To allow backwards-compatible changes in the logger library, we need to hide the concrete logger class:</p>
+<pre><code>module Logger
+    ( Logger
+    , simpleLogger -- I can export this without exporting its return type
+    ) where
+
+...</code></pre>
+<p>With this module, we have to either add a type parameter to the functions and other types that use <code>Logger</code>, or use existentials.</p>
+<p>Adding a type parameter is not a backwards compatible change, and in general it can cause snowball effect of propagating the type parameter to the direct users, and then their users, and so on, creating a massive change and difficult to use types.</p>
+<p>The problem with existentials is that they are limited in how you can use them, and are somewhat strange in some areas. In our application we can do this:</p>
+<pre><code>data MyApp = forall a . Logger a =&gt; MkMyApp
+  { _logger :: a
+  }</code></pre>
+<p>But we can’t have a local variable with this existential type:</p>
+<pre><code>createMyApp :: IO MyApp
+createMyApp = do
+  -- I can&#39;t add a type annotation to myLogger without the concrete type
+  myLogger &lt;- simpleLogger      -- simpleLogger :: IO SimpleLogger
+  return MkMyApp { _logger = myLogger }</code></pre>
+<p>I also cannot have an existential type in a function argument:</p>
+<pre><code>-- The type signature is accepted by the compiler, but the value cannot be used.
+doStuffWithLogging :: (forall a . Logger a =&gt; a) -&gt; IO ()
+doStuffWithLogging logger = log logger &quot;test&quot; Info -- some obscure type error</code></pre>
+<p>Instead we have to “pack” the logger value with its typeclass dictionary in a new type:</p>
+<pre><code>data LoggerBox = forall a . Logger a =&gt; LoggerBox a
+
+doStuffWithLogging :: LoggerBox -&gt; IO ()
+doStuffWithLogging (LoggerBox logger) = log logger &quot;test&quot; Info</code></pre>
+<p>Other problems and limitations of this approach:</p>
+<ul>
+<li>The syntax is just awful to the point where it’s deterrent: <code>forall a . Logger a =&gt; ... a ...</code> instead of just <code>Logger</code>.</li>
+<li>It allows implementing <code>FileLogger</code>, but
+<ul>
+<li>All subtypes need to be a new typeclass + an implementation (in OOP: just one class).</li>
+<li>This cannot be used for safe downcasting of a <code>Logger</code> value to <code>FileLogger</code>, without knowing the concrete type of the <code>FileLogger</code>.</li>
+</ul></li>
+</ul>
+<h1 id="effect-monad-approach">Effect monad approach</h1>
+<p>The effect monad approach is a variation of option (2) without existentials. Instead of</p>
+<pre><code>class Logger a where
+    log :: a -&gt; String -&gt; Severity -&gt; IO ()</code></pre>
+<p>We add the ability to log in a monad type parameter:</p>
+<pre><code>class MonadLogger m where
+    log :: String -&gt; Severity -&gt; m ()</code></pre>
+<p>Then provide a “monad transformer” for each of the logger implementations:</p>
+<pre><code>newtype SimpleLoggerT m a = SimpleLoggerT { runSimpleLoggerT :: m a }
+
+instance MonadIO m =&gt; MonadLogger (SimpleLoggerT m) where
+  log msg sev = SimpleLoggerT { runSimpleLoggerT = liftIO (logStdout msg sev) }
+
+newtype FileLoggerT m a = FileLoggerT { runFileLoggerT :: Handle -&gt; m a }
+
+instance MonadIO m =&gt; MonadLogger (FileLoggerT m) where
+  log msg sev = FileLoggerT { runFileLoggerT = \handle -&gt; liftIO (logFile handle msg sev) }</code></pre>
+<p>The database library does the same, and the app combines these together:</p>
+<pre><code>newtype MyAppMonad a = ...
+
+instance MonadLogger MyAppMonad where ...
+
+instance MonadDb MyAppMonad where ...</code></pre>
+<p>Because we have one type parameter that encapsulates all side effects (instead of one for logging, one for database operations), this avoids the issues with snowballed type parameters in the use sites.</p>
+<p>The database library can also add a logger dependency without breaking the user code.</p>
+<p>I think this is the best we can get in Haskell, and it’s quite similar to our OOP solution in terms of code changes needed to be done in the user code.</p>
+<p>However for this to work the entire ecosystem of libraries need to do things this way. If the database library decides to use the ADT approach, we will need an “adapter”, e.g. a monad typeclass for the DB operations, with a concrete monad transformer type to call the DB library functions.</p>
+<p>This is also the main problem with the composable effects libraries.</p>
+<p>(There are also issues with how this kind of code performs in runtime, but that’s probably a topic for another blog post.)</p>
+<h1 id="composable-effects">Composable effects</h1>
+<p>Haskellers have been developing various ways of modelling side effects (such as DB operations, logging) as “effects” and various ways of composing them.</p>
+<p>A simple and widespread way of doing this is via the effect monads, as we’ve seen in the previous section.</p>
+<p>However these systems have a few drawbacks, compared to our OOP solution:</p>
+<ul>
+<li><p>Different effect libraries generally don’t work together. For example, <a href="https://hackage.haskell.org/package/mtl">mtl</a> and <a href="https://github.com/hasura/eff">eff</a> functions won’t work together without some kind of adapter turning one into the other.</p></li>
+<li><p>Even if the entire Haskell ecosystem decides to use one particular effect system, things like using two different handlers for different parts of the program, such as the example of using different logger in the db library and the main app, requires type juggling. In some effect libraries this is not even possible.</p></li>
+<li><p>Finally, note that the OOP code shown in this post are very basic and straightforward code that even a beginner in OOP can write. Any new person who joins the project, or any one time contributor who just wants to fix a bug and move on, will be able to work on either one of the libraries or the application code. It’s difficult to say the same with the composable effects libraries in Haskell.</p></li>
+</ul>
+<h1 id="conclusions">Conclusions</h1>
+<p>Mainstream statically-typed OOP allows straightforward backwards compatible evolution of types, while keeping them easy to compose. I consider this to be one of the killer features of mainstream statically-typed OOP, and I believe it is an essential feature for programming with many people, over long periods of time.</p>
+<p>Just like OOP, Haskell has design patterns, such as the effect monad pattern we’ve shown above. Some of these design patterns solve the problem nicely, but they need an entire ecosystem to follow the same pattern to be useful.</p>
+<p>I think it would be beneficial for the functional programming community to stop dismissing OOP’s successes in the industry as an accident of history and try to understand what OOP does well.</p>
+<hr />
+<p>Thanks to Chris Penner and Matthías Páll Gissurarson for reviewing a draft of this blog post.</p>]]></summary>
+</entry>
+<entry>
     <title>8 years of Haskell</title>
     <link href="http://osa1.net/posts/2020-06-30-8-years-of-haskell.html" />
     <id>http://osa1.net/posts/2020-06-30-8-years-of-haskell.html</id>
@@ -1945,34 +2254,6 @@ call fib_rqh_info(R2) args: 24, res: 0, upd: 24;</code></pre>
 <li id="fn2" role="doc-endnote"><p>Correction: Wadler was the first one to write about it in 1987, but Lennart Augustsson came up with this solution around 1981, and <a href="https://www.reddit.com/r/haskell/comments/852jfc/three_runtime_optimizations_done_by_ghcs_gc/dvuwtl0/">according him</a> David Turner came up with the solution even before him.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>]]></summary>
-</entry>
-<entry>
-    <title>Fuzzy module loading in GHCi</title>
-    <link href="http://osa1.net/posts/2017-10-26-ghc-fuzzy-module-loading.html" />
-    <id>http://osa1.net/posts/2017-10-26-ghc-fuzzy-module-loading.html</id>
-    <published>2017-10-26T00:00:00Z</published>
-    <updated>2017-10-26T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p><a href="https://downloads.haskell.org/~ghc/8.2.1/docs/html/users_guide/ghci.html#ghci-cmd-:def">A GHCi macro</a> is just a function of type <code>String -&gt; IO String</code>. The argument is parameter of the macro, and return value is evaluated by GHCi as a command.</p>
-<p>Using this and the <a href="http://hackage.haskell.org/package/process"><code>process</code></a> library we can implement a fuzzy module loader that works inside ghci:</p>
-<p><img src="/images/fuzzy_ghci_load.gif" /></p>
-<p>(sorry for the gif quality)</p>
-<p>Here I’m using <a href="https://github.com/junegunn/fzf">fzf</a> as the fuzzy file finder. Code for defining the macro:</p>
-<pre><code>import System.IO (withFile, IOMode (WriteMode))
-import System.Process (runProcess, waitForProcess)
-
-:{
-let loadFuzzy _ = do
-      let f = &quot;/tmp/fzf_out&quot;
-      withFile f WriteMode $ \h -&gt; do
-        p &lt;- runProcess &quot;fzf&quot; [] Nothing Nothing Nothing (Just h) Nothing
-        _ &lt;- waitForProcess p
-        out &lt;- readFile f
-        return (&quot;:load &quot; ++ init out)
-:}
-
-:def l loadFuzzy</code></pre>
-<p>Add this code to your global ghci config file (<code>~/.ghci</code>) or your project-wide <code>.ghci</code> (at the project root).</p>
-<p>Only problem here is the <code>process</code> dependency: when you use <code>stack repl</code> or <code>cabal repl</code>, <code>process</code> won’t be importable in GHCi unless the project you’re loading into GHCi already has it as a dependency. One solution is to pass <code>-package process</code> to <code>cabal repl</code> or <code>--ghci-options="-package process"</code> to <code>stack repl</code>. Because <code>process</code> is distributed with GHC this will always work.</p>]]></summary>
 </entry>
 
 </feed>
