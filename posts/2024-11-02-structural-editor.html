@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Idea: a more structural code editor</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="https://gitlab.haskell.org/osa1">gitlab</a></span>
+    <span class="menu-item"><a href="https://twitter.com/_osa1">twitter</a></span>
+    <span class="menu-item"><a href="../cv.html">cv</a></span>
+    <span class="menu-item"><a href="../rss.xml">rss</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Idea: a more structural code editor</h1>
+
+<p><strong>November  2, 2024</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
+
+<p>Code is tree structured, but manipulated as a sequence of characters.</p>
+<p>Most language tools<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> need to convert these sequence of characters to the tree form as the first thing to be able to do anything.</p>
+<p>When the program is being edited, the tree structure is often broken, and often to the point where the tool cannot operate.</p>
+<p>For example:</p>
+<ul>
+<li>An opening parenthesis, brace, or bracket, without a matching closing one</li>
+<li>An unterminated string literal or multi-line comment</li>
+<li>A keyword inserted at a wrong place, or without the right tokens afterwards</li>
+</ul>
+<p>These can make it impossible to main the tree structure of the code.</p>
+<p>Since these cases are common, tools need to deal with these. A lot of time and effort is spent on error recovery so that when one of these common cases occur, the tool can still operate and do something useful.</p>
+<p>For some tools handling these cases is a requirement: many of the language server functions need to work even when the code is being edited and not in a valid state. For example, “go to definition” should work, “outline” shouldn’t be reset every time the user inserts an opening brace, bracket, or parenthesis.</p>
+<p><em>We can’t invent a new language</em> to solve this problem: this creates a thousand new problems, each bigger than the one we are trying to solve. Designing and implementing a new language is major undertaking on its own. We can’t design and implement a language <em>and</em> an experimental code editor at the same time, and succeed in both.</p>
+<p>So we want need to support existing languages, <em>but existing languages are incredibly complex</em>, sometimes with a hundred kinds of statements, expressions, types, and so on.</p>
+<p>What I’d like to propose as a solution is a “mostly structural” editor, where programs are edited in a structural way at the highest levels, but as text at the statement and expression level.</p>
+<p>The details depend on the language. As an example, let’s consider Rust. In Rust, packages (called “crates”), modules, and the items in modules (function and type definitions) can be defined structurally, because there aren’t a lot of different kinds of top-level declarations. Then in the function (and method) bodies, we write the code as text, as usual.</p>
+<p>The advantages of this approach are:</p>
+<ul>
+<li><p>We avoid inventing a new language. The idea can be applied to most languages.</p></li>
+<li><p>Because we isolate invalid syntax to function bodies, no edit can cause syntax errors in the other functions in the same module, or in the other modules and packages.</p></li>
+<li><p>Because we define function and method signatures separately from function/method bodies, syntax errors cannot invalidate types and cannot generate type errors outside of the function being edited.</p></li>
+<li><p>For the same reason as above, “outline” view in the IDE is never broken. Functions like “go to definition” and “find references” always work.</p></li>
+</ul>
+<p>As for the GUI part, I imagine an editor “pane” for each function being edited. I should be able to quickly switch between functions (maybe with a fuzzy search similar to <code>ctrl-p</code> in some editors), and when working on a function I should be able to quickly open documentation or definitions of the symbols used in the function, in new panes. I imagine there will be a lot of panes open at any time. This may require a solution like a tiling window manager to quickly arrange them and switch between them.</p>
+<p>This problem is not new, I do a lot of buffer/split management every day while coding, and almost never use just a single editor window. However with each pane editing just one function, there will be a lot of splits and panes. Some creativity will be needed here to make managing these panes easy for the users.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>I’m not aware of any language tool that doesn’t need to parse the source. Please let me know if you know such tools.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+<hr />
+
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
