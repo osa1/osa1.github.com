@@ -8,8 +8,53 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2024-10-21T00:00:00Z</updated>
+    <updated>2024-11-24T00:00:00Z</updated>
     <entry>
+    <title>Resumable exceptions</title>
+    <link href="http://osa1.net/posts/2024-11-04-resumable-exceptions.html" />
+    <id>http://osa1.net/posts/2024-11-04-resumable-exceptions.html</id>
+    <published>2024-11-24T00:00:00Z</published>
+    <updated>2024-11-24T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>The main use case of resumable exceptions would be collecting a bunch of errors (instead of bailing out after the first one) to log or show to the user, or actually recovering and continuing from the point of error detection, rather than in a call site.</p>
+<p><em>Why not design the code to allow error recovery, instead of using a language feature?</em> There are a few problems with this:</p>
+<ul>
+<li><p>Without a language feature to do this, libraries will have to implement their own ways to recover from errors, causing inconsistencies and fragmented ecosystem of error handling libraries.</p></li>
+<li><p>With resumable exceptions, any code can be trivially made to transfer control to a exception handler, and back. Manually refactoring code to do the same can be a big task. This may even be infeasible.</p></li>
+<li><p>With resumable exceptions as a part of the language, libraries will be designed with resumption in mind. Libraries that would normally not allow error recovery will allow error recovery, as it will be easy to do, and it will be a common thing to resume from errors.</p></li>
+</ul>
+<h1 id="example-use-case-parser-shared-by-a-compiler-and-a-language-server">Example use case: parser shared by a compiler and a language server</h1>
+<p>Modern programming languages have complex syntax. Parsers for these languages are often thousands of lines of code.</p>
+<p>Ideally, all tooling for a language would share the parser, as it’s a significant amount of work to implement, debug, maintain parsers for such large languages.</p>
+<p>However not all of these tools will have the same error handling behavior. A compiler <em>cannot</em> continue in the presence of a parse error, but a language server <em>has to</em> continue.</p>
+<p>With resumable exceptions, the compiler can abort after a parse error, the language server can provide placeholder AST nodes for failing parse operations and resume. This flexibility does not make the parser API any more complicated than a parser that throws an exception in any other language. A one-off refactoring script that uses the parser library doesn’t have to deal with error recovery just because the language server, which uses the same parser, needs to recover from parse errors and continue parsing.</p>
+<h1 id="types-of-resumable-exceptions">Types of resumable exceptions</h1>
+<p>With resumable exceptions <code>throw</code> expressions generate a value. The value depends on the exception type thrown. For example, a <code>FooDecodingException</code> can be resumed with a value of <code>Foo</code> provided by the handler.</p>
+<p>This can be implemented with an abstract base class or typeclass/trait with a type parameter:</p>
+<pre><code>// in a system with classes:
+abstract class ResumableException&lt;Resume&gt; { 
+    prim Resume throw();
+    prim Never resume(Resume resumptionValue);
+}
+
+// or in a system with typeclasses/traits:
+trait ResumableException&lt;Resume&gt; {
+    prim fn throw(self) -&gt; Resume;
+    prim fn resume(resumptionValue: Resume) -&gt; !;
+}</code></pre>
+<p>Here the <code>prim</code> keyword indicates that the <code>throw</code> and <code>resume</code> methods are provided by the compiler.</p>
+<p><code>throw e</code> can then be type checked as <code>e.throw()</code>, and <code>resume e with value</code> can be type checked as <code>e.resume(value)</code>. Or we can use the function call syntax instead of special syntax for throwing and resuming.</p>
+<p>Whether to make exceptions thrown by a function a part of its type signature or not is an orthogonal concern.</p>
+<h1 id="exception-type-design-considerations">Exception type design considerations</h1>
+<p>The same considerations when designing non-resumable exceptions apply to resumable exceptions:</p>
+<ul>
+<li>The more general an exception type gets, the less you can do with it.</li>
+<li>We still want to distinguish “log and stop” kind of exceptions from recoverable ones.</li>
+</ul>
+<p>For example, it doesn’t make sense to resume from an <a href="https://api.dart.dev/stable/3.5.4/dart-core/ArgumentError-class.html"><code>ArgumentError</code></a>, so we don’t implement <code>ResumableException</code> for it.</p>
+<p>To be able to meaningfully resume from an exception, the exception type should document when exactly it is thrown, or have a resumption value type that is specific enough to give an idea on when it is thrown.</p>
+<p>For example, an exception that can be resumed with an <code>int</code> cannot be resumed without knowing what that <code>int</code> is going to be used for, so this should be documented. But an exception <code>FooDecodingError implements ResumableException&lt;Foo&gt;</code> makes it clear that it’s thrown when there’s an error during decoding a <code>Foo</code>, and the resumption value is the value to be used as the <code>Foo</code> being decoded.</p>]]></summary>
+</entry>
+<entry>
     <title>Subtyping and subsumption</title>
     <link href="http://osa1.net/posts/2024-10-21-subtyping-subsumption.html" />
     <id>http://osa1.net/posts/2024-10-21-subtyping-subsumption.html</id>
