@@ -8,8 +8,475 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2020-12-24T00:00:00Z</updated>
+    <updated>2024-11-22T00:00:00Z</updated>
     <entry>
+    <title>Exploring parsing APIs: what to generate, and how</title>
+    <link href="http://osa1.net/posts/2024-11-22-how-to-parse-1.html" />
+    <id>http://osa1.net/posts/2024-11-22-how-to-parse-1.html</id>
+    <published>2024-11-22T00:00:00Z</published>
+    <updated>2024-11-22T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Consider a simplified and enhanced version of JSON, with these changes:</p>
+<ul>
+<li>Numbers are 64-bit unsigned integers.</li>
+<li>Strings cannot have control and escape characters.</li>
+<li>Single-line comments are allowed, with the usual syntax: <code>// ...</code> .</li>
+</ul>
+<p>When parsing a language like this, a common first step if to define an “abstract syntax tree” (AST), with only the details we want from the parser output.</p>
+<p>For example, if we’re implementing a tool like <a href="https://jqlang.github.io/jq/">jq</a>, the AST may look like:</p>
+<pre><code>enum Json {
+    Int(u64),
+    Str(String),
+    Bool(bool),
+    Array(Vec&lt;Json&gt;),
+    Object(Vec&lt;(String, Json)&gt;),
+    Null,
+}</code></pre>
+<p>This type is called an “abstract” syntax tree because it abstracts the unnecessary details from the parse output. In our tool we don’t need locations of nodes and comments, so the AST doesn’t contain them.</p>
+<p>It’s easy to implement a parser for this AST: we iterate the input, skip whitespace and comments, then based on the next character decide what type of node (integer, string, etc.) to parse. For nested <code>Json</code> nodes in arrays and objects, we recursively call the parser.</p>
+<p>This kind of parser is called a “recursive descent parser”. For our AST above, the parser looks like this:</p>
+<pre><code>// The entry point: parses all of the input to JSON.
+pub fn parse(input: &amp;str) -&gt; Result&lt;Json, JsonParseError&gt; {
+    let mut iter = input.char_indices().peekable();
+    let (_, json) = parse_single(&amp;mut iter, input)?;
+    skip_trivia(&amp;mut iter)?;
+    // Check that all of the input is consumed.
+    ...
+}
+
+// Parse a single Json. After parsing, the input may have more characters to be parsed.
+fn parse_single(
+    iter: &amp;mut Peekable&lt;CharIndices&gt;,
+    input: &amp;str,
+) -&gt; Result&lt;(usize, Json), ParseError&gt; {
+    // Skip whitespace and comments.
+    skip_trivia(iter)?;
+
+    // Get next character.
+    let (byte_offset, char) = match iter.next() { ... }
+
+    if char == &#39;[&#39; {
+        // Parse an array. Call `parse_single` recursively for elements.
+        ...
+    }
+
+    if char == &#39;{&#39; {
+        // Parse an object. Call `parse_single` recursively for values.
+        ...
+    }
+
+    if char == &#39;t&#39; {
+        // Parse keyword &quot;true&quot;.
+        ...
+    }
+
+    // Same for other keywords, integers, strings.
+    ...
+}</code></pre>
+<p>While very common, this kind of parsers are inflexible, and slower than more flexible alternatives for many use cases.</p>
+<p>Consider these use cases:</p>
+<ul>
+<li><p>A JSON formatter: a formatter needs to know about comments to be able to keep them in the formatted code. To support this use case, the AST needs to include comments too, which will make it larger, and parsing will be less efficient for the applications that don’t need comments.</p></li>
+<li><p>A configuration file parser for a text editor: to be able to show error locations in configuration errors (such as an invalid value used for a setting), the AST will have to include source locations. Similar to above, this will make the AST larger and slower to parse for other applications that don’t need source locations.</p></li>
+<li><p>An RPC server that looks at the command name in incoming JSON messages and relays the messages based on the command name: the server doesn’t even need a full parser, just a parser that can keep track of nesting level so that it can extract the request name field at the right level will suffice. Using a full AST parser will parse the whole message and be inefficient.</p></li>
+<li><p>A log sorting tool that reads a file with one JSON log per line, sorts the lines based on top-level “timestamp” field values. Similar to the use case above, this tool only needs to read one field and parsing whole lines is wasteful.</p></li>
+</ul>
+<p>A well-known solution to these is to introduce a lower level parser that doesn’t generate a fully structured output like an AST, but a stream of “parse events”. These events should be general enough to allow different use cases like the ones we listed above, and should be cheap to allocate and pass around, ideally as stack allocated values, so that applications that don’t need them can skip them efficiently.</p>
+<p>This type of parsing is often called “event driven parsing”. In our JSON variant, the events look like this:</p>
+<pre><code>/// A parse event, with location of the event in the input.
+pub struct ParseEvent {
+    pub kind: ParseEventKind,
+    pub byte_offset: usize,
+}
+
+/// Details of a parse event.
+pub enum ParseEventKind {
+    StartObject,
+    EndObject,
+    StartArray,
+    EndArray,
+    Int(u64),
+    Str {
+        /// Size of the string, not including the double quotes.
+        size_in_bytes: usize,
+    },
+    Bool(bool),
+    Null,
+    Comment {
+        /// Size of the comment, including the &quot;//&quot; a the beginning and newline at the end.
+        size_in_bytes: usize,
+    },
+}</code></pre>
+<p>Note that there’s no heap allocation required for these events. Contents of strings and comments can be obtained by slicing the input using the event location and <code>size_in_bytes</code> field.</p>
+<p>When generating these event, it’s important that we don’t scan the whole input and collect all of the events in a list, as that would mean some of the users, like our RPC server and log sorted examples above, would have to do more work than necessary.</p>
+<p>This means that the parser will have to be stateful: after returning an event, it needs to be able to continue from the last event location. This complicates the parser implementation quite a bit. Here’s how the parser looks like at a high level:</p>
+<pre><code>// The entry point. Use via the `Iterator` interface.
+pub fn parse_events(input: &amp;str) -&gt; EventParser {
+    EventParser::new(input)
+}
+
+// The parser state.
+pub struct EventParser&lt;&#39;a&gt; {
+    input: &amp;&#39;a str,
+    byte_offset: usize,
+    container_stack: Vec&lt;Container&gt;,
+    state: ParserState,
+}
+
+enum Container {
+    Array,
+    Object,
+}
+
+enum ParserState {
+    /// Parse any kind of object, update state based on the current container.
+    TopLevel,
+
+    /// Finished parsing a top-level object, expect end-of-input.
+    Done,
+
+    /// Parsing an object, parse another element on &#39;,&#39;, or finish the array on &#39;}&#39;.
+    ObjectExpectComma,
+
+    /// Parsing an object, parse the first element, or finish the array on &#39;]&#39;.
+    ObjectExpectKeyValue,
+
+    /// Parsing an object and we&#39;ve just parsed a key, expect &#39;:&#39;.
+    ObjectExpectColon,
+
+    /// Parsing an array, parse another element on &#39;,&#39;, or finish the array on &#39;]&#39;.
+    ArrayExpectComma,
+}
+
+impl&lt;&#39;a&gt; Iterator for EventParser&lt;&#39;a&gt; {
+    type Item = Result&lt;ParseEvent, ParseError&gt;;
+
+    fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
+        match self.state {
+            ParserState::TopLevel =&gt; self.top_level(),
+            ParserState::Done =&gt; self.done(),
+            ParserState::ObjectExpectComma =&gt; self.object_expect_comma(),
+            ParserState::ObjectExpectKeyValue =&gt; self.object_expect_key_value(),
+            ParserState::ObjectExpectColon =&gt; self.object_expect_colon(),
+            ParserState::ArrayExpectComma =&gt; self.array_expect_comma(),
+        }
+    }
+}
+
+...</code></pre>
+<p>The main complexity of this parser comes from the fact that it cannot return an event and keep running, the caller needs to call the relevant method (<code>next</code> from the <code>Iterator</code> trait above) to keep parsing. To be able to continue from where it’s left, the parser needs to maintain some state outside of the parse functions.</p>
+<p>This parser is general enough to allow implementing our original AST parser:</p>
+<pre><code>pub fn event_to_tree&lt;I: Iterator&lt;Item = Result&lt;ParseEvent, ParseError&gt;&gt;&gt;(
+    parser: &amp;mut I,
+    input: &amp;str,
+) -&gt; Result&lt;Json, ParseError&gt; {
+    let mut container_stack: Vec&lt;Container&gt; = vec![];
+    let mut current_container: Option&lt;Container&gt; = None;
+    let mut parsed_object: Option&lt;Json&gt; = None;
+
+    for event in parser.by_ref() {
+        match event {
+            ...
+        }
+    }
+
+    Ok(parsed_object.unwrap())
+}</code></pre>
+<p>But it also allows parsing to an AST with comments (for our formatter), source locations (for our configuration parser), and our RPC server and log sorter. Here’s how the timestamp parser that stops after finding the field looks like:</p>
+<pre><code>/// Parse the &quot;timestamp&quot; field at the top-level map of the JSON.
+pub fn parse_timestamp(log_line: &amp;str) -&gt; Result&lt;Option&lt;u64&gt;, ParseError&gt; {
+    let mut container_depth: u32 = 0;
+    let mut expect_timestamp = false;
+
+    for event in parse_events(log_line) {
+        let ParseEvent { kind, byte_offset } = match event {
+            Ok(event) =&gt; event,
+            Err(err) =&gt; return Err(err),
+        };
+
+        let expect_timestamp_ = expect_timestamp;
+        expect_timestamp = false;
+
+        match kind {
+            ParseEventKind::StartObject =&gt; {
+                container_depth += 1;
+            }
+
+            ParseEventKind::EndObject =&gt; {
+                container_depth -= 1;
+            }
+
+            ParseEventKind::StartArray =&gt; {
+                if container_depth == 0 {
+                    // Array at the top level, the line does not contain the field.
+                    return Ok(None);
+                }
+                container_depth += 1;
+            }
+
+            ParseEventKind::EndArray =&gt; {
+                container_depth -= 1;
+            }
+
+            ParseEventKind::Str { size_in_bytes } =&gt; {
+                if container_depth != 1 {
+                    continue;
+                }
+                let str = &amp;log_line[byte_offset..byte_offset + size_in_bytes];
+                expect_timestamp = str == &quot;timestamp&quot;;
+            }
+
+            ParseEventKind::Int(i) =&gt; {
+                if expect_timestamp_ {
+                    return Ok(Some(i));
+                }
+            }
+
+            ParseEventKind::Bool(_)
+            | ParseEventKind::Null
+            | ParseEventKind::Comment { .. } =&gt; {}
+        }
+    }
+
+    Ok(None)
+}</code></pre>
+<p>A nice property of this parser is that it does not allocate at all. It doesn’t build an AST (so no heap-allocated vectors), and parse events are 24-byte stack allocated values. The event parser is also stack allocated by this function.</p>
+<p>An alternative design to this that is slightly less flexible and more difficult to use, but easier to implement and faster is what’s sometimes called a “push parser”.</p>
+<p>The idea is that, instead of returning one event at a time, the parser takes a “listener” argument, and calls the listener callbacks for each event generated. The listener type directly follows our event type above:</p>
+<pre><code>// Methods return a `bool` indicating whether to continue parsing after the event.
+pub trait EventListener {
+    fn handle_start_object(&amp;mut self, _byte_offset: usize) -&gt; bool {
+        true
+    }
+
+    fn handle_end_object(&amp;mut self, _byte_offset: usize) -&gt; bool {
+        true
+    }
+
+    fn handle_start_array(&amp;mut self, _byte_offset: usize) -&gt; bool {
+        true
+    }
+
+    fn handle_end_array(&amp;mut self, _byte_offset: usize) -&gt; bool {
+        true
+    }
+
+    fn handle_int(&amp;mut self, _byte_offset: usize, _i: u64) -&gt; bool {
+        true
+    }
+
+    fn handle_str(&amp;mut self, _byte_offset: usize, _size_in_bytes: usize) -&gt; bool {
+        true
+    }
+
+    fn handle_bool(&amp;mut self, _byte_offset: usize, _b: bool) -&gt; bool {
+        true
+    }
+
+    fn handle_null(&amp;mut self, _byte_offset: usize) -&gt; bool {
+        true
+    }
+
+    fn handle_comment(&amp;mut self, _byte_offset: usize, _size_in_bytes: usize) -&gt; bool {
+        true
+    }
+
+    fn handle_error(&amp;mut self, _error: ParseError);
+}</code></pre>
+<p>The parser:</p>
+<pre><code>// The entry point. Parse all of the input, call `listener` with the events.
+pub fn parse&lt;L: EventListener&gt;(input: &amp;str, listener: &amp;mut L) {
+    let mut iter = input.char_indices().peekable();
+    let input_size = input.len();
+
+    // Parse a single JSON.
+    if !parse_single(&amp;mut iter, input_size, listener) {
+        return;
+    }
+
+    // Check that all of the input is consumed.
+    ...
+}
+
+// Returns whether an error was reported.
+fn parse_single&lt;L: EventListener&gt;(
+    iter: &amp;mut Peekable&lt;CharIndices&gt;,
+    input_size: usize,
+    listener: &amp;mut L,
+) -&gt; bool {
+    // Skip whitespace and comments, generate events for comments.
+    skip_trivia!(iter, listener);
+
+    // Get next character.
+    let (byte_offset, char) = match iter.next() {
+        Some(next) =&gt; next,
+        None =&gt; {
+            listener.handle_error(ParseError {
+                byte_offset: input_size,
+                reason: &quot;unexpected end of input&quot;,
+            });
+            return false;
+        }
+    };
+
+    if char == &#39;[&#39; {
+        // Parse an array. Call `parse_single` recursively for elements.
+        ...
+    }
+
+    if char == &#39;{&#39; {
+        // Parse an object. Call `parse_single` recursively for values.
+        ...
+    }
+
+    if char == &#39;t&#39; {
+        // Parse keyword &quot;true&quot;.
+        ...
+    }
+
+    // Same for other keywords, integers, strings.
+    ...
+}</code></pre>
+<p>Note that the parser functions are identical (in terms of names and what they do) to our simple recursive descent parser. This is because the parser no longer needs to maintain state to be able to return and continue from where it was left, as it does all of the work in one go. Instead of building an AST or a list of events, it takes an <code>EventListener</code> argument and calls the handle methods.</p>
+<p>This is a bit less convenient to use, but it’s still flexible enough to build an AST. An <code>EventListener</code> implementation that builds up a <code>Json</code> AST looks like this:</p>
+<pre><code>pub struct AstBuilderListener&lt;&#39;a&gt; {
+    input: &amp;&#39;a str,
+    container_stack: Vec&lt;Container&gt;,
+    current_container: Option&lt;Container&gt;,
+    parsed_object: Option&lt;Json&gt;,
+    error: Option&lt;ParseError&gt;,
+}
+
+impl&lt;&#39;a&gt; EventListener for AstBuilderListener&lt;&#39;a&gt; {
+    ...
+}</code></pre>
+<p>However, if you need to be able to stop parsing and continue later, this parser can’t do that.</p>
+<p>The main advantage of this parser is that, with the right programming language and parser design, it can be faster than the alternatives, while still being flexible enough for most use cases. See below for benchmarks.</p>
+<hr />
+<h1 id="aside-event-parsing-vs.-lexing">Aside: event parsing vs. lexing</h1>
+<p>Our <code>ParseEvent</code> type has no nested data and looks like what we could define as the “tokens” in a parser for a programming language.</p>
+<p>So it shouldn’t be surprising that we can use a lexer generator to implement a parse event generator:</p>
+<pre><code>// Same `parse_events` as above, but uses a generated lexer.
+pub fn parse_events(input: &amp;str) -&gt; LexgenIteratorAdapter {
+    LexgenIteratorAdapter {
+        lexer: Lexer::new(input),
+    }
+}
+
+// An adapter is necessary to convert lexgen values to `parse_events` items.
+pub struct LexgenIteratorAdapter&lt;&#39;a&gt; {
+    lexer: Lexer&lt;&#39;a, std::str::Chars&lt;&#39;a&gt;&gt;,
+}
+
+impl&lt;&#39;a&gt; Iterator for LexgenIteratorAdapter&lt;&#39;a&gt; {
+    type Item = Result&lt;ParseEvent, ParseError&gt;;
+
+    fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
+        ...
+    }
+}
+
+struct LexerState {
+    container_stack: Vec&lt;Container&gt;,
+}
+
+lexgen::lexer! {
+    Lexer(LexerState) -&gt; ParseEvent;
+
+    type Error = &amp;&#39;static str;
+
+    let comment = &quot;//&quot; (_ # &#39;\n&#39;)* &#39;\n&#39;;
+
+    rule Init {
+        $$ascii_whitespace,
+
+        $comment =&gt; comment,
+
+        &#39;[&#39; =&gt; ...,
+
+        &#39;]&#39; =&gt; ...,
+
+        &#39;{&#39; =&gt; ...,
+
+        &quot;true&quot; =&gt; ...,
+
+        &quot;false&quot; =&gt; ...,
+
+        &quot;null&quot; =&gt; ...,
+
+        [&#39;0&#39;-&#39;9&#39;]+ =&gt; ...,
+
+        &#39;&quot;&#39; (_ # &#39;&quot;&#39;)* &#39;&quot;&#39; =&gt; ...
+    }
+
+    rule Done { ... }
+
+    rule ArrayExpectComma { ... }
+
+    rule ObjectExpectKeyValue { ... }
+
+    rule ObjectExpectColon { ... }
+
+    rule ObjectExpectComma { ... }
+}</code></pre>
+<p>This uses <a href="https://github.com/osa1/lexgen">lexgen</a>. lexgen generates slightly different values than what we want, so we have a <code>map</code> in the entry point to convert the lexgen values.</p>
+<p>The main difference between an event parser and lexer is that an event parser maintains some of the structure of the parsed format. For example, we check that brackets are balanced, after a key in a map a colon follows, and so on.</p>
+<p>A lexer generator can be used to implement an event parser, as demonstrated above.</p>
+<hr />
+<h1 id="references-and-benchmarks">References and benchmarks</h1>
+<p>All of the code in this blog post, and more, is here: <a href="https://github.com/osa1/how-to-parse">github.com/osa1/how-to-parse</a>.</p>
+<p>In the benchmark program (run with <code>cargo bench</code>), we generate a 10M large JSON, and parse it to either the AST or a vector of events.</p>
+<p><strong>AST building benchmarks:</strong></p>
+<ul>
+<li><p>Recursive descent: the recursive descent parser that generates the AST.</p>
+<p>Throughput: 128 Mb/s.</p></li>
+<li><p>Event generator to AST: the iterator-style event generator, events processed by <code>event_to_tree</code> to build the AST.</p>
+<p>Throughput: 138 Mb/s.</p></li>
+<li><p>Lexgen event to AST: same as above, but the event parser is implemented with lexgen.</p>
+<p>Throughput: 106 Mb/s.</p></li>
+<li><p>Push event parser to AST: the “push” event parser, <code>AstBuilderListener</code> as the event listener.</p>
+<p>Throughput: 147 Mb/s.</p></li>
+</ul>
+<p><strong>Event generation benchmarks:</strong> (collect events to a <code>Vec</code>)</p>
+<ul>
+<li><p>Parse events: the iterator-style event generator.</p>
+<p>Throughput: 274 Mb/s.</p></li>
+<li><p>Parse events lexgen: the lexgen-generated event generator.</p>
+<p>Throughput: 179 Mb/s.</p></li>
+<li><p>Parse events via push: the push event parser, events added to a <code>Vec</code> via by the listener.</p>
+<p>Throughput: 304 Mb/s.</p></li>
+</ul>
+<p><strong>Notes:</strong></p>
+<ul>
+<li><p>lexgen-generated event parser is the slowest, but I think it should be possible to make it perform at least as good as the hand-written one. So far I’ve spent very little time to optimize lexgen’s code generator.</p></li>
+<li><p>Push-based implementation is faster than the iterator-style implementation, both for generating events in a list, and also for building an AST.</p>
+<p>The main advantage of the push-based implementation is that the control flow is as simple as the recursive descent parsing (contained within parse functions, as opposed to externally in a struct), and does all of the parsing in one go. It looks like managing the parser state externally in a struct is not free.</p></li>
+<li><p>I think the tradeoffs between the push-based and iterator implementations will be different in most high-level languages without control over allocations and monomorphisation.</p>
+<ul>
+<li><p>In the Rust implementation, events are stack allocated values, which will be heap-allocated objects in some of the other languages.</p></li>
+<li><p>In the push-based implementation, the parser is monomorphised based on the listener type. Both the listener and parser are stack allocated. All event handler method calls are direct calls (as opposed to virtual, or via some other dynamic invocation method), which can be inlined. None of these will be the case in, e.g., Haskell and Dart.</p></li>
+</ul>
+<p>It would be interesting to implement the same in some other languages to see how they perform relative to each other.</p></li>
+<li><p>I’m not sure why the recursive descent parser is not at least as fast as the push-based implementation, and not faster than the iterator-style one. If you have any insights into this, please let me know.</p></li>
+</ul>
+<h1 id="more-use-cases">More use cases</h1>
+<p>The use cases described at the beginning of the post are all extracted from real-world use cases of various other formats.</p>
+<p>Here are more use cases that require flexible and fast parser design:</p>
+<ul>
+<li><p>“Outline” views in text editors or online code browsing tools may want to process top-level definitions, and definitions nested in <code>class</code>, <code>impl</code>, and similar blocks. Parsing the whole file to an AST would be inefficient.</p></li>
+<li><p>Syntax-aware code search tools like <a href="https://github.com/osa1/sg">sg</a> can implement searching in only identifiers, string literals, comments with an event-based parser. This could also be implemented with a lexer.</p></li>
+<li><p>As mentioned in a <a href="https://osa1.net/posts/2024-11-04-resumable-exceptions.html">previous post</a>, ideally a formatter, language server, compiler, and refactoring tools, should reuse as much parsing code as possible. It’s difficult to do this with an AST parser, as the AST would have too much information for each of these tools. Event-based parsing makes this easier.</p></li>
+</ul>
+<h1 id="event-parsing-examples-from-programming-languages">Event parsing examples from programming languages</h1>
+<p>I think event-driven parsing is common in some languages when parsing data formats like XML, but less common for parsing programming languages. Two examples that I’m aware of that applies the ideas to programming languages:</p>
+<ul>
+<li><p>rust-analyzer’s parser is <a href="https://github.com/rust-lang/rust-analyzer/blob/c0bbbb3e5d7d1d1d60308c8270bfd5b250032bb4/docs/dev/architecture.md#cratesparser">a hand written one that generates events</a>. The architecture documentation mentions that Kotlin uses a similar idea:</p>
+<blockquote>
+<p>It is a hand-written recursive descent parser, which produces a sequence of events like “start node X”, “finish node Y”. It works similarly to kotlin’s parser, which is a good source of inspiration for dealing with syntax errors and incomplete input</p>
+</blockquote></li>
+<li><p>Dart’s parser <a href="https://github.com/dart-lang/sdk/blob/19da943583e020e96026f797904dc5c6b993d4ac/pkg/_fe_analyzer_shared/lib/src/parser/listener.dart#L35-L46">uses the push-based API</a>. This parser is the only Dart language parser used by the SDK. It’s used by the analyzer, language server, compilers, and anything else that the SDK includes.</p></li>
+</ul>]]></summary>
+</entry>
+<entry>
     <title>Conditional compilation based on crate type</title>
     <link href="http://osa1.net/posts/2020-12-24-crate-type-conditional.html" />
     <id>http://osa1.net/posts/2020-12-24-crate-type-conditional.html</id>
