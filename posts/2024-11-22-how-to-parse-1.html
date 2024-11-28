@@ -432,19 +432,19 @@ lexgen::lexer! {
 <hr />
 <h2 id="references-and-benchmarks">References and benchmarks</h2>
 <p>All of the code in this blog post, and more, is here: <a href="https://github.com/osa1/how-to-parse">github.com/osa1/how-to-parse</a>.</p>
-<p>In the benchmark program (run with <code>cargo bench</code>), we generate a 10M large JSON, and parse it to either the AST or a vector of events.</p>
+<p>In the benchmark program (run with <code>cargo bench</code>), we generate a 10M large JSON, and parse it to either an AST or a vector of events.</p>
 <p><strong>AST building benchmarks:</strong></p>
 <ul>
-<li><p>Recursive descent: the recursive descent parser that generates the AST.</p>
+<li><p>Recursive descent: the recursive descent parser that generates an AST.</p>
 <p>Throughput: 128 Mb/s.</p></li>
-<li><p>Event generator to AST: the iterator-style event generator, events processed by <code>event_to_tree</code> to build the AST.</p>
+<li><p>Event generator to AST: the iterator-style event generator, events processed by <code>event_to_tree</code> to build an AST.</p>
 <p>Throughput: 138 Mb/s.</p></li>
 <li><p>Lexgen event to AST: same as above, but the event parser is implemented with lexgen.</p>
 <p>Throughput: 106 Mb/s.</p></li>
 <li><p>Push event parser to AST: the “push” event parser, <code>AstBuilderListener</code> as the event listener.</p>
 <p>Throughput: 147 Mb/s.</p></li>
 </ul>
-<p><strong>Event generation benchmarks:</strong> (collect events to a <code>Vec</code>)</p>
+<p><strong>Event generation benchmarks:</strong> (collect events in a <code>Vec</code>)</p>
 <ul>
 <li><p>Parse events: the iterator-style event generator.</p>
 <p>Throughput: 274 Mb/s.</p></li>
@@ -457,7 +457,7 @@ lexgen::lexer! {
 <ul>
 <li><p>lexgen-generated event parser is the slowest, but I think it should be possible to make it perform at least as good as the hand-written one. So far I’ve spent very little time to optimize lexgen’s code generator.</p></li>
 <li><p>Push-based implementation is faster than the iterator-style implementation, both for generating events in a list, and also for building an AST.</p>
-<p>The main advantage of the push-based implementation is that the control flow is as simple as the recursive descent parsing (contained within parse functions, as opposed to externally in a struct), and does all of the parsing in one go. It looks like managing the parser state externally in a struct is not free.</p></li>
+<p>The main advantage of the push-based implementation is that the control flow is as simple as the recursive descent parsing (contained within parse functions, as opposed to externally in a struct), as it does all of the parsing in one go. It looks like managing the parser state externally in a struct is not free.</p></li>
 <li><p>I think the tradeoffs between the push-based and iterator implementations will be different in most high-level languages without control over allocations and monomorphisation.</p>
 <ul>
 <li><p>In the Rust implementation, events are stack allocated values, which will be heap-allocated objects in some of the other languages.</p></li>
@@ -471,7 +471,7 @@ lexgen::lexer! {
 <p>Here are more use cases that require flexible and fast parser design:</p>
 <ul>
 <li><p>“Outline” views in text editors or online code browsing tools may want to process top-level definitions, and definitions nested in <code>class</code>, <code>impl</code>, and similar blocks. Parsing the whole file to an AST would be inefficient.</p></li>
-<li><p>Syntax-aware code search tools like <a href="https://github.com/osa1/sg">sg</a> can implement searching in only identifiers, string literals, comments with an event-based parser. This could also be implemented with a lexer.</p></li>
+<li><p>Syntax-aware code search tools like <a href="https://github.com/osa1/sg">sg</a> can implement searching only in identifiers, string literals, comments with an event-based parser. This could also be implemented with a lexer.</p></li>
 <li><p>As mentioned in a <a href="https://osa1.net/posts/2024-11-04-resumable-exceptions.html">previous post</a>, ideally a formatter, language server, compiler, and refactoring tools, should reuse as much parsing code as possible. It’s difficult to do this with an AST parser, as the AST would have too much information for each of these tools. Event-based parsing makes this easier.</p></li>
 </ul>
 <h2 id="event-parsing-examples-from-programming-languages">Event parsing examples from programming languages</h2>
