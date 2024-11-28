@@ -8,8 +8,131 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2024-11-22T00:00:00Z</updated>
+    <updated>2024-11-28T00:00:00Z</updated>
     <entry>
+    <title>Exploring parsing APIs: adding a lexer</title>
+    <link href="http://osa1.net/posts/2024-11-28-how-to-parse-2.html" />
+    <id>http://osa1.net/posts/2024-11-28-how-to-parse-2.html</id>
+    <published>2024-11-28T00:00:00Z</published>
+    <updated>2024-11-28T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>In the <a href="https://osa1.net/posts/2024-11-22-how-to-parse-1.html">previous post</a> we looked at three different parsing APIs, and compared them for runtime and the use cases they support.</p>
+<p>In this post we’ll add a lexer (or “tokenizer”), with two APIs, and for each lexer API see how the parsers from the previous post perform when combined with a lexer.</p>
+<p><strong>What is a lexer?</strong> A lexer is very similar to the event parsers we saw in the previous post, but it doesn’t try to maintain any structure. It generates “tokens”, which are parts of the program that cannot be split into smaller parts. A lexer doesn’t care about parentheses or other delimiters being balanced, or that values in an array are separated by commas, or anything else. It simply splits the input into tokens.</p>
+<p><strong>Why is a lexer useful?</strong> If you already have an event parser, adding a lexer may not allow a lot of new use cases. The main use cases that I’m aware of are:</p>
+<ul>
+<li><p>Syntax highlighting: when higlighting syntax we don’t care about the tree structure, we care about keywords, punctuation (list separators, dots in paths etc.), delimiters (commas, bracets, brackets), and literals. A lexer gives us exactly these and nothing else.</p></li>
+<li><p>Supporting incremental parsing: one way of incrementally update an AST is by starting re-lexing a few (often just one) tokens before the edited token, re-lexing until after the edit location, until generating a token identical to an existing token again. AST nodes of modified tokens are then marked as “modified” and re-parsed.</p>
+<p>The details are complicated, I recommend chapter 2 of <a href="https://diekmann.uk/diekmann_phd.pdf">this PhD thesis</a> for an introduction to incremental parsing.</p>
+<p>If you need to re-parse the same text as it gets edited, even if you don’t need or want incremental parsing, incremental lexing is easy, so it makes sense to re-lex incrementally and then parse from scratch using the incrementally updated token list.</p></li>
+<li><p>For separating complex parsing code into smaller parts: modern languages can have complicated literal syntax, with multiple string literals with varying delimiters (like <code>r#"..."#</code> syntax in Rust, or <code>[=[...]=]</code> in Lua), multiple variants of comments (single line and multi-line, documentation and normal), multiple number syntaxes (with different suffixes like <code>123u32</code> in Rust, underscores to separate digits for readability) and so on.</p>
+<p>A lexer separates handling of these from the part of the parser that deals with the program structure.</p></li>
+</ul>
+<h1 id="the-apis">The APIs</h1>
+<p>Similar to the previous post, we will look at three different APIs for lexing:</p>
+<ul>
+<li>A lexer that generates a list of tokens directly: <code>tokenize_list</code>.</li>
+<li>An iterator that generates one token at a time: <code>tokenize_iter</code>.</li>
+<li>A “push” API that calls “listener” methods for the tokens: <code>tokenize_push</code>.</li>
+</ul>
+<p>For our simplified (and enhanced, with comments) JSON, our token type is:</p>
+<pre><code>pub enum Token {
+    Int(u64),
+    Str { size_in_bytes: usize },
+    True,
+    False,
+    Null,
+    LBracket,
+    RBracket,
+    LBrace,
+    RBrace,
+    Colon,
+    Comma,
+    Comment { size_in_bytes: usize },
+}</code></pre>
+<p>Similar to our event type from the previous post, this type needs to be cheap to generate (ideally stack allocated).</p>
+<p>The tokens are generated along with byte offsets in the input, also similar to events.</p>
+<p>For the push API, the listener interface also directly follows the token type:</p>
+<pre><code>pub trait LexerEventListener {
+    fn handle_int(&amp;mut self, byte_offset: usize, i: u64);
+
+    fn handle_str(&amp;mut self, byte_offset: usize, size_in_bytes: usize);
+
+    // Similar for other token types.
+    ...
+
+    fn handle_error(&amp;mut self, byte_offset: usize);
+}</code></pre>
+<p>To keep things simple, the event handlers don’t return a <code>bool</code> to stop parsing. It can be added in a few lines of code and it doesn’t affect performance.</p>
+<p>Unlike the different types of event parsers from the previous post, implementations of these lexer APIs are almost identical. This is because the lexer has only one state, which is the current position in the input. A <code>next</code> call in the iterator implementation simply continues from the current location in the input, and updates the current location as it reads characters from the input.</p>
+<p>So the code is almost identical in all of these implementations.</p>
+<p>The entry points are:</p>
+<pre><code>pub fn tokenize_iter&lt;&#39;a&gt;(input: &amp;&#39;a str) -&gt; Lexer&lt;&#39;a&gt; { ... }
+  // Lexer implements `Iterator`
+
+pub fn tokenize_push&lt;L: LexerEventListener&gt;(input: &amp;str, listener: &amp;mut L) { ... }
+
+pub fn tokenize_list(input: &amp;str) -&gt; Result&lt;Vec&lt;(usize, Token)&gt; usize&gt; { ... }</code></pre>
+<h1 id="combining-with-the-event-parsers">Combining with the event parsers</h1>
+<p>We have 3 lexers and 2 event parsers:</p>
+<ol type="1">
+<li>tokenize_list + parse_events_iter</li>
+<li>tokenize_list + parse_events_push</li>
+<li>tokenize_iter + parse_events_iter</li>
+<li>tokenize_iter + parse_events_push</li>
+<li>tokenize_push + parse_events_iter</li>
+<li>tokenize_push + parse_events_push</li>
+</ol>
+<p>However (5) is not easily possible in Rust. The problem is that a push API cannot be converted into an iterator, as it will scan the entire input without ever returning and keep calling the listener methods. To convert a push API into an iterator, we need a language feature that allows us to stop the current thread (or maybe a “fiber”, green thread etc.) and resume it later. In Rust, this is possible with <code>async</code> or threads. Threads are expensive, and <code>async</code> requires a lot of refactoring, and all the call sites to be made <code>async</code> as well.</p>
+<p>So in this post we won’t consider this combination.</p>
+<h1 id="notes-on-implementations">Notes on implementations</h1>
+<p>Implementing these combinations is mostly straightforward. Full code is linked below as usual. The takeaways are:</p>
+<ul>
+<li>The push API cannot converted into an iterator API, without language features.</li>
+<li>The push API requires state management in the consumer: the consumer will have to save the state that needs to be maintained between the calls to the listener methods.</li>
+<li>The iterator API is more flexible, it can be used to implement a push API and also an iterator.</li>
+<li>The iterator API is also easier to use: the consumer can iterate through the elements in nested loops, and needs less state management. The state can also be function locals, instead of fields of a struct.</li>
+<li>The list API (generates an entire vector of tokens) only makes sense when you need to collect all of the tokens in memory. The only use case for this that I’m aware of is incremental parsing.</li>
+</ul>
+<h1 id="references-and-benchmarks">References and benchmarks</h1>
+<p>The code (including benchmarks) is here: <a href="https://github.com/osa1/how-to-parse-2">github.com/osa1/how-to-parse-2</a>.</p>
+<p><strong>Token generation benchmarks:</strong> Collect all of the tokens in a <code>Vec</code>.</p>
+<ul>
+<li>tokenize_list: 305 MB/s</li>
+<li>tokenize_push: 303 MB/s</li>
+<li>tokenize_iter: 329 MB/s</li>
+</ul>
+<p>In the event generation benchmarks in the last post, the push implementation is about 10% faster than the iterator. But in the lexer, the iterator is faster when collecting the tokens in a vector. It looks like when the state that the parser manages between the <code>next</code> calls gets simpler, the compiler is able to optimize the code better, and iterator implementations beats the push implementation.</p>
+<p>The vector generator and push API adding the elements to a vector via the listener perform the same, which shows that when monomorphised, the push API implementation optimizes quite well for simple cases (but also in complex cases, as we will see below). In languages without monomorphisation, the push API should be slower.</p>
+<p><strong>Tokens to events:</strong> Convert tokens to events.</p>
+<ul>
+<li>events_iter: 282 MB/s</li>
+<li>events_push: 315 MB/s</li>
+<li>tokenize_list + events_iter: 181 MB/s</li>
+<li>tokenize_list + events_push: 187 MB/s</li>
+<li>tokenize_iter + events_iter: 269 MB/s</li>
+<li>tokenize_iter + events_push: 275 MB/s</li>
+<li>tokenize_push + events_push: 351 MB/s</li>
+</ul>
+<p>The first two benchmarks are the ones from the previous post that don’t use a lexer, generate events directly. The numbers are slightly different than the numbers from the previous post as I rerun them again.</p>
+<p>If you need some kind of incremental implementation, scanning the entire input and collecting the events or tokens in a vector performs bad. There’s no point in combining the list API with push or iterator APIs.</p>
+<p>What’s surprising is that the push lexer implementation combined with the push event generator implementation performs better than the event generator implementation that parses the input directly without a lexer. I don’t have an explanation to how this works yet.</p>
+<p>Lexer iterator implementations combined with any of the event generation implementations perform slower than the event push implementation that parses the input directly, but about as fast as the event iterator implementation that parses the input directly.</p>
+<p><strong>Tokens to AST:</strong> Converts tokens to events, builds AST from the events.</p>
+<ul>
+<li>Recursive descent: 127 MB/s</li>
+<li>events_iter to AST: 140 MB/s</li>
+<li>events_push to AST: 145 MB/s</li>
+<li>tokenize_list + events_iter to AST: 108 MB/s</li>
+<li>tokenize_list + events_push to AST: 108 MB/s</li>
+<li>tokenize_iter + events_iter to AST: 138 MB/s</li>
+<li>tokenize_iter + events_push to AST: 139 MB/s</li>
+<li>tokenize_push + events_push to AST: 151 MB/s</li>
+</ul>
+<p>The first three benchmarks below are from the last post. Rerun and included here for comparison.</p>
+<p>When we add an AST building step, which is more complicated compared to the rest of steps, the performance difference between the most convenient implementation (tokenize_iter + events_iter to AST) and the most performant one (tokenize_push + events_push to AST) diminishes. In the event generation benchmark, the fast one is 30% faster, but when building an AST, it’s only 9% faster.</p>
+<p>The push implementation is still faster than the recursive descent parser, even with the extra lexing step. I’m planning to investigate this further in a future post.</p>]]></summary>
+</entry>
+<entry>
     <title>Exploring parsing APIs: what to generate, and how</title>
     <link href="http://osa1.net/posts/2024-11-22-how-to-parse-1.html" />
     <id>http://osa1.net/posts/2024-11-22-how-to-parse-1.html</id>
@@ -1768,46 +1891,6 @@ nostd_lib = { path = &quot;../nostd_lib/rlib&quot; }</code></pre>
 <li id="fn2" role="doc-endnote"><p>If you’re working on a <code>no_std</code> crate I think you won’t be able to find a lot of libraries that you can use anyway.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>]]></summary>
-</entry>
-<entry>
-    <title>8 years of Haskell</title>
-    <link href="http://osa1.net/posts/2020-06-30-8-years-of-haskell.html" />
-    <id>http://osa1.net/posts/2020-06-30-8-years-of-haskell.html</id>
-    <published>2020-06-30T00:00:00Z</published>
-    <updated>2020-06-30T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>21 Jun 2020 was my last day at Well-Typed and as a GHC maintainer/developer. On 22nd I joined the programming language team at <a href="https://dfinity.org/">DFINITY</a> to work on the <a href="https://sdk.dfinity.org/docs/language-guide/motoko.html">Motoko programming language</a>.</p>
-<p>Here’s the summary of my 8 years writing Haskell pretty much non-stop:</p>
-<ul>
-<li><p>In 2012 I wrote <a href="https://github.com/osa1/dolap-chat">my first Haskell program</a>, which was a chat server. I was reading <a href="http://book.realworldhaskell.org/">“Real World Haskell”</a> and <a href="http://learnyouahaskell.com/">“Learn You a Haskell for Great Good!”</a> at the time and applying what I learned on this project.</p></li>
-<li><p>In the same year I implemented <a href="https://github.com/osa1/toylisp">my first programming language in Haskell</a>. I don’t remember much about this project, I think it may be just a few extensions over the excellent Haskell tutorial <a href="https://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours">“Write Yourself a Scheme in 48 hours”</a>.</p></li>
-<li><p>Also in 2012 I made a <a href="https://github.com/faylang/fay/commits?author=osa1">few commits</a> to the programming language Fay. This was my first contribution to an open source compiler not written by me.</p></li>
-<li><p>In 2013 I worked on four PL implementations, two of which were implemented from scratch in Haskell: A <a href="https://github.com/osa1/MANTI">Prolog implementation</a> and a <a href="https://github.com/osa1/Shen.hs">K Lambda interpreter</a>.</p>
-<p>The other two projects were: <a href="https://github.com/ozusrl/SubtypedQuotedML">A multi-stage ML-like language written in OCaml</a>, and K Framework (in Java).</p></li>
-<li><p>In 2014 I was accepted to Google Summer of Code to work on <a href="https://osa1.net/posts/2014-06-20-stack-traces-in-ghcjs.html">adding stack traces to GHCJS</a>. The project was successful, and I made <a href="https://github.com/ghcjs/ghcjs/graphs/contributors">88 commits</a> to GHCJS during this period.</p>
-<p>This was my first introduction to GHC. I made only <a href="https://gitlab.haskell.org/ghc/ghc/commit/b3d9636af37cfafbc947b69dff5747065f437804">one commit</a> to GHC during this time, but I started reading the RTS and code generator to be able to implement cost-centre stacks in GHCJS, which taught me a lot.</p></li>
-<li><p>Also in 2014, I briefly worked at a startup where I wrote Haskell.</p></li>
-<li><p>In 2015 I joined Indiana University to do PhD in programming languages. In my first semester I worked on the paper <a href="http://ezyang.com/papers/ezyang15-cnf.pdf">“Efficient Communication and Collection with Compact Normal Forms”</a> which was about a GHC extension. The paper was published the same year at ICFP.</p></li>
-<li><p>In the same year I briefly worked on a <a href="https://github.com/osa1/rho-torrent">torrent client in Haskell</a>.</p></li>
-<li><p>According to git logs, 2015 was the year where I started making some larger commits to GHC. I think I made a few dozen commits that year. What was happening in the background is that I was working on unboxed sums. At Haskell Implementors Workshop in 2015 my advisor gave a presentation on <a href="https://osa1.net/posts/2015-11-13-data-repr-1.html">efficiency of data representation in Haskell</a>. I don’t remember how the story developed, but I think we also talked to a few people at ICFP on how to improve the situation, and one of the idea that came up was unboxed sums. IIRC I started working on it soon after returning from ICFP.</p>
-<p>The first somewhat working version was implemented as a plugin, using lots of unsafe coercions under the hood. It was good enough to run some examples.</p></li>
-<li><p>(In 2015, I also studied various metaprogramming and partial evaluation ideas quite extensively. If you look at my blog posts published in 2015 you’ll see a lot of related blog posts. There are also a few related git repositories in my Github page. I also gave a related talk at HIW 2015.)</p></li>
-<li><p>Early 2016, I don’t remember what I was doing in too much detail. I remember taking an advanced OS class around that time and enjoying it very much. This was also the time where I started to realize that the tools I’m using (mostly GHC) are full of bugs, and very inefficient. I kept studying program transformation ideas, with the goal of making Haskell “fast”. I also started using C more, partly for the OS class, but also in my hobby projects. For example, the first commit of <a href="https://github.com/osa1/tiny">tiny</a> was made in January 2016 and <a href="https://github.com/osa1/tiny/commit/06accfabf941cb17c7efbb37dc55ed0c33dedc20">the code was in C</a>.</p></li>
-<li><p>In mid-2016 I left Bloomington for Cambridge, UK, for an internship at Microsoft Research with SPJ. We mainly worked on implementing unboxed sums properly in the compiler (instead of as a hacky plugin), but I also did a lot of GHC maintenance work there with supervision of SPJ.</p>
-<p>Unboxed sums was merged <a href="https://gitlab.haskell.org/ghc/ghc/-/commit/714bebff44076061d0a719c4eda2cfd213b7ac3d">during my time at MSR</a>.</p>
-<p>In the rest of the internship I did a lot of reading, did GHC maintenance, and biked around Cambridge.</p></li>
-<li><p>Most importantly, during my time at MSR I realized that I’m no longer interested in academic research. I don’t enjoy writing papers. I don’t feel like pushing a field forward while most of the tools I use every day are badly broken, inefficient, usually both. I started having job interviews while I was in the UK. I visited two companies for interviews, one in London, another one in Cambridge.</p>
-<p>I also emailed my advisor, saying that I don’t want to come back to Bloomington.</p></li>
-<li><p>Job interviews went badly, and I was back at Indiana University. Rest of 2016 was pretty horrible. I was depressed. I had no interest in research. I still <a href="https://dl.acm.org/doi/pdf/10.1145/2851141.2851142">helped publishing a paper</a>, but I did not enjoy the process.</p>
-<p>I still spent my last semester somewhat productively. I took enough classes this semester to leave IU with a masters degree, instead of empty handed (I was a PhD student, not masters). I also had some good job interviews and met good people from the Haskell community.</p>
-<p>By the end of 2016 I accepted a job offer and left IU with masters degree to write Haskell for a startup.</p></li>
-<li><p>In 2017 I worked for this startup for a year. I wrote lots of networking and concurrent code, and learned a lot about these topics and exception handling in Haskell. Until this my Haskell experience was mainly in the context of compilers, so this was quite educational for me.</p>
-<p>I left the company at the end of that year to join Well-Typed to work on GHC full-time.</p></li>
-<li><p>My time at Well-Typed was great, but also full of challenges, mainly related to working remotely.</p>
-<p>I worked on GHC between 30 and 40 hours a week (some weeks as little as 24 hours, but no less than that). Few weeks after I joined I started working on <a href="https://osa1.net/posts/2018-10-22-gc-work-presented.html">a new garbage collector</a> with a colleague. When I joined the project there were only type definitions in header files, and almost no code. I implemented the first sequential prototype of the new collector. After that we started collaborating more closely with my colleague while implementing the concurrent version. We found many bugs in both the design and implementation, and sorted out many edge cases during this time. I thoroughly enjoyed working on this project, even though it was clearly the most challenging project I ever worked on.</p>
-<p>After the garbage collector I kept working as a maintainer until I left the company on a Sunday, Jun 21st, 2020. I made my last commit to <a href="https://gitlab.haskell.org/ghc/ghc/-/merge_requests/3478">a merge request</a> that I was working on 21st.</p></li>
-<li><p>On 22 Jun 2020 I joined <a href="https://dfinity.org/">DFINITY</a> to work on the <a href="https://sdk.dfinity.org/docs/language-guide/motoko.html">Motoko programming language</a>, and this is where the story ends.</p></li>
-</ul>
-<p>At the time of this writing I have 383 commits to GHC and I’m the 14th contributor with most commits. It feels bad to leave a project that I liked and contributed so much, but it’s also the right thing to do. After the GC was merged I started spending my time less and less productively, for many reasons, and I had lost my motivation to improve Haskell-the-language and GHC. Perhaps I can write more about these in another post.</p>]]></summary>
 </entry>
 
 </feed>
