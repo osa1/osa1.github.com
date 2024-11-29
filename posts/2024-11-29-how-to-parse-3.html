@@ -26,7 +26,7 @@
 <p>In the <a href="https://osa1.net/posts/2024-11-22-how-to-parse-1.html">first post</a> of this series we looked at a few different ways of parsing a simple JSON-like language. In the <a href="https://osa1.net/posts/2024-11-28-how-to-parse-2.html">second post</a> we implemented a few lexers, and looked at the performance when the parsers from the first post are combined with the lexers in the second post.</p>
 <p>One of the surprising results in these posts is that our recursive descent parser, which parses the input directly to an AST, and in some sense is the simplest possible implementation when we need an AST, actually performs the worst.</p>
 <p>(The implementations that collect tokens in a vector before parsing perform worse than recursive descent parsing, but those implementations have other issues as well, and can’t be used in many cases. Maybe I should’ve omitted them entirely.)</p>
-<p>To keep things simple, let’s consider these three benchmarks, from the last post:</p>
+<p>To keep things simple, let’s consider these three benchmarks from the last post:</p>
 <ul>
 <li>Recursive descent: 127 Mb/s</li>
 <li>tokenize_iter + events_iter to AST: 138 Mb/s</li>
@@ -70,7 +70,7 @@ impl&lt;'a&gt; EventListener for AstBuilderListener&lt;'a&gt; {
 impl&lt;'a, L: EventListener&gt; LexerEventListener for LexerEventListenerImpl&lt;'a, L&gt; {
   ...
 }</code></pre>
-<p>This implementation is driven by the lexer which “pushes” the tokens to the event parser, which (possibly after handling multiple tokens) “pushes” parse events to the AST builder.</p>
+<p>This implementation is driven by the lexer which “pushes” the tokens to the event parser, which (sometimes after handling multiple tokens) “pushes” parse events to the AST builder.</p>
 <p>Both of these setups are considerably more complicated than recursive descent, yet they perform better. How?</p>
 <p>When we consider what the recursive descent parser does that these don’t, it’s kind of obvious. It’s even in the name: recursion.</p>
 <p>Our lexers and event parsers all optimize really well: there is no heap allocation anywhere, the code that “pushes” events are all monomorphised based on the handler type, so the handler calls are direct calls and can be (and probably) inlined. There’s also no recursion anywhere.</p>
@@ -113,8 +113,8 @@ fn parse_single(iter: &amp;mut Peekable&lt;CharIndices&gt;, input: &amp;str) -&g
 <p>If you checkout the git repo and run the tests with <code>cargo test</code>, you will see that a test fails with a stack overflow.</p>
 <p>This is something else to keep in mind when parsing recursively. Stack overflows are a real issue with recursive parsing, and I know some libraries that are <a href="https://github.com/google/protobuf.dart/blob/ccf104dbc36929c0f8708285d5f3a8fae206343e/protobuf/lib/src/protobuf/coded_buffer_reader.dart#L29">explicit about it</a>.</p>
 <p>In practice though, I’m not sure if this can be the main reason to avoid recursive parsing. Recursion can happen in other places as well, and in a server application you would probably monitor runtime, memory consumption, and maybe even other resources of a handler, and have some kind of error handler that handles everything else.</p>
-<p>In higher level languages like <a href="https://hackage.haskell.org/package/base-4.20.0.1/docs/GHC-IO-Exception.html#t:AsyncException">Haskell</a> and <a href="https://api.dart.dev/dart-core/StackOverflowError-class.html">Dart</a> that make stack overflows exceptions/errors that can be caught and handled, so they can be handled as a part of “unexpected” crashes easily. In Rust, they stack overflows can be handled at thread boundaries.</p>
-<p>If the application is command line tool or a compiler, where the input is provided by the user and handled on the user’s computer, it’s less of a problem and you can probably just let the application crash.</p>
+<p>Some higher level languages like <a href="https://hackage.haskell.org/package/base-4.20.0.1/docs/GHC-IO-Exception.html#t:AsyncException">Haskell</a> and <a href="https://api.dart.dev/dart-core/StackOverflowError-class.html">Dart</a> make stack overflows exceptions/errors that can be caught and handled, so they can be handled as a part of “unexpected” crashes easily. In Rust, stack overflows can be handled at thread boundaries.</p>
+<p>If the application is a command line tool or a compiler, where the input is provided by the user and handled on the user’s computer, it’s less of a problem and you can probably just let the application crash.</p>
 <p>So I don’t think we can say that recursion should be avoided at all costs when parsing.</p>
 <h2 id="references">References</h2>
 <p>As usual, the code is available: <a href="https://github.com/osa1/how-to-parse-3">github.com/osa1/how-to-parse-3</a>.</p>
