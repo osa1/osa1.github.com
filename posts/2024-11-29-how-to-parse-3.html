@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Exploring parsing APIs: the cost of recursion</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Exploring parsing APIs: the cost of recursion</h1>
+
+<p><strong>November 29, 2024</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'parsing'." href="../tags/parsing.html">parsing</a>, <a title="All pages tagged 'rust'." href="../tags/rust.html">rust</a>.</p>
+
+<p>In the <a href="https://osa1.net/posts/2024-11-22-how-to-parse-1.html">first post</a> of this series we looked at a few different ways of parsing a simple JSON-like language. In the <a href="https://osa1.net/posts/2024-11-28-how-to-parse-2.html">second post</a> we implemented a few lexers, and looked at the performance when the parsers from the first post are combined with the lexers in the second post.</p>
+<p>One of the surprising results in these posts is that our recursive descent parser, which parses the input directly to an AST, and in some sense is the simplest possible implementation when we need an AST, actually performs the worst.</p>
+<p>(The implementations that collect tokens in a vector before parsing perform worse than recursive descent parsing, but those implementations have other issues as well, and can’t be used in many cases. Maybe I should’ve omitted them entirely.)</p>
+<p>To keep things simple, let’s consider these three benchmarks, from the last post:</p>
+<ul>
+<li>Recursive descent: 127 Mb/s</li>
+<li>tokenize_iter + events_iter to AST: 138 Mb/s</li>
+<li>tokenize_push + events_push to AST: 151 Mb/s</li>
+</ul>
+<p>To recap, the “iter” variants are <code>Iterator</code>s that return one parse (or lexing) event at a time. The “push” variants take a “listener” argument with callbacks for events. See the first post for details.</p>
+<p>In the “iter” benchmark, the code that generates the AST iterates an event parser:</p>
+<pre><code>fn event_to_tree&lt;I: Iterator&lt;Item = Result&lt;ParseEvent, ParseError&gt;&gt;&gt;(
+    parser: &amp;mut I,
+    input: &amp;str,
+) -&gt; Result&lt;Json, ParseError&gt; {
+  ...
+}</code></pre>
+<p>And the event parser iterates a lexer:</p>
+<pre><code>fn parse_events_iter_using_lexer_iter&lt;I: Iterator&lt;Item = Result&lt;(usize, Token), usize&gt;&gt;&gt;(
+    lexer: I,
+    input_size: usize,
+) -&gt; EventParser&lt;I&gt; {
+    ...
+}</code></pre>
+<p>When the AST generator asks for the next parse event, the parse event generator asks for the next token (maybe multiple times) and returns an event. AST generator consumes all of the events and builds the AST.</p>
+<p>In the “push” benchmark, we have a “listener” that handles parse events and builds up an AST:</p>
+<pre><code>struct AstBuilderListener&lt;'a&gt; {
+    input: &amp;'a str,
+    container_stack: Vec&lt;Container&gt;,
+    current_container: Option&lt;Container&gt;,
+    parsed_object: Option&lt;Json&gt;,
+    error: Option&lt;ParseError&gt;,
+}
+
+impl&lt;'a&gt; EventListener for AstBuilderListener&lt;'a&gt; {
+    ...
+}</code></pre>
+<p>And another listener that handles tokens:</p>
+<pre><code>struct LexerEventListenerImpl&lt;'a, L: EventListener&gt; {
+    listener: &amp;'a mut L,
+    container_stack: Vec&lt;Container&gt;,
+    state: ParserState,
+}
+
+impl&lt;'a, L: EventListener&gt; LexerEventListener for LexerEventListenerImpl&lt;'a, L&gt; {
+  ...
+}</code></pre>
+<p>This implementation is driven by the lexer which “pushes” the tokens to the event parser, which (possibly after handling multiple tokens) “pushes” parse events to the AST builder.</p>
+<p>Both of these setups are considerably more complicated than recursive descent, yet they perform better. How?</p>
+<p>When we consider what the recursive descent parser does that these don’t, it’s kind of obvious. It’s even in the name: recursion.</p>
+<p>Our lexers and event parsers all optimize really well: there is no heap allocation anywhere, the code that “pushes” events are all monomorphised based on the handler type, so the handler calls are direct calls and can be (and probably) inlined. There’s also no recursion anywhere.</p>
+<p>The recursive descent parser is basically one function that recursively calls itself for nested objects. It turns out this recursion has a cost. When I eliminate the recursion with some more state:</p>
+<pre><code>enum ParserState {
+    /// Parse any kind of object, update state based on the current container.
+    TopLevel,
+
+    /// Parsing a container, parse another element on ',', or finish the
+    /// container on ']' or '}'.
+    ExpectComma,
+
+    /// Parsing an object, parse a key.
+    ObjectExpectKeyValue,
+
+    /// Parsing an object, parse a key, or terminate the object.
+    ObjectExpectKeyValueTerminate,
+
+    /// Parsing an object and we've just parsed a key, expect ':'.
+    ObjectExpectColon,
+}
+
+fn parse_single(iter: &amp;mut Peekable&lt;CharIndices&gt;, input: &amp;str) -&gt; Result&lt;Json, ParseError&gt; {
+    let mut container_stack: Vec&lt;Container&gt; = vec![];
+    let mut state = ParserState::TopLevel;
+
+    loop {
+      ...
+    }
+}</code></pre>
+<p>It performs better than the recursive descent parser and the iterator based parser, and on par with the “push” based parser: (numbers are slightly different than above as I rerun them together)</p>
+<ul>
+<li>Recursive descent: 127 Mb/s</li>
+<li>tokenize_iter + events_iter to AST: 136 Mb/s</li>
+<li>tokenize_push + events_push to AST: 158 Mb/s</li>
+<li>Direct parser without recursion: 156 Mb/s</li>
+</ul>
+<p>I’m not quite sure what about recursion that makes the recursive descent parser perform so much worse, but my guess is that it makes the control flow more complicated to analyze, and in runtime, you have to move things around (in registers and stack locations) based on calling conventions. When moving between registers and stack locations you do memory reads and writes. My guess is that when combined, these cost something.</p>
+<h2 id="other-considerations-with-recursion">Other considerations with recursion</h2>
+<p>If you checkout the git repo and run the tests with <code>cargo test</code>, you will see that a test fails with a stack overflow.</p>
+<p>This is something else to keep in mind when parsing recursively. Stack overflows are a real issue with recursive parsing, and I know some libraries that are <a href="https://github.com/google/protobuf.dart/blob/ccf104dbc36929c0f8708285d5f3a8fae206343e/protobuf/lib/src/protobuf/coded_buffer_reader.dart#L29">explicit about it</a>.</p>
+<p>In practice though, I’m not sure if this can be the main reason to avoid recursive parsing. Recursion can happen in other places as well, and in a server application you would probably monitor runtime, memory consumption, and maybe even other resources of a handler, and have some kind of error handler that handles everything else.</p>
+<p>In higher level languages like <a href="https://hackage.haskell.org/package/base-4.20.0.1/docs/GHC-IO-Exception.html#t:AsyncException">Haskell</a> and <a href="https://api.dart.dev/dart-core/StackOverflowError-class.html">Dart</a> that make stack overflows exceptions/errors that can be caught and handled, so they can be handled as a part of “unexpected” crashes easily. In Rust, they stack overflows can be handled at thread boundaries.</p>
+<p>If the application is command line tool or a compiler, where the input is provided by the user and handled on the user’s computer, it’s less of a problem and you can probably just let the application crash.</p>
+<p>So I don’t think we can say that recursion should be avoided at all costs when parsing.</p>
+<h2 id="references">References</h2>
+<p>As usual, the code is available: <a href="https://github.com/osa1/how-to-parse-3">github.com/osa1/how-to-parse-3</a>.</p>
+<p>To work around the stack overflow when testing, test in release mode: <code>cargo test --release</code>.</p>
+<p>If you want to profile the code and understand more about why one version is faster than the other, I added 4 executables to the package, one for each benchmark listed above. You can generate a 100M input and run the parsers individually with:</p>
+<pre><code>$ cargo build --release
+...
+
+$ ./target/release/test_gen 100000000 &gt; input
+
+$ time ./target/release/parse_non_recursive input
+./target/release/parse_non_recursive input  0.64s user 0.22s system 99% cpu 0.854 total</code></pre>
+
+<hr />
+
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
