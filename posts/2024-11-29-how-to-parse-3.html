@@ -26,7 +26,7 @@
 <p>In the <a href="https://osa1.net/posts/2024-11-22-how-to-parse-1.html">first post</a> of this series we looked at a few different ways of parsing a simple JSON-like language. In the <a href="https://osa1.net/posts/2024-11-28-how-to-parse-2.html">second post</a> we implemented a few lexers, and looked at the performance when the parsers from the first post are combined with the lexers in the second post.</p>
 <p>One of the surprising results in these posts is that our recursive descent parser, which parses the input directly to an AST, and in some sense is the simplest possible implementation when we need an AST, actually performs the worst.</p>
 <p>(The implementations that collect tokens in a vector before parsing perform worse than recursive descent parsing, but those implementations have other issues as well, and can’t be used in many cases. Maybe I should’ve omitted them entirely.)</p>
-<p>To keep things simple, let’s consider these three benchmarks from the last post:</p>
+<p>We had a lot of benchmarks in the last post, but to keep things simple, let’s consider these three:</p>
 <ul>
 <li>Recursive descent: 127 Mb/s</li>
 <li>tokenize_iter + events_iter to AST: 138 Mb/s</li>
@@ -101,7 +101,7 @@ fn parse_single(iter: &amp;mut Peekable&lt;CharIndices&gt;, input: &amp;str) -&g
       ...
     }
 }</code></pre>
-<p>It performs better than the recursive descent parser and the iterator based parser, and on par with the “push” based parser: (numbers are slightly different than above as I rerun them together)</p>
+<p>It performs better than the recursive descent parser and the iterator based parser, and on par with the “push” based parser: (numbers are slightly different than above as I rerun them again together)</p>
 <ul>
 <li>Recursive descent: 127 Mb/s</li>
 <li>tokenize_iter + events_iter to AST: 136 Mb/s</li>
