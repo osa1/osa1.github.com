@@ -109,7 +109,7 @@ fn parse_single(iter: &amp;mut Peekable&lt;CharIndices&gt;, input: &amp;str) -&g
 <p>If the application is a command line tool or a compiler, where the input is provided by the user and handled on the user’s computer, it’s less of a problem and you can probably just let the application crash.</p>
 <p>So I don’t think we can say that recursion should be avoided at all costs when parsing.</p>
 <h1 id="references">References</h1>
-<p>As usual, the code is available: <a href="https://github.com/osa1/how-to-parse-3">github.com/osa1/how-to-parse-3</a>.</p>
+<p>As usual, the code is available: <a href="https://github.com/osa1/how-to-parse/tree/main/part3">github.com/osa1/how-to-parse-3</a>.</p>
 <p>To work around the stack overflow when testing, test in release mode: <code>cargo test --release</code>.</p>
 <p>If you want to profile the code and understand more about why one version is faster than the other, I added 4 executables to the package, one for each benchmark listed above. You can generate a 100M input and run the parsers individually with:</p>
 <pre><code>$ cargo build --release
@@ -204,7 +204,7 @@ pub fn tokenize_list(input: &amp;str) -&gt; Result&lt;Vec&lt;(usize, Token)&gt; 
 <li>The list API (generates an entire vector of tokens) only makes sense when you need to collect all of the tokens in memory. The only use case for this that I’m aware of is incremental parsing.</li>
 </ul>
 <h1 id="references-and-benchmarks">References and benchmarks</h1>
-<p>The code (including benchmarks) is here: <a href="https://github.com/osa1/how-to-parse-2">github.com/osa1/how-to-parse-2</a>.</p>
+<p>The code (including benchmarks) is here: <a href="https://github.com/osa1/how-to-parse/tree/main/part2">github.com/osa1/how-to-parse-2</a>.</p>
 <p><strong>Token generation benchmarks:</strong> Collect all of the tokens in a <code>Vec</code>.</p>
 <ul>
 <li>tokenize_list: 305 MB/s</li>
@@ -656,7 +656,7 @@ lexgen::lexer! {
 <p>A lexer generator can be used to implement an event parser, as demonstrated above.</p>
 <hr />
 <h1 id="references-and-benchmarks">References and benchmarks</h1>
-<p>All of the code in this blog post, and more, is here: <a href="https://github.com/osa1/how-to-parse">github.com/osa1/how-to-parse</a>.</p>
+<p>All of the code in this blog post, and more, is here: <a href="https://github.com/osa1/how-to-parse/tree/main/part1">github.com/osa1/how-to-parse</a>.</p>
 <p>In the benchmark program (run with <code>cargo bench</code>), we generate a 10M large JSON, and parse it to either an AST or a vector of events.</p>
 <p><strong>AST building benchmarks:</strong></p>
 <ul>
