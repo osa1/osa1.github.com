@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - When is inlining useful?</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">When is inlining useful?</h1>
+
+<p><strong>December  7, 2024</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'plt'." href="../tags/plt.html">plt</a>.</p>
+
+<p>Especially in high-level languages, inlining is most useful when it causes:</p>
+<ul>
+<li>Optimizing the callee’s body based on the arguments passed.</li>
+<li>Optimizing the call site based on the callee’s return value.</li>
+</ul>
+<p>Let’s look at some examples.</p>
+<h2 id="example-avoiding-redundant-bounds-checks">Example: avoiding redundant bounds checks</h2>
+<p>Suppose we have a library for decoding some format of binary files with length-prefixed vectors of 32-bit integers, with all integers encoded as little-endian.</p>
+<p>A simple implementation would be:</p>
+<pre><code>/// Decode a length-prefixed 32-bit unsigned integer vector.
+///
+/// # Panics
+///
+/// Panics if the buffer does not have enough bytes.
+pub fn decode_u32_vec(buffer: &amp;[u8]) -&gt; Vec&lt;u32&gt; {
+    let len = decode_32_le(buffer, 0) as usize;
+    let mut vec = vec![0; len];
+    for i in 0..len {
+        vec[i] = decode_32_le(buffer, (i + 1) * 4);
+    }
+    vec
+}
+
+/// Decode a single 32-bit unsigned integer, encoded as little-endian.
+///
+/// # Panics
+///
+/// Panics if the buffer does not have 4 bytes starting at `offset`.
+#[inline(never)]  // this version isn't inlined
+pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
+    let b1 = buffer[offset];
+    let b2 = buffer[offset + 1];
+    let b3 = buffer[offset + 2];
+    let b4 = buffer[offset + 3];
+    u32::from_le_bytes([b1, b2, b3, b4])
+}</code></pre>
+<p>This version is not ideal, because <code>decode_32_le</code> checks bounds on each byte access. (<a href="https://godbolt.org/z/eTMa38nqT">compiler explorer</a>)</p>
+<p>We can improve it by checking the bounds for all of the reads once:</p>
+<pre><code>#[inline(never)]  // this version isn't inlined
+pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
+    if buffer.len() &lt; 4 || buffer.len() - 4 &lt; offset {
+        panic!();
+    }
+    let b1 = buffer[offset];
+    let b2 = buffer[offset + 1];
+    let b3 = buffer[offset + 2];
+    let b4 = buffer[offset + 3];
+    u32::from_le_bytes([b1, b2, b3, b4])
+}</code></pre>
+<p>The conditional makes sure that in the rest of the function the slice indices are all within bounds, so the compiler doesn’t generate bounds checks the accesses. It’s also able to optimize further now to load just one 32-bit word from the memory, instead of reading one byte at a time. (<a href="https://godbolt.org/z/MG9EaE5G3">compiler explorer</a>)</p>
+<p><code>decode_32_le</code> is quite good now, but it still has to do one bounds check, and since <code>decode_u32_vec</code> calls it in each iteration, it does a bounds check in each iteration.</p>
+<p>Ideally we want to be able to do one bounds check before the loop, just like we did in <code>decode_32_le</code>, and then omit bounds checks within the loop:</p>
+<pre><code>pub fn decode_u32_vec(buffer: &amp;[u8]) -&gt; Vec&lt;u32&gt; {
+    let len = decode_32_le(buffer, 0) as usize;
+    if buffer.len() &lt; (len + 1) * 4 {
+        panic!();
+    }
+    let mut vec = vec![0; len];
+    for i in 0..len {
+        vec[i] = decode_32_le(buffer, (i + 1) * 4);
+    }
+    vec
+}</code></pre>
+<p>But this cannot make the bounds checks in <code>decode_32_le</code> disappear, as it may have other call sites that may not always check the bounds before calling it.</p>
+<p>Inlining <code>decode_32_le</code> in the use effectively lets us propagate the information in the call site to the callee’s code, and optimize it based on this information. If we change the <code>inline(never)</code> to <code>inline</code> in <code>decode_32_le</code>, with the extra bounds check in <code>decode_u32_vec</code>, we now check bounds once before the loop and don’t check it again in the loop. (<a href="https://godbolt.org/z/EeGbYrfP7">compiler explorer</a>)</p>
+<h2 id="example-avoiding-redundant-error-checks">Example: avoiding redundant error checks</h2>
+<p>Dart doesn’t have unsigned integers, and many standard library functions throw an <code>ArgumentError</code> when they are passed negative numbers.</p>
+<p>One example of these functions is the <a href="https://api.dart.dev/dart-core/int/operator_triple_shift.html">unsigned right shift operator</a>. In many call sites, the shift amount is a <a href="https://github.com/dart-lang/sdk/blob/abb17bc59d8163273451b3ffb2aba784d20001b4/sdk/lib/_internal/wasm/lib/internal_patch.dart#L88-L97">constant positive number</a>. If we call the standard library function in these cases, the library function will check the sign of the arguments that we already know in the call site to be positive.</p>
+<p>When we inline <a href="https://github.com/dart-lang/sdk/blob/abb17bc59d8163273451b3ffb2aba784d20001b4/sdk/lib/_internal/wasm/lib/boxed_int.dart#L94-L107">the operator</a> in a call site where the shift argument is constant, the conditional becomes <code>if (constant &lt; 0) throw ...</code>. The compiler can then simplify the condition as <code>true</code> or <code>false</code>, and then simplify this code to just <code>throw ...</code> or eliminate the conditional.</p>
+<p>The <code>mix64</code> function linked above when compiled to Wasm, without inlining the right shift operator:</p>
+<pre><code>(func $mix64 (param $var0 i64) (result i64)
+  ...
+  local.tee $var0
+  i64.const 24
+  call $BoxedInt.&gt;&gt;&gt;
+  ...)
+
+(func $BoxedInt.&gt;&gt;&gt; (param $var0 i64) (param $var1 i64) (result i64)
+  local.get $var1
+  i64.const 64
+  i64.lt_u
+  if
+    local.get $var0
+    local.get $var1
+    i64.shr_u
+    return
+  end
+  local.get $var1
+  i64.const 0
+  i64.lt_s
+  if
+    i32.const 64
+    local.get $var1
+    struct.new $BoxedInt
+    call $ArgumentError
+    call $Error._throwWithCurrentStackTrace
+    unreachable
+  end
+  i64.const 0)</code></pre>
+<p>With the shift operator inlined:</p>
+<pre><code>(func $mix64 (param $var0 i64) (result i64)
+  ...
+  local.get $var0
+  i64.const 24
+  i64.shr_u
+  ...)</code></pre>
+<p>The call to <code>BoxedInt.&gt;&gt;&gt;</code> with error checking is optimized to a single <code>shr_u</code> (shift right, unsigned) instruction.</p>
+<h2 id="example-avoiding-boxing">Example: avoiding boxing</h2>
+<p>In languages where most values are passed around as boxed, inlining can eliminate boxing.</p>
+<p>A common use case where this happens is FFI: pointers/references obtained from an FFI calls need to be wrapped in a struct/class/etc. to make it the same “shape” as the language’s native values.</p>
+<p>When you have a function that gets a reference from an FFI call, and pass it around to more FFI calls, inlining these FFI calls can avoid boxing the pointer/reference value.</p>
+<p>Somewhat silly example, in Dart:</p>
+<pre><code>import 'dart:ffi';
+
+@Native&lt;Pointer&lt;Int64&gt; Function()&gt;()
+external Pointer&lt;Int64&gt; intPtr();
+
+@Native&lt;Int64 Function(Pointer&lt;Int64&gt;)&gt;()
+external int derefIntPtr(Pointer&lt;Int64&gt; ptr);
+
+void main() {
+  Pointer&lt;Int64&gt; ptr = intPtr();
+  ptr += 1;
+  int i = derefIntPtr(ptr);
+  print(i);
+
+  // Add more calls to `intPtr` so that it won't be inlined without the inline
+  // pragma.
+  intPtr();
+}</code></pre>
+<p>Relevant parts of the generated code when compiled to Wasm:</p>
+<pre><code>(func $main
+  ...
+  call $intPtr
+  struct.get $Pointer $field2
+  i32.const 8
+  i32.add
+  call $ffi.derefIntPtr (import)
+  ...)
+
+(func $intPtr (result (ref $Pointer))
+  i32.const 71
+  i32.const 0
+  call $ffi.intPtr (import)
+  struct.new $Pointer)</code></pre>
+<p><code>intPtr</code> allocates a struct, which the call site directly unpacks (reads the field). Inlining <code>intPtr</code> eliminates this allocation:</p>
+<pre><code>(func $main
+  ...
+  call $ffi.intPtr (import)
+  i32.const 8
+  i32.add
+  call $ffi.derefIntPtr (import)
+  ...)</code></pre>
+<h2 id="example-avoiding-polymorphism">Example: avoiding polymorphism</h2>
+<p>When a monomorphic type is passed to a polymorphic function, the polymorphic function can often be inlined to avoid polymorphic access to the monomorphic type.</p>
+<p>An example, again in Dart, is <code>Int64List</code>, which is a monomorphic <code>List&lt;int&gt;</code>. It stores the integers unboxed, and when directly used, the call site does not box the elements on access.</p>
+<p>When used in a polymorphic site though, the integer elements need to be boxed. Example:</p>
+<pre><code>import 'dart:typed_data';
+
+int sum(List&lt;int&gt; list) {
+  int ret = 0;
+  for (int i = 0; i &lt; list.length; i += 1) {
+    ret += list[i];
+  }
+  return ret;
+}
+
+void main() {
+  Int64List intList = Int64List.fromList([1, 2, 3, 4]);
+  sum(intList);
+  sum([1, 2, 3, 4]);
+}</code></pre>
+<p>Relevant parts of the output when compiled to Wasm:</p>
+<pre><code>(func $main
+  ;; Allocate `Int64List`, call `sum`:
+  ...
+  call $sum
+
+  ;; Allocate the other `List&lt;int&gt;`, call `sum`:
+  ...
+  call $sum)
+
+(func $sum (param $var0 (ref $Object))
+  (local $var1 i64)
+  (local $var2 i64)
+  loop $label0
+    ...
+    if
+      ...
+      ;; Virtual call to `operator []`:
+      struct.get $Object $field0
+      i32.const 747
+      i32.add
+      call_indirect (param (ref $Object) i64) (result (ref null $#Top))
+
+      ;; The virtual call returns a boxed integer, which we directly unbox:
+      ref.cast $BoxedInt
+      struct.get $BoxedInt $field1
+      i64.add
+      ...
+    end
+  end $label0)</code></pre>
+<p>If we inline <code>sum</code>, the loop that iterates the <code>Int64List</code> accesses the unboxed integers directly:</p>
+<pre><code>(func $main
+  ...
+  loop $label1
+      ...
+      local.get $var3
+      local.get $var4
+      local.get $var1
+      i32.wrap_i64
+      # Array access is now direct, no boxing.
+      array.get $Array&lt;WasmI64&gt;
+      i64.add
+      local.set $var3
+      local.get $var1
+      i64.const 1
+      i64.add
+      local.set $var1
+      br $label1
+    end
+  end $label1)</code></pre>
+<p>A similar case is when a monomorphic type is used directly, but via a polymorphic interface. In the <code>Int64List</code> type above, <code>List64List.[]</code> is an override of <a href="https://api.dart.dev/dart-core/List/operator_get.html"><code>List&lt;E&gt;.[]</code></a>, and all overrides of a method need to have the same type.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>So when not inlined, it needs to return a boxed integer:</p>
+<pre><code>(func $Int64List.[] (param $var0 (ref $Object)) (param $var1 i64) (result (ref null $#Top))
+  ...
+  array.get $Array&lt;WasmI64&gt;
+  struct.new $BoxedInt)</code></pre>
+<p>Similar to the previous example, inlining it eliminates the boxing in monomorphic use sites, as the allocated struct is immediately unboxed.</p>
+<h2 id="a-trick-for-effective-inlining-outlining">A trick for effective inlining: outlining</h2>
+<p>Consider <code>Int64List.[]</code> again. The implementation needs to check that the index is in bounds of the array, and throw an exception if not: (slightly simplified)</p>
+<pre><code>class Int64List ... {
+  ...
+
+  @override
+  int operator [](int index) {
+    if (length.leU(index)) { // shorthand for `index &lt; 0 || index &gt;= length`
+      ... // throw exception
+    }
+    return _data.read(index);
+  }
+}</code></pre>
+<p>To avoid boxing when calling this function we want to always inline it, but if we’re not careful with the error throwing code path (the <code>if</code> body above), the function can get quite large, and when inlined the binary can bloat up significantly.</p>
+<p>Ideally we want to inline the happy path that can lead to improvements when inlined, and leave the error path separate in a function, so that we can have the benefits of inlining without adding to the binary size too much.</p>
+<p>This can be done by moving the error handling code to a separate function, and making sure that separate function is never inlined (ideally with an annotation to the compiler). In the example above, this may look like:</p>
+<pre><code>class Int64List ... {
+  @override
+  @pragma('inline')
+  int operator [](int index) {
+    if (length.leU(index)) {
+      fail(index, length);
+    }
+    return _data.read(_offsetInElements + index);
+  }
+}
+
+@pragma('never-inline')
+void fail(int index, int length) { ... }</code></pre>
+<p>With this it doesn’t matter how large the error handling code is, because we never inline it.</p>
+<p>This way of separating inlineable parts of a function from the parts we don’t want to inline is sometimes called “outlining” or “partial inlining”. We can do it manually (as in the example above), but it can also be done by a compiler based on heuristics.</p>
+<p>An example of this done by a compiler is <a href="https://www.cambridge.org/core/services/aop-cambridge-core/content/view/75629BBEDB11D8463553A09BF5DEA235/S0956796809007175a.pdf/div-class-title-the-worker-wrapper-transformation-div.pdf">GHC’s worker/wrapper transformation</a>, where an optimized function is split into parts that (1) handle unboxing and boxing before calling the function’s body, and (2) the function’s body that work on the unboxed representation of the arguments. (1) is then inlined to avoid redundant boxing of the arguments and return values.</p>
+<h2 id="notes">Notes</h2>
+<p>The main reason why the examples above are mostly in Dart is because I’ve been spending most of my time this year optimizing Dart’s Wasm backend’s standard library implementation, so the examples are still fresh in my memory.</p>
+<p>The principles apply to most languages: inlining a function makes any information about the arguments available to the function’s body, and any information on its return value to the call site.</p>
+<p><strong>Is it useful to inline if it doesn’t enable more optimizations?</strong> A big part of optimizing high-level statically-typed languages is about avoiding polymorhism, boxing, and redundant error checks. I’m not aware of any cases where inlining a function, when it doesn’t result in improving one of these, is worthwhile.</p>
+<p>In a lower-level language with monomorphisation and control over allocations (e.g. Rust, C++), monomorphisation elminates polymorphism in compile time, boxing is explicit, and redundant checks can be avoided by using unchecked (unsafe) functions.</p>
+<p>I think in these cases where programs are often much faster by default, inlining to avoid stack/register shuffling and simplify control flow can make a difference.</p>
+<p>One example of this can be seen in <a href="https://osa1.net/posts/2024-11-29-how-to-parse-3.html">the previous post</a>, where implementing a recursive parsing function in a non-recursive way improved performance by 22%.</p>
+<p>In higher-level languages, programs are often slower because of other reasons.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>More accurately, a method that can be called in a polymorphic call site needs to have a type that is a subtype of the least-upper-bound of the types of all functions that can be called in the polymorphic call sites.</p>
+<p>Or more briefly, all methods in an override group need to have the same type.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+<hr />
+
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -8,8 +8,291 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2024-11-29T00:00:00Z</updated>
+    <updated>2024-12-07T00:00:00Z</updated>
     <entry>
+    <title>When is inlining useful?</title>
+    <link href="http://osa1.net/posts/2024-12-07-inlining.html" />
+    <id>http://osa1.net/posts/2024-12-07-inlining.html</id>
+    <published>2024-12-07T00:00:00Z</published>
+    <updated>2024-12-07T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Especially in high-level languages, inlining is most useful when it causes:</p>
+<ul>
+<li>Optimizing the callee’s body based on the arguments passed.</li>
+<li>Optimizing the call site based on the callee’s return value.</li>
+</ul>
+<p>Let’s look at some examples.</p>
+<h1 id="example-avoiding-redundant-bounds-checks">Example: avoiding redundant bounds checks</h1>
+<p>Suppose we have a library for decoding some format of binary files with length-prefixed vectors of 32-bit integers, with all integers encoded as little-endian.</p>
+<p>A simple implementation would be:</p>
+<pre><code>/// Decode a length-prefixed 32-bit unsigned integer vector.
+///
+/// # Panics
+///
+/// Panics if the buffer does not have enough bytes.
+pub fn decode_u32_vec(buffer: &amp;[u8]) -&gt; Vec&lt;u32&gt; {
+    let len = decode_32_le(buffer, 0) as usize;
+    let mut vec = vec![0; len];
+    for i in 0..len {
+        vec[i] = decode_32_le(buffer, (i + 1) * 4);
+    }
+    vec
+}
+
+/// Decode a single 32-bit unsigned integer, encoded as little-endian.
+///
+/// # Panics
+///
+/// Panics if the buffer does not have 4 bytes starting at `offset`.
+#[inline(never)]  // this version isn&#39;t inlined
+pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
+    let b1 = buffer[offset];
+    let b2 = buffer[offset + 1];
+    let b3 = buffer[offset + 2];
+    let b4 = buffer[offset + 3];
+    u32::from_le_bytes([b1, b2, b3, b4])
+}</code></pre>
+<p>This version is not ideal, because <code>decode_32_le</code> checks bounds on each byte access. (<a href="https://godbolt.org/z/eTMa38nqT">compiler explorer</a>)</p>
+<p>We can improve it by checking the bounds for all of the reads once:</p>
+<pre><code>#[inline(never)]  // this version isn&#39;t inlined
+pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
+    if buffer.len() &lt; 4 || buffer.len() - 4 &lt; offset {
+        panic!();
+    }
+    let b1 = buffer[offset];
+    let b2 = buffer[offset + 1];
+    let b3 = buffer[offset + 2];
+    let b4 = buffer[offset + 3];
+    u32::from_le_bytes([b1, b2, b3, b4])
+}</code></pre>
+<p>The conditional makes sure that in the rest of the function the slice indices are all within bounds, so the compiler doesn’t generate bounds checks the accesses. It’s also able to optimize further now to load just one 32-bit word from the memory, instead of reading one byte at a time. (<a href="https://godbolt.org/z/MG9EaE5G3">compiler explorer</a>)</p>
+<p><code>decode_32_le</code> is quite good now, but it still has to do one bounds check, and since <code>decode_u32_vec</code> calls it in each iteration, it does a bounds check in each iteration.</p>
+<p>Ideally we want to be able to do one bounds check before the loop, just like we did in <code>decode_32_le</code>, and then omit bounds checks within the loop:</p>
+<pre><code>pub fn decode_u32_vec(buffer: &amp;[u8]) -&gt; Vec&lt;u32&gt; {
+    let len = decode_32_le(buffer, 0) as usize;
+    if buffer.len() &lt; (len + 1) * 4 {
+        panic!();
+    }
+    let mut vec = vec![0; len];
+    for i in 0..len {
+        vec[i] = decode_32_le(buffer, (i + 1) * 4);
+    }
+    vec
+}</code></pre>
+<p>But this cannot make the bounds checks in <code>decode_32_le</code> disappear, as it may have other call sites that may not always check the bounds before calling it.</p>
+<p>Inlining <code>decode_32_le</code> in the use effectively lets us propagate the information in the call site to the callee’s code, and optimize it based on this information. If we change the <code>inline(never)</code> to <code>inline</code> in <code>decode_32_le</code>, with the extra bounds check in <code>decode_u32_vec</code>, we now check bounds once before the loop and don’t check it again in the loop. (<a href="https://godbolt.org/z/EeGbYrfP7">compiler explorer</a>)</p>
+<h1 id="example-avoiding-redundant-error-checks">Example: avoiding redundant error checks</h1>
+<p>Dart doesn’t have unsigned integers, and many standard library functions throw an <code>ArgumentError</code> when they are passed negative numbers.</p>
+<p>One example of these functions is the <a href="https://api.dart.dev/dart-core/int/operator_triple_shift.html">unsigned right shift operator</a>. In many call sites, the shift amount is a <a href="https://github.com/dart-lang/sdk/blob/abb17bc59d8163273451b3ffb2aba784d20001b4/sdk/lib/_internal/wasm/lib/internal_patch.dart#L88-L97">constant positive number</a>. If we call the standard library function in these cases, the library function will check the sign of the arguments that we already know in the call site to be positive.</p>
+<p>When we inline <a href="https://github.com/dart-lang/sdk/blob/abb17bc59d8163273451b3ffb2aba784d20001b4/sdk/lib/_internal/wasm/lib/boxed_int.dart#L94-L107">the operator</a> in a call site where the shift argument is constant, the conditional becomes <code>if (constant &lt; 0) throw ...</code>. The compiler can then simplify the condition as <code>true</code> or <code>false</code>, and then simplify this code to just <code>throw ...</code> or eliminate the conditional.</p>
+<p>The <code>mix64</code> function linked above when compiled to Wasm, without inlining the right shift operator:</p>
+<pre><code>(func $mix64 (param $var0 i64) (result i64)
+  ...
+  local.tee $var0
+  i64.const 24
+  call $BoxedInt.&gt;&gt;&gt;
+  ...)
+
+(func $BoxedInt.&gt;&gt;&gt; (param $var0 i64) (param $var1 i64) (result i64)
+  local.get $var1
+  i64.const 64
+  i64.lt_u
+  if
+    local.get $var0
+    local.get $var1
+    i64.shr_u
+    return
+  end
+  local.get $var1
+  i64.const 0
+  i64.lt_s
+  if
+    i32.const 64
+    local.get $var1
+    struct.new $BoxedInt
+    call $ArgumentError
+    call $Error._throwWithCurrentStackTrace
+    unreachable
+  end
+  i64.const 0)</code></pre>
+<p>With the shift operator inlined:</p>
+<pre><code>(func $mix64 (param $var0 i64) (result i64)
+  ...
+  local.get $var0
+  i64.const 24
+  i64.shr_u
+  ...)</code></pre>
+<p>The call to <code>BoxedInt.&gt;&gt;&gt;</code> with error checking is optimized to a single <code>shr_u</code> (shift right, unsigned) instruction.</p>
+<h1 id="example-avoiding-boxing">Example: avoiding boxing</h1>
+<p>In languages where most values are passed around as boxed, inlining can eliminate boxing.</p>
+<p>A common use case where this happens is FFI: pointers/references obtained from an FFI calls need to be wrapped in a struct/class/etc. to make it the same “shape” as the language’s native values.</p>
+<p>When you have a function that gets a reference from an FFI call, and pass it around to more FFI calls, inlining these FFI calls can avoid boxing the pointer/reference value.</p>
+<p>Somewhat silly example, in Dart:</p>
+<pre><code>import &#39;dart:ffi&#39;;
+
+@Native&lt;Pointer&lt;Int64&gt; Function()&gt;()
+external Pointer&lt;Int64&gt; intPtr();
+
+@Native&lt;Int64 Function(Pointer&lt;Int64&gt;)&gt;()
+external int derefIntPtr(Pointer&lt;Int64&gt; ptr);
+
+void main() {
+  Pointer&lt;Int64&gt; ptr = intPtr();
+  ptr += 1;
+  int i = derefIntPtr(ptr);
+  print(i);
+
+  // Add more calls to `intPtr` so that it won&#39;t be inlined without the inline
+  // pragma.
+  intPtr();
+}</code></pre>
+<p>Relevant parts of the generated code when compiled to Wasm:</p>
+<pre><code>(func $main
+  ...
+  call $intPtr
+  struct.get $Pointer $field2
+  i32.const 8
+  i32.add
+  call $ffi.derefIntPtr (import)
+  ...)
+
+(func $intPtr (result (ref $Pointer))
+  i32.const 71
+  i32.const 0
+  call $ffi.intPtr (import)
+  struct.new $Pointer)</code></pre>
+<p><code>intPtr</code> allocates a struct, which the call site directly unpacks (reads the field). Inlining <code>intPtr</code> eliminates this allocation:</p>
+<pre><code>(func $main
+  ...
+  call $ffi.intPtr (import)
+  i32.const 8
+  i32.add
+  call $ffi.derefIntPtr (import)
+  ...)</code></pre>
+<h1 id="example-avoiding-polymorphism">Example: avoiding polymorphism</h1>
+<p>When a monomorphic type is passed to a polymorphic function, the polymorphic function can often be inlined to avoid polymorphic access to the monomorphic type.</p>
+<p>An example, again in Dart, is <code>Int64List</code>, which is a monomorphic <code>List&lt;int&gt;</code>. It stores the integers unboxed, and when directly used, the call site does not box the elements on access.</p>
+<p>When used in a polymorphic site though, the integer elements need to be boxed. Example:</p>
+<pre><code>import &#39;dart:typed_data&#39;;
+
+int sum(List&lt;int&gt; list) {
+  int ret = 0;
+  for (int i = 0; i &lt; list.length; i += 1) {
+    ret += list[i];
+  }
+  return ret;
+}
+
+void main() {
+  Int64List intList = Int64List.fromList([1, 2, 3, 4]);
+  sum(intList);
+  sum([1, 2, 3, 4]);
+}</code></pre>
+<p>Relevant parts of the output when compiled to Wasm:</p>
+<pre><code>(func $main
+  ;; Allocate `Int64List`, call `sum`:
+  ...
+  call $sum
+
+  ;; Allocate the other `List&lt;int&gt;`, call `sum`:
+  ...
+  call $sum)
+
+(func $sum (param $var0 (ref $Object))
+  (local $var1 i64)
+  (local $var2 i64)
+  loop $label0
+    ...
+    if
+      ...
+      ;; Virtual call to `operator []`:
+      struct.get $Object $field0
+      i32.const 747
+      i32.add
+      call_indirect (param (ref $Object) i64) (result (ref null $#Top))
+
+      ;; The virtual call returns a boxed integer, which we directly unbox:
+      ref.cast $BoxedInt
+      struct.get $BoxedInt $field1
+      i64.add
+      ...
+    end
+  end $label0)</code></pre>
+<p>If we inline <code>sum</code>, the loop that iterates the <code>Int64List</code> accesses the unboxed integers directly:</p>
+<pre><code>(func $main
+  ...
+  loop $label1
+      ...
+      local.get $var3
+      local.get $var4
+      local.get $var1
+      i32.wrap_i64
+      # Array access is now direct, no boxing.
+      array.get $Array&lt;WasmI64&gt;
+      i64.add
+      local.set $var3
+      local.get $var1
+      i64.const 1
+      i64.add
+      local.set $var1
+      br $label1
+    end
+  end $label1)</code></pre>
+<p>A similar case is when a monomorphic type is used directly, but via a polymorphic interface. In the <code>Int64List</code> type above, <code>List64List.[]</code> is an override of <a href="https://api.dart.dev/dart-core/List/operator_get.html"><code>List&lt;E&gt;.[]</code></a>, and all overrides of a method need to have the same type.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>So when not inlined, it needs to return a boxed integer:</p>
+<pre><code>(func $Int64List.[] (param $var0 (ref $Object)) (param $var1 i64) (result (ref null $#Top))
+  ...
+  array.get $Array&lt;WasmI64&gt;
+  struct.new $BoxedInt)</code></pre>
+<p>Similar to the previous example, inlining it eliminates the boxing in monomorphic use sites, as the allocated struct is immediately unboxed.</p>
+<h1 id="a-trick-for-effective-inlining-outlining">A trick for effective inlining: outlining</h1>
+<p>Consider <code>Int64List.[]</code> again. The implementation needs to check that the index is in bounds of the array, and throw an exception if not: (slightly simplified)</p>
+<pre><code>class Int64List ... {
+  ...
+
+  @override
+  int operator [](int index) {
+    if (length.leU(index)) { // shorthand for `index &lt; 0 || index &gt;= length`
+      ... // throw exception
+    }
+    return _data.read(index);
+  }
+}</code></pre>
+<p>To avoid boxing when calling this function we want to always inline it, but if we’re not careful with the error throwing code path (the <code>if</code> body above), the function can get quite large, and when inlined the binary can bloat up significantly.</p>
+<p>Ideally we want to inline the happy path that can lead to improvements when inlined, and leave the error path separate in a function, so that we can have the benefits of inlining without adding to the binary size too much.</p>
+<p>This can be done by moving the error handling code to a separate function, and making sure that separate function is never inlined (ideally with an annotation to the compiler). In the example above, this may look like:</p>
+<pre><code>class Int64List ... {
+  @override
+  @pragma(&#39;inline&#39;)
+  int operator [](int index) {
+    if (length.leU(index)) {
+      fail(index, length);
+    }
+    return _data.read(_offsetInElements + index);
+  }
+}
+
+@pragma(&#39;never-inline&#39;)
+void fail(int index, int length) { ... }</code></pre>
+<p>With this it doesn’t matter how large the error handling code is, because we never inline it.</p>
+<p>This way of separating inlineable parts of a function from the parts we don’t want to inline is sometimes called “outlining” or “partial inlining”. We can do it manually (as in the example above), but it can also be done by a compiler based on heuristics.</p>
+<p>An example of this done by a compiler is <a href="https://www.cambridge.org/core/services/aop-cambridge-core/content/view/75629BBEDB11D8463553A09BF5DEA235/S0956796809007175a.pdf/div-class-title-the-worker-wrapper-transformation-div.pdf">GHC’s worker/wrapper transformation</a>, where an optimized function is split into parts that (1) handle unboxing and boxing before calling the function’s body, and (2) the function’s body that work on the unboxed representation of the arguments. (1) is then inlined to avoid redundant boxing of the arguments and return values.</p>
+<h1 id="notes">Notes</h1>
+<p>The main reason why the examples above are mostly in Dart is because I’ve been spending most of my time this year optimizing Dart’s Wasm backend’s standard library implementation, so the examples are still fresh in my memory.</p>
+<p>The principles apply to most languages: inlining a function makes any information about the arguments available to the function’s body, and any information on its return value to the call site.</p>
+<p><strong>Is it useful to inline if it doesn’t enable more optimizations?</strong> A big part of optimizing high-level statically-typed languages is about avoiding polymorhism, boxing, and redundant error checks. I’m not aware of any cases where inlining a function, when it doesn’t result in improving one of these, is worthwhile.</p>
+<p>In a lower-level language with monomorphisation and control over allocations (e.g. Rust, C++), monomorphisation elminates polymorphism in compile time, boxing is explicit, and redundant checks can be avoided by using unchecked (unsafe) functions.</p>
+<p>I think in these cases where programs are often much faster by default, inlining to avoid stack/register shuffling and simplify control flow can make a difference.</p>
+<p>One example of this can be seen in <a href="https://osa1.net/posts/2024-11-29-how-to-parse-3.html">the previous post</a>, where implementing a recursive parsing function in a non-recursive way improved performance by 22%.</p>
+<p>In higher-level languages, programs are often slower because of other reasons.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>More accurately, a method that can be called in a polymorphic call site needs to have a type that is a subtype of the least-upper-bound of the types of all functions that can be called in the polymorphic call sites.</p>
+<p>Or more briefly, all methods in an override group need to have the same type.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>]]></summary>
+</entry>
+<entry>
     <title>Exploring parsing APIs: the cost of recursion</title>
     <link href="http://osa1.net/posts/2024-11-29-how-to-parse-3.html" />
     <id>http://osa1.net/posts/2024-11-29-how-to-parse-3.html</id>
@@ -1514,373 +1797,6 @@ RECORD_LABEL_OFFSETS = [
 <p><a href="https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md">Dart will soon have records</a>, and for the <a href="https://github.com/dart-lang/sdk/issues/50014">dart2wasm implementation of records</a> I’m thinking of using some of the ideas described in this post. Dart records do not support width subtyping (you can’t pass <code>{x, y, z}</code> where <code>{x, y}</code> is expected), but because of the <code>dynamic</code> type, we can have a dynamically typed record that we index.</p>
 <hr />
 <p>Thanks to <a href="https://twitter.com/josecalderon">José Manuel Calderón Trilla</a> for his feedback on a draft of this blog post.</p>]]></summary>
-</entry>
-<entry>
-    <title>Products and sums, named and anonymous</title>
-    <link href="http://osa1.net/posts/2021-04-10-sums-and-products.html" />
-    <id>http://osa1.net/posts/2021-04-10-sums-and-products.html</id>
-    <published>2021-04-10T00:00:00Z</published>
-    <updated>2021-04-10T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I was recently thinking about why do so many languages have tuples, which can be thought of as simple anonymous products (more on the definition of this below), but not something similar for sums. Both sum and product types are widely used, so it seems inconsistent to have anonymous products but not sums.</p>
-<p>I recently <a href="https://twitter.com/_osa1/status/1379260986574667776">tweeted about this</a> and got helpful responses that made me realize that I got my definitions wrong. As I think more about what “anonymous type” means it became clear to me that the it’s not just tuples or other types with special syntax, instead of names. It’s more complicated than that.</p>
-<p>So in this post I’d like to briefly talk about products and sums, and how are names used in type checking. I will then show a different way of type checking, and some examples from two widely used languages. Finally, I will argue that types are called “named” or “anonymous” depending on how they are checked.</p>
-<p>Note that I’m not using any of these words as they are used in category theory or any other field of mathematics. These are mainly how I see them used in widely used PLs like Haskell, Rust, and OCaml, and in PL papers and books.</p>
-<h1 id="products">Products</h1>
-<p>A value of a product type contains zero or more fields with potentially different types. Some example product types are:</p>
-<ul>
-<li><code>data Coordinate = Coordinate { x :: Int, y :: Int }</code>: a product with two <code>Int</code> fields</li>
-<li><code>data D = D Int String Float</code>: a product with <code>Int</code>, <code>String</code>, and <code>Float</code> fields</li>
-<li><code>data Empty = Empty</code>: a product with no fields</li>
-</ul>
-<p>Note that the way you access the fields does not matter. In the examples above, fields of a <code>Coordinate</code> value can be accessed with pattern matching, or with the generated functions <code>x</code> and <code>y</code>. In the second example, we can only access the fields with pattern matching.</p>
-<p>What matters is: products contain zero or more fields. The fields can have different types.</p>
-<h1 id="sums">Sums</h1>
-<p>A sum type specifies multiple “variants” (or “alternatives”), where each variant has a “name” (or “tag”, more on this later) and some number of fields.</p>
-<p>A value of a sum type holds a name (or tag), and the fields of the variant with that name.</p>
-<p>For example, if you have a parser for integers, you will want to return an integer when parsing succeeds, or an error message when something goes wrong. The sum type for the return value of your parse function would look like:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">ParseResult</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>  <span class="ot">=</span> <span class="dt">Success</span> <span class="dt">Int</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>  <span class="op">|</span> <span class="dt">Fail</span> <span class="dt">String</span></span></code></pre></div>
-<p>Here, <code>Success</code> and <code>Fail</code> are names of the variants. <code>Success</code> variant has an <code>Int</code> field, and <code>Fail</code> variant has a <code>String</code> field.</p>
-<p>A value of this type does not contain an <code>Int</code> and <code>String</code> at the same time. It’s either a <code>Fail</code> with a <code>String</code> field, or a <code>Success</code> with an <code>Int</code> field.</p>
-<p>The way you access the fields is with pattern matching:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">case</span> parse_result <span class="kw">of</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>   <span class="dt">Success</span> int <span class="ot">-&gt;</span> <span class="op">...</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>   <span class="dt">Fail</span> error_message <span class="ot">-&gt;</span> <span class="op">...</span></span></code></pre></div>
-<h1 id="names-in-type-checking-nominal-typing">Names in type checking (nominal typing)</h1>
-<p>If I have two types, named <code>T1</code> and <code>T2</code>, no matter how they are defined, they are considered different in Haskell, and most other widely used typed languages (Rust, Java, …). This is called “nominal” type checking, where differently named types are considered different, even if they are “structurally” the same. For example, <code>data T1 = T Int</code> and <code>data T2 = T Int</code> are structurally the same, but you can’t apply a value of type <code>T2</code> to a function that expects <code>T1</code>.</p>
-<p>What “structurally same” mean is open to interpretation. We will come to this later.</p>
-<p>In addition, all types have names<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, even types like tuples, which may look like they don’t have names, like our <code>Coordinate</code> or <code>ParseResult</code> have.</p>
-<p>Tuples in most languages are just a bunch of product types, like the ones you can define yourself. They are often pre-defined for arities 0 to some number, and they have a special, “mixfix” syntax, with parentheses and commas to separate the fields. Other than that, they are no different than the ones you can define yourself.</p>
-<p>You can see GHC’s definition of tuples <a href="https://github.com/ghc/ghc/blob/a951e06921f05df1601d9c3a39efcede27f3330c/libraries/ghc-prim/GHC/Tuple.hs#L34-L58">here</a>. In GHC, you can use the name directly if you don’t want the mixfix syntax, like <code>(,) 1 2</code>. So the name for an 2-ary tuple is <code>(,)</code> in Haskell, and it has a special syntax so you can write more readable <code>(1, 2)</code> (or <code>(Int, Int)</code> in type context). Other than syntax, there’s nothing special about tuples.</p>
-<p>So it’s clear that most languages don’t have anonymous types. All types have some kind of names, and two types are only “compatible” if the names match.</p>
-<p>Before defining what anonymous types are, I would like to give two examples, from PureScript and OCaml, where types are not checked based on their names, but based on their “structure”.</p>
-<h1 id="structural-type-checking-for-products">Structural type checking for products</h1>
-<p>A record is a product type with named (or “labelled”) fields. Our <code>Coordinate</code> example is a record.</p>
-<p>In PureScript, records can be defined without giving names to them. For example:</p>
-<pre class="purescript"><code>f :: { x :: Int, y :: Int } -&gt; Int
-f a = a.x + a.y</code></pre>
-<p>Here, <code>f</code> is a function that takes a record with two <code>Int</code> fields, named <code>x</code> and <code>y</code>, as an argument.</p>
-<p>Here is a more interesting version of the same function:</p>
-<pre class="purescript"><code>f :: forall r . { x :: Int, y :: Int | r } -&gt; Int
-f a = a.x + a.y</code></pre>
-<p>This version takes a record with <em>at least</em> <code>x :: Int</code> and <code>y :: Int</code> fields, but it can have more fields. Using this version, this code type checks:</p>
-<pre class="purescript"><code>f { x: 1, y: 2, z: 3, t: 4 }</code></pre>
-<p>The <code>r</code> in this type is not too important. Important part is, in PureScript, records are not type checked nominally. Indeed, in the example above, type of the record with 4 fields is not defined, and no names are used for the record in the type signature of <code>f</code>.</p>
-<p>You might think that the record braces and commas are similar to the tuple syntax, so the name could be something like <code>{,}</code>, maybe applied to <code>x :: Int</code> somehow (assuming there is a type-level representation of field names).</p>
-<p>However, even if that’s the case, type checking of these types are quite different than tuples. We’ve already seen that we can pass a record with more fields. You can also reorder fields in the function type signature<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>, or in the record expression, and it still works.</p>
-<p>So type checking for PureScript is quite different than Haskell tuples.</p>
-<p>This kind of type checking where you look at the “structure” rather than just the names is called structural type checking.</p>
-<p>Now let’s take a look at an example for sum types.</p>
-<h1 id="structural-type-checking-for-sum-types">Structural type checking for sum types</h1>
-<p>OCaml has named sum types, just like Haskell’s. Here is the OCaml version of our <code>ParseResult</code> type:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">type</span> parse_result =</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>  | Success <span class="kw">of</span> <span class="dt">int</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>  | Fail <span class="kw">of</span> <span class="dt">string</span></span></code></pre></div>
-<p>Name of this type is <code>parse_result</code> (following OCaml naming conventions), and it is type checked exactly the same way it is type checked in Haskell.</p>
-<p>A second way of defining sum types in OCaml, and without names, is with <a href="https://ocaml.org/manual/lablexamples.html#s:polymorphic-variants">polymorphic variants</a>. Here’s the polymorphic variant for the same type:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">type</span> parse_result = [ `Success <span class="kw">of</span> <span class="dt">int</span> | `Fail <span class="kw">of</span> <span class="dt">string</span> ]</span></code></pre></div>
-<p>Crucially, even though we use a similar syntax with the <code>type</code> keyword, this is a type synonym. The right-hand side of this definition is an anonymous sum with two variants, tagged <code>`Success</code> and <code>`Fail</code>, with <code>int</code> and <code>string</code> fields, respectively.</p>
-<p>Now, suppose I have a parse result handler, which, in addition to the success and failure cases, handles some “other” case as well:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">let</span> f = <span class="kw">function</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>  | `Success i -&gt; <span class="dt">Printf</span>.printf <span class="st">&quot;Parse result: %d</span><span class="ch">\n</span><span class="st">&quot;</span> i</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>  | `Fail msg -&gt; <span class="dt">Printf</span>.printf <span class="st">&quot;Parse failed: %s</span><span class="ch">\n</span><span class="st">&quot;</span> msg</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>  | `Other -&gt; <span class="dt">Printf</span>.printf <span class="st">&quot;Wat?</span><span class="ch">\n</span><span class="st">&quot;</span></span></code></pre></div>
-<p>Type of this function as inferred by the OCaml compiler is:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a>[&lt; `Fail <span class="kw">of</span> <span class="dt">string</span> | `Other | `Success <span class="kw">of</span> x ] -&gt; <span class="dt">unit</span></span></code></pre></div>
-<p>What this type says is that the function accepts any polymorphic variant that has the tags <code>Fail</code>, <code>Other</code>, and <code>Success</code> (with the specified field types), or some subset of these tags. So if I have a value of type <code>parse_result</code>:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="kw">let</span> x : parse_result = `Success <span class="dv">123</span></span></code></pre></div>
-<p>I can pass it to <code>f</code>, even though <code>f</code>’s argument type is not exactly <code>parse_result</code>. Here’s the full example, run in <a href="https://github.com/ocaml-community/utop">utop</a>: (<code>utop #</code> part is the prompt, lines after <code>;;</code> are utop outputs)</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a>utop # <span class="kw">type</span> parse_result = [ `Success <span class="kw">of</span> <span class="dt">int</span> | `Fail <span class="kw">of</span> <span class="dt">string</span> ];;</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="kw">type</span> parse_result = [ `Fail <span class="kw">of</span> <span class="dt">string</span> | `Success <span class="kw">of</span> <span class="dt">int</span> ]</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a>utop # <span class="kw">let</span> f = <span class="kw">function</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>  | `Success i -&gt; <span class="dt">Printf</span>.printf <span class="st">&quot;Parse result: %d</span><span class="ch">\n</span><span class="st">&quot;</span> i</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a>  | `Fail msg -&gt; <span class="dt">Printf</span>.printf <span class="st">&quot;Parse failed: %s</span><span class="ch">\n</span><span class="st">&quot;</span> msg</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a>  | `Other -&gt; <span class="dt">Printf</span>.printf <span class="st">&quot;Wat?</span><span class="ch">\n</span><span class="st">&quot;</span>;;</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a><span class="kw">val</span> f : [&lt; `Fail <span class="kw">of</span> <span class="dt">string</span> | `Other | `Success <span class="kw">of</span> <span class="dt">int</span> ] -&gt; <span class="dt">unit</span> = &lt;<span class="kw">fun</span>&gt;</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true"></a>utop # <span class="kw">let</span> x : parse_result = `Success <span class="dv">123</span>;;</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a><span class="kw">val</span> x : parse_result = `Success <span class="dv">123</span></span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true"></a></span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true"></a>utop # f x;;</span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true"></a>Parse result: <span class="dv">123</span></span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true"></a>- : <span class="dt">unit</span> = ()</span></code></pre></div>
-<p>Neat!</p>
-<p>Similar to PureScript records, and unlike Haskell tuples, type checking for OCaml polymorhic records is structural, not nominal.</p>
-<h1 id="names---nominal---structural">Names -&gt; nominal, ??? -&gt; structural</h1>
-<p>Now that we have seen structural type checking as an alternative to name-based (nominal) type checking, and some examples, here is my attempt at defining anonymous types: If named types are type checked nominally, then the types that are structurally type checked are called “anonymous”.</p>
-<p>In other words:</p>
-<ul>
-<li>Nominally type checked types are named</li>
-<li>Structurally type checked types are anonymous</li>
-</ul>
-<p>According to this definition, Haskell and many other languages don’t have anonymous types. PureScript records are an example to anonymous products, and OCaml polymorphic variants are an example to anonymous sums.</p>
-<h1 id="conclusions">Conclusions</h1>
-<p>Named types are checked nominally, anonymous types are checked structurally. According to this definition, Haskell, and many other languages, don’t have anonymous types, as all types are nominally checked.</p>
-<p>Tuples are no exception: they have names, and type checked nominally.</p>
-<p>PureScript records and OCaml polymorphic variants are great examples to anonymous products and sums, respectively.</p>
-<!---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Tuples: named or anonymous?
-
-Tuples in languages like Haskell, Rust, and OCaml, are pre-defined product
-types that are often used for returning multiple values from functions, without
-having to define a new type for the return value.
-
-For example, the tuple type `(Int, Int)` in Haskell is a product with two `Int`
-fields. This type is similar to our `Coordinate` example above.
-
-Because tuples don't have "names", like our `Coordinate` has, it may seem like
-tuples are unnamed, or "anonymous". This is actually not true. Tuples in most
-languages are just a bunch of product types, like the ones you can define
-yourself. They are often pre-defined for arities 0 to some number, and they have
-a special, "mixfix" syntax, with parentheses and commas to separate the fields.
-Other than that, they are no different than the ones you can define yourself.
-
-As an example, you can see GHC's definition of tuples [here][2]. In GHC, you can
-use the name directly if you don't want the mixfix syntax, like `(,) 1 2`. So
-the name for an 2-ary tuple is `(,)` in Haskell, and it has a special syntax so
-you can write more readable `(1, 2)` (or `(Int, Int)` in type context).
-
-So it's clear that tuples in Haskell are not anonymous, they have names. But
-what are anonymous types then? Does Haskell even have anonymous types? Before
-defining anonymous types, let's briefly talk about how are names used in type
-checking.
-
-# Nominal and structural type checking
-
-If I have two types, named `T1` and `T2`, no matter how they are defined, they
-are considered different in Haskell, and most other widely used typed languages
-(Rust, Java, ...). This is called "nominal" type checking, where differently
-named types are considered different, even if they are "structurally" the same.
-For example, `data T1 = T Int` and `data T2 = T Int` are structurally the same,
-but you can't apply a value of type `T2` to a function that expects `T1`.
-
-
-What does "structurally same" mean here is open to interpretation, but the
-crucial part is with structural type checking, types can have different set of
-fields or variants and still be compatible. We will shortly see examples of
-this.
-
-Now, here's the difficulty with defining anonymous types (and a point of
-confusion, at least for me). Regardless of the syntax, I will have to introduce
-some kind of type constructors for anonymous products and sums. One might always
-consider those constructors as the names of the types (with type parameters
-applied for the fields/ variants).
-
-For example, if I use `*` syntax for anonymous products, like `Int * Int * Bool`
-for a product type like `(Int, Int, Bool)`, you might argue that the "name" here
-is `*`, and the desugared version is something like `(*) Int ((*) Int Bool)`,
-and you would probably be right! In many (most?) type systems, including
-Haskell's, complex types are made by applying types to type constructors. The
-type constructors used for constructing product or sum types can be thought of
-as the name of the types.
-
-In that sense I think there really isn't any *obviously anonymous* types where
-you will know it when you see it. Every type is constructed by applying some
-number of arguments to a "name" (usually called "type constructors").
-
-# Names -> nominal, ??? -> structural
-
-With these definitions in mind, here's my attempt at defining anonymous types.
-If named types are type checked nominally (where different names mean types are
-incompatible), then the types that are structurally type checked are called
-"anonymous".
-
-In other words:
-
-- Nominally type checked types are named
-- Structurally type checked types are anonymous
-
-In the simple structural type checking rule we've seen above, anonymous
-products (constructed with `*`) and tuples (constructed with the mixfix tuple
-syntax) are type checked exactly the same way. Let's add one more rule to make
-them different:
-
-- Before applying the rules given before, rearrange the type arguments to make
-  the first argument of `*` a non-`*` type.
-
-Example: if I have `(Int * Int) * (Int * Int)`, this rule rearranges it to make
-it `Int * (Int * (Int * Int))`.
-
-(This rule effectively makes `*` associative)
-
-With this new rule we now accept these two types as compatible:
-
-- `(Int * (Int * Int)) * Int`
-- `(Int * Int) * (Int * Int)`
-
-as they are both rearranged before checking as `Int * (Int * (Int * Int))`.
-
-(Whether this rule is useful or desired is a different matter)
-
-With this structural equality rule, type checking of tuples and products
-constructed with `*` are different, and we call tuples named types and `*`
-products anonymous.
-
-# Anonymous sum types
-
-Instead of inventing syntax and defining type checking for anonymous sum types,
-like we did for products, I will show an example of anonymous sums in an
-existing programming language: OCaml's [polymorphic variants][3].
-
-Here's the OCaml version of our `ParseResult` type:
-
-```ocaml
-type parse_result =
-  | Success of int
-  | Fail of string
-```
-
-This type is nominally checked, so if you have a function that expects
-`parse_result` argument, you have to pass it a `Success` or `Fail`. Anything
-else will cause a type error.
-
-Here's the polymorphic variant for the same type:
-
-```ocaml
-type parse_result = [ `Success of int | `Fail of string ]
-```
-
-Crucially, even though we use a similar syntax with the `type` keyword, this is
-a type synonym. The right-hand side of this definition is an anonymous sum with
-two variants, labelled `` `Success`` and `` `Fail``, with `int` and `string`
-fields, respectively.
-
-Here's an example of structural type checking of polymorphic variants. Suppose I
-have a parse result handler, which, in addition to the success and failure
-cases, handles some "other" case as well:
-
-```ocaml
-let f = function
-  | `Success i -> Printf.printf "Parse result: %d\n" i
-  | `Fail msg -> Printf.printf "Parse failed: %s\n" msg
-  | `Other -> Printf.printf "Wat?\n"
-```
-
-Type of this function as inferred by the OCaml compiler is:
-
-```ocaml
-[< `Fail of string | `Other | `Success of x ] -> unit
-```
-
-What this type says is that the function accepts any polymorphic variant that
-has the tags `Fail`, `Other`, and `Success` (with the specified field types), or
-some subset of these tags. So if I have a value of type `parse_result`:
-
-```ocaml
-let x : parse_result = `Success 123
-```
-
-I can pass it to `f`, even though `f`'s argument type is not exactly
-`parse_result`. Here's the full example, run in [utop][9]: (`utop #` part is the
-prompt, lines after `;;` are utop outputs)
-
-```ocaml
-utop # type parse_result = [ `Success of int | `Fail of string ];;
-type parse_result = [ `Fail of string | `Success of int ]
-
-utop # let f = function
-  | `Success i -> Printf.printf "Parse result: %d\n" i
-  | `Fail msg -> Printf.printf "Parse failed: %s\n" msg
-  | `Other -> Printf.printf "Wat?\n";;
-val f : [< `Fail of string | `Other | `Success of int ] -> unit = <fun>
-
-utop # let x : parse_result = `Success 123;;
-val x : parse_result = `Success 123
-
-utop # f x;;
-Parse result: 123
-- : unit = ()
-```
-
-Neat!
-
-# Conclusions
-
-Named types are checked nominally, anonymous types are checked structurally.
-According to this definition, Haskell, and many other languages, don't have
-anonymous types, as all types are nominally checked.
-
-OCaml's [polymorphic variants][3] are a great example to anonymous sums.
-
-For real-world anonymous products, it would be a shame to not mention records
-and row types[^1]. A record is a product type with labelled fields, for example:
-`{ a : Int, b : Bool }`. Row types allow (among other things) very flexible type
-checking of records, where you can (without subtyping) pass a record with more
-fields when less is expected. With row types, unlike subtyping, if you have a
-function that expects a record type like `{ a : Int, b : Bool }` and returns the
-argument after using or modifying the fields `a` and/or `b`, and pass the
-function a record with more fields, like `{ a : Int, b : Bool, c : String }`, as
-the return type you get your original record with 3 fields. More concretely:
-
-```
-{ a : Int, b : Bool, ..r } -> { a : Int, b : Bool, ..r }
-```
-
-is the type of a function that takes a record with fields `a` and `b` with the
-specified types, and *possibly* more fields. These extra fields are represented
-by `r`, which appears in both input and output types. This means you don't lose
-the extra fields if you pass a record with more fields to this function, unlike
-in a system with subtyping. With subtyping, if you have a function with type
-
-```
-{ a : Int, b : Bool } -> { a : Int, b : Bool }
-```
-
-and pass `{ a : Int, b : Bool, c : String }` to such a function, you lose the
-field `c` in the return value, because the return type only mentions `a` and
-`b`, without the "extra stuff" part as we've seen in the row polymorphic
-version.
-
-(As as aside, I'd like to mention that I really like row types. My first
-exposure to them was back in 2013 ([1][5], [2][6]): I implemented two type
-systems, one with row types and one for a multi-stage language, proved soundness
-of the systems, gave a type and term translation from one to the other, and
-proved that if your program is well-typed, then the translation of it is also
-well-typed.)
-
-My favorite paper on row-polymorphic records is probably (1). (2) uses row types
-for algebraic effects. (3) uses rows for variants (sums).
-
--->
-<hr />
-<p>Thanks to <a href="https://twitter.com/_gilmi/">@_gilmi</a> and <a href="https://twitter.com/madgen_/">@madgen_</a> for their helpful comments on a draft of this blog post.</p>
-<section class="footnotes" role="doc-endnotes">
-<hr />
-<ol>
-<li id="fn1" role="doc-endnote"><p>With the exception of type synonyms. Type synonyms can be considered as simple macros for substituting types for names before type checking.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2" role="doc-endnote"><p>In Haskell, reordering stuff at the type level is often done with type families (type-level functions). Types are still checked nominally, but by rearranging them before type checking you can often have something somewhat similar to structural checking.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-</ol>
-</section>]]></summary>
 </entry>
 
 </feed>
