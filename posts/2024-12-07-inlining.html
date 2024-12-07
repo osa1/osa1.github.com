@@ -72,7 +72,7 @@ pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
     let b4 = buffer[offset + 3];
     u32::from_le_bytes([b1, b2, b3, b4])
 }</code></pre>
-<p>The conditional makes sure that in the rest of the function the slice indices are all within bounds, so the compiler doesn’t generate bounds checks the accesses. It’s also able to optimize further now to load just one 32-bit word from the memory, instead of reading one byte at a time. (<a href="https://godbolt.org/z/MG9EaE5G3">compiler explorer</a>)</p>
+<p>The conditional makes sure that in the rest of the function the slice indices are all within bounds, so the compiler doesn’t generate bounds checks for the accesses. The compiler is also able to optimize further now to load just one 32-bit word from the memory, instead of reading one byte at a time. (<a href="https://godbolt.org/z/MG9EaE5G3">compiler explorer</a>)</p>
 <p><code>decode_32_le</code> is quite good now, but it still has to do one bounds check, and since <code>decode_u32_vec</code> calls it in each iteration, it does a bounds check in each iteration.</p>
 <p>Ideally we want to be able to do one bounds check before the loop, just like we did in <code>decode_32_le</code>, and then omit bounds checks within the loop:</p>
 <pre><code>pub fn decode_u32_vec(buffer: &amp;[u8]) -&gt; Vec&lt;u32&gt; {
@@ -132,7 +132,7 @@ pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
 <p>The call to <code>BoxedInt.&gt;&gt;&gt;</code> with error checking is optimized to a single <code>shr_u</code> (shift right, unsigned) instruction.</p>
 <h2 id="example-avoiding-boxing">Example: avoiding boxing</h2>
 <p>In languages where most values are passed around as boxed, inlining can eliminate boxing.</p>
-<p>A common use case where this happens is FFI: pointers/references obtained from an FFI calls need to be wrapped in a struct/class/etc. to make it the same “shape” as the language’s native values.</p>
+<p>A common use case where this happens is FFI: pointers/references obtained from FFI calls need to be wrapped in a struct/class/etc. to make them the same “shape” as the language’s native values.</p>
 <p>When you have a function that gets a reference from an FFI call, and pass it around to more FFI calls, inlining these FFI calls can avoid boxing the pointer/reference value.</p>
 <p>Somewhat silly example, in Dart:</p>
 <pre><code>import 'dart:ffi';
@@ -148,10 +148,6 @@ void main() {
   ptr += 1;
   int i = derefIntPtr(ptr);
   print(i);
-
-  // Add more calls to `intPtr` so that it won't be inlined without the inline
-  // pragma.
-  intPtr();
 }</code></pre>
 <p>Relevant parts of the generated code when compiled to Wasm:</p>
 <pre><code>(func $main
@@ -178,7 +174,7 @@ void main() {
   ...)</code></pre>
 <h2 id="example-avoiding-polymorphism">Example: avoiding polymorphism</h2>
 <p>When a monomorphic type is passed to a polymorphic function, the polymorphic function can often be inlined to avoid polymorphic access to the monomorphic type.</p>
-<p>An example, again in Dart, is <code>Int64List</code>, which is a monomorphic <code>List&lt;int&gt;</code>. It stores the integers unboxed, and when directly used, the call site does not box the elements on access.</p>
+<p>An example, again in Dart, is <code>Int64List</code>, which is a monomorphic <code>List&lt;int&gt;</code>. It stores the integers unboxed, and when used directly, the integer arguments and return values do not need to be boxed.</p>
 <p>When used in a polymorphic site though, the integer elements need to be boxed. Example:</p>
 <pre><code>import 'dart:typed_data';
 
@@ -272,7 +268,7 @@ void main() {
   @override
   @pragma('inline')
   int operator [](int index) {
-    if (length.leU(index)) {
+    if (length.leU(index)) { // shorthand for `index &lt; 0 || index &gt;= length`
       fail(index, length);
     }
     return _data.read(_offsetInElements + index);
@@ -283,15 +279,14 @@ void main() {
 void fail(int index, int length) { ... }</code></pre>
 <p>With this it doesn’t matter how large the error handling code is, because we never inline it.</p>
 <p>This way of separating inlineable parts of a function from the parts we don’t want to inline is sometimes called “outlining” or “partial inlining”. We can do it manually (as in the example above), but it can also be done by a compiler based on heuristics.</p>
-<p>An example of this done by a compiler is <a href="https://www.cambridge.org/core/services/aop-cambridge-core/content/view/75629BBEDB11D8463553A09BF5DEA235/S0956796809007175a.pdf/div-class-title-the-worker-wrapper-transformation-div.pdf">GHC’s worker/wrapper transformation</a>, where an optimized function is split into parts that (1) handle unboxing and boxing before calling the function’s body, and (2) the function’s body that work on the unboxed representation of the arguments. (1) is then inlined to avoid redundant boxing of the arguments and return values.</p>
-<h2 id="notes">Notes</h2>
+<p>An example of this done by a compiler is <a href="https://www.cambridge.org/core/services/aop-cambridge-core/content/view/75629BBEDB11D8463553A09BF5DEA235/S0956796809007175a.pdf/div-class-title-the-worker-wrapper-transformation-div.pdf">GHC’s worker/wrapper transformation</a>, where an optimized function is split into parts that (1) handle unboxing and boxing before calling the function’s body, and (2) the function’s body that work on the unboxed representations of the arguments. (1) is then inlined to avoid redundant boxing of the arguments and return values.</p>
+<h2 id="remarks">Remarks</h2>
 <p>The main reason why the examples above are mostly in Dart is because I’ve been spending most of my time this year optimizing Dart’s Wasm backend’s standard library implementation, so the examples are still fresh in my memory.</p>
 <p>The principles apply to most languages: inlining a function makes any information about the arguments available to the function’s body, and any information on its return value to the call site.</p>
-<p><strong>Is it useful to inline if it doesn’t enable more optimizations?</strong> A big part of optimizing high-level statically-typed languages is about avoiding polymorhism, boxing, and redundant error checks. I’m not aware of any cases where inlining a function, when it doesn’t result in improving one of these, is worthwhile.</p>
-<p>In a lower-level language with monomorphisation and control over allocations (e.g. Rust, C++), monomorphisation elminates polymorphism in compile time, boxing is explicit, and redundant checks can be avoided by using unchecked (unsafe) functions.</p>
-<p>I think in these cases where programs are often much faster by default, inlining to avoid stack/register shuffling and simplify control flow can make a difference.</p>
-<p>One example of this can be seen in <a href="https://osa1.net/posts/2024-11-29-how-to-parse-3.html">the previous post</a>, where implementing a recursive parsing function in a non-recursive way improved performance by 22%.</p>
-<p>In higher-level languages, programs are often slower because of other reasons.</p>
+<p>A big part of optimizing high-level statically-typed languages is about avoiding polymorphism, boxing, and redundant error checks. I’m not aware of any cases where inlining a function in a high-level language, when it doesn’t result in improving one of these, is worthwhile.</p>
+<p>In a lower-level language with monomorphisation and control over allocations (e.g. Rust, C++), monomorphisation eliminates polymorphism in compile time, boxing is explicit, and redundant checks can be avoided by using unchecked (unsafe) functions.</p>
+<p>In these cases where programs are often much faster by default, inlining to avoid stack/register shuffling and simplify control flow can make a difference.</p>
+<p>One example of simplified control flow making a big difference can be seen in <a href="https://osa1.net/posts/2024-11-29-how-to-parse-3.html">the previous post</a>, where implementing a recursive parsing function in a non-recursive way improved performance by 22%.</p>
 <section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
