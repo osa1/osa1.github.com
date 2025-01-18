@@ -164,13 +164,10 @@ parseWithExn(vec: Vec[Str], parseFn: Fn(Str): {..errs} a): {..errs} Vec[a]
     ret</code></pre>
 <p>When a library provides one of these, it’s trivial to convert to the other:</p>
 <pre><code>parseU32UsingExnVersion(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
-    try(fn(): {InvalidDigit, Overflow, EmptyInput, ..r} U32 { parseU32Exn(s) })
+    try({ parseU32Exn(s) })
 
 parseU32UsingResultVersion(s: Str): {InvalidDigit, Overflow, EmptyInput, ..r} U32
     untry(parseU32(s))</code></pre>
-<p>In the future we will infer the exception and return types of closures and the first function will look like:</p>
-<pre><code>parseU32UsingExnVersion(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
-    try({ parseU32Exn(s) })</code></pre>
 <p>Nice!</p>
 <hr />
 <p>I’m quite excited about these results. There’s still so much to do, but I think it’s clear that this way of error handling has a lot of potential.</p>
