@@ -40,13 +40,13 @@
 
         let digit = c.asU32() - '0'.asU32()
 
-        match checkedMul(result, 10):
+        result = match checkedMul(result, 10):
             Option.None: return Result.Err(~Overflow)
-            Option.Some(newResult): result = newResult
+            Option.Some(newResult): newResult
 
-        match checkedAdd(result, digit):
+        result = match checkedAdd(result, digit):
             Option.None: return Result.Err(~Overflow)
-            Option.Some(newResult): result = newResult
+            Option.Some(newResult): newResult
 
     Result.Ok(result)</code></pre>
 <p>An advantage of variants is, in pattern matching, we “refine” types of binders to drop handled variants from the type. This allows handling some of the errors and returning the rest to the caller:</p>
@@ -139,13 +139,13 @@ parseWithErrorHandler(
 
         let digit = c.asU32() - '0'.asU32()
 
-        match checkedMul(result, 10):
+        result = match checkedMul(result, 10):
             Option.None: throw(~Overflow)
-            Option.Some(newResult): result = newResult
+            Option.Some(newResult): newResult
 
-        match checkedAdd(result, digit):
+        result = match checkedAdd(result, digit):
             Option.None: throw(~Overflow)
-            Option.Some(newResult): result = newResult
+            Option.Some(newResult): newResult
 
     result
 
