@@ -16,7 +16,7 @@
     <published>2025-01-18T00:00:00Z</published>
     <updated>2025-01-18T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>A while ago I came up with an <a href="https://gist.github.com/osa1/38fd51abe5247462eddb7d014f320cd2">“error handling expressiveness benchmark”</a>, some common error handling cases that I want to support in <a href="https://github.com/fir-lang/fir">Fir</a>.</p>
-<p>After 7 months of pondering and hacking, I think designed a system that meets all of the requirements. Error handling in Fir is safe, expressive, and convenient to use.</p>
+<p>After 7 months of pondering and hacking, I think I designed a system that meets all of the requirements. Error handling in Fir is safe, expressive, and convenient to use.</p>
 <p>Here are some examples of what we can do in Fir today:</p>
 <p>(Don’t pay too much attention to type syntax for now. Fir is still a prototype, the syntax will be improved.)</p>
 <p>When we have multiple ways to fail, we don’t have to introduce a sum type with all the possible ways that we can fail, we can use variants:</p>
@@ -117,8 +117,8 @@ parseWithErrorHandler(
 <li><p><code>untry</code>, which converts a <code>Result.Err</code> value into an exception:</p>
 <pre><code>untry(res: Result[[..errs], a]): {..errs} a</code></pre></li>
 </ul>
-<p>(The part in <code>{...}</code> in the return type position is the exception variant type. The reason we use <code>{...}</code> instead of <code>[...]</code> is to be able to distinguish exception types from return types in function type signatures when one of the types are omitted. This type of the syntax may change in the future.)</p>
-<p>Here’s some of the same code above, with exceptions:</p>
+<p>(The part in <code>{...}</code> is the exception variant type. The reason we use <code>{...}</code> instead of <code>[...]</code> is to be able to distinguish exception types from return types in function type signatures when one of the types are omitted. This part of the syntax may change in the future.)</p>
+<p>Here are some of the code above, using exceptions instead of error values:</p>
 <pre><code>parseU32Exn(s: Str): {InvalidDigit, Overflow, EmptyInput, ..r} U32
     if s.len() == 0:
         return throw(~EmptyInput)
