@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Error handling in Fir</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Error handling in Fir</h1>
+
+<p><strong>January 18, 2025</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'plt'." href="../tags/plt.html">plt</a>, <a title="All pages tagged 'fir'." href="../tags/fir.html">fir</a>.</p>
+
+<p>A while ago I came up with an <a href="https://gist.github.com/osa1/38fd51abe5247462eddb7d014f320cd2">“error handling expressiveness benchmark”</a>, some common error handling cases that I want to support in <a href="https://github.com/fir-lang/fir">Fir</a>.</p>
+<p>After 7 months of pondering and hacking, I think designed a system that meets all of the requirements. Error handling in Fir is safe, expressive, and convenient to use.</p>
+<p>Here are some examples of what we can do in Fir today:</p>
+<p>(Don’t pay too much attention to type syntax for now. Fir is still a prototype, the syntax will be improved.)</p>
+<p>When we have multiple ways to fail, we don’t have to introduce a sum type with all the possible ways that we can fail, we can use variants:</p>
+<pre><code>parseU32(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
+    if s.len() == 0:
+        return Result.Err(~EmptyInput)
+
+    let result: U32 = 0
+
+    for c in s.chars():
+        if c &lt; '0' || c &gt; '9':
+            return Result.Err(~InvalidDigit)
+
+        let digit = c.asU32() - '0'.asU32()
+
+        match checkedMul(result, 10):
+            Option.None: return Result.Err(~Overflow)
+            Option.Some(newResult): result = newResult
+
+        match checkedAdd(result, digit):
+            Option.None: return Result.Err(~Overflow)
+            Option.Some(newResult): result = newResult
+
+    Result.Ok(result)</code></pre>
+<p>An advantage of variants is, in pattern matching, we “refine” types of binders to drop handled variants from the type. This allows handling some of the errors and returning the rest to the caller:</p>
+<pre><code>defaultEmptyInput(res: Result[[EmptyInput, ..r], U32]): Result[[..r], U32]
+    match res:
+        Result.Err(~EmptyInput): Result.Ok(0u32)
+        Result.Err(other): Result.Err(other)
+        Result.Ok(val): Result.Ok(val)</code></pre>
+<p>Here <code>EmptyInput</code> is removed from the error value type in the return type. The caller does not need to handle <code>EmptyInput</code>.</p>
+<p>(We don’t refine types of variants nested in other types for now, so the last two branches cannot be replaced with <code>other: other</code> for now.)</p>
+<p>Another advantage is that they allow composing error returning functions that return different error types:</p>
+<p>(Fir supports variant constructors with fields, but to keep things simple we don’t use them in this post.)</p>
+<pre><code>readFile(s: Str): Result[[IoError, ..r], Str]
+    # We don't have the standard library support for file IO yet, just return
+    # an error for now.
+    Result.Err(~IoError)
+
+parseU32FromFile(filePath: Str): Result[[InvalidDigit, Overflow, EmptyInput, IoError, ..r], U32]
+    let fileContents = match readFile(filePath):
+        Result.Err(err): return Result.Err(err)
+        Result.Ok(contents): contents
+
+    parseU32(fileContents)</code></pre>
+<p>In the early return I don’t have to manually convert <code>readFile</code>s error value to <code>parseU32</code>s error value to make the types align.</p>
+<p>Variants work nicely with higher-order functions as well. Here’s a function that parses a vector of strings, returning any errors to the caller:</p>
+<pre><code>parseWith(vec: Vec[Str], parseFn: Fn(Str): Result[errs, a]): Result[errs, Vec[a]]
+    let ret = Vec.withCapacity(vec.len())
+
+    for s in vec.iter():
+        match parseFn(s):
+            Result.Err(err): return Result.Err(err)
+            Result.Ok(val): ret.push(val)
+
+    Result.Ok(ret)</code></pre>
+<p>If I have a function argument that returns more errors than my callback, I can still call it without any adjustments:</p>
+<pre><code>parseWith2(vec: Vec[Str], parseFn: Fn(Str): Result[[OtherError, ..r], a]): Result[[..r], Vec[a]]
+    let ret = Vec.withCapacity(vec.len())
+
+    for s in vec.iter():
+        match parseFn(s):
+            Result.Err(~OtherError): continue
+            Result.Err(err): return Result.Err(err)
+            Result.Ok(val): ret.push(val)
+
+    Result.Ok(ret)</code></pre>
+<p><code>parseWith2(vec, parseU32)</code> type checks even though <code>parseU32</code> doesn’t return <code>OtherError</code>.</p>
+<p>Similarly, if I have a function that handles more cases, I can pass it as a function that handles less:</p>
+<pre><code>handleSomeErrs(error: [Overflow, OtherError]): U32 = 0
+
+parseWithErrorHandler(
+        input: Str,
+        handler: Fn([Overflow, ..r1]): U3
+    ): Result[[InvalidDigit, EmptyInput, ..r2], U32]
+    match parseU32(input):
+        Result.Err(~Overflow): Result.Ok(handler(~Overflow))
+        Result.Err(other): Result.Err(other)
+        Result.Ok(val): Result.Ok(val)</code></pre>
+<p>Here I’m able to pass <code>handleSomeErrs</code> to <code>parseWithErrorHandler</code>, even though it handles more errors than what <code>parseWithErrorHandler</code> argument needs.</p>
+<h2 id="variants-as-exceptions">Variants as exceptions</h2>
+<p>When we use variants as exception values, we end up with a system that is</p>
+<ul>
+<li>Safe: All exceptions need to be handled before <code>main</code> returns.</li>
+<li>Flexible: All of the flexibility of variants shown above apply to exceptions as well.</li>
+<li>Convenient:
+<ul>
+<li>Error values are implicitly propagated to the caller when not handled.</li>
+<li>When a library uses one way of error reporting (error values or exceptions) and you need the other, conversion is just a matter of calling one function.</li>
+</ul></li>
+</ul>
+<p>At the core of exceptions in Fir are these three functions:</p>
+<ul>
+<li><p><code>throw</code>, which converts a variant into an exception:</p>
+<pre><code>throw(exn: [..r]): {..r} a</code></pre></li>
+<li><p><code>try</code>, which converts exceptions into <code>Result.Err</code> values:</p>
+<pre><code>try(cb: Fn(): {..exn} a): {..r} Result[[..exn], a]</code></pre></li>
+<li><p><code>untry</code>, which converts a <code>Result.Err</code> value into an exception:</p>
+<pre><code>untry(res: Result[[..errs], a]): {..errs} a</code></pre></li>
+</ul>
+<p>(The part in <code>{...}</code> in the return type position is the exception variant type. The reason we use <code>{...}</code> instead of <code>[...]</code> is to be able to distinguish exception types from return types in function type signatures when one of the types are omitted. This type of the syntax may change in the future.)</p>
+<p>Here’s some of the same code above, with exceptions:</p>
+<pre><code>parseU32Exn(s: Str): {InvalidDigit, Overflow, EmptyInput, ..r} U32
+    if s.len() == 0:
+        return throw(~EmptyInput)
+
+    let result: U32 = 0
+
+    for c in s.chars():
+        if c &lt; '0' || c &gt; '9':
+            return throw(~InvalidDigit)
+
+        let digit = c.asU32() - '0'.asU32()
+
+        match checkedMul(result, 10):
+            Option.None: throw(~Overflow)
+            Option.Some(newResult): result = newResult
+
+        match checkedAdd(result, digit):
+            Option.None: throw(~Overflow)
+            Option.Some(newResult): result = newResult
+
+    result
+
+readFileExn(s: Str): {IoError, ..r} Str
+    # We don't have the standard library support for file IO yet, just throw
+    # an error for now.
+    throw(~IoError)
+
+parseU32FromFileExn(filePath: Str): {InvalidDigit, Overflow, EmptyInput, IoError, ..r} U32
+    parseU32Exn(readFileExn(filePath))
+
+parseWithExn(vec: Vec[Str], parseFn: Fn(Str): {..errs} a): {..errs} Vec[a]
+    let ret = Vec.withCapacity(vec.len())
+    for s in vec.iter():
+        ret.push(parseFn(s))
+    ret</code></pre>
+<p>When a library provides one of these, it’s trivial to convert to the other:</p>
+<pre><code>parseU32UsingExnVersion(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
+    try(fn(): {InvalidDigit, Overflow, EmptyInput, ..r} U32 { parseU32Exn(s) })
+
+parseU32UsingResultVersion(s: Str): {InvalidDigit, Overflow, EmptyInput, ..r} U32
+    untry(parseU32(s))</code></pre>
+<p>In the future we will infer the exception and return types of closures and the first function will look like:</p>
+<pre><code>parseU32UsingExnVersion(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
+    try({ parseU32Exn(s) })</code></pre>
+<p>Nice!</p>
+<hr />
+<p>I’m quite excited about these results. There’s still so much to do, but I think it’s clear that this way of error handling has a lot of potential.</p>
+<p>I’ll be working on some of the improvements I mentioned above (and I have others planned as well), and the usual stuff that every language needs (standard library, tools etc.). Depending on interest, I may also write more about variants, error handling, or anything else related to Fir.</p>
+<p>You can try Fir online <a href="https://fir-lang.github.io/?errors">here</a>.</p>
+
+<hr />
+
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>

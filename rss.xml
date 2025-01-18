@@ -8,8 +8,168 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2024-12-07T00:00:00Z</updated>
+    <updated>2025-01-18T00:00:00Z</updated>
     <entry>
+    <title>Error handling in Fir</title>
+    <link href="http://osa1.net/posts/2025-01-18-fir-error-handling.html" />
+    <id>http://osa1.net/posts/2025-01-18-fir-error-handling.html</id>
+    <published>2025-01-18T00:00:00Z</published>
+    <updated>2025-01-18T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>A while ago I came up with an <a href="https://gist.github.com/osa1/38fd51abe5247462eddb7d014f320cd2">“error handling expressiveness benchmark”</a>, some common error handling cases that I want to support in <a href="https://github.com/fir-lang/fir">Fir</a>.</p>
+<p>After 7 months of pondering and hacking, I think designed a system that meets all of the requirements. Error handling in Fir is safe, expressive, and convenient to use.</p>
+<p>Here are some examples of what we can do in Fir today:</p>
+<p>(Don’t pay too much attention to type syntax for now. Fir is still a prototype, the syntax will be improved.)</p>
+<p>When we have multiple ways to fail, we don’t have to introduce a sum type with all the possible ways that we can fail, we can use variants:</p>
+<pre><code>parseU32(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
+    if s.len() == 0:
+        return Result.Err(~EmptyInput)
+
+    let result: U32 = 0
+
+    for c in s.chars():
+        if c &lt; &#39;0&#39; || c &gt; &#39;9&#39;:
+            return Result.Err(~InvalidDigit)
+
+        let digit = c.asU32() - &#39;0&#39;.asU32()
+
+        match checkedMul(result, 10):
+            Option.None: return Result.Err(~Overflow)
+            Option.Some(newResult): result = newResult
+
+        match checkedAdd(result, digit):
+            Option.None: return Result.Err(~Overflow)
+            Option.Some(newResult): result = newResult
+
+    Result.Ok(result)</code></pre>
+<p>An advantage of variants is, in pattern matching, we “refine” types of binders to drop handled variants from the type. This allows handling some of the errors and returning the rest to the caller:</p>
+<pre><code>defaultEmptyInput(res: Result[[EmptyInput, ..r], U32]): Result[[..r], U32]
+    match res:
+        Result.Err(~EmptyInput): Result.Ok(0u32)
+        Result.Err(other): Result.Err(other)
+        Result.Ok(val): Result.Ok(val)</code></pre>
+<p>Here <code>EmptyInput</code> is removed from the error value type in the return type. The caller does not need to handle <code>EmptyInput</code>.</p>
+<p>(We don’t refine types of variants nested in other types for now, so the last two branches cannot be replaced with <code>other: other</code> for now.)</p>
+<p>Another advantage is that they allow composing error returning functions that return different error types:</p>
+<p>(Fir supports variant constructors with fields, but to keep things simple we don’t use them in this post.)</p>
+<pre><code>readFile(s: Str): Result[[IoError, ..r], Str]
+    # We don&#39;t have the standard library support for file IO yet, just return
+    # an error for now.
+    Result.Err(~IoError)
+
+parseU32FromFile(filePath: Str): Result[[InvalidDigit, Overflow, EmptyInput, IoError, ..r], U32]
+    let fileContents = match readFile(filePath):
+        Result.Err(err): return Result.Err(err)
+        Result.Ok(contents): contents
+
+    parseU32(fileContents)</code></pre>
+<p>In the early return I don’t have to manually convert <code>readFile</code>s error value to <code>parseU32</code>s error value to make the types align.</p>
+<p>Variants work nicely with higher-order functions as well. Here’s a function that parses a vector of strings, returning any errors to the caller:</p>
+<pre><code>parseWith(vec: Vec[Str], parseFn: Fn(Str): Result[errs, a]): Result[errs, Vec[a]]
+    let ret = Vec.withCapacity(vec.len())
+
+    for s in vec.iter():
+        match parseFn(s):
+            Result.Err(err): return Result.Err(err)
+            Result.Ok(val): ret.push(val)
+
+    Result.Ok(ret)</code></pre>
+<p>If I have a function argument that returns more errors than my callback, I can still call it without any adjustments:</p>
+<pre><code>parseWith2(vec: Vec[Str], parseFn: Fn(Str): Result[[OtherError, ..r], a]): Result[[..r], Vec[a]]
+    let ret = Vec.withCapacity(vec.len())
+
+    for s in vec.iter():
+        match parseFn(s):
+            Result.Err(~OtherError): continue
+            Result.Err(err): return Result.Err(err)
+            Result.Ok(val): ret.push(val)
+
+    Result.Ok(ret)</code></pre>
+<p><code>parseWith2(vec, parseU32)</code> type checks even though <code>parseU32</code> doesn’t return <code>OtherError</code>.</p>
+<p>Similarly, if I have a function that handles more cases, I can pass it as a function that handles less:</p>
+<pre><code>handleSomeErrs(error: [Overflow, OtherError]): U32 = 0
+
+parseWithErrorHandler(
+        input: Str,
+        handler: Fn([Overflow, ..r1]): U3
+    ): Result[[InvalidDigit, EmptyInput, ..r2], U32]
+    match parseU32(input):
+        Result.Err(~Overflow): Result.Ok(handler(~Overflow))
+        Result.Err(other): Result.Err(other)
+        Result.Ok(val): Result.Ok(val)</code></pre>
+<p>Here I’m able to pass <code>handleSomeErrs</code> to <code>parseWithErrorHandler</code>, even though it handles more errors than what <code>parseWithErrorHandler</code> argument needs.</p>
+<h1 id="variants-as-exceptions">Variants as exceptions</h1>
+<p>When we use variants as exception values, we end up with a system that is</p>
+<ul>
+<li>Safe: All exceptions need to be handled before <code>main</code> returns.</li>
+<li>Flexible: All of the flexibility of variants shown above apply to exceptions as well.</li>
+<li>Convenient:
+<ul>
+<li>Error values are implicitly propagated to the caller when not handled.</li>
+<li>When a library uses one way of error reporting (error values or exceptions) and you need the other, conversion is just a matter of calling one function.</li>
+</ul></li>
+</ul>
+<p>At the core of exceptions in Fir are these three functions:</p>
+<ul>
+<li><p><code>throw</code>, which converts a variant into an exception:</p>
+<pre><code>throw(exn: [..r]): {..r} a</code></pre></li>
+<li><p><code>try</code>, which converts exceptions into <code>Result.Err</code> values:</p>
+<pre><code>try(cb: Fn(): {..exn} a): {..r} Result[[..exn], a]</code></pre></li>
+<li><p><code>untry</code>, which converts a <code>Result.Err</code> value into an exception:</p>
+<pre><code>untry(res: Result[[..errs], a]): {..errs} a</code></pre></li>
+</ul>
+<p>(The part in <code>{...}</code> in the return type position is the exception variant type. The reason we use <code>{...}</code> instead of <code>[...]</code> is to be able to distinguish exception types from return types in function type signatures when one of the types are omitted. This type of the syntax may change in the future.)</p>
+<p>Here’s some of the same code above, with exceptions:</p>
+<pre><code>parseU32Exn(s: Str): {InvalidDigit, Overflow, EmptyInput, ..r} U32
+    if s.len() == 0:
+        return throw(~EmptyInput)
+
+    let result: U32 = 0
+
+    for c in s.chars():
+        if c &lt; &#39;0&#39; || c &gt; &#39;9&#39;:
+            return throw(~InvalidDigit)
+
+        let digit = c.asU32() - &#39;0&#39;.asU32()
+
+        match checkedMul(result, 10):
+            Option.None: throw(~Overflow)
+            Option.Some(newResult): result = newResult
+
+        match checkedAdd(result, digit):
+            Option.None: throw(~Overflow)
+            Option.Some(newResult): result = newResult
+
+    result
+
+readFileExn(s: Str): {IoError, ..r} Str
+    # We don&#39;t have the standard library support for file IO yet, just throw
+    # an error for now.
+    throw(~IoError)
+
+parseU32FromFileExn(filePath: Str): {InvalidDigit, Overflow, EmptyInput, IoError, ..r} U32
+    parseU32Exn(readFileExn(filePath))
+
+parseWithExn(vec: Vec[Str], parseFn: Fn(Str): {..errs} a): {..errs} Vec[a]
+    let ret = Vec.withCapacity(vec.len())
+    for s in vec.iter():
+        ret.push(parseFn(s))
+    ret</code></pre>
+<p>When a library provides one of these, it’s trivial to convert to the other:</p>
+<pre><code>parseU32UsingExnVersion(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
+    try(fn(): {InvalidDigit, Overflow, EmptyInput, ..r} U32 { parseU32Exn(s) })
+
+parseU32UsingResultVersion(s: Str): {InvalidDigit, Overflow, EmptyInput, ..r} U32
+    untry(parseU32(s))</code></pre>
+<p>In the future we will infer the exception and return types of closures and the first function will look like:</p>
+<pre><code>parseU32UsingExnVersion(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
+    try({ parseU32Exn(s) })</code></pre>
+<p>Nice!</p>
+<hr />
+<p>I’m quite excited about these results. There’s still so much to do, but I think it’s clear that this way of error handling has a lot of potential.</p>
+<p>I’ll be working on some of the improvements I mentioned above (and I have others planned as well), and the usual stuff that every language needs (standard library, tools etc.). Depending on interest, I may also write more about variants, error handling, or anything else related to Fir.</p>
+<p>You can try Fir online <a href="https://fir-lang.github.io/?errors">here</a>.</p>]]></summary>
+</entry>
+<entry>
     <title>When is inlining useful?</title>
     <link href="http://osa1.net/posts/2024-12-07-inlining.html" />
     <id>http://osa1.net/posts/2024-12-07-inlining.html</id>
@@ -1526,272 +1686,6 @@ print_string &quot;bye&quot;</code></pre>
 <p>Also keep in mind that when you mix imperative and functional styles tail calls become less important. For example, I don’t have to implement a stream <code>map</code> function in Dart with a tail call to map the rest of the stream, I can just use a <code>while</code> or <code>for</code> loop.</p>
 <h1 id="when-should-i-use-it">When should I use it?</h1>
 <p>In my opinion there is no reason to use OCaml in a new project in 2023. If you have a reason to think that OCaml is the best choice for a new project please let me know your use case, I’m genuinely curious.</p>]]></summary>
-</entry>
-<entry>
-    <title>Fast polymorphic record access</title>
-    <link href="http://osa1.net/posts/2023-01-23-fast-polymorphic-record-access.html" />
-    <id>http://osa1.net/posts/2023-01-23-fast-polymorphic-record-access.html</id>
-    <published>2023-01-23T00:00:00Z</published>
-    <updated>2023-01-23T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I like <a href="https://osa1.net/posts/2021-04-10-sums-and-products.html">anonymous records</a> and row polymorphism, but until recently I didn’t know how to generate efficient code for polymorphic record access. In this blog post I will summarize the different compilations of polymorphic record accesses that I’m aware of.</p>
-<p>All of the ideas shown in this post can be used to access a record field when the record’s concrete type is not known, but the type system guarantees that it has the accessed field. This includes row polymorphism and record subtyping.</p>
-<p>Most of the ideas also work when the record’s type is completely unknown and it may not have the accessed field, but some of the optimizations assume accesses cannot fail. Those optimizations can only be used on statically-typed but polymorphic records.</p>
-<p>In some of the examples below I will use row polymorphism.</p>
-<hr />
-<h1 id="row-polymorphism-and-record-subtyping-briefly">Row polymorphism and record subtyping, briefly</h1>
-<p>In this blog post we are interested in a specific application of row polymorphism to records. In short, row polymorphism allows type variables denoting sets of record fields, with their types. For example:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>f <span class="op">:</span> <span class="ot">∀</span> r <span class="op">.</span> { x <span class="op">:</span> <span class="dt">Int</span>, y <span class="op">:</span> <span class="dt">Int</span> <span class="op">|</span> r } <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>f a <span class="ot">=</span> a<span class="op">.</span>x <span class="op">+</span> a<span class="op">.</span>y</span></code></pre></div>
-<p>Here the type variable <code>r</code> ranges over set of rows (or records). This function accepts any record as argument as long as the record has at least <code>x : Int</code> and <code>y : Int</code> fields.</p>
-<p>The main difference between row polymorphism and record subtyping is that the type variable <code>r</code> can be used in the right-hand side of an arrow as well, allowing passing the record around without losing its concrete type. For example:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>mapAB <span class="op">:</span> <span class="ot">∀</span> r <span class="op">.</span> { a <span class="op">:</span> <span class="dt">Int</span>, b <span class="op">:</span> <span class="dt">Int</span> <span class="op">|</span> r } <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>) <span class="ot">-&gt;</span> { a <span class="op">:</span> <span class="dt">Int</span>, b <span class="op">:</span> <span class="dt">Int</span> <span class="op">|</span> r }</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>mapAB r f <span class="ot">=</span> { a <span class="ot">=</span> f r<span class="op">.</span>a, b <span class="ot">=</span> f r<span class="op">.</span>b, <span class="op">..</span> r }</span></code></pre></div>
-<p>This function takes any record that has <code>a : Int</code> and <code>b : Int</code> fields, and returns a new record with updated <code>a</code> and <code>b</code> fields and the rest of the fields. If I pass it a record with type <code>{ a : Int, b : Int, name : String }</code> I get the same type back.</p>
-<p>With subtyping, type of this function would look like:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>mapAB <span class="op">:</span> { a <span class="op">:</span> <span class="dt">Int</span>, b <span class="op">:</span> <span class="dt">Int</span> } <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>) <span class="ot">-&gt;</span> { a <span class="op">:</span> <span class="dt">Int</span>, b <span class="op">:</span> <span class="dt">Int</span> }</span></code></pre></div>
-<p>In this version the return type just has <code>a</code> and <code>b</code> fields. Rest of the fields are lost. If I pass this a <code>{ a : Int, b : Int, name : String }</code> I get <code>{ a : Int, b : Int }</code> back. The <code>name</code> field is lost.</p>
-<hr />
-<p>Without subtyping, when the record type in a field access expression is known, it’s easy to generate efficient code: we use the same offsets used when compiling a record literal with the type.</p>
-<p>With subtyping, and with row-polymorphism when the record type is not a concrete record type but is a record type with a row variable, type of <code>r</code> in <code>r.a</code> does not immediately give us where in the record’s payload the field <code>a</code> is.</p>
-<p>Let’s look at how we might go about implementing record field access in these cases.</p>
-<h1 id="records-as-maps">(0) Records as maps</h1>
-<p>I don’t think this idea is used in statically-typed languages, but I wanted to include it for completeness.</p>
-<p>We can implement records as maps with string keys. Field access then becomes a map lookup.</p>
-<p>This is easy to implement because our language probably already has a map implementation in the standard library.</p>
-<p>The disadvantages are:</p>
-<ul>
-<li><p>Depending on the map implementation, every field access require a <code>O(N)</code> or <code>O(log(N))</code> map lookup.</p></li>
-<li><p>Map entries will be stored in a separate memory location (instead of in the record object’s payload), which will require pointer chasing to read the field value.</p></li>
-<li><p>Unnecessary memory overhead caused by map fields that are not really necessary for records: such as the <code>capacity</code> and <code>size</code> fields.</p></li>
-</ul>
-<p>With whole-program compilation, we can improve the constant factors a bit by mapping labels (field names) in the program to unique integers. This way lookups don’t require string hashing or comparison, but this is still slow and memory-inefficient compared to other techniques we will discuss below.</p>
-<h1 id="passing-accessors-as-parameters">(1) Passing accessors as parameters</h1>
-<p>If you’re familiar with Haskell, this is the Haskell way of implementing row polymorphic records.</p>
-<p>The idea is that when we pass a record to a row-polymorphic function, we also pass, implicitly, and as functions, the accessors that the function needs.</p>
-<p>In Haskell, type of <code>mapAB</code> we’ve seen above would look like this:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>mapAB <span class="op">:</span> <span class="ot">∀</span> r <span class="op">.</span> (<span class="dt">HasField</span> r <span class="dt">&#39;A</span> <span class="dt">Int</span>, <span class="dt">HasField</span> r <span class="dt">&#39;B</span> <span class="dt">Int</span>) <span class="ot">=&gt;</span> <span class="dt">Record</span> r <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Record</span> r</span></code></pre></div>
-<p>The runtime values for <code>HasField ...</code> constraints are the accessors. When calling this function we don’t explicitly pass these accessors, the compiler generates them. In a well-typed program, we either have these values in the call site, or we know how to generate them (e.g. the record type is concrete in the call site), so it’s possible for the compiler to generate and pass these arguments.</p>
-<p>The main advantage of this approach is that it doesn’t require any language support specifically for records.</p>
-<p>The main disadvantages are:</p>
-<ul>
-<li><p>Every field access is a function call.</p></li>
-<li><p>Parameter passing per field per record does not scale well and causes messy and slow generated code. For example, suppose we want to take two records with fields <code>x : Int</code> and <code>y : Int</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a>f <span class="op">:</span> <span class="ot">∀</span> r <span class="op">.</span> (<span class="dt">HasField</span> r <span class="dt">&#39;X</span> <span class="dt">Int</span>, <span class="dt">HasField</span> r <span class="dt">&#39;Y</span> <span class="dt">Int</span>) <span class="ot">=&gt;</span> <span class="dt">Record</span> r <span class="ot">-&gt;</span> <span class="dt">Record</span> r <span class="ot">-&gt;</span> <span class="op">...</span></span></code></pre></div>
-<p>This function takes two implicit arguments, but it has a limitation that the record arguments need to have the same record types. I can’t call this function with two different records:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>f { x <span class="ot">=</span> <span class="dv">123</span>, y <span class="ot">=</span> <span class="dv">456</span>, a <span class="ot">=</span> <span class="st">&quot;hi&quot;</span> } { x <span class="ot">=</span> <span class="dv">0</span>, y <span class="ot">=</span> <span class="op">-</span><span class="dv">1</span>, b <span class="ot">=</span> false }</span></code></pre></div>
-<p>For this to work I need two row variables:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>f <span class="op">:</span> <span class="ot">∀</span> r1 r2 <span class="op">.</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>    (<span class="dt">HasField</span> r1 <span class="dt">&#39;X</span> <span class="dt">Int</span>, <span class="dt">HasField</span> r1 <span class="dt">&#39;Y</span> <span class="dt">Int</span>,</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>     <span class="dt">HasField</span> r2 <span class="dt">&#39;X</span> <span class="dt">Int</span>, <span class="dt">HasField</span> r2 <span class="dt">&#39;Y</span> <span class="dt">Int</span>) <span class="ot">=&gt;</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>    <span class="dt">Record</span> r1 <span class="ot">-&gt;</span> <span class="dt">Record</span> r2 <span class="ot">-&gt;</span> <span class="op">...</span></span></code></pre></div>
-<p>This version works, but it also takes 4 implicit arguments.</p></li>
-</ul>
-<h1 id="prerequisite-integers-for-labels">Prerequisite: integers for labels</h1>
-<p>Starting with the next approach, we will require mapping labels (field names) to integers in compile-time, to be used as indices.</p>
-<p>Because these integers for labels will be used in record allocation and field accesses, it is possible that a label we see later in a program will cause different code generation for a record field access that we’ve already seen.</p>
-<p>We have two options:</p>
-<ul>
-<li><p>We can avoid this problem with a whole-program pass to collect all labels in the program.</p>
-<p>This is trivial with a whole-program compiler as a front-end pass can store all labels seen in a component (library, module) somewhere and we can map those labels to integers before code generation.</p></li>
-<li><p>We can have a link-time step to update record allocation and field access code with the integers for the labels.</p></li>
-</ul>
-<p>In the rest of the post, labels will always get integers based on their lexicographical order and we will call these integers for labels just “labels”.</p>
-<p>For example, if I have labels <code>a</code>, <code>c</code>, <code>b</code>, <code>d</code> in my program, their numbers will be 1, 3, 2, 4, respectively.</p>
-<h1 id="per-record-label-to-field-offset-tables">(2) Per-record label-to-field-offset tables</h1>
-<p>With integers as labels we can add a table to every record (records with the same set of keys sharing the same table) mapping labels in the program to offsets in the record’s payload. For example, the table for a record with fields <code>a</code> and <code>c</code> when the program has labels <code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, looks like this:</p>
-<pre><code>[ 0, _, 1, _ ]</code></pre>
-<p>This table is indexed by the label and the value gives the offset in the record’s payload for the field. <code>_</code> means the record does not have the field. In a well-typed program we won’t ever see a <code>_</code> value being read from a table.</p>
-<p>This approach is quite wasteful as every table will have as many entries as number of labels in the program, but we will compress these tables below to reasonable sizes.</p>
-<p>We will call these tables “record offset tables” or “offset tables” in short. When compiling a record access we need to get the record’s offset table. For this we add an extra word (pointer) to record objects pointing to their offset tables. We then generate this code for a record field access:</p>
-<pre><code>record[record[OFFSET_TABLE_INDEX][label]]</code></pre>
-<p><code>OFFSET_TABLE_INDEX</code> is the constant for where the offset table pointer is in record objects.</p>
-<p>Offset tables are generated per record shape (set of labels), so the total number of tables shouldn’t be too large.</p>
-<p>Since the <code>_</code> entries won’t ever be used, we can shrink the tables with trailing <code>_</code> entries. In our example above with a record with <code>a</code> and <code>c</code> fields, the last <code>_</code> entry can be omitted:</p>
-<pre><code>[ 0, _, 1 ]</code></pre>
-<h1 id="making-the-tables-global">(2.1) Making the tables global</h1>
-<p>Because offset tables are per-shape, and the total number of record shapes in a program should be small, if we allocate a few bits in record object headers for the “shape index” of the record, this index can be used to index a global table mapping record shapes to their offset tables.</p>
-<p>Generated code for record access expressions will look like:</p>
-<pre><code>record[RECORD_OFFSET_TABLES[getRecordShapeId(record)][label]]</code></pre>
-<p><code>getRecordShapeId</code> will read the bits in the object header for the record shape id. Depending on the actual header layout, it will look something like:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="dt">int</span> getRecordShapeId(Object* object) {</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>  <span class="cf">return</span> (object-&gt;header &amp; RECORD_ID_MASK) &gt;&gt; HEADER_BITS;</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>}</span></code></pre></div>
-<p>With record shape IDs in headers and a global table mapping shape IDs to offset tables, we no longer need an extra word in record objects for the offset table pointer.</p>
-<p>Here’s an example of offset tables when we have labels <code>a</code>, <code>b</code>, <code>x</code>, <code>y</code>, and two records <code>0: {a, b}</code> and <code>1: {x, y}</code>:</p>
-<pre><code>RECORD_0_OFFSET_TABLE = [
-  0, // label a
-  1, // label b
-  _, // label x
-  _, // label y
-];
-
-RECORD_1_OFFSET_TABLE = [
-  _, // label a
-  _, // label b
-  0, // label x
-  1, // label y
-];
-
-RECORD_OFFSET_TABLES = [
-  RECORD_0_OFFSET_TABLE, // record 0
-  RECORD_1_OFFSET_TABLE, // record 1
-];</code></pre>
-<p>As before, the offset table for record 0 can be shrunk as:</p>
-<pre><code>RECORD_0_OFFSET_TABLE = [
-  0, // label a
-  1, // label b
-];</code></pre>
-<h1 id="sharing-label-ids-and-record-shapes">(2.2) Sharing label IDs and record shapes</h1>
-<p>Labels that are not used in the same record program can be given the same ID.</p>
-<p>In the example above, this allows us to have a single table for both records:</p>
-<pre><code>RECORD_0_1_OFFSET_TABLE = [
-  0, // label a or x
-  1, // label b or y
-];
-
-RECORD_OFFSET_TABLES = [
-  RECORD_0_1_OFFSET_TABLE, // record 0
-  RECORD_0_1_OFFSET_TABLE, // record 1
-];</code></pre>
-<p>The problem of assigning IDs to labels is very similar to stack allocation when spilling during register allocation. We have practically infinite amount of IDs (stack space), but we want to reuse the same ID for labels as long as they’re never used in the same record (live at the same time).</p>
-<p>After sharing label IDs, some of the shapes may be identical, as in our example. We can give those shapes the same ID and avoid redundant entries in the offset tables.</p>
-<p>With this, our example with two records <code>{a, b}</code> and <code>{x, y}</code> compiles to just one offset table:</p>
-<pre><code>RECORD_0_1_OFFSET_TABLE = [
-  0, // label a or x
-  1, // label b or y
-];
-
-RECORD_OFFSET_TABLES = [
-  RECORD_0_1_OFFSET_TABLE, // record 0 and 1
-];</code></pre>
-<h1 id="flattening-the-table">(2.3) Flattening the table</h1>
-<p>Suppose we have these record shapes in a program:</p>
-<ul>
-<li><code>{a, b, q}</code></li>
-<li><code>{x, y, q}</code></li>
-</ul>
-<p>The <code>RECORD_OFFSET_TABLES</code> table is currently an array of pointers, and indexing the offset table still requires pointer chasing.</p>
-<p>To avoid pointer chasing we can flatten the table.</p>
-<p>For our current program, the tables, without flattening, look like this:</p>
-<pre><code>RECORD_0_OFFSET_TABLE = [
-  0, // label a
-  1, // label b
-  _, // label x
-  _, // label y
-  2, // label q
-];
-
-RECORD_1_OFFSET_TABLE = [
-  _, // label a
-  _, // label b
-  0, // label x
-  1, // label y
-  2, // label q
-];
-
-RECORD_OFFSET_TABLES = [
-  RECORD_0_OFFSET_TABLE,
-  RECORD_1_OFFSET_TABLE,
-];</code></pre>
-<p>We can flatten this as:</p>
-<pre><code>RECORD_0_OFFSET_TABLE = [
-  0, // label a
-  1, // label b
-  _, // label x
-  _, // label y
-  2, // label q
-];
-
-RECORD_1_OFFSET_TABLE = [
-  _, // label a
-  _, // label b
-  0, // label x
-  1, // label y
-  2, // label q
-];
-
-RECORD_LABEL_OFFSETS = [
-  0, // record 0, label a
-  1, // record 0, label b
-  _, // record 0, label x
-  _, // record 0, label y
-  2, // record 0, label z
-
-  _, // record 1, label a
-  _, // record 1, label b
-  0, // record 1, label x
-  1, // record 1, label y
-  2, // record 1, label z
-];</code></pre>
-<p>Field indexing then becomes:</p>
-<pre><code>record[RECORD_LABEL_OFFSETS[(getRecordShapeId(record) * NUM_LABELS) + label]]</code></pre>
-<p>With this version we eliminate one layer of indirection.</p>
-<h1 id="removing-the-constant-factor">(2.4) Removing the constant factor</h1>
-<p>The idea here is not too important on its own, but it will enable further improvements.</p>
-<p>The <code>NUM_LABELS</code> factor in field access code above can be eliminated by incrementing record shape IDs by <code>NUM_LABELS</code> instead of 1. In our example, instead of having record IDs 0 and 1, we will have 0 and 5 (incremented by the number of labels in the program).</p>
-<p>Since there may be large number of labels in a program and we may have only a few bits to store the record IDs, an alternative would be to convert the table to label-major order like this:</p>
-<pre><code>RECORD_LABEL_OFFSETS = [
-  0, // label a, record 0
-  _, // label a, record 1
-
-  1, // label b, record 0
-  _, // label b, record 1
-
-  _, // label x, record 0
-  1, // label x, record 1
-
-  _, // label y, record 0
-  2, // label y, record 1
-
-  3, // label z, record 0
-  3, // label z, record 1
-];</code></pre>
-<p>With this table, indexing code becomes:</p>
-<pre><code>record[RECORD_LABEL_OFFSETS[(label * NUM_RECORDS) + getRecordShapeId(record)]]</code></pre>
-<p>We can then eliminate the <code>NUM_RECORDS</code> factor the same way, by incrementing label IDs by <code>NUM_RECORDS</code> instead of 1, and index with:</p>
-<pre><code>record[RECORD_LABEL_OFFSETS[label + getRecordShapeId(record)]]</code></pre>
-<h1 id="compacting-the-table-further">(2.5) Compacting the table further</h1>
-<p>Now that the table index of a label is <code>label + shape_id</code> and we have a single table, we can shift the entries in the table by decrementing label IDs.</p>
-<p>For this it doesn’t matter whether we store in label-major or record-major order. Which one of these will generate a smaller table will probably depend on the program. As an example, suppose we store the table in label-major order, and we have these records in the program:</p>
-<ul>
-<li><code>0: {x, y, z, t}</code></li>
-<li><code>1: {x, y}</code></li>
-<li><code>2: {z, t}</code></li>
-</ul>
-<p>The table will look like:</p>
-<pre><code>[ 0, 0, _,   // label x
-  1, 1, _,   // label y
-  2, _, 0,   // label z
-  3, _, 1 ]  // label t</code></pre>
-<p>Record IDs will be 0, 1, 2, and label IDs will be 0, 3, 6, 9.</p>
-<p>We can use the unused slot for label x, record 2, by decrementing the label index for <code>y</code> by one. If we then do the same for <code>z</code>, the label IDs become 0, 2, 4, 7, and the table becomes:</p>
-<pre><code>[ 0, 0,      // label x
-  1, 1,      // label y
-  2, _, 0,   // label z
-  3, _, 1 ]  // label t</code></pre>
-<p>This idea can be used to fill any gaps in previous label rows, as long as the used slots in a row fits into the gaps. For example, if we have a table like:</p>
-<pre><code>[ 0, _, _, 1,  // label x
-  _, 0, 1, _,  // label y
-  ... ]</code></pre>
-<p>We can decrement <code>y</code>’s ID to fit it into the row for label <code>x</code>:</p>
-<pre><code>[ 0, 0, 1, 1,  // label x and y, interleaved
-  ... ]</code></pre>
-<h1 id="conclusions">Conclusions</h1>
-<p>Collecting and numbering all labels in the program allows using a global table for mapping labels to offsets.</p>
-<p>These offset tables can be made smaller by</p>
-<ul>
-<li>Giving same number to labels that don’t occur in the same record</li>
-<li>Giving same ID to records that become identical after the previous step</li>
-<li>Tweaking label numbers so that rows without overlapping entries can be merged into a single row</li>
-</ul>
-<p>The result is a very compact representation of record objects (no extra words in the header or unused space in the payload needed) and a fast polymorphic field access.</p>
-<p>The offset table should also be small in practice, because different parts of the program will probably use disjoint set of names, and different labels and records will have the same IDs. In the remaining cases, tweaking label IDs to compact the table should help.</p>
-<h1 id="references">References</h1>
-<p>I’ve learned about the global table approach and some of the optimizations from the Dart compiler, which implements virtual calls using a “global dispatch table” (GDT), indexed by <code>classID + methodID</code> in call sites. See <a href="https://mrale.ph/dartvm/#global-dispatch-table-gdt">“Introduction to Dart VM”</a> for a description of how Dart AOT and JIT generate GDTs.</p>
-<p>If you are interested in seeing some code, <a href="https://github.com/dart-lang/sdk/blob/ba8f0bd947c613013ed4659ea44da851bf35a99f/pkg/dart2wasm/lib/dispatch_table.dart#L411-L442">here</a> is where we generate the GDT in dart2wasm (Dart’s Wasm backend). The outer loop finds a selector ID (label ID in our examples) for a row (list of records in our examples, list of classes in dart2wasm). The inner loop <code>do { ... } while (!fits)</code> starts from the first row with gaps, and tries to fit the current row into the gaps. In the worst case it skips all of the rows, in which case rest of the code appends the table with the new row.</p>
-<p><a href="https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md">Dart will soon have records</a>, and for the <a href="https://github.com/dart-lang/sdk/issues/50014">dart2wasm implementation of records</a> I’m thinking of using some of the ideas described in this post. Dart records do not support width subtyping (you can’t pass <code>{x, y, z}</code> where <code>{x, y}</code> is expected), but because of the <code>dynamic</code> type, we can have a dynamically typed record that we index.</p>
-<hr />
-<p>Thanks to <a href="https://twitter.com/josecalderon">José Manuel Calderón Trilla</a> for his feedback on a draft of this blog post.</p>]]></summary>
 </entry>
 
 </feed>
