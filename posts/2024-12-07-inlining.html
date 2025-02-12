@@ -248,6 +248,20 @@ void main() {
   array.get $Array&lt;WasmI64&gt;
   struct.new $BoxedInt)</code></pre>
 <p>Similar to the previous example, inlining it eliminates the boxing in monomorphic use sites, as the allocated struct is immediately unboxed.</p>
+<h2 id="example-eliminating-closures-and-indirect-calls">Example: Eliminating closures and indirect calls</h2>
+<p>In languages without monomorphisation, higher-order function arguments need to be allocated as closures, and higher-order functions call the closure arguments by getting the function pointer from a closure argument and calling the function indirectly via the pointer.</p>
+<p>An example of this is in <a href="https://github.com/google/protobuf.dart">Dart protobuf library</a>. In protobuf, packed fields are encoded as a length prefix followed by elements. We decode these fields in the library using <a href="https://github.com/google/protobuf.dart/blob/610943a3bed70c1c2079af5fca02462df10d223f/protobuf/lib/src/protobuf/coded_buffer.dart#L271-L277">this helper</a>:</p>
+<pre><code>void _readPacked(CodedBufferReader input, void Function() readFunc) {
+  input._withLimit(input.readInt32(), () {
+    while (!input.isAtEnd()) {
+      readFunc();
+    }
+  });
+}</code></pre>
+<p>Here the caller needs to pass <code>readFunc</code> as a closure, and this function calls <code>_withLimit</code>, passing another closure.</p>
+<p>That’s two closure allocations for every packed field in the input, and the calls are slow too, because they’re indirect.</p>
+<p>Inlining <code>_withLimit</code> in <code>_readPacked</code>, and <code>_readPacked</code> in the decoding loop (<code>_mergeFromCodedBufferReader</code>) eliminates all closures in the decoder, and calls to <code>readFunc</code> become direct. This improves packed field decoding significantly.</p>
+<p>(This change isn’t merged yet, the PR is <a href="https://github.com/google/protobuf.dart/pull/959">here</a>.)</p>
 <h2 id="a-trick-for-effective-inlining-outlining">A trick for effective inlining: outlining</h2>
 <p>Consider <code>Int64List.[]</code> again. The implementation needs to check that the index is in bounds of the array, and throw an exception if not: (slightly simplified)</p>
 <pre><code>class Int64List ... {
@@ -288,6 +302,11 @@ void fail(int index, int length) { ... }</code></pre>
 <p>In a lower-level language with monomorphisation and control over allocations (e.g. Rust, C++), monomorphisation eliminates polymorphism in compile time, boxing is explicit, and redundant checks can be avoided by using unchecked (unsafe) functions.</p>
 <p>In these cases where programs are often much faster by default, inlining to avoid stack/register shuffling and simplify control flow can make a difference.</p>
 <p>One example of simplified control flow making a big difference can be seen in <a href="https://osa1.net/posts/2024-11-29-how-to-parse-3.html">the previous post</a>, where implementing a recursive parsing function in a non-recursive way improved performance by 22%.</p>
+<h2 id="updates">Updates</h2>
+<ul>
+<li><strong>2024-12-07:</strong> Added link to wasm-opt in partial inlining section.</li>
+<li><strong>2025-02-12:</strong> Added a higher-order function example.</li>
+</ul>
 <section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
