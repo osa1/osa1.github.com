@@ -121,13 +121,13 @@ parseWithErrorHandler(
 <p>Here are some of the code above, using exceptions instead of error values:</p>
 <pre><code>parseU32Exn(s: Str): {InvalidDigit, Overflow, EmptyInput, ..r} U32
     if s.len() == 0:
-        return throw(~EmptyInput)
+        throw(~EmptyInput)
 
     let result: U32 = 0
 
     for c in s.chars():
         if c &lt; &#39;0&#39; || c &gt; &#39;9&#39;:
-            return throw(~InvalidDigit)
+            throw(~InvalidDigit)
 
         let digit = c.asU32() - &#39;0&#39;.asU32()
 
