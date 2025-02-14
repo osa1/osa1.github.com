@@ -23,7 +23,7 @@
 
 <p><strong>December  7, 2024</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'plt'." href="../tags/plt.html">plt</a>.</p>
 
-<p>Especially in high-level languages, inlining is most useful when it causes:</p>
+<p>Especially in high-level languages, inlining is most useful when it leads to:</p>
 <ul>
 <li>Optimizing the callee’s body based on the arguments passed.</li>
 <li>Optimizing the call site based on the callee’s return value.</li>
@@ -248,9 +248,11 @@ void main() {
   array.get $Array&lt;WasmI64&gt;
   struct.new $BoxedInt)</code></pre>
 <p>Similar to the previous example, inlining it eliminates the boxing in monomorphic use sites, as the allocated struct is immediately unboxed.</p>
-<h2 id="example-eliminating-closures-and-indirect-calls">Example: Eliminating closures and indirect calls</h2>
-<p>In languages without monomorphisation, higher-order function arguments need to be allocated as closures, and higher-order functions call the closure arguments by getting the function pointer from a closure argument and calling the function indirectly via the pointer.</p>
-<p>An example of this is in <a href="https://github.com/google/protobuf.dart">Dart protobuf library</a>. In protobuf, packed fields are encoded as a length prefix followed by elements. We decode these fields in the library using <a href="https://github.com/google/protobuf.dart/blob/610943a3bed70c1c2079af5fca02462df10d223f/protobuf/lib/src/protobuf/coded_buffer.dart#L271-L277">this helper</a>:</p>
+<h2 id="example-eliminating-closures-and-indirect-calls">Example: eliminating closures and indirect calls</h2>
+<p>In languages without monomorphisation, higher-order function arguments need to be allocated as closures.</p>
+<p>When calling a closure, the caller needs to get the function pointer from the closure and call the function via the pointer.</p>
+<p>These closure allocations and indirect function calls can be too slow in hot loops.</p>
+<p>An example of this is in <a href="https://github.com/google/protobuf.dart">Dart protobuf library</a>. In protobufs, packed fields are encoded as a length prefix followed by the elements. In the Dart library, we decode these fields using <a href="https://github.com/google/protobuf.dart/blob/610943a3bed70c1c2079af5fca02462df10d223f/protobuf/lib/src/protobuf/coded_buffer.dart#L271-L277">this helper</a>:</p>
 <pre><code>void _readPacked(CodedBufferReader input, void Function() readFunc) {
   input._withLimit(input.readInt32(), () {
     while (!input.isAtEnd()) {
@@ -258,9 +260,9 @@ void main() {
     }
   });
 }</code></pre>
-<p>Here the caller needs to pass <code>readFunc</code> as a closure, and this function calls <code>_withLimit</code>, passing another closure.</p>
-<p>That’s two closure allocations for every packed field in the input, and the calls are slow too, because they’re indirect.</p>
-<p>Inlining <code>_withLimit</code> in <code>_readPacked</code>, and <code>_readPacked</code> in the decoding loop (<code>_mergeFromCodedBufferReader</code>) eliminates all closures in the decoder, and calls to <code>readFunc</code> become direct. This improves packed field decoding significantly.</p>
+<p>Here the caller of <code>_readPacked</code> passes <code>readFunc</code> as a closure (allocation). <code>_readPacked</code> then allocates another closure, to be passed to <code>_withLimit</code>.</p>
+<p>That’s two closure allocations for every packed field in the input. Calling these closures are slow too, because they’re indirect.</p>
+<p>Inlining <code>_withLimit</code> in <code>_readPacked</code>, and <code>_readPacked</code> in its call sites (in <code>_mergeFromCodedBufferReader</code>) eliminates closure allocations, and calls to the closures become direct function calls. This improves packed field decoding significantly.</p>
 <p>(This change isn’t merged yet, the PR is <a href="https://github.com/google/protobuf.dart/pull/959">here</a>.)</p>
 <h2 id="a-trick-for-effective-inlining-outlining">A trick for effective inlining: outlining</h2>
 <p>Consider <code>Int64List.[]</code> again. The implementation needs to check that the index is in bounds of the array, and throw an exception if not: (slightly simplified)</p>
@@ -295,6 +297,30 @@ void fail(int index, int length) { ... }</code></pre>
 <p>This way of separating inlineable parts of a function from the parts we don’t want to inline is sometimes called “outlining” or “partial inlining”. We can do it manually (as in the example above), but it can also be done by a compiler based on heuristics.</p>
 <p>An example transformation to this is <a href="https://www.cambridge.org/core/services/aop-cambridge-core/content/view/75629BBEDB11D8463553A09BF5DEA235/S0956796809007175a.pdf/div-class-title-the-worker-wrapper-transformation-div.pdf">GHC’s worker/wrapper transformation</a>, which splits a function into parts that (1) handle unboxing and boxing before calling the function’s body, and (2) the function’s body that work on the unboxed representations of the arguments. (1) is then inlined to avoid redundant boxing of the arguments and return values.</p>
 <p>Another example is <a href="https://github.com/WebAssembly/binaryen">wasm-opt</a> which does <a href="https://github.com/WebAssembly/binaryen/blob/6fe5103ab58a4eb751998d13768a0f25795a0de6/src/passes/Inlining.cpp#L684-L754">partial inlining</a>.</p>
+<h2 id="a-tip-for-effective-inlining-avoid-inlining-in-slow-paths">A tip for effective inlining: avoid inlining in slow paths</h2>
+<p>In the <a href="https://github.com/google/protobuf.dart/blob/610943a3bed70c1c2079af5fca02462df10d223f/protobuf/lib/src/protobuf/coded_buffer.dart#L54-L267">protobuf decoding loop</a> that we mentioned above, we have a big type switch to determine how to decode a field. It looks like this:</p>
+<pre><code>switch (fieldType) {
+  case PbFieldType._OPTIONAL_BOOL:
+    fs._setFieldUnchecked(meta, fi, input.readBool());
+    break;
+  ...
+  case PbFieldType._REPEATED_UINT64:
+    final list = fs._ensureRepeatedField(meta, fi);
+    if (wireType == WIRETYPE_LENGTH_DELIMITED) {
+      _readPacked(input, () =&gt; list.add(input.readUint64()));
+    } else {
+      list.add(input.readUint64());
+    }
+    break;
+  ...
+  // 37 cases in total. 
+}</code></pre>
+<p>Assume that there’s a function that throws an exception (e.g. <code>_ensureRepeatedField</code> above), and it’s used in only once, in one of the <code>case</code>s of the <code>switch</code>.</p>
+<p>Because the function is only used once, it may look like inlining it makes sense, as that would eliminate function call overhead, shave at least a few bytes off the binary, and potentially allow optimizations in the call site.</p>
+<p>However since this switch is in a hot loop, and the inlined code branch is taken very rarely (unless the application is receiving a lot of malformed input), inlining this slow path can make the instruction cache usage much worse and slow down the decoder.</p>
+<p>This kind of inlining can commonly happen when optimizing for size, e.g. with <code>wasm-opt -Os</code>. Because inlining single-use functions reduce binary sizes, optimization modes that aim to make the final binaries smaller can inline slow-path error throwing functions.</p>
+<p>If we really want to inline a slow-path function, a way to avoid making instruction cache usage worse is to move the slow-path code to the end of the function, away from the common code paths.</p>
+<p>This is often done with branch prediction hints, such as clang’s <a href="https://llvm.org/docs/BranchWeightMetadata.html#builtin-expect"><code>__builtin_expect</code></a>. When a branch is annotated as “not likely to be taken”, the compiler can move the branch target (the basic blocks) to the end of the current function, away from the hot code. This gives us the binary size benefits of inlining single-use functions, without filling the instruction cache with instructions that will never be executed.</p>
 <h2 id="remarks">Remarks</h2>
 <p>The main reason why the examples above are mostly in Dart is because I’ve been spending most of my time this year optimizing Dart’s Wasm backend’s standard library implementation, so the examples are still fresh in my memory.</p>
 <p>The principles apply to most languages: inlining a function makes any information about the arguments available to the function’s body, and any information on its return value to the call site.</p>
@@ -306,6 +332,7 @@ void fail(int index, int length) { ... }</code></pre>
 <ul>
 <li><strong>2024-12-07:</strong> Added link to wasm-opt in partial inlining section.</li>
 <li><strong>2025-02-12:</strong> Added a higher-order function example.</li>
+<li><strong>2025-02-14:</strong> Added a section about inlining in slow paths.</li>
 </ul>
 <section class="footnotes" role="doc-endnotes">
 <hr />
