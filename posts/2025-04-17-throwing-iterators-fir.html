@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Throwing iterators in Fir</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Throwing iterators in Fir</h1>
+
+<p><strong>April 25, 2025</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'plt'." href="../tags/plt.html">plt</a>, <a title="All pages tagged 'fir'." href="../tags/fir.html">fir</a>.</p>
+
+<p>Recently I’ve been working on extending Fir’s <code>Iterator</code> trait to allow iterators to throw exceptions.</p>
+<p>It took a few months of work, because we needed multiple parameter traits for it to work, which took <a href="https://github.com/fir-lang/fir/pull/73">a few months of hacking</a><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> to implement.</p>
+<p>Then there was a lot of bug fixing and experimentation, but it finally works, and I’m excited to share what you can do with Fir iterators today.</p>
+<p>As usual, link to the online iterpreter with all of the code in this post is at the end.</p>
+<p>Before starting, I recommend reading the <a href="https://osa1.net/posts/2025-01-18-fir-error-handling.html">previous post</a>. It’s quite short and it explains the basics of error handling in Fir.</p>
+<p>Previous post did not talk about traits at all, so in short, traits in Fir is the same feature as Rust’s traits and Haskell’s typeclasses<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
+<p>The <code>Iterator</code> trait in Fir is also the same as the trait with the same name in Rust, and it’s used the same way, in <code>for</code> loops.</p>
+<p>Here’s a simple example of what you can do with iterators:</p>
+<pre><code>sum(nums: Vec[U32]): U32
+    let result: U32 = 0
+    for i: U32 in nums.iter():
+        result += i
+    result</code></pre>
+<p>The <code>Vec.iter</code> method returns an iterator that returns the next element every time its <code>next</code> method is called. <code>for</code> loop implicitly calls the <code>next</code> method to get the next element, until the <code>next</code> method returns <code>Option.None</code>.</p>
+<p>Similar to Rust’s <code>Iterator</code>, Fir’s <code>Iterator</code> trait also comes with a <code>map</code> method that allows mapping iterated elements:</p>
+<pre><code>parseSum(nums: Vec[Str]): U32
+    let result: U32 = 0
+    for i: U32 in nums.iter().map(parseU32):
+        result += i
+    result
+
+parseU32(s: Str): U32
+    if s.len() == 0:
+        panic(&quot;Empty input&quot;)
+
+    let result: U32 = 0
+
+    for c: Char in s.chars():
+        if c &lt; '0' || c &gt; '9':
+            panic(&quot;Invalid digit&quot;)
+
+        let digit = c.asU32() - '0'.asU32()
+
+        result *= 10
+        result += digit
+
+    result</code></pre>
+<p>This version takes a <code>Vec[Str]</code> as argument, and parses the elements as integers.</p>
+<p>The problem with this version is that it panics on unexpected cases: invalid digits and empty input, and it ignores overflows.</p>
+<p>Until now, there wasn’t a convenient way to use the <code>Iterator</code> API and <code>for</code> loops to do this kind of thing, while also propagating exceptions to the call site of the <code>for</code> loop, or to the loop variable. But now we can do this: (<code>parseU32Exn</code> is from the previous post)</p>
+<pre><code>parseSum(nums: Vec[Str]): {Overflow, EmptyInput, InvalidDigit, ..errs} U32
+    let result: U32 = 0
+    for i: U32 in nums.iter().map(parseU32Exn):
+        result += i
+    result</code></pre>
+<p>Errors that <code>parseU32Exn</code> can throw are now implicitly thrown from the <code>for</code> loop and reflected in the function’s type.</p>
+<p>This new <code>Iterator</code> API is flexible enough to allow handling some (or all) of the exceptions thrown by a previous iterator. For example, here’s how we can handle <code>InvalidDigit</code> exceptions and yield <code>0</code> instead:</p>
+<pre><code>parseSumHandleInvalidDigits(nums: Vec[Str]): {Overflow, EmptyInput, ..errs} U32
+    let result: U32 = 0
+    for i: U32 in nums.iter().map(parseU32Exn).mapResult(handleInvalidDigit):
+        result += i
+    result
+
+handleInvalidDigit(parseResult: Result[[InvalidDigit, ..errs], Option[U32]]): {..errs} Option[U32]
+    match parseResult:
+        Result.Ok(result): result
+        Result.Err(~InvalidDigit): Option.Some(0u32)
+        Result.Err(other): throw(other)</code></pre>
+<p><code>InvalidDigit</code> is no longer in the exception type of the function because <code>mapResult(handleInvalidDigit)</code> handles them.</p>
+<p>We can also convert exceptions thrown by an iterator to <code>Result</code> values:</p>
+<pre><code>parseSumHandleInvalidDigitsLogRest(nums: Vec[Str]): U32
+    let result: U32 = 0
+    for i: Result[[Overflow, EmptyInput], U32] in \
+            nums.iter().map(parseU32Exn).mapResult(handleInvalidDigit).try():
+        match i:
+            Result.Err(~Overflow): printStr(&quot;Overflow&quot;)
+            Result.Err(~EmptyInput): printStr(&quot;Empty input&quot;)
+            Result.Ok(i): result += i
+    result</code></pre>
+<p>This function no longer has an exception type, because exceptions thrown by the iterator are passed to the loop variable.</p>
+<p>In summary, we started with an iterator that doesn’t throw (<code>nums.iter()</code>), mapped it with a function that throws (<code>map(parseU32Exn)</code>), which made the <code>for</code> loop propagate the exceptions thrown by the map function. We then handled one of the exceptions (<code>mapResult(handleInvalidDigit)</code>), and finally, we handled all of the exceptions and started passing a <code>Result</code> value to the loop variable (<code>try()</code>).</p>
+<p>The function’s exception type was updated each time to reflect the exceptions thrown by the function.</p>
+<p>Once we had multiple parameter traits (which are important even without exceptions, and something we were going to implement anyway), no language features were needed specifically for the throwing iterators API that composes. Changes in the <code>for</code> loop type checking were necessary to allow throwing iterators in <code>for</code> loops. Composing iterators like <code>iter().map(...).mapResult(...).try()</code> in the examples above did not require any changes to the trait system or exceptions.</p>
+<p>This demonstrates that Fir traits and exceptions work nicely together.</p>
+<p>You can try the code in this blog post <a href="https://fir-lang.github.io/?file=ThrowingIter.fir">in your browser</a>.</p>
+<h2 id="im-looking-for-contributors">I’m looking for contributors</h2>
+<p>I’m planning a blog post on my vision of Fir, why I think it matters, and a roadmap, but if you already like what you see, know a thing or two about implementing programming languages, and have the time to energy to contribute to a new language, please don’t hesitate to reach out!</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>I started this work in one country, and when finished, I was living in another! This PR really felt like an eternity to finish.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>Implementation-wise, it’s closer to Rust than Haskell as we monomorphise.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+<hr />
+
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
