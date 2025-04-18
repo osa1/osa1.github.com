@@ -18,7 +18,7 @@
     <summary type="html"><![CDATA[<p>Recently I’ve been working on extending <a href="https://github.com/fir-lang/fir">Fir</a>’s <code>Iterator</code> trait to allow iterators to throw exceptions.</p>
 <p>It took a few months of work, because we needed multiple parameter traits for it to work, which took <a href="https://github.com/fir-lang/fir/pull/73">a few months of hacking</a><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> to implement.</p>
 <p>Then there was a lot of bug fixing and experimentation, but it finally works, and I’m excited to share what you can do with Fir iterators today.</p>
-<p>As usual, link to the online iterpreter with all of the code in this post is at the end.</p>
+<p>As usual, link to the online interpreter with all of the code in this post is at the end.</p>
 <p>Before starting, I recommend reading the <a href="https://osa1.net/posts/2025-01-18-fir-error-handling.html">previous post</a>. It’s quite short and it explains the basics of error handling in Fir.</p>
 <p>Previous post did not talk about traits at all, so in short, traits in Fir is the same feature as Rust’s traits and Haskell’s typeclasses<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
 <p>The <code>Iterator</code> trait in Fir is also the same as the trait with the same name in Rust, and it’s used the same way, in <code>for</code> loops.</p>
@@ -55,20 +55,20 @@ parseU32(s: Str): U32
 <p>This version takes a <code>Vec[Str]</code> as argument, and parses the elements as integers.</p>
 <p>The problem with this version is that it panics on unexpected cases: invalid digits and empty input, and it ignores overflows.</p>
 <p>Until now, there wasn’t a convenient way to use the <code>Iterator</code> API and <code>for</code> loops to do this kind of thing, while also propagating exceptions to the call site of the <code>for</code> loop, or to the loop variable. But now we can do this: (<code>parseU32Exn</code> is from the previous post)</p>
-<pre><code>parseSum(nums: Vec[Str]): {Overflow, EmptyInput, InvalidDigit, ..errs} U32
+<pre><code>parseSum(nums: Vec[Str]): [Overflow, EmptyInput, InvalidDigit, ..errs] U32
     let result: U32 = 0
     for i: U32 in nums.iter().map(parseU32Exn):
         result += i
     result</code></pre>
 <p>Errors that <code>parseU32Exn</code> can throw are now implicitly thrown from the <code>for</code> loop and reflected in the function’s type.</p>
 <p>This new <code>Iterator</code> API is flexible enough to allow handling some (or all) of the exceptions thrown by a previous iterator. For example, here’s how we can handle <code>InvalidDigit</code> exceptions and yield <code>0</code> instead:</p>
-<pre><code>parseSumHandleInvalidDigits(nums: Vec[Str]): {Overflow, EmptyInput, ..errs} U32
+<pre><code>parseSumHandleInvalidDigits(nums: Vec[Str]): [Overflow, EmptyInput, ..errs] U32
     let result: U32 = 0
     for i: U32 in nums.iter().map(parseU32Exn).mapResult(handleInvalidDigit):
         result += i
     result
 
-handleInvalidDigit(parseResult: Result[[InvalidDigit, ..errs], Option[U32]]): {..errs} Option[U32]
+handleInvalidDigit(parseResult: Result[[InvalidDigit, ..errs], Option[U32]]): [..errs] Option[U32]
     match parseResult:
         Result.Ok(result): result
         Result.Err(~InvalidDigit): Option.Some(0u32)
@@ -202,15 +202,14 @@ parseWithErrorHandler(
 <p>At the core of exceptions in Fir are these three functions:</p>
 <ul>
 <li><p><code>throw</code>, which converts a variant into an exception:</p>
-<pre><code>throw(exn: [..r]): {..r} a</code></pre></li>
+<pre><code>throw(exn: exn): exn a</code></pre></li>
 <li><p><code>try</code>, which converts exceptions into <code>Result.Err</code> values:</p>
-<pre><code>try(cb: Fn(): {..exn} a): {..r} Result[[..exn], a]</code></pre></li>
+<pre><code>try(cb: Fn(): exn a): Result[exn, a]</code></pre></li>
 <li><p><code>untry</code>, which converts a <code>Result.Err</code> value into an exception:</p>
-<pre><code>untry(res: Result[[..errs], a]): {..errs} a</code></pre></li>
+<pre><code>untry(res: Result[exn, a]): exn a</code></pre></li>
 </ul>
-<p>(The part in <code>{...}</code> is the exception variant type. The reason we use <code>{...}</code> instead of <code>[...]</code> is to be able to distinguish exception types from return types in function type signatures when one of the types are omitted. This part of the syntax may change in the future.)</p>
 <p>Here are some of the code above, using exceptions instead of error values:</p>
-<pre><code>parseU32Exn(s: Str): {InvalidDigit, Overflow, EmptyInput, ..r} U32
+<pre><code>parseU32Exn(s: Str): [InvalidDigit, Overflow, EmptyInput, ..r] U32
     if s.len() == 0:
         throw(~EmptyInput)
 
@@ -232,15 +231,15 @@ parseWithErrorHandler(
 
     result
 
-readFileExn(s: Str): {IoError, ..r} Str
+readFileExn(s: Str): [IoError, ..r] Str
     # We don&#39;t have the standard library support for file IO yet, just throw
     # an error for now.
     throw(~IoError)
 
-parseU32FromFileExn(filePath: Str): {InvalidDigit, Overflow, EmptyInput, IoError, ..r} U32
+parseU32FromFileExn(filePath: Str): [InvalidDigit, Overflow, EmptyInput, IoError, ..r] U32
     parseU32Exn(readFileExn(filePath))
 
-parseWithExn(vec: Vec[Str], parseFn: Fn(Str): {..errs} a): {..errs} Vec[a]
+parseWithExn(vec: Vec[Str], parseFn: Fn(Str): exn a): exn Vec[a]
     let ret = Vec.withCapacity(vec.len())
     for s in vec.iter():
         ret.push(parseFn(s))
@@ -249,7 +248,7 @@ parseWithExn(vec: Vec[Str], parseFn: Fn(Str): {..errs} a): {..errs} Vec[a]
 <pre><code>parseU32UsingExnVersion(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
     try({ parseU32Exn(s) })
 
-parseU32UsingResultVersion(s: Str): {InvalidDigit, Overflow, EmptyInput, ..r} U32
+parseU32UsingResultVersion(s: Str): [InvalidDigit, Overflow, EmptyInput, ..r] U32
     untry(parseU32(s))</code></pre>
 <p>Nice!</p>
 <hr />

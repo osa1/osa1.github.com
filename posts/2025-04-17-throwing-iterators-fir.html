@@ -26,7 +26,7 @@
 <p>Recently I’ve been working on extending <a href="https://github.com/fir-lang/fir">Fir</a>’s <code>Iterator</code> trait to allow iterators to throw exceptions.</p>
 <p>It took a few months of work, because we needed multiple parameter traits for it to work, which took <a href="https://github.com/fir-lang/fir/pull/73">a few months of hacking</a><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> to implement.</p>
 <p>Then there was a lot of bug fixing and experimentation, but it finally works, and I’m excited to share what you can do with Fir iterators today.</p>
-<p>As usual, link to the online iterpreter with all of the code in this post is at the end.</p>
+<p>As usual, link to the online interpreter with all of the code in this post is at the end.</p>
 <p>Before starting, I recommend reading the <a href="https://osa1.net/posts/2025-01-18-fir-error-handling.html">previous post</a>. It’s quite short and it explains the basics of error handling in Fir.</p>
 <p>Previous post did not talk about traits at all, so in short, traits in Fir is the same feature as Rust’s traits and Haskell’s typeclasses<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
 <p>The <code>Iterator</code> trait in Fir is also the same as the trait with the same name in Rust, and it’s used the same way, in <code>for</code> loops.</p>
@@ -63,20 +63,20 @@ parseU32(s: Str): U32
 <p>This version takes a <code>Vec[Str]</code> as argument, and parses the elements as integers.</p>
 <p>The problem with this version is that it panics on unexpected cases: invalid digits and empty input, and it ignores overflows.</p>
 <p>Until now, there wasn’t a convenient way to use the <code>Iterator</code> API and <code>for</code> loops to do this kind of thing, while also propagating exceptions to the call site of the <code>for</code> loop, or to the loop variable. But now we can do this: (<code>parseU32Exn</code> is from the previous post)</p>
-<pre><code>parseSum(nums: Vec[Str]): {Overflow, EmptyInput, InvalidDigit, ..errs} U32
+<pre><code>parseSum(nums: Vec[Str]): [Overflow, EmptyInput, InvalidDigit, ..errs] U32
     let result: U32 = 0
     for i: U32 in nums.iter().map(parseU32Exn):
         result += i
     result</code></pre>
 <p>Errors that <code>parseU32Exn</code> can throw are now implicitly thrown from the <code>for</code> loop and reflected in the function’s type.</p>
 <p>This new <code>Iterator</code> API is flexible enough to allow handling some (or all) of the exceptions thrown by a previous iterator. For example, here’s how we can handle <code>InvalidDigit</code> exceptions and yield <code>0</code> instead:</p>
-<pre><code>parseSumHandleInvalidDigits(nums: Vec[Str]): {Overflow, EmptyInput, ..errs} U32
+<pre><code>parseSumHandleInvalidDigits(nums: Vec[Str]): [Overflow, EmptyInput, ..errs] U32
     let result: U32 = 0
     for i: U32 in nums.iter().map(parseU32Exn).mapResult(handleInvalidDigit):
         result += i
     result
 
-handleInvalidDigit(parseResult: Result[[InvalidDigit, ..errs], Option[U32]]): {..errs} Option[U32]
+handleInvalidDigit(parseResult: Result[[InvalidDigit, ..errs], Option[U32]]): [..errs] Option[U32]
     match parseResult:
         Result.Ok(result): result
         Result.Err(~InvalidDigit): Option.Some(0u32)
