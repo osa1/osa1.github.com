@@ -262,8 +262,7 @@ void main() {
 }</code></pre>
 <p>Here the caller of <code>_readPacked</code> passes <code>readFunc</code> as a closure (allocation). <code>_readPacked</code> then allocates another closure, to be passed to <code>_withLimit</code>.</p>
 <p>That’s two closure allocations for every packed field in the input. Calling these closures are slow too, because they’re indirect.</p>
-<p>Inlining <code>_withLimit</code> in <code>_readPacked</code>, and <code>_readPacked</code> in its call sites (in <code>_mergeFromCodedBufferReader</code>) eliminates closure allocations, and calls to the closures become direct function calls. This improves packed field decoding significantly.</p>
-<p>(This change isn’t merged yet, the PR is <a href="https://github.com/google/protobuf.dart/pull/959">here</a>.)</p>
+<p>Inlining <code>_withLimit</code> in <code>_readPacked</code>, and <code>_readPacked</code> in its call sites (in <code>_mergeFromCodedBufferReader</code>) eliminates closure allocations, and calls to the closures become direct function calls. This <a href="https://github.com/google/protobuf.dart/pull/959">improves packed field decoding</a> significantly.</p>
 <h2 id="a-trick-for-effective-inlining-outlining">A trick for effective inlining: outlining</h2>
 <p>Consider <code>Int64List.[]</code> again. The implementation needs to check that the index is in bounds of the array, and throw an exception if not: (slightly simplified)</p>
 <pre><code>class Int64List ... {
