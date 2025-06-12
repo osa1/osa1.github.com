@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Changes to variants in Fir</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Changes to variants in Fir</h1>
+
+<p><strong>June 12, 2025</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'plt'." href="../tags/plt.html">plt</a>, <a title="All pages tagged 'fir'." href="../tags/fir.html">fir</a>.</p>
+
+<p>In the previous two posts (<a href="https://osa1.net/posts/2025-01-18-fir-error-handling.html">1</a>, <a href="https://osa1.net/posts/2025-04-17-throwing-iterators-fir.html">2</a>) we looked at how Fir utilizes variant types for exceptions tracked at function types, aka. checked exceptions.</p>
+<p>As I wrote more and more Fir, it quickly became obvious that the current variant type design is just too verbose and difficult to use.</p>
+<p>To see the problems, consider a JSON parsing library. This library may throw a parse error when the input is not valid. Before the recent changes, the parsing function would look like this:</p>
+<pre><code>parse(input: Str) Json / [ParseError, ..exn]:
+    ...
+    # When things go wrong:
+    throw(~ParseError)
+    ...</code></pre>
+<p>(As a reminder: <code>[ParseError, ..exn]</code> part is the variant type for the exceptions that this function throws. <code>ParseError</code> is a label for the exception value, and it has no fields. <code>..exn</code> part is the row extension, allowing this function to be called in functions that throw other exceptions.)</p>
+<p>This error type is not that useful, because the label <code>ParseError</code> doesn’t contain any information like the error location.</p>
+<p>When we start adding fields to it, things quickly get verbose:</p>
+<pre><code>parse(input: Str) Json / [ParseError(errorByteIdx: U32, msg: Str), ..exn]:
+    ...
+    # When things go wrong:
+    throw(~ParseError(
+        errorByteIdx = ...,
+        msg = ...,
+    ))
+    ...</code></pre>
+<p>Now every function that propagates this error needs to include the same fields in the label.</p>
+<p>As a second problem, suppose that there’s another library that parses YAML, which also throws an exception with the same label <code>ParseError</code>. Because we can’t have the same label multiple times in a variant (as we would have no way of distinguishing them in pattern matching), we can’t call both library functions in the same function, doing that would result in a type error about duplicate labels with different fields.</p>
+<p><em>For the verbosity of labels with fields:</em> we could have type synonyms for variant alternatives, but this doesn’t solve the problem with using the same labels in different libraries.</p>
+<p><em>For the label conflicts:</em> we could manually make the labels unique, maybe by including library name in the label, like <code>JsonParseError(...)</code> and <code>YamlParseError(...)</code>.</p>
+<p>This makes labels longer, and it doesn’t guarantee that conflicts won’t occur. For example, if we allow linking different versions of the same library in a program, two different versions of the library might have the same label <code>JsonParseError</code>, but with different fields.</p>
+<p>A combination of more creative features may solve the problem completely, but features add complexity to the language, even when they work well together. If possible, it would be preferable to improve the utility of existing features instead.</p>
+<p>As a solution that uses only existing features, Fir variants now hold named types. The example above now looks like this:</p>
+<pre><code>type ParseError:
+    errorByteIdx: U32
+    msg: Str
+
+parse(input: Str) Json / [ParseError, ..exn]:
+    ...
+    # When things go wrong:
+    throw(~ParseError(
+        errorByteIdx = ...,
+        msg = ...,
+    ))
+    ...</code></pre>
+<p>(A named type in Fir is anything other than a record or variant. See <a href="https://osa1.net/posts/2021-04-10-sums-and-products.html">this post</a> for more details on named and anonymous types.)</p>
+<p>From the type checker’s point of view, a variant is still a map of labels to fields, but we now implicitly use the fully qualified names of types as the labels.</p>
+<p>So the variant above looks like this to the type checker: <code>[Label("P.M.ParseError")(P.M.ParseError), ...exn]</code>, where <code>P</code> is the package name and <code>M</code> is the module path to the type <code>ParseError</code>, and <code>(...)</code> part after the label indicates a single positional field.</p>
+<p>This solves all of the problems with labels, and has several of other advantages:</p>
+<ul>
+<li><p>Named types are concise as we don’t have to list all of the fields every time we mention them.</p></li>
+<li><p>Named types and their fields can be documented.</p></li>
+<li><p>Named types can have methods.</p></li>
+<li><p>Named types can be extended with more fields without breaking backwards compatibility. So now it’s possible to add more fields to <code>ParseError</code> without breaking existing users.</p></li>
+<li><p>A type with the same name defined in different packages or even modules can now be used in the same variant type.</p>
+<p>(When showing a variant type to the user in an error message, we add package and module prefixes as necessary to disambiguate.)</p></li>
+<li><p>If I import a named type <code>Foo</code> as <code>Bar</code> in a module, I can use <code>Bar</code> in my variant types and it would be seen as <code>Foo</code> elsewhere.</p></li>
+<li><p>Named types can implement traits. This opens up possibilities for implicitly deriving traits for variant types.</p></li>
+</ul>
+<p>One implication of using the fully qualified path of a type as the label is that we don’t allow the same type constructor applied to different types in the same variant. E.g. <code>[Option[U32], Option[Bool]]</code> is not allowed.</p>
+<p>This is the same limitation with duplicate labels in the original version, where <code>[Label1(x: U32), Label1(y: Str)]</code> wasn’t allowed. I don’t think this will be an issue in practice.</p>
+<p>Pattern matching works as before, but we now omit the labels, as they’re inferred from the types of patterns. Here’s a contrived example demonstrating the syntax:</p>
+<pre><code>f() / [Option[U32], ..exn]:
+    throw(~Option.None)
+
+g() / [Result[Str, Bool], ..exn]:
+    throw(~Result.Ok(Bool.True))
+
+main():
+    match try({
+        f()
+        g()
+    }):
+        Result.Ok(()): print(&quot;OK&quot;)
+        Result.Err(~Option.None): print(&quot;NA&quot;)
+        Result.Err(~Result.Ok(bool)): print(&quot;Bool: `bool`&quot;)
+        Result.Err(~Result.Err(str)): print(&quot;Str: `str`&quot;)</code></pre>
+<p>This is essentially the same as before, just with variant labels omitted.</p>
+<p>To keep things simple, I haven’t implemented supporting literals in variant syntax yet: <code>~123</code>, <code>~"Hi"</code>, or <code>~'a'</code> doesn’t work yet. It wouldn’t be too much work to implement this, but I don’t need it right now.</p>
+<hr />
+<p>In retrospect, using named types in variants is such an obvious improvement, with practically no downsides. But it took a few thousands of lines of Fir for me to realize this.</p>
+<p>If I discover cases where explicit labels are useful, the current design is not incompatible with the old one. The type checker still uses the same variant representation, with a label and a field for each alternative (with multiple fields are represented as records). It shouldn’t be too difficult to support both named types and labels in variant types.</p>
+<p>This new design improves error handling quite a bit, but there are still a few problems we need to solve. In a future post I’m hoping to talk about the issues with adding a type component to the function types for exceptions.</p>
+
+<hr />
+
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
