@@ -130,8 +130,7 @@ fun test(): &lt;exn&gt;()
 <p>What we’re talking about is things like: the idiomatic and performant way of doing things.</p>
 <p>The language where what I talk about is idiomatic and performant does not exist today.</p>
 <h2 id="how-do-we-know-that-this-ideal-system-is-possible">How do we know that this ideal system is possible?</h2>
-<p>The short answer is that I’ve been working on compilers for more than a decade at this point, I know that I can implement this, and I’m working on implementing it.</p>
-<p>The slightly longer answer is: we mentioned that the two components of an effect system are somewhat orthogonal. In the design that I have in mind (more on this below), without the type system part of it you still get 90% of the benefits. So let’s focus on the runtime parts.</p>
+<p>We mentioned that the two components of an effect system are somewhat orthogonal. In the design that I have in mind (more on this below), without the type system part of it you still get 90% of the benefits. So let’s focus on the runtime parts.</p>
 <p>What you need for a flexible effect system is, <em>conceptually</em>, a way of suspending the stack when calling an effect, passing the suspended stack (you may want to call it a “continuation”) to the handler for the effect invoked.</p>
 <p>This kind of thing is already possible in many of the high-level languages today. If your language supports lightweight threads (green threads, fibers, etc.), coroutines, generators, or similar features where the code is suspended when it does something like <code>await</code> or <code>yield</code>, and then resumed later, you already have the runtime features for a flexible effect system.</p>
 <h2 id="for-me-its-about-composable-and-testable-libraries">For me, it’s about composable and testable libraries</h2>
