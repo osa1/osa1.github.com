@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Fir is getting useful</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Fir is getting useful</h1>
+
+<p><strong>September  4, 2025</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'fir'." href="../tags/fir.html">fir</a>.</p>
+
+<p>A few months ago I implemented a <a href="https://github.com/fir-lang/fir/tree/55bf6bacf31d04f5a6b623aedbede5a02bcd31a8/tools/peg">PEG parser generator</a> in Fir. It <a href="https://github.com/fir-lang/fir/blob/55bf6bacf31d04f5a6b623aedbede5a02bcd31a8/tools/peg/PegGrammar.peg">parses its own grammar</a> and it’s also used to <a href="https://github.com/fir-lang/fir/blob/55bf6bacf31d04f5a6b623aedbede5a02bcd31a8/compiler/Grammar.peg">parse Fir</a>.</p>
+<p>This week I finished another sizable<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> Fir project: a <a href="https://github.com/fir-lang/fir/blob/55bf6bacf31d04f5a6b623aedbede5a02bcd31a8/tools/format/Format.fir">code formatter for Fir</a>. It now <a href="https://github.com/fir-lang/fir/commit/222940029c1cc71da2cd35d4f3c90eab885c918e">formats most of the Fir code</a> in the repo<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
+<p>Fir is being designed and implemented from day one with tooling, libraries, and backwards compatibility in mind. The compiler’s front-end is currently being reused by the formatter. Soon it’ll be reused by a syntax-aware search-and-replace tool (similar to <a href="https://github.com/osa1/sg">sg</a>), and by a tool that combines Fir packages into a single .fir file (for sharing repros and automated repro reduction), and much later, by the language server and other tools. You can see the list of tools I want to implement <a href="https://github.com/fir-lang/fir/issues/28">here</a>.</p>
+<p>By implementing the tooling along with the first version of the compiler (all in Fir), I want to make sure we have the right SDK design to support all these tools, and more. I want to publish the Fir front-end as a reusable package. This front-end should support the last N<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> releases of Fir, so that you can parse (and analyze, modify, refactor, migrate, …) the last N versions of Fir with the latest version of Fir.</p>
+<p>I still haven’t written a post explaining what kind of language I want Fir to be, because that’s still largely an open question. However there are a few things that are decided: a compiled, typed language with ADTs, with typeclasses (called traits) for compile-time polymorphism (monomorphised, with value types), and <a href="https://osa1.net/posts/2025-06-28-why-effects.html">effects</a>. I want Fir to be a high-level, but still efficient, language.</p>
+<p>Even implementing just a compiler is a big task, and designing and implementing a whole language with all these tools can’t be done by one person. If this vision sounds interesting to you, and you clicked on a few links above and like what you see, please don’t hesitate to reach out. Each of these tools comes with their own issues and tasks, so it’s now a good time to start contributing to Fir. I already have a list of <a href="https://github.com/fir-lang/fir/issues?q=is%3Aissue%20state%3Aopen%20label%3Apeg">issues for the PEG generator</a> and the <a href="https://github.com/fir-lang/fir/issues?q=is%3Aissue%20state%3Aopen%20label%3Aformatter">formatter</a>. There’s also all kinds of other things in the issue tracker. Depending on your experience, you can also keep yourself entertained in other ways: the interpreter is slow (a simple AST walker), the interpreter’s type checker is not in good shape etc. If you have the experience and opinions, you can also influence the language design.</p>
+<p>My next task is, I’ll be implementing the search-and-replace tool mentioned above (I do this now mainly because I need it when working on Fir), and in parallel, <a href="https://github.com/fir-lang/fir/issues/195">designing and implementing the module system</a>. The module system will need to be implemented in the interpreter too, because I’ll be using modules in the compiler and other tools. Depending on how much free time I’ll have, it should be at least a month of work.</p>
+<p>I’m happy with how it’s coming along and I’m excited about Fir’s future.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>Formatter is currently 1,086 loc. PEG is 850 loc without the parser for parsing itself. Generated Fir for the parsing PEGs is 2,364 loc, generated from 178 loc PEG.</p>
+<p>It’s a bit more difficult to precisely measure the compiler’s grammar size, because it includes semantic actions, but the grammar is 888 loc and generated parser for the grammar is 5,147 loc.</p>
+<p>In total (including tests), we have 21,012 loc Fir today in the repo.</p>
+<p>All numbers excluding comments and whitespace.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>We don’t format tests to avoid accidentally parsing only formatted code.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p>I’m not sure what the exact number here should be yet.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+<hr />
+
+<div id="disqus_thread">
+    <a href="#" onclick="loadDisqus(); return false;">
+        (Show comments)
+    </a>
+</div>
+
+<script>
+    function loadDisqus() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = 'https://osa1.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+            document.getElementsByTagName('body')[0]).appendChild(dsq);
+    };
+</script>
+
+            </div>
+        </div>
+    </body>
+</html>
