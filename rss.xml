@@ -8,8 +8,81 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2025-09-04T00:00:00Z</updated>
+    <updated>2025-09-27T00:00:00Z</updated>
     <entry>
+    <title>How Fir formats comments</title>
+    <link href="http://osa1.net/posts/2025-09-27-fir-formatter.html" />
+    <id>http://osa1.net/posts/2025-09-27-fir-formatter.html</id>
+    <published>2025-09-27T00:00:00Z</published>
+    <updated>2025-09-27T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Fir formats comments by assigning comment tokens to non-comment tokens (only conceptually, not in the implementation, see below), and generating comments when formatting the tokens that “own” them.</p>
+<p>This keeps AST nodes small. The parser doesn’t know about comments at all, and code that doesn’t care about comments don’t allocate more or run more code for comments.</p>
+<hr />
+<p>Formatting source code with comments is tricky, and common suggestions like adding comments to AST nodes or generating lossless (or concrete) syntax trees (CSTs) are not feasible in real programming languages. Consider this simple Fir function:</p>
+<pre><code>add(x: U32, y: U32) U32:
+    ...</code></pre>
+<p>This simple function, without the body, has 14 places where a comment can appear:</p>
+<pre><code>#|1|#
+#|2|# add #|3|# (
+    #|4|# x #|5|# : #|6|# U32 #|7|# ,
+    #|8|# y #|9|# : #|10|# U32 #|11|#
+) #|12|# U32 #|13|# : #|14|#
+    ...</code></pre>
+<p>If I were to add comment tokens to AST nodes, about 6 of these would belong to the “function declaration” AST node:</p>
+<pre><code>#|1|#
+#|2|# add #|3|# ( #|4|# ... ) #|12|# ... : #|14|#
+    ...</code></pre>
+<p>Because each of these is in different positions in the declaration, they would need different fields in the AST node.</p>
+<p>If you consider that a real programming language will have hundreds of different types of expression, statement, declaration, … nodes, it becomes clear that this approach is simply not feasible.</p>
+<p>The CST approach is not too different, it just moves the inconvenience from the tree type definitions and tree allocations to the use sites of the trees.</p>
+<p>What Fir does is much simpler: it requires no support from the parse trees. The parser doesn’t even know about comments, and the AST users that don’t care about comments also don’t need to deal with them and don’t pay any price for them (runtime or memory).</p>
+<p>Conceptually, we assign every comment token to a non-comment token. In the example above, comments 1, 2, and 3 belong to the identifier <code>add</code>. Comment 4 belongs to the token <code>(</code>, and so on.</p>
+<p>When formatting, we don’t generate text directly. Instead we format the source code token by token. In the example above, we’re formatting a function definition, so we know that there will be a left paren after the function name. But we don’t generate a “(” directly after the function name. Instead we find the token for the left paren, and format it. This formatting operation also generates comments that belong to the left paren.</p>
+<p><strong>Assigning comment tokens to non-comment tokens:</strong> Conceptually, every token owns:</p>
+<ul>
+<li><p>Comment tokens before them that are not on the same line with another non-comment token.</p></li>
+<li><p>Comment tokens after them that are on the same line with the token.</p></li>
+</ul>
+<p>In the example above, 1 and 2 belong to the identifier <code>add</code> because of the first rule, and 3 also belongs to the identifier because of the second rule.</p>
+<p>This only leaves the trailing comments at the end of a file “unowned”, which we handle separately as their own thing.</p>
+<p><strong>Finding tokens of AST nodes:</strong> The formatter still operates on AST nodes and AST nodes typically don’t need any extra fields for their tokens.</p>
+<p>Instead of adding tokens to AST nodes, we represent identifiers as their tokens. Because many AST nodes have identifiers, we can start with those tokens and scan backwards and forwards to find the other tokens of the AST node, with the comments that they own.</p>
+<p>When an AST node doesn’t have any identifiers, or finding the tokens of the node from the identifiers is difficult, we add a field for its first (or last) token, and scan forwards (or backwards) from those tokens to find the other tokens.</p>
+<p>For example, in Fir, as of today, type declarations are represented as this: (<a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Compiler/Ast.fir#L66-L83">source</a>)</p>
+<pre><code>## A type declaration: `type Vec[t]: ...`.
+type TypeDecl(
+    ## When the type is a primitive, the `prim` token.
+    prim_: Option[TokenIdx],
+
+    ## The type name. `Vec` in the example.
+    name: Id,
+
+    ## Type parameters of the type. `[t]` in the example.
+    typeParams: Vec[Id],
+
+    ## Kinds of `type_params`. Filled in by kind inference.
+    typeParamKinds: Vec[Kind],
+
+    ## Constructors of the type.
+    rhs: Option[TypeDeclRhs],
+)</code></pre>
+<p>Note that this node doesn’t have a token for the <code>type</code> keyword. Instead we start from <code>name</code> and scan backwards. The first non-trivia token that we see will be the <code>type</code> token. (<a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L105-L106">source</a>)</p>
+<p>(The <code>prim_</code> field could also be removed and we could scan backwards from the <code>type</code> token. If you’re interested in contributing, we have <a href="https://github.com/fir-lang/fir/issues/206">an issue</a> about cleaning up redundant token fields in AST nodes, which would be a good issue for getting started.)</p>
+<p><strong>Generating comments with tokens:</strong> I used the word “conceptually” a few times above, because in the implementation we don’t really assign comment tokens to non-comment tokens.</p>
+<p>Instead, the function that formats a token scans backwards and forwards to find comment tokens as described by the rules above, and generates them with the token.</p>
+<hr />
+<p>Scanning backwards and forwards to find other tokens and collecting comment tokens that belong to a token being formatted are quite simple. Here are the relevant code:</p>
+<ul>
+<li><p><a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L1520-L1583"><code>formatToken</code></a> takes a non-comment token to be formatted and formats the token with the comments that belong to the token.</p></li>
+<li><p><code>formatToken</code> calls <a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L1703-L1723"><code>findCommentBefore</code></a> to find the first comment before it that needs to be formatted with it.</p>
+<p>Finding the comments after it is easier, so it’s done in <code>formatToken</code> directly.</p></li>
+<li><p><a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L1761-L1773"><code>nextNonTrivia</code></a> and <a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L1776-L1788"><code>prevNonTrivia</code></a> scan forwards and backwards from a given token to find the tokens of an AST node, as mentioned in the type declaration example above.</p></li>
+<li><p>The trailing comments at the end of the file are not owned by any token, so they’re not formatted by default. Instead they’re <a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L71-L81">handled specially</a> by the module formatter.</p></li>
+</ul>
+<p>Not adding tokens to the AST nodes keeps the AST nodes small (cheaper to allocate), and parser and user code simple. Use sites that don’t care about comment nodes pay no price for larger AST nodes or extra parsing code handling comments.</p>
+<p>(There are a few open issues about Fir’s formatter, but none that are caused by the ideas explained in this post.)</p>]]></summary>
+</entry>
+<entry>
     <title>Fir is getting useful</title>
     <link href="http://osa1.net/posts/2025-09-04-fir-getting-useful.html" />
     <id>http://osa1.net/posts/2025-09-04-fir-getting-useful.html</id>
@@ -1530,51 +1603,6 @@ lexgen::lexer! {
 </blockquote></li>
 <li><p>Dart’s parser <a href="https://github.com/dart-lang/sdk/blob/19da943583e020e96026f797904dc5c6b993d4ac/pkg/_fe_analyzer_shared/lib/src/parser/listener.dart#L35-L46">uses the push-based API</a>. This parser is the only Dart language parser used by the SDK. It’s used by the analyzer, language server, compilers, and anything else that the SDK includes.</p></li>
 </ul>]]></summary>
-</entry>
-<entry>
-    <title>Resumable exceptions</title>
-    <link href="http://osa1.net/posts/2024-11-04-resumable-exceptions.html" />
-    <id>http://osa1.net/posts/2024-11-04-resumable-exceptions.html</id>
-    <published>2024-11-04T00:00:00Z</published>
-    <updated>2024-11-04T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>The main use case of resumable exceptions would be collecting a bunch of errors (instead of bailing out after the first one) to log or show to the user, or actually recovering and continuing from the point of error detection, rather than in a call site.</p>
-<p><em>Why not design the code to allow error recovery, instead of using a language feature?</em> There are a few problems with this:</p>
-<ul>
-<li><p>Without a language feature to do this, libraries will have to implement their own ways to recover from errors, causing inconsistencies and fragmented ecosystem of error handling libraries.</p></li>
-<li><p>With resumable exceptions, any code can be trivially made to transfer control to a exception handler, and back. Manually refactoring code to do the same can be a big task. This may even be infeasible.</p></li>
-<li><p>With resumable exceptions as a part of the language, libraries will be designed with resumption in mind. Libraries that would normally not allow error recovery will allow error recovery, as it will be easy to do, and it will be a common thing to resume from errors.</p></li>
-</ul>
-<h1 id="example-use-case-parser-shared-by-a-compiler-and-a-language-server">Example use case: parser shared by a compiler and a language server</h1>
-<p>Modern programming languages have complex syntax. Parsers for these languages are often thousands of lines of code.</p>
-<p>Ideally, all tooling for a language would share the parser, as it’s a significant amount of work to implement, debug, maintain parsers for such large languages.</p>
-<p>However not all of these tools will have the same error handling behavior. A compiler <em>cannot</em> continue in the presence of a parse error, but a language server <em>has to</em> continue.</p>
-<p>With resumable exceptions, the compiler can abort after a parse error, the language server can provide placeholder AST nodes for failing parse operations and resume. This flexibility does not make the parser API any more complicated than a parser that throws an exception in any other language. A one-off refactoring script that uses the parser library doesn’t have to deal with error recovery just because the language server, which uses the same parser, needs to recover from parse errors and continue parsing.</p>
-<h1 id="types-of-resumable-exceptions">Types of resumable exceptions</h1>
-<p>With resumable exceptions <code>throw</code> expressions generate a value. The value depends on the exception type thrown. For example, a <code>FooDecodingException</code> can be resumed with a value of <code>Foo</code> provided by the handler.</p>
-<p>This can be implemented with an abstract base class or typeclass/trait with a type parameter:</p>
-<pre><code>// in a system with classes:
-abstract class ResumableException&lt;Resume&gt; { 
-    prim Resume throw();
-    prim Never resume(Resume resumptionValue);
-}
-
-// or in a system with typeclasses/traits:
-trait ResumableException&lt;Resume&gt; {
-    prim fn throw(self) -&gt; Resume;
-    prim fn resume(resumptionValue: Resume) -&gt; !;
-}</code></pre>
-<p>Here the <code>prim</code> keyword indicates that the <code>throw</code> and <code>resume</code> methods are provided by the compiler.</p>
-<p><code>throw e</code> can then be type checked as <code>e.throw()</code>, and <code>resume e with value</code> can be type checked as <code>e.resume(value)</code>. Or we can use the function call syntax instead of special syntax for throwing and resuming.</p>
-<p>Whether to make exceptions thrown by a function a part of its type signature or not is an orthogonal concern.</p>
-<h1 id="exception-type-design-considerations">Exception type design considerations</h1>
-<p>The same considerations when designing non-resumable exceptions apply to resumable exceptions:</p>
-<ul>
-<li>The more general an exception type gets, the less you can do with it.</li>
-<li>We still want to distinguish “log and stop” kind of exceptions from recoverable ones.</li>
-</ul>
-<p>For example, it doesn’t make sense to resume from an <a href="https://api.dart.dev/stable/3.5.4/dart-core/ArgumentError-class.html"><code>ArgumentError</code></a>, so we don’t implement <code>ResumableException</code> for it.</p>
-<p>To be able to meaningfully resume from an exception, the exception type should document when exactly it is thrown, or have a resumption value type that is specific enough to give an idea on when it is thrown.</p>
-<p>For example, an exception that can be resumed with an <code>int</code> cannot be resumed without knowing what that <code>int</code> is going to be used for, so this should be documented. But an exception <code>FooDecodingError implements ResumableException&lt;Foo&gt;</code> makes it clear that it’s thrown when there’s an error during decoding a <code>Foo</code>, and the resumption value is the value to be used as the <code>Foo</code> being decoded.</p>]]></summary>
 </entry>
 
 </feed>

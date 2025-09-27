@@ -8,8 +8,81 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2025-09-04T00:00:00Z</updated>
+    <updated>2025-09-27T00:00:00Z</updated>
     <entry>
+    <title>How Fir formats comments</title>
+    <link href="http://osa1.net/posts/2025-09-27-fir-formatter.html" />
+    <id>http://osa1.net/posts/2025-09-27-fir-formatter.html</id>
+    <published>2025-09-27T00:00:00Z</published>
+    <updated>2025-09-27T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Fir formats comments by assigning comment tokens to non-comment tokens (only conceptually, not in the implementation, see below), and generating comments when formatting the tokens that “own” them.</p>
+<p>This keeps AST nodes small. The parser doesn’t know about comments at all, and code that doesn’t care about comments don’t allocate more or run more code for comments.</p>
+<hr />
+<p>Formatting source code with comments is tricky, and common suggestions like adding comments to AST nodes or generating lossless (or concrete) syntax trees (CSTs) are not feasible in real programming languages. Consider this simple Fir function:</p>
+<pre><code>add(x: U32, y: U32) U32:
+    ...</code></pre>
+<p>This simple function, without the body, has 14 places where a comment can appear:</p>
+<pre><code>#|1|#
+#|2|# add #|3|# (
+    #|4|# x #|5|# : #|6|# U32 #|7|# ,
+    #|8|# y #|9|# : #|10|# U32 #|11|#
+) #|12|# U32 #|13|# : #|14|#
+    ...</code></pre>
+<p>If I were to add comment tokens to AST nodes, about 6 of these would belong to the “function declaration” AST node:</p>
+<pre><code>#|1|#
+#|2|# add #|3|# ( #|4|# ... ) #|12|# ... : #|14|#
+    ...</code></pre>
+<p>Because each of these is in different positions in the declaration, they would need different fields in the AST node.</p>
+<p>If you consider that a real programming language will have hundreds of different types of expression, statement, declaration, … nodes, it becomes clear that this approach is simply not feasible.</p>
+<p>The CST approach is not too different, it just moves the inconvenience from the tree type definitions and tree allocations to the use sites of the trees.</p>
+<p>What Fir does is much simpler: it requires no support from the parse trees. The parser doesn’t even know about comments, and the AST users that don’t care about comments also don’t need to deal with them and don’t pay any price for them (runtime or memory).</p>
+<p>Conceptually, we assign every comment token to a non-comment token. In the example above, comments 1, 2, and 3 belong to the identifier <code>add</code>. Comment 4 belongs to the token <code>(</code>, and so on.</p>
+<p>When formatting, we don’t generate text directly. Instead we format the source code token by token. In the example above, we’re formatting a function definition, so we know that there will be a left paren after the function name. But we don’t generate a “(” directly after the function name. Instead we find the token for the left paren, and format it. This formatting operation also generates comments that belong to the left paren.</p>
+<p><strong>Assigning comment tokens to non-comment tokens:</strong> Conceptually, every token owns:</p>
+<ul>
+<li><p>Comment tokens before them that are not on the same line with another non-comment token.</p></li>
+<li><p>Comment tokens after them that are on the same line with the token.</p></li>
+</ul>
+<p>In the example above, 1 and 2 belong to the identifier <code>add</code> because of the first rule, and 3 also belongs to the identifier because of the second rule.</p>
+<p>This only leaves the trailing comments at the end of a file “unowned”, which we handle separately as their own thing.</p>
+<p><strong>Finding tokens of AST nodes:</strong> The formatter still operates on AST nodes and AST nodes typically don’t need any extra fields for their tokens.</p>
+<p>Instead of adding tokens to AST nodes, we represent identifiers as their tokens. Because many AST nodes have identifiers, we can start with those tokens and scan backwards and forwards to find the other tokens of the AST node, with the comments that they own.</p>
+<p>When an AST node doesn’t have any identifiers, or finding the tokens of the node from the identifiers is difficult, we add a field for its first (or last) token, and scan forwards (or backwards) from those tokens to find the other tokens.</p>
+<p>For example, in Fir, as of today, type declarations are represented as this: (<a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Compiler/Ast.fir#L66-L83">source</a>)</p>
+<pre><code>## A type declaration: `type Vec[t]: ...`.
+type TypeDecl(
+    ## When the type is a primitive, the `prim` token.
+    prim_: Option[TokenIdx],
+
+    ## The type name. `Vec` in the example.
+    name: Id,
+
+    ## Type parameters of the type. `[t]` in the example.
+    typeParams: Vec[Id],
+
+    ## Kinds of `type_params`. Filled in by kind inference.
+    typeParamKinds: Vec[Kind],
+
+    ## Constructors of the type.
+    rhs: Option[TypeDeclRhs],
+)</code></pre>
+<p>Note that this node doesn’t have a token for the <code>type</code> keyword. Instead we start from <code>name</code> and scan backwards. The first non-trivia token that we see will be the <code>type</code> token. (<a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L105-L106">source</a>)</p>
+<p>(The <code>prim_</code> field could also be removed and we could scan backwards from the <code>type</code> token. If you’re interested in contributing, we have <a href="https://github.com/fir-lang/fir/issues/206">an issue</a> about cleaning up redundant token fields in AST nodes, which would be a good issue for getting started.)</p>
+<p><strong>Generating comments with tokens:</strong> I used the word “conceptually” a few times above, because in the implementation we don’t really assign comment tokens to non-comment tokens.</p>
+<p>Instead, the function that formats a token scans backwards and forwards to find comment tokens as described by the rules above, and generates them with the token.</p>
+<hr />
+<p>Scanning backwards and forwards to find other tokens and collecting comment tokens that belong to a token being formatted are quite simple. Here are the relevant code:</p>
+<ul>
+<li><p><a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L1520-L1583"><code>formatToken</code></a> takes a non-comment token to be formatted and formats the token with the comments that belong to the token.</p></li>
+<li><p><code>formatToken</code> calls <a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L1703-L1723"><code>findCommentBefore</code></a> to find the first comment before it that needs to be formatted with it.</p>
+<p>Finding the comments after it is easier, so it’s done in <code>formatToken</code> directly.</p></li>
+<li><p><a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L1761-L1773"><code>nextNonTrivia</code></a> and <a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L1776-L1788"><code>prevNonTrivia</code></a> scan forwards and backwards from a given token to find the tokens of an AST node, as mentioned in the type declaration example above.</p></li>
+<li><p>The trailing comments at the end of the file are not owned by any token, so they’re not formatted by default. Instead they’re <a href="https://github.com/fir-lang/fir/blob/7732446fe42185778cf331350345b114087b01b9/Tool/Format/Format.fir#L71-L81">handled specially</a> by the module formatter.</p></li>
+</ul>
+<p>Not adding tokens to the AST nodes keeps the AST nodes small (cheaper to allocate), and parser and user code simple. Use sites that don’t care about comment nodes pay no price for larger AST nodes or extra parsing code handling comments.</p>
+<p>(There are a few open issues about Fir’s formatter, but none that are caused by the ideas explained in this post.)</p>]]></summary>
+</entry>
+<entry>
     <title>Fir is getting useful</title>
     <link href="http://osa1.net/posts/2025-09-04-fir-getting-useful.html" />
     <id>http://osa1.net/posts/2025-09-04-fir-getting-useful.html</id>
