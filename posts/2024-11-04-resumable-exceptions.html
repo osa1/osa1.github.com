@@ -62,25 +62,6 @@ trait ResumableException&lt;Resume&gt; {
 <p>To be able to meaningfully resume from an exception, the exception type should document when exactly it is thrown, or have a resumption value type that is specific enough to give an idea on when it is thrown.</p>
 <p>For example, an exception that can be resumed with an <code>int</code> cannot be resumed without knowing what that <code>int</code> is going to be used for, so this should be documented. But an exception <code>FooDecodingError implements ResumableException&lt;Foo&gt;</code> makes it clear that it’s thrown when there’s an error during decoding a <code>Foo</code>, and the resumption value is the value to be used as the <code>Foo</code> being decoded.</p>
 
-<hr />
-
-<div id="disqus_thread">
-    <a href="#" onclick="loadDisqus(); return false;">
-        (Show comments)
-    </a>
-</div>
-
-<script>
-    function loadDisqus() {
-        var dsq = document.createElement('script');
-        dsq.type = 'text/javascript';
-        dsq.async = true;
-        dsq.src = 'https://osa1.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] ||
-            document.getElementsByTagName('body')[0]).appendChild(dsq);
-    };
-</script>
-
             </div>
         </div>
     </body>

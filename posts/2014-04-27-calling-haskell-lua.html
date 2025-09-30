@@ -139,25 +139,6 @@ bad argument #1 to '?' (number expected, got string)</code></pre>
 <p>About one year ago, I did something similar using C instead of Haskell. You can see the code <a href="https://github.com/osa1/lcl">here</a>. The library compiled to a <code>.so</code> file and by using Lua’s <code>package.loadlib</code>, you can load functions defined in the <code>.so</code>.</p>
 <p>Compiling raw Haskell <code>hslua</code> functions to a <code>.so</code> should not be tricky. <code>LuaState</code> type is just a wrapper around <code>Ptr ()</code>, and <code>CInt</code> is just a C integer, so it’s signature is already compatible. We probably need to use <code>foreign export ...</code> of GHC FFI and find GHC parameters to compile to <code>.so</code>. I’ll investigate this further and post updates.</p>
 
-<hr />
-
-<div id="disqus_thread">
-    <a href="#" onclick="loadDisqus(); return false;">
-        (Show comments)
-    </a>
-</div>
-
-<script>
-    function loadDisqus() {
-        var dsq = document.createElement('script');
-        dsq.type = 'text/javascript';
-        dsq.async = true;
-        dsq.src = 'https://osa1.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] ||
-            document.getElementsByTagName('body')[0]).appendChild(dsq);
-    };
-</script>
-
             </div>
         </div>
     </body>

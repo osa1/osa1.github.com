@@ -139,25 +139,6 @@ pub fn tokenize_list(input: &amp;str) -&gt; Result&lt;Vec&lt;(usize, Token)&gt; 
 <p>When we add an AST building step, which is more complicated compared to the rest of steps, the performance difference between the most convenient implementation (tokenize_iter + events_iter to AST) and the most performant one (tokenize_push + events_push to AST) diminishes. In the event generation benchmark, the fast one is 30% faster, but when building an AST, it’s only 9% faster.</p>
 <p>The push implementation is still faster than the recursive descent parser, even with the extra lexing step. I’m planning to investigate this further in a future post.</p>
 
-<hr />
-
-<div id="disqus_thread">
-    <a href="#" onclick="loadDisqus(); return false;">
-        (Show comments)
-    </a>
-</div>
-
-<script>
-    function loadDisqus() {
-        var dsq = document.createElement('script');
-        dsq.type = 'text/javascript';
-        dsq.async = true;
-        dsq.src = 'https://osa1.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] ||
-            document.getElementsByTagName('body')[0]).appendChild(dsq);
-    };
-</script>
-
             </div>
         </div>
     </body>
