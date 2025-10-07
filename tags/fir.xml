@@ -205,20 +205,20 @@ main():
 <p>Previous post did not talk about traits at all, so in short, traits in Fir is the same feature as Rust’s traits and Haskell’s typeclasses<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
 <p>The <code>Iterator</code> trait in Fir is also the same as the trait with the same name in Rust, and it’s used the same way, in <code>for</code> loops.</p>
 <p>Here’s a simple example of what you can do with iterators:</p>
-<pre><code>sum(nums: Vec[U32]): U32
+<pre><code>sum(nums: Vec[U32]) U32:
     let result: U32 = 0
     for i: U32 in nums.iter():
         result += i
     result</code></pre>
 <p>The <code>Vec.iter</code> method returns an iterator that returns the next element every time its <code>next</code> method is called. <code>for</code> loop implicitly calls the <code>next</code> method to get the next element, until the <code>next</code> method returns <code>Option.None</code>.</p>
 <p>Similar to Rust’s <code>Iterator</code>, Fir’s <code>Iterator</code> trait also comes with a <code>map</code> method that allows mapping iterated elements:</p>
-<pre><code>parseSum(nums: Vec[Str]): U32
+<pre><code>parseSum(nums: Vec[Str]) U32:
     let result: U32 = 0
     for i: U32 in nums.iter().map(parseU32):
         result += i
     result
 
-parseU32(s: Str): U32
+parseU32(s: Str) U32:
     if s.len() == 0:
         panic(&quot;Empty input&quot;)
 
@@ -237,29 +237,31 @@ parseU32(s: Str): U32
 <p>This version takes a <code>Vec[Str]</code> as argument, and parses the elements as integers.</p>
 <p>The problem with this version is that it panics on unexpected cases: invalid digits and empty input, and it ignores overflows.</p>
 <p>Until now, there wasn’t a convenient way to use the <code>Iterator</code> API and <code>for</code> loops to do this kind of thing, while also propagating exceptions to the call site of the <code>for</code> loop, or to the loop variable. But now we can do this: (<code>parseU32Exn</code> is from the previous post)</p>
-<pre><code>parseSum(nums: Vec[Str]): [Overflow, EmptyInput, InvalidDigit, ..errs] U32
+<pre><code>parseSum(nums: Vec[Str]) U32 / [Overflow, EmptyInput, InvalidDigit, ..errs]:
     let result: U32 = 0
     for i: U32 in nums.iter().map(parseU32Exn):
         result += i
     result</code></pre>
 <p>Errors that <code>parseU32Exn</code> can throw are now implicitly thrown from the <code>for</code> loop and reflected in the function’s type.</p>
 <p>This new <code>Iterator</code> API is flexible enough to allow handling some (or all) of the exceptions thrown by a previous iterator. For example, here’s how we can handle <code>InvalidDigit</code> exceptions and yield <code>0</code> instead:</p>
-<pre><code>parseSumHandleInvalidDigits(nums: Vec[Str]): [Overflow, EmptyInput, ..errs] U32
+<pre><code>parseSumHandleInvalidDigits(nums: Vec[Str]) U32 / [Overflow, EmptyInput, ..errs]:
     let result: U32 = 0
     for i: U32 in nums.iter().map(parseU32Exn).mapResult(handleInvalidDigit):
         result += i
     result
 
-handleInvalidDigit(parseResult: Result[[InvalidDigit, ..errs], Option[U32]]): [..errs] Option[U32]
+handleInvalidDigit(
+    parseResult: Result[[InvalidDigit, ..errs], Option[U32]]
+) Option[U32] / [..errs]:
     match parseResult:
         Result.Ok(result): result
         Result.Err(~InvalidDigit): Option.Some(0u32)
         Result.Err(other): throw(other)</code></pre>
 <p><code>InvalidDigit</code> is no longer in the exception type of the function because <code>mapResult(handleInvalidDigit)</code> handles them.</p>
 <p>We can also convert exceptions thrown by an iterator to <code>Result</code> values:</p>
-<pre><code>parseSumHandleInvalidDigitsLogRest(nums: Vec[Str]): U32
+<pre><code>parseSumHandleInvalidDigitsLogRest(nums: Vec[Str]) U32:
     let result: U32 = 0
-    for i: Result[[Overflow, EmptyInput], U32] in \
+    for i: Result[[Overflow, EmptyInput], U32] in
             nums.iter().map(parseU32Exn).mapResult(handleInvalidDigit).try():
         match i:
             Result.Err(~Overflow): printStr(&quot;Overflow&quot;)
@@ -293,7 +295,7 @@ handleInvalidDigit(parseResult: Result[[InvalidDigit, ..errs], Option[U32]]): [.
 <p>Here are some examples of what we can do in Fir today:</p>
 <p>(Don’t pay too much attention to type syntax for now. Fir is still a prototype, the syntax will be improved.)</p>
 <p>When we have multiple ways to fail, we don’t have to introduce a sum type with all the possible ways that we can fail, we can use variants:</p>
-<pre><code>parseU32(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
+<pre><code>parseU32(s: Str) Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]:
     if s.len() == 0:
         return Result.Err(~EmptyInput)
 
@@ -315,7 +317,7 @@ handleInvalidDigit(parseResult: Result[[InvalidDigit, ..errs], Option[U32]]): [.
 
     Result.Ok(result)</code></pre>
 <p>An advantage of variants is, in pattern matching, we “refine” types of binders to drop handled variants from the type. This allows handling some of the errors and returning the rest to the caller:</p>
-<pre><code>defaultEmptyInput(res: Result[[EmptyInput, ..r], U32]): Result[[..r], U32]
+<pre><code>defaultEmptyInput(res: Result[[EmptyInput, ..r], U32]) Result[[..r], U32]:
     match res:
         Result.Err(~EmptyInput): Result.Ok(0u32)
         Result.Err(other): Result.Err(other)
@@ -324,12 +326,12 @@ handleInvalidDigit(parseResult: Result[[InvalidDigit, ..errs], Option[U32]]): [.
 <p>(We don’t refine types of variants nested in other types for now, so the last two branches cannot be replaced with <code>other: other</code> for now.)</p>
 <p>Another advantage is that they allow composing error returning functions that return different error types:</p>
 <p>(Fir supports variant constructors with fields, but to keep things simple we don’t use them in this post.)</p>
-<pre><code>readFile(s: Str): Result[[IoError, ..r], Str]
+<pre><code>readFile(s: Str) Result[[IoError, ..r], Str]:
     # We don&#39;t have the standard library support for file IO yet, just return
     # an error for now.
     Result.Err(~IoError)
 
-parseU32FromFile(filePath: Str): Result[[InvalidDigit, Overflow, EmptyInput, IoError, ..r], U32]
+parseU32FromFile(filePath: Str) Result[[InvalidDigit, Overflow, EmptyInput, IoError, ..r], U32]:
     let fileContents = match readFile(filePath):
         Result.Err(err): return Result.Err(err)
         Result.Ok(contents): contents
@@ -337,7 +339,7 @@ parseU32FromFile(filePath: Str): Result[[InvalidDigit, Overflow, EmptyInput, IoE
     parseU32(fileContents)</code></pre>
 <p>In the early return I don’t have to manually convert <code>readFile</code>s error value to <code>parseU32</code>s error value to make the types align.</p>
 <p>Variants work nicely with higher-order functions as well. Here’s a function that parses a vector of strings, returning any errors to the caller:</p>
-<pre><code>parseWith(vec: Vec[Str], parseFn: Fn(Str): Result[errs, a]): Result[errs, Vec[a]]
+<pre><code>parseWith(vec: Vec[Str], parseFn: Fn(Str) Result[errs, a]) Result[errs, Vec[a]]:
     let ret = Vec.withCapacity(vec.len())
 
     for s in vec.iter():
@@ -347,7 +349,7 @@ parseU32FromFile(filePath: Str): Result[[InvalidDigit, Overflow, EmptyInput, IoE
 
     Result.Ok(ret)</code></pre>
 <p>If I have a function argument that returns more errors than my callback, I can still call it without any adjustments:</p>
-<pre><code>parseWith2(vec: Vec[Str], parseFn: Fn(Str): Result[[OtherError, ..r], a]): Result[[..r], Vec[a]]
+<pre><code>parseWith2(vec: Vec[Str], parseFn: Fn(Str) Result[[OtherError, ..r], a]) Result[[..r], Vec[a]]:
     let ret = Vec.withCapacity(vec.len())
 
     for s in vec.iter():
@@ -359,12 +361,12 @@ parseU32FromFile(filePath: Str): Result[[InvalidDigit, Overflow, EmptyInput, IoE
     Result.Ok(ret)</code></pre>
 <p><code>parseWith2(vec, parseU32)</code> type checks even though <code>parseU32</code> doesn’t return <code>OtherError</code>.</p>
 <p>Similarly, if I have a function that handles more cases, I can pass it as a function that handles less:</p>
-<pre><code>handleSomeErrs(error: [Overflow, OtherError]): U32 = 0
+<pre><code>handleSomeErrs(error: [Overflow, OtherError]) U32: 0
 
 parseWithErrorHandler(
         input: Str,
-        handler: Fn([Overflow, ..r1]): U3
-    ): Result[[InvalidDigit, EmptyInput, ..r2], U32]
+        handler: Fn([Overflow, ..r1]) U3
+    ) Result[[InvalidDigit, EmptyInput, ..r2], U32]:
     match parseU32(input):
         Result.Err(~Overflow): Result.Ok(handler(~Overflow))
         Result.Err(other): Result.Err(other)
@@ -384,14 +386,14 @@ parseWithErrorHandler(
 <p>At the core of exceptions in Fir are these three functions:</p>
 <ul>
 <li><p><code>throw</code>, which converts a variant into an exception:</p>
-<pre><code>throw(exn: exn): exn a</code></pre></li>
+<pre><code>throw(exn: exn) a / exn</code></pre></li>
 <li><p><code>try</code>, which converts exceptions into <code>Result.Err</code> values:</p>
-<pre><code>try(cb: Fn(): exn a): Result[exn, a]</code></pre></li>
+<pre><code>try(cb: Fn() a / exn) Result[exn, a]</code></pre></li>
 <li><p><code>untry</code>, which converts a <code>Result.Err</code> value into an exception:</p>
-<pre><code>untry(res: Result[exn, a]): exn a</code></pre></li>
+<pre><code>untry(res: Result[exn, a]) a / exn</code></pre></li>
 </ul>
 <p>Here are some of the code above, using exceptions instead of error values:</p>
-<pre><code>parseU32Exn(s: Str): [InvalidDigit, Overflow, EmptyInput, ..r] U32
+<pre><code>parseU32Exn(s: Str) U32 / [InvalidDigit, Overflow, EmptyInput, ..r]:
     if s.len() == 0:
         throw(~EmptyInput)
 
@@ -413,24 +415,24 @@ parseWithErrorHandler(
 
     result
 
-readFileExn(s: Str): [IoError, ..r] Str
+readFileExn(s: Str) Str / [IoError, ..r]:
     # We don&#39;t have the standard library support for file IO yet, just throw
     # an error for now.
     throw(~IoError)
 
-parseU32FromFileExn(filePath: Str): [InvalidDigit, Overflow, EmptyInput, IoError, ..r] U32
+parseU32FromFileExn(filePath: Str) U32 / [InvalidDigit, Overflow, EmptyInput, IoError, ..r]:
     parseU32Exn(readFileExn(filePath))
 
-parseWithExn(vec: Vec[Str], parseFn: Fn(Str): exn a): exn Vec[a]
+parseWithExn(vec: Vec[Str], parseFn: Fn(Str) a / exn) Vec[a] / exn:
     let ret = Vec.withCapacity(vec.len())
     for s in vec.iter():
         ret.push(parseFn(s))
     ret</code></pre>
 <p>When a library provides one of these, it’s trivial to convert to the other:</p>
-<pre><code>parseU32UsingExnVersion(s: Str): Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]
-    try({ parseU32Exn(s) })
+<pre><code>parseU32UsingExnVersion(s: Str) Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]:
+    try(||: parseU32Exn(s))
 
-parseU32UsingResultVersion(s: Str): [InvalidDigit, Overflow, EmptyInput, ..r] U32
+parseU32UsingResultVersion(s: Str) U32 / [InvalidDigit, Overflow, EmptyInput, ..r]:
     untry(parseU32(s))</code></pre>
 <p>Nice!</p>
 <hr />
