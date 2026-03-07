@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Extensible named types in Fir</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Extensible named types in Fir</h1>
+
+<p><strong>March  7, 2026</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'fir'." href="../tags/fir.html">fir</a>.</p>
+
+<p>The front-end AST types are one of the most important types in a language implementation, and if we get them wrong nothing will be right in the rest of the implementation.</p>
+<p>These types should be cheap to allocate and efficient to use, but also extensible, as different tools will use them differently. A type checker may want to add inferred types to expressions, but for a formatter, those inferred type fields would be a waste of memory.</p>
+<p>One approach to this problem is to have a parser that generates parse events instead of an AST or CST, and let the tools have their own ASTs. I explored this in <a href="https://osa1.net/posts/2024-11-22-how-to-parse-1.html">a previous blog post</a>.</p>
+<p>This approach works fine when the language is small, but for a programming language that’s never the case. Fir is currently quite simple, yet it has 28 types of expressions. Most production languages have many more.</p>
+<p>So I’ve been thinking about making Fir’s AST types extensible with new fields in the self-hosted compiler. This AST will be used by many of the tools listed <a href="https://github.com/fir-lang/fir/issues/28">here</a>, and more. The parser and the AST types will be published as libraries.</p>
+<p>There are a few common ways to add new fields to an existing type:</p>
+<ul>
+<li><p>With subtyping of nominal types (common in OOP languages), we can create a subtype with extra fields.</p></li>
+<li><p>In languages where objects have identities (again, common in OOP languages), we can use an identity map to map objects to extra information.</p></li>
+<li><p>If the objects don’t have identities, we can manually generate unique identities for objects that we want to attach extra information to, and then use a map, like in the previous option.</p></li>
+</ul>
+<p>(3) can be done in Fir, and it has a few advantages compared to extending existing types: <a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<ul>
+<li><p>The maps we use to attach extra information to AST nodes can be deallocated separately from the AST types. So if we have a long computation where we need some information in some of the steps but not later, we can allocate the maps and the deallocate while keeping the AST nodes alive.</p></li>
+<li><p>We can create differently typed identities for different AST types, and generate the identities as consecutive numbers. Then use arrays instead of hash maps to map nodes to things.</p></li>
+<li><p>Unlike built-in identities, we can choose the identity size (e.g. 32-bit numbers instead of 64-bit), and embed information about the values in the identities.</p></li>
+</ul>
+<p>I think this is probably the way to go in Fir’s self-hosted compiler, at least in the short term.</p>
+<p>However while thinking about this I also found another way to extend types with more information, with row types.</p>
+<h2 id="row-types-in-fir-today">Row types in Fir today</h2>
+<p>Row types are mainly used for variants, which are the types that make exception handling in Fir <a href="https://osa1.net/posts/2025-01-18-fir-error-handling.html">safe, expressive, and convenient to use</a>.</p>
+<p>A variant is just a set of types, e.g. <code>[U32, Str]</code> is a variant type with <code>U32</code> (32-bit unsigned integer) and <code>Str</code> (immutable, UTF-8 encoded unicode strings). Values of this type can be <code>U32</code>s or <code>Str</code>s.</p>
+<p>The type <code>[U32, Str, ..r]</code> is the same as before, but it can have more types in it. When pattern matching a value of this type, we have to have a catch-all case handling the <code>..r</code> part, which represents extra types that the value may have.</p>
+<p>To construct a variant value we just add a <code>~</code> prefix, e.g. <code>~123</code> gets the type <code>[U32, ..r]</code> (with a fresh <code>r</code>).</p>
+<p>A crucial feature of variants in Fir is that they allow type refinement when pattern matching. If I have a variant value with type <code>[Bool, Str, ..r]</code>, and handle the <code>Bool</code>s in a pattern match and bind the rest to a variable, the variable gets a refined type:</p>
+<pre><code>handleBools(arg: [Bool, Str, ..r]) [Str, ..r]:
+    match arg:
+        ~Bool.True: ~&quot;True&quot;
+        ~Bool.False: ~&quot;False&quot;
+        other: other</code></pre>
+<p>Here the type of <code>other</code> is refined as <code>[Str, ..r]</code>, because the previous alternative of the <code>match</code> handles the <code>Bool</code> values, so at this point we know that the value can’t be a <code>Bool</code>. <a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
+<p>When variants are used as checked exceptions, this allows things like: catching some of the exceptions thrown by a function and propagating the rest. See the link at the beginning of this section for more examples.</p>
+<p>Now, these row types that represent “extra stuff” can also be used in records, and Fir supports that too. For example, the function below can take any record that has at least <code>x: U32</code> and <code>y: U32</code> fields:</p>
+<pre><code>printXY(record: (x: U32, y: U32, ..r)):
+    print(&quot;x = `record.x`, y = `record.y`&quot;)
+
+main():
+    printXY((x = 1, y = 2))
+
+    # Extra fields are OK:
+    printXY((x = 3, y = 4, msg = &quot;hi&quot;))</code></pre>
+<p>But I think this feature of records is not that useful. In Fir, records are also value types<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>, and the main use case for records is returning multiple values. And when returning multiple values that “extra fields” part of the record types is not useful. This is because we can’t return a record with the extension part (<code>..r</code>), unless that record is passed as an argument. Consider:</p>
+<pre><code>returnExtensibleRecord() (x: U32, y: U32, ..r):
+    ???</code></pre>
+<p>There’s no non-divergent expression in the body that will make this type check.</p>
+<p>This is different than variants, where a variant construction like <code>~"Hi"</code> will have type <code>[Str, ..r]</code> (with fresh <code>r</code>). So we can have this:</p>
+<pre><code>returnVariant() [Str, ..r]:
+    ~&quot;Hi&quot;</code></pre>
+<p>In other words, rows in variants allow us to assume that a value may have some extra values, and there are many use cases where we want to do that (again, see the blog post linked at the beginning of this section).</p>
+<p>Rows in records are for ignoring extra fields, which is not that useful if we assume that the main use case is to return more than one value from functions.</p>
+<p>The reason why I implemented row extensions in records is that, once I had the type checker and monomorphiser that can deal with rows, it was straightforward to apply it to records as well.</p>
+<p>It also allowed me to experiment with extensible types a bit more, which led to…</p>
+<h2 id="a-new-use-case-for-rows">A new use case for rows?</h2>
+<p>We can use the variant rows for extending sum types with new constructors, and record rows for extending product types with new fields. Here’s an example that works in Fir today: <a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a></p>
+<pre><code>type Foo[r](
+    x: U32,
+    y: U32,
+    ..r
+)
+
+main():
+    let foo = Foo(x = 123, y = 456, z = &quot;hi&quot;)
+    print(foo.x)
+    print(foo.y)
+    print(foo.z)</code></pre>
+<p><code>Foo</code> is a named type. The <code>r</code> is a record row kinded type parameter, representing extra fields. The type inference infers type <code>Foo[row(z: Str)]</code> for the type of <code>foo</code>. We can access the field <code>z</code> just like any other field.</p>
+<p>(The only difference between a record construction syntax and a named type constructor syntax is the missing name: <code>(x = 123, y = 456)</code> is a record, <code>Foo(x = 123, y = 456)</code> is a named type value.)</p>
+<p>This gives us a way to extend product types. For example, in our AST, the expression node for binary operators may look like this:</p>
+<pre><code>type BinOpExpr[extras](
+    left: Expr,
+    right: Expr,
+    op: BinOp,
+    ..extras
+)</code></pre>
+<p>The formatter could then use this as <code>BinOpExpr[row()]</code>, and the type checker could add an extra field for the inferred type of the expression with <code>BinOpExpr[row(inferredTy: Ty)]</code>.</p>
+<p>The idea applies to the sum types the same way, however it’s currently not fully implemented in my prototype, because of syntax issues. Here’s how row extensions look like with sum types:</p>
+<pre><code>type Expr[extras]:
+    Var(VarExpr)
+    BinOp(BinOpExpr)
+    ..extras</code></pre>
+<p>Now suppose I want to extend this type with the standard library <code>Bool</code> type:</p>
+<pre><code>value type Bool:
+    False
+    True</code></pre>
+<p>How should the extra values be constructed? The way we normally construct sum values is as <code>&lt;type&gt;.&lt;constructor&gt;(&lt;args&gt;)</code>, e.g. <code>Bool.True</code>, <code>Expr.BinOp(...)</code>.</p>
+<p>But with a sum type extended with another sum type, I’m not sure what syntax to use for construction. I can see two options:</p>
+<ul>
+<li><code>Expr.Bool.True</code>: extended type, extension type, then constructor.</li>
+<li><code>Expr.True</code>: extended type, then constructor.</li>
+</ul>
+<p>There’s also the issue of not all types having a constructor name. For example, with this syntax, we wouldn’t have a way of constructing a <code>Str</code> as <code>Expr[row[Str]]</code> as string literals are not constructed with the <code>&lt;constructor&gt;(&lt;args&gt;)</code> syntax.</p>
+<p>In short, I couldn’t find a nice syntax for sum types with extensions, so they’re currently not implemented in my prototype.</p>
+<h2 id="problems-and-features-needed">Problems and features needed</h2>
+<p>This approach adds type parameters to types, and type parameters can be contagious. (propagated to the use sites, and their use sites, and theirs…)<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a></p>
+<p>Consider the statement type in Fir’s AST:</p>
+<pre><code>type Stmt:
+    Let(LetStmt)
+    Assign(AssignStmt)
+    Expr(Expr)
+    For(ForStmt)
+    While(WhileStmt)
+    Loop(LoopStmt)
+    Break(BreakStmt)
+    Continue(ContinueStmt)</code></pre>
+<p>To extend this I’ll need one type parameter per extension. If I have to extend <code>let</code> statements and <code>for</code> statements with different fields, I need two:</p>
+<pre><code>type Stmt[letExts, forExts]:
+    Let(LetStmt[letExts])
+    For(ForStmt[forExts])
+    ...</code></pre>
+<p>It’s clear that this will scale poorly.</p>
+<p>To keep the number of type parameter in check we could use something like type families (type-level functions) to have one type per use case (e.g. type checking, formatting), and then map those to different extension types, but I’m not sure if adding type-level functions just to support this feature makes sense.</p>
+<p>Another issue is with <code>deriving</code>: we will have some way of deriving trait implementations, similar to Rust<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>. With row extensions, we can’t use a macro with just the item AST as the input, as the macro will just see type parameters for the extensions. We have to iterate the extension fields somehow in the derived code generator, and regardless of how we iterate the row fields, the actual code generation needs to be done during monomorphisation, as that’s when we know the full type arguments.</p>
+<p>Finally, to properly type check this we have to extend the constraint language. Consider this:</p>
+<pre><code>type Foo[r](
+    f1: U32,
+    f2: Str,
+    ..r
+)</code></pre>
+<p>Here the constructor <code>Foo</code> will have the type: <code>Fn(f1: U32, f2: Str, ..r) Foo[r]</code><a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a>, but not all rows will be valid for <code>r</code>: we can’t allow overriding existing fields with different types<a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a>.</p>
+<p>It’s easy to check the example above, but in general, these “lacks” constraints (i.e. “record row type <code>r</code> lacks fields <code>f1</code>, <code>f2</code>”) need to be carried over to the use sites of the type parameter to be able to type check properly. In our <code>type Stmt[letExts, forExts]: ...</code> above, the constraints will be coming from the <code>LetStmt</code> and <code>ForStmt</code> types, not from <code>Stmt</code>, and they need to be carried over to the use sites of <code>Stmt</code>.</p>
+<p>Currently not having these constraints on the type parameters doesn’t cause soundness issues as the monomorphiser catches these issues, but it’s not ideal because it means that these errors wouldn’t be caught in the language server (which won’t fully compile, just type check), or when running <code>fir --typecheck &lt;file&gt;</code>. Error reporting is also not as good as error reporting in the type checker.</p>
+<p>(The lack of “lacks” constraints is not a problem until this feature because variants can always be extended with any type (duplicate types are OK), and it’s not possible to extend records. At least currently, row types in records are only for forgetting/ignoring extra fields.)</p>
+<p>Finally, to avoid repeatedly typing the same row type arguments in the use sites in the parser, formatter, etc. we need type synonyms. Fir currently doesn’t have type synonyms because I don’t think they’re that useful when we have value types, and I hate to deal with them in the type checker.<a href="#fn9" class="footnote-ref" id="fnref9" role="doc-noteref"><sup>9</sup></a> In our <code>Stmt</code> example above, we’ll want to write:</p>
+<pre><code># Extensions for type checking.
+alias TcLetStmtExts = row(inferredBinderType: Option[Ty])
+alias TcForStmtExts = row(inferredIteratorType: Option[Ty])
+alias TcLetStmt = LetStmt[TcLetStmtExts]
+alias TcForStmt = ForStmt[TcForStmtExts]
+alias TcStmt = Stmt[TcLetStmtExts, TcForStmtExts]
+...
+
+# Extensions for formatting.
+alias FmtLetStmtExts = row()
+alias FmtForStmtExts = row()
+alias FmtLetStmt = LetStmt[FmtLetStmtExts]
+alias FmtForStmt = ForStmt[FmtForStmtExts]
+alias FmtStmt = Stmt[FmtLetStmtExts, FmtForStmtExts]
+...</code></pre>
+<p>And then with a feature similar to type families, we can have one type for each use site (type checker, formatter, …) and map that one type to extension types for each of the rows and reduce number of type parameters. (there will always be at least one type parameter in extended types)</p>
+<h2 id="final-thoughts">Final thoughts</h2>
+<p>I’m not aware of any other languages that apply row extensions to named types, which is the reason why I wanted to write this post.</p>
+<p>The main challenge for this feature to be useful is the <code>deriving</code> support. The macros will have to run during monomorphisation to make use of the extra fields and constructors. The generated code will then be type checked in a different language (monomorphic AST instead of the front-end AST), which can lead to things like: code that normally doesn’t type check, but does type check when generated in a macro, as macro expansion is type checked differently. While I can’t imagine how this could happen today, that doesn’t mean it won’t, and it’s best if we just don’t open the door to this kind of thing.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>See also <a href="https://osa1.net/posts/2020-02-21-knot-tying-why-how-opinions.html">my blog post from 2020</a> that touches some of the same points.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>Variants are value (unboxed) types, so they’re not heap allocated, and refinement just moves fields around. In general, pattern matching should never allocate, and this currently holds in Fir.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p>In short, all anonymous types are values in Fir. For named types the user decides whether to box or not.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>This only works in a prototype that currently lives in the <code>extensible_named_types</code> branch. Online interpreter does not have this feature yet.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5" role="doc-endnote"><p>I know I failed to articulate it <a href="https://osa1.net/posts/2024-10-09-oop-good.html">at the time</a>, but I think polymorphism without requiring type parameters is the main advantage of subtyping compared to parametric polymorphism, and I think it’s the killer feature of OOP (as I define in the post). I want to get back to this point in a later blog post.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6" role="doc-endnote"><p>We already support <code>#[derive(...)]</code>s today, but they’re a part of the self-hosted compiler (not libraries), and I’m not sure if we want to keep them or do it another way. I needed to derive implementations quickly and didn’t have time to consider alternatives too much.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7" role="doc-endnote"><p>Yes, I also had to add row extensions to function types for this.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn8" role="doc-endnote"><p>I think duplicating fields should be OK.<a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn9" role="doc-endnote"><p>We don’t want to eagerly expand type synonyms to their RHSs because then error messages refer to the RHSs rather than synonyms, and keeping type synonyms around as we type check means we have to remember to look through them in many places. It’s a minor thing but considering how useful they are (very little, at least until this feature) it just seemed like they’re not worth it.<a href="#fnref9" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+            </div>
+        </div>
+    </body>
+</html>
