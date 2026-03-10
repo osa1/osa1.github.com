@@ -8,8 +8,445 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2025-06-28T00:00:00Z</updated>
+    <updated>2026-03-10T00:00:00Z</updated>
     <entry>
+    <title>Containing contagious types with OCaml modules</title>
+    <link href="http://osa1.net/posts/2026-03-10-containing-contagious-types.html" />
+    <id>http://osa1.net/posts/2026-03-10-containing-contagious-types.html</id>
+    <published>2026-03-10T00:00:00Z</published>
+    <updated>2026-03-10T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>In the <a href="https://osa1.net/posts/2026-03-07-extensible-named-types-fir.html">previous post</a> we looked at a way to extend product types with new fields and sum types with new constructors, using row types, in Fir.</p>
+<p>A problem with the approach was that it required adding type parameters to the type being extended. In the cases where the extended type is a sum type and different constructors are extended with different fields, we may even need more than one type parameter. Those type parameters can then be propagated to the use sites, and their use sites, and their use sites…</p>
+<p>I call these kinds of type parameters “contagious”, and it’s difficult to completely avoid them in Fir. In Fir, most function types are polymorphic in the exceptions they throw. This allows things like: calling a function that doesn’t throw in throwing contexts, or calling a function that throws <code>Error1</code> and another that throws <code>Error2</code> from the same function, and inferring the calling function’s exception type as <code>[Error1, Error2, ..exn]</code>. The way we achieve this polymorphism<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> is by having a type parameter representing the exceptions the function can throw<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
+<p>So I thought, maybe instead of avoiding type parameters, we should think about how we might contain, or hide them, and I started to look at existing features in other languages.</p>
+<p>In this post we’re going to look at how OCaml modules might be used for avoiding multiple type parameters (one for each extension). It turns out OCaml modules provide a solution that’s <strong>almost</strong> right.</p>
+<p>(Full OCaml code is at the end of this post.)</p>
+<h1 id="the-setup">The setup</h1>
+<p>We have lots of AST types for expressions, statements, declarations, … and we want to make them extensible with new fields and new constructors. Different AST types will be extended with different fields or constructors, and even in the same AST type (e.g. <code>Expr</code> in the original post) we may need different types of extensions for different constructors of the type.</p>
+<p>To keep things simple, in this post we’ll only add new fields.</p>
+<p>As the language, we’ll use the lambda calculus, with <code>let</code>s. Here’s how the AST could look like in OCaml:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">type</span> expr = Var <span class="kw">of</span> var | App <span class="kw">of</span> app | Abs <span class="kw">of</span> <span class="dt">abs</span> | Let <span class="kw">of</span> let_</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="kw">and</span> var = { name : <span class="dt">string</span> }</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="kw">and</span> app = { fn : expr; arg : expr }</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="kw">and</span> <span class="dt">abs</span> = { param : <span class="dt">string</span>; body : expr }</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="kw">and</span> let_ = { bound : <span class="dt">string</span>; rhs : expr; body : expr }</span></code></pre></div>
+<p>With extensions:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">type</span> (&#39;v, &#39;a, &#39;b, &#39;l) expr =</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  | Var <span class="kw">of</span> &#39;v var</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>  | App <span class="kw">of</span> (&#39;v, &#39;a, &#39;b, &#39;l) app</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>  | Abs <span class="kw">of</span> (&#39;v, &#39;a, &#39;b, &#39;l) <span class="dt">abs</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>  | Let <span class="kw">of</span> (&#39;v, &#39;a, &#39;b, &#39;l) let_</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a><span class="kw">and</span> &#39;v var = { name : <span class="dt">string</span>; var_ext : &#39;v }</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a><span class="kw">and</span> (&#39;v, &#39;a, &#39;b, &#39;l) app = {</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>  fn : (&#39;v, &#39;a, &#39;b, &#39;l) expr;</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>  arg : (&#39;v, &#39;a, &#39;b, &#39;l) expr;</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>  app_ext : &#39;a;</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>}</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a><span class="kw">and</span> (&#39;v, &#39;a, &#39;b, &#39;l) <span class="dt">abs</span> = {</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>  param : <span class="dt">string</span>;</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a>  body : (&#39;v, &#39;a, &#39;b, &#39;l) expr;</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a>  abs_ext : &#39;b;</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a>}</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true"></a><span class="kw">and</span> (&#39;v, &#39;a, &#39;b, &#39;l) let_ = {</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true"></a>  bound : <span class="dt">string</span>;</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true"></a>  rhs : (&#39;v, &#39;a, &#39;b, &#39;l) expr;</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true"></a>  body : (&#39;v, &#39;a, &#39;b, &#39;l) expr;</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true"></a>  let_ext : &#39;l;</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true"></a>}</span></code></pre></div>
+<p>This is obviously unusable and it won’t scale with more types and constructors.</p>
+<p>With modules, we can have a module signature with the AST types and abstract extension types, and implement it with different concrete types for the extension types.</p>
+<p>We first define a module signature with the AST extensions:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">module</span> <span class="kw">type</span> AST_EXTENSIONS = <span class="kw">sig</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>  <span class="kw">type</span> var_ext</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>  <span class="kw">type</span> app_ext</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>  <span class="kw">type</span> abs_ext</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>  <span class="kw">type</span> let_ext</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>  <span class="kw">val</span> default_var_ext : var_ext</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>  <span class="kw">val</span> default_app_ext : app_ext</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>  <span class="kw">val</span> default_abs_ext : abs_ext</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>  <span class="kw">val</span> default_let_ext : let_ext</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
+<p>AST module signature then uses the extension types:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">module</span> <span class="kw">type</span> AST = <span class="kw">sig</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>  <span class="kw">include</span> AST_EXTENSIONS</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>  <span class="kw">type</span> expr = Var <span class="kw">of</span> var | App <span class="kw">of</span> app | Abs <span class="kw">of</span> <span class="dt">abs</span> | Let <span class="kw">of</span> let_</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>  <span class="kw">and</span> var = { name : <span class="dt">string</span>; var_ext : var_ext }</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>  <span class="kw">and</span> app = { fn : expr; arg : expr; app_ext : app_ext }</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>  <span class="kw">and</span> <span class="dt">abs</span> = { param : <span class="dt">string</span>; body : expr; abs_ext : abs_ext }</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>  <span class="kw">and</span> let_ = { bound : <span class="dt">string</span>; rhs : expr; body : expr; let_ext : let_ext }</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
+<p>We then use a functor to create new <code>AST</code> modules, with a given extension module:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">module</span> MakeAst (Ext : AST_EXTENSIONS) :</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>  AST</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>    <span class="kw">with</span> <span class="kw">type</span> var_ext = Ext.var_ext</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>     <span class="kw">and</span> <span class="kw">type</span> app_ext = Ext.app_ext</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>     <span class="kw">and</span> <span class="kw">type</span> abs_ext = Ext.abs_ext</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>     <span class="kw">and</span> <span class="kw">type</span> let_ext = Ext.let_ext = <span class="kw">struct</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>  <span class="kw">type</span> var_ext = Ext.var_ext</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>  <span class="kw">type</span> app_ext = Ext.app_ext</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>  <span class="kw">type</span> abs_ext = Ext.abs_ext</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>  <span class="kw">type</span> let_ext = Ext.let_ext</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>  <span class="kw">let</span> default_var_ext = Ext.default_var_ext</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>  <span class="kw">let</span> default_app_ext = Ext.default_app_ext</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>  <span class="kw">let</span> default_abs_ext = Ext.default_abs_ext</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a>  <span class="kw">let</span> default_let_ext = Ext.default_let_ext</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true"></a>  <span class="kw">type</span> expr = Var <span class="kw">of</span> var | App <span class="kw">of</span> app | Abs <span class="kw">of</span> <span class="dt">abs</span> | Let <span class="kw">of</span> let_</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true"></a>  <span class="kw">and</span> var = { name : <span class="dt">string</span>; var_ext : Ext.var_ext }</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true"></a>  <span class="kw">and</span> app = { fn : expr; arg : expr; app_ext : app_ext }</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true"></a>  <span class="kw">and</span> <span class="dt">abs</span> = { param : <span class="dt">string</span>; body : expr; abs_ext : abs_ext }</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true"></a>  <span class="kw">and</span> let_ = { bound : <span class="dt">string</span>; rhs : expr; body : expr; let_ext : let_ext }</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
+<p>In the first post we had two examples: a formatter that doesn’t need any extensions, and a type checker that needs to annotate AST nodes with inferred types. Here are the formatter’s and type checker’s AST modules:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">module</span> FmtAst = MakeAst (<span class="kw">struct</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>  <span class="kw">type</span> var_ext = <span class="dt">unit</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>  <span class="kw">type</span> app_ext = <span class="dt">unit</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>  <span class="kw">type</span> abs_ext = <span class="dt">unit</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>  <span class="kw">type</span> let_ext = <span class="dt">unit</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>  <span class="kw">let</span> default_var_ext = ()</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>  <span class="kw">let</span> default_app_ext = ()</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>  <span class="kw">let</span> default_abs_ext = ()</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>  <span class="kw">let</span> default_let_ext = ()</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a><span class="kw">end</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a><span class="co">(* The type-checking type does not matter, just as a placeholder. *)</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a><span class="kw">type</span> ty = TyVar <span class="kw">of</span> <span class="dt">string</span> | TyArrow <span class="kw">of</span> ty * ty</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true"></a><span class="co">(* Type-checking AST extensions. *)</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true"></a><span class="kw">type</span> tc_var_ext = { inferred_type : ty <span class="dt">option</span> }</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true"></a><span class="kw">type</span> tc_app_ext = { result_type : ty <span class="dt">option</span> }</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true"></a><span class="kw">type</span> tc_abs_ext = { param_type : ty <span class="dt">option</span> }</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true"></a><span class="kw">type</span> tc_let_ext = { bound_type : ty <span class="dt">option</span> }</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true"></a></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true"></a><span class="kw">module</span> TcAst = MakeAst (<span class="kw">struct</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true"></a>  <span class="kw">type</span> var_ext = tc_var_ext</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true"></a>  <span class="kw">type</span> app_ext = tc_app_ext</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true"></a>  <span class="kw">type</span> abs_ext = tc_abs_ext</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true"></a>  <span class="kw">type</span> let_ext = tc_let_ext</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true"></a></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true"></a>  <span class="kw">let</span> default_var_ext = { inferred_type = <span class="dt">None</span> }</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true"></a>  <span class="kw">let</span> default_app_ext = { result_type = <span class="dt">None</span> }</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true"></a>  <span class="kw">let</span> default_abs_ext = { param_type = <span class="dt">None</span> }</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true"></a>  <span class="kw">let</span> default_let_ext = { bound_type = <span class="dt">None</span> }</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true"></a><span class="kw">end</span>)</span></code></pre></div>
+<p>Now, the parser needs to be able to allocate different ASTs in different use sites, and so that’s where we need one type parameter (actually, a module parameter). As far as I understand, we can’t have functions parametric over modules, so we need a functor for generating a given module’s AST in the parser, using the <code>default_..._ext</code> functions in the AST module:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">module</span> Parse (A : AST) = <span class="kw">struct</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>  <span class="co">(* Parsing entry point: tokenizes and parses. *)</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>  <span class="kw">let</span> parse (<span class="dt">input</span> : <span class="dt">string</span>) : A.expr =</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>    ...</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>  <span class="co">(* Parse a single expression from tokens. *)</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>  <span class="kw">let</span> <span class="kw">rec</span> parse_expr (toks : tokens) : A.expr * tokens =</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>    ...</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
+<p>Similarly, any other function that’s polymorphic over AST types needs to be a part of a functor that takes an AST module as argument. As another example, here’s a function that counts the number of AST nodes:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">module</span> CountNodes (A : AST) = <span class="kw">struct</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>  <span class="kw">let</span> <span class="kw">rec</span> count (e : A.expr) : <span class="dt">int</span> =</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>    <span class="kw">match</span> e <span class="kw">with</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>    | Var _ -&gt; <span class="dv">1</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>    | App { fn; arg; _ } -&gt; <span class="dv">1</span> + count fn + count arg</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>    | Abs { body; _ } -&gt; <span class="dv">1</span> + count body</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>    | Let { rhs; body; _ } -&gt; <span class="dv">1</span> + count rhs + count body</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
+<p>The final part of the ceremony is we apply these functors to get modules that we can then use to parse, format, and count nodes:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="co">(* Parser module for the formatter. *)</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="kw">module</span> FmtParse = Parse (FmtAst)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a><span class="co">(* Parser module for the type checker. *)</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a><span class="kw">module</span> TcParse = Parse (TcAst)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a><span class="co">(* Node counter on the formatter&#39;s AST. *)</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a><span class="kw">module</span> CountFmt = CountNodes (FmtAst)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a><span class="co">(* Node counter on the type checker&#39;s AST. *)</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true"></a><span class="kw">module</span> CountTc = CountNodes (TcAst)</span></code></pre></div>
+<p>Type checker and formatter then refer to these modules:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="kw">let</span> <span class="kw">rec</span> check_expr (e : TcAst.expr) : ty = ...</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="kw">let</span> <span class="kw">rec</span> format_expr (e : FmtAst.expr) : <span class="dt">string</span> = ...</span></code></pre></div>
+<h1 id="the-good">The good</h1>
+<p>I can easily add per-AST functions, constants, or types and my parser or type checker code doesn’t become any worse. They always refer to the AST-specific things directly, and type signatures within the parser and type checker modules don’t get more complicated as we add more extensions.</p>
+<h1 id="the-bad">The bad</h1>
+<p>The entire AST type definitions need to be duplicated in the <code>AST</code> signature and <code>MakeAst</code> functor. Just this alone renders this feature useless for our purposes, as in any real programming language there will be a lot of AST types, and each type will be quite large too (with many fields and constructors).</p>
+<p>There’s also a smaller-scale duplication in these lines:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="kw">module</span> MakeAst (Ext : AST_EXTENSIONS) :</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a>  AST</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>    <span class="kw">with</span> <span class="kw">type</span> var_ext = Ext.var_ext</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a>     <span class="kw">and</span> <span class="kw">type</span> app_ext = Ext.app_ext</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>     <span class="kw">and</span> <span class="kw">type</span> abs_ext = Ext.abs_ext</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a>     <span class="kw">and</span> <span class="kw">type</span> let_ext = Ext.let_ext = <span class="kw">struct</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a>  <span class="kw">type</span> var_ext = Ext.var_ext</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a>  <span class="kw">type</span> app_ext = Ext.app_ext</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a>  <span class="kw">type</span> abs_ext = Ext.abs_ext</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true"></a>  <span class="kw">type</span> let_ext = Ext.let_ext</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a>  ...</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
+<p>My understanding is that the types in the <code>struct ... end</code> part are abstract, i.e. not visible outside of the module (similar to existentials), and the <code>: AST with type ...</code> part specifies the returned module signature, i.e. the public interface. They need to be in sync, but they also need to be specified separately.</p>
+<p>The only solution I can think of to these duplications is generating code, but if I’m OK with generating code, that opens up a lot of possibilities, and I don’t need functors anymore. I could even generate the full modules with all the AST types and everything else directly, without using functors.</p>
+<p>So in short, OCaml modules helps quite a bit, but they’re held back by the issues with code duplication.</p>
+<hr />
+<details>
+<p><summary>Full code (tested with OCaml 5.3.0)</summary></p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="co">(* Tested with OCaml 5.3.0. *)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a><span class="kw">module</span> <span class="kw">type</span> AST_EXTENSIONS = <span class="kw">sig</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>  <span class="kw">type</span> var_ext</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a>  <span class="kw">type</span> app_ext</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a>  <span class="kw">type</span> abs_ext</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a>  <span class="kw">type</span> let_ext</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a>  <span class="kw">val</span> default_var_ext : var_ext</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a>  <span class="kw">val</span> default_app_ext : app_ext</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a>  <span class="kw">val</span> default_abs_ext : abs_ext</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true"></a>  <span class="kw">val</span> default_let_ext : let_ext</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true"></a><span class="kw">end</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true"></a><span class="kw">module</span> <span class="kw">type</span> AST = <span class="kw">sig</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true"></a>  <span class="kw">include</span> AST_EXTENSIONS</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true"></a>  <span class="kw">type</span> expr = Var <span class="kw">of</span> var | App <span class="kw">of</span> app | Abs <span class="kw">of</span> <span class="dt">abs</span> | Let <span class="kw">of</span> let_</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true"></a>  <span class="kw">and</span> var = { name : <span class="dt">string</span>; var_ext : var_ext }</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true"></a>  <span class="kw">and</span> app = { fn : expr; arg : expr; app_ext : app_ext }</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true"></a>  <span class="kw">and</span> <span class="dt">abs</span> = { param : <span class="dt">string</span>; body : expr; abs_ext : abs_ext }</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true"></a>  <span class="kw">and</span> let_ = { bound : <span class="dt">string</span>; rhs : expr; body : expr; let_ext : let_ext }</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true"></a><span class="kw">end</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true"></a></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true"></a><span class="kw">module</span> MakeAst (Ext : AST_EXTENSIONS) :</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true"></a>  AST</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true"></a>    <span class="kw">with</span> <span class="kw">type</span> var_ext = Ext.var_ext</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true"></a>     <span class="kw">and</span> <span class="kw">type</span> app_ext = Ext.app_ext</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true"></a>     <span class="kw">and</span> <span class="kw">type</span> abs_ext = Ext.abs_ext</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true"></a>     <span class="kw">and</span> <span class="kw">type</span> let_ext = Ext.let_ext = <span class="kw">struct</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true"></a>  <span class="kw">type</span> var_ext = Ext.var_ext</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true"></a>  <span class="kw">type</span> app_ext = Ext.app_ext</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true"></a>  <span class="kw">type</span> abs_ext = Ext.abs_ext</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true"></a>  <span class="kw">type</span> let_ext = Ext.let_ext</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true"></a></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true"></a>  <span class="kw">let</span> default_var_ext = Ext.default_var_ext</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true"></a>  <span class="kw">let</span> default_app_ext = Ext.default_app_ext</span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true"></a>  <span class="kw">let</span> default_abs_ext = Ext.default_abs_ext</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true"></a>  <span class="kw">let</span> default_let_ext = Ext.default_let_ext</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true"></a></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true"></a>  <span class="kw">type</span> expr = Var <span class="kw">of</span> var | App <span class="kw">of</span> app | Abs <span class="kw">of</span> <span class="dt">abs</span> | Let <span class="kw">of</span> let_</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true"></a>  <span class="kw">and</span> var = { name : <span class="dt">string</span>; var_ext : Ext.var_ext }</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true"></a>  <span class="kw">and</span> app = { fn : expr; arg : expr; app_ext : app_ext }</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true"></a>  <span class="kw">and</span> <span class="dt">abs</span> = { param : <span class="dt">string</span>; body : expr; abs_ext : abs_ext }</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true"></a>  <span class="kw">and</span> let_ = { bound : <span class="dt">string</span>; rhs : expr; body : expr; let_ext : let_ext }</span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true"></a><span class="kw">end</span></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true"></a></span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true"></a><span class="co">(* --------------------------------------------------------</span></span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true"></a><span class="co">   A simple recursive-descent parser, generic over any AST.</span></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true"></a></span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true"></a><span class="co">   Grammar:</span></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true"></a><span class="co">     expr   ::= &#39;let&#39; IDENT &#39;=&#39; expr &#39;in&#39; expr</span></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true"></a><span class="co">              | &#39;\&#39; IDENT &#39;.&#39; expr</span></span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true"></a><span class="co">              | app</span></span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true"></a><span class="co">     app    ::= atom+</span></span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true"></a><span class="co">     atom   ::= IDENT | &#39;(&#39; expr &#39;)&#39;</span></span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true"></a><span class="co">   -------------------------------------------------------- *)</span></span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true"></a><span class="kw">module</span> Parse (A : AST) = <span class="kw">struct</span></span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true"></a>  <span class="kw">type</span> tokens = <span class="dt">string</span> <span class="dt">list</span></span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true"></a></span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true"></a>  <span class="co">(* parse_expr: top-level, handles let/lambda/application.</span></span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true"></a><span class="co">     Lambda and let bodies extend as far right as possible</span></span>
+<span id="cb12-63"><a href="#cb12-63" aria-hidden="true"></a><span class="co">     (i.e. parse_expr), so nested constructs work without parens:</span></span>
+<span id="cb12-64"><a href="#cb12-64" aria-hidden="true"></a><span class="co">       let f = \x. \y. x in ...</span></span>
+<span id="cb12-65"><a href="#cb12-65" aria-hidden="true"></a><span class="co">       \x. \y. x y</span></span>
+<span id="cb12-66"><a href="#cb12-66" aria-hidden="true"></a><span class="co">     parse_app_args stops at &#39;in&#39;, &#39;)&#39;, and non-atom tokens,</span></span>
+<span id="cb12-67"><a href="#cb12-67" aria-hidden="true"></a><span class="co">     so &#39;in&#39; correctly terminates a let-RHS that is an application. *)</span></span>
+<span id="cb12-68"><a href="#cb12-68" aria-hidden="true"></a>  <span class="kw">let</span> <span class="kw">rec</span> parse_expr (toks : tokens) : A.expr * tokens =</span>
+<span id="cb12-69"><a href="#cb12-69" aria-hidden="true"></a>    <span class="kw">match</span> toks <span class="kw">with</span></span>
+<span id="cb12-70"><a href="#cb12-70" aria-hidden="true"></a>    | <span class="st">&quot;let&quot;</span> :: name :: <span class="st">&quot;=&quot;</span> :: rest -&gt; (</span>
+<span id="cb12-71"><a href="#cb12-71" aria-hidden="true"></a>        <span class="kw">let</span> rhs, rest = parse_expr rest <span class="kw">in</span></span>
+<span id="cb12-72"><a href="#cb12-72" aria-hidden="true"></a>        <span class="kw">match</span> rest <span class="kw">with</span></span>
+<span id="cb12-73"><a href="#cb12-73" aria-hidden="true"></a>        | <span class="st">&quot;in&quot;</span> :: rest -&gt;</span>
+<span id="cb12-74"><a href="#cb12-74" aria-hidden="true"></a>            <span class="kw">let</span> body, rest = parse_expr rest <span class="kw">in</span></span>
+<span id="cb12-75"><a href="#cb12-75" aria-hidden="true"></a>            ( A.Let { bound = name; rhs; body; let_ext = A.default_let_ext },</span>
+<span id="cb12-76"><a href="#cb12-76" aria-hidden="true"></a>              rest )</span>
+<span id="cb12-77"><a href="#cb12-77" aria-hidden="true"></a>        | _ -&gt; <span class="dt">failwith</span> <span class="st">&quot;expected &#39;in&#39;&quot;</span>)</span>
+<span id="cb12-78"><a href="#cb12-78" aria-hidden="true"></a>    | <span class="st">&quot;</span><span class="ch">\\</span><span class="st">&quot;</span> :: param :: <span class="st">&quot;.&quot;</span> :: rest -&gt;</span>
+<span id="cb12-79"><a href="#cb12-79" aria-hidden="true"></a>        <span class="kw">let</span> body, rest = parse_expr rest <span class="kw">in</span></span>
+<span id="cb12-80"><a href="#cb12-80" aria-hidden="true"></a>        (A.Abs { param; body; abs_ext = A.default_abs_ext }, rest)</span>
+<span id="cb12-81"><a href="#cb12-81" aria-hidden="true"></a>    | _ -&gt; parse_app toks</span>
+<span id="cb12-82"><a href="#cb12-82" aria-hidden="true"></a></span>
+<span id="cb12-83"><a href="#cb12-83" aria-hidden="true"></a>  <span class="kw">and</span> parse_app (toks : tokens) : A.expr * tokens =</span>
+<span id="cb12-84"><a href="#cb12-84" aria-hidden="true"></a>    <span class="kw">let</span> head, rest = parse_atom toks <span class="kw">in</span></span>
+<span id="cb12-85"><a href="#cb12-85" aria-hidden="true"></a>    parse_app_args head rest</span>
+<span id="cb12-86"><a href="#cb12-86" aria-hidden="true"></a></span>
+<span id="cb12-87"><a href="#cb12-87" aria-hidden="true"></a>  <span class="kw">and</span> parse_app_args (fn : A.expr) (toks : tokens) : A.expr * tokens =</span>
+<span id="cb12-88"><a href="#cb12-88" aria-hidden="true"></a>    <span class="kw">match</span> toks <span class="kw">with</span></span>
+<span id="cb12-89"><a href="#cb12-89" aria-hidden="true"></a>    | [] | <span class="st">&quot;)&quot;</span> :: _ | <span class="st">&quot;in&quot;</span> :: _ -&gt; (fn, toks)</span>
+<span id="cb12-90"><a href="#cb12-90" aria-hidden="true"></a>    | _ -&gt; (</span>
+<span id="cb12-91"><a href="#cb12-91" aria-hidden="true"></a>        <span class="kw">match</span> parse_atom_opt toks <span class="kw">with</span></span>
+<span id="cb12-92"><a href="#cb12-92" aria-hidden="true"></a>        | <span class="dt">Some</span> (arg, rest) -&gt;</span>
+<span id="cb12-93"><a href="#cb12-93" aria-hidden="true"></a>            <span class="kw">let</span> node = A.App { fn; arg; app_ext = A.default_app_ext } <span class="kw">in</span></span>
+<span id="cb12-94"><a href="#cb12-94" aria-hidden="true"></a>            parse_app_args node rest</span>
+<span id="cb12-95"><a href="#cb12-95" aria-hidden="true"></a>        | <span class="dt">None</span> -&gt; (fn, toks))</span>
+<span id="cb12-96"><a href="#cb12-96" aria-hidden="true"></a></span>
+<span id="cb12-97"><a href="#cb12-97" aria-hidden="true"></a>  <span class="kw">and</span> parse_atom (toks : tokens) : A.expr * tokens =</span>
+<span id="cb12-98"><a href="#cb12-98" aria-hidden="true"></a>    <span class="kw">match</span> parse_atom_opt toks <span class="kw">with</span></span>
+<span id="cb12-99"><a href="#cb12-99" aria-hidden="true"></a>    | <span class="dt">Some</span> r -&gt; r</span>
+<span id="cb12-100"><a href="#cb12-100" aria-hidden="true"></a>    | <span class="dt">None</span> -&gt;</span>
+<span id="cb12-101"><a href="#cb12-101" aria-hidden="true"></a>        <span class="kw">let</span> tok = <span class="kw">match</span> toks <span class="kw">with</span> t :: _ -&gt; t | [] -&gt; <span class="st">&quot;EOF&quot;</span> <span class="kw">in</span></span>
+<span id="cb12-102"><a href="#cb12-102" aria-hidden="true"></a>        <span class="dt">failwith</span> (<span class="dt">Printf</span>.sprintf <span class="st">&quot;expected atom, got &#39;%s&#39;&quot;</span> tok)</span>
+<span id="cb12-103"><a href="#cb12-103" aria-hidden="true"></a></span>
+<span id="cb12-104"><a href="#cb12-104" aria-hidden="true"></a>  <span class="kw">and</span> parse_atom_opt (toks : tokens) : (A.expr * tokens) <span class="dt">option</span> =</span>
+<span id="cb12-105"><a href="#cb12-105" aria-hidden="true"></a>    <span class="kw">match</span> toks <span class="kw">with</span></span>
+<span id="cb12-106"><a href="#cb12-106" aria-hidden="true"></a>    | <span class="st">&quot;(&quot;</span> :: rest -&gt; (</span>
+<span id="cb12-107"><a href="#cb12-107" aria-hidden="true"></a>        <span class="kw">let</span> e, rest = parse_expr rest <span class="kw">in</span></span>
+<span id="cb12-108"><a href="#cb12-108" aria-hidden="true"></a>        <span class="kw">match</span> rest <span class="kw">with</span></span>
+<span id="cb12-109"><a href="#cb12-109" aria-hidden="true"></a>        | <span class="st">&quot;)&quot;</span> :: rest -&gt; <span class="dt">Some</span> (e, rest)</span>
+<span id="cb12-110"><a href="#cb12-110" aria-hidden="true"></a>        | _ -&gt; <span class="dt">failwith</span> <span class="st">&quot;expected &#39;)&#39;&quot;</span>)</span>
+<span id="cb12-111"><a href="#cb12-111" aria-hidden="true"></a>    | tok :: rest</span>
+<span id="cb12-112"><a href="#cb12-112" aria-hidden="true"></a>      <span class="kw">when</span> tok &lt;&gt; <span class="st">&quot;let&quot;</span> &amp;&amp; tok &lt;&gt; <span class="st">&quot;</span><span class="ch">\\</span><span class="st">&quot;</span> &amp;&amp; tok &lt;&gt; <span class="st">&quot;in&quot;</span> &amp;&amp; tok &lt;&gt; <span class="st">&quot;=&quot;</span></span>
+<span id="cb12-113"><a href="#cb12-113" aria-hidden="true"></a>           &amp;&amp; tok &lt;&gt; <span class="st">&quot;.&quot;</span> &amp;&amp; tok &lt;&gt; <span class="st">&quot;(&quot;</span> &amp;&amp; tok &lt;&gt; <span class="st">&quot;)&quot;</span> -&gt;</span>
+<span id="cb12-114"><a href="#cb12-114" aria-hidden="true"></a>        <span class="dt">Some</span> (A.Var { name = tok; var_ext = A.default_var_ext }, rest)</span>
+<span id="cb12-115"><a href="#cb12-115" aria-hidden="true"></a>    | _ -&gt; <span class="dt">None</span></span>
+<span id="cb12-116"><a href="#cb12-116" aria-hidden="true"></a></span>
+<span id="cb12-117"><a href="#cb12-117" aria-hidden="true"></a>  <span class="kw">let</span> parse (<span class="dt">input</span> : <span class="dt">string</span>) : A.expr =</span>
+<span id="cb12-118"><a href="#cb12-118" aria-hidden="true"></a>    <span class="co">(* Tokenize: split on whitespace, treat parens as separate tokens *)</span></span>
+<span id="cb12-119"><a href="#cb12-119" aria-hidden="true"></a>    <span class="kw">let</span> buf = <span class="dt">Buffer</span>.create (<span class="dt">String</span>.length <span class="dt">input</span>) <span class="kw">in</span></span>
+<span id="cb12-120"><a href="#cb12-120" aria-hidden="true"></a>    <span class="dt">String</span>.iter</span>
+<span id="cb12-121"><a href="#cb12-121" aria-hidden="true"></a>      (<span class="kw">fun</span> c -&gt;</span>
+<span id="cb12-122"><a href="#cb12-122" aria-hidden="true"></a>        <span class="kw">match</span> c <span class="kw">with</span></span>
+<span id="cb12-123"><a href="#cb12-123" aria-hidden="true"></a>        | <span class="ch">&#39;(&#39;</span> | <span class="ch">&#39;)&#39;</span> | <span class="ch">&#39;.&#39;</span> | <span class="ch">&#39;\\&#39;</span> -&gt;</span>
+<span id="cb12-124"><a href="#cb12-124" aria-hidden="true"></a>            <span class="dt">Buffer</span>.add_char buf <span class="ch">&#39; &#39;</span>;</span>
+<span id="cb12-125"><a href="#cb12-125" aria-hidden="true"></a>            <span class="dt">Buffer</span>.add_char buf c;</span>
+<span id="cb12-126"><a href="#cb12-126" aria-hidden="true"></a>            <span class="dt">Buffer</span>.add_char buf <span class="ch">&#39; &#39;</span></span>
+<span id="cb12-127"><a href="#cb12-127" aria-hidden="true"></a>        | _ -&gt; <span class="dt">Buffer</span>.add_char buf c)</span>
+<span id="cb12-128"><a href="#cb12-128" aria-hidden="true"></a>      <span class="dt">input</span>;</span>
+<span id="cb12-129"><a href="#cb12-129" aria-hidden="true"></a>    <span class="kw">let</span> s = <span class="dt">Buffer</span>.contents buf <span class="kw">in</span></span>
+<span id="cb12-130"><a href="#cb12-130" aria-hidden="true"></a>    <span class="kw">let</span> toks = <span class="dt">String</span>.split_on_char <span class="ch">&#39; &#39;</span> s |&gt; <span class="dt">List</span>.filter (<span class="kw">fun</span> s -&gt; s &lt;&gt; <span class="st">&quot;&quot;</span>) <span class="kw">in</span></span>
+<span id="cb12-131"><a href="#cb12-131" aria-hidden="true"></a>    <span class="kw">let</span> expr, rest = parse_expr toks <span class="kw">in</span></span>
+<span id="cb12-132"><a href="#cb12-132" aria-hidden="true"></a>    <span class="kw">if</span> rest &lt;&gt; [] <span class="kw">then</span></span>
+<span id="cb12-133"><a href="#cb12-133" aria-hidden="true"></a>      <span class="dt">failwith</span> (<span class="dt">Printf</span>.sprintf <span class="st">&quot;unexpected token &#39;%s&#39;&quot;</span> (<span class="dt">List</span>.hd rest));</span>
+<span id="cb12-134"><a href="#cb12-134" aria-hidden="true"></a>    expr</span>
+<span id="cb12-135"><a href="#cb12-135" aria-hidden="true"></a><span class="kw">end</span></span>
+<span id="cb12-136"><a href="#cb12-136" aria-hidden="true"></a></span>
+<span id="cb12-137"><a href="#cb12-137" aria-hidden="true"></a><span class="co">(* --------------------------------------------------------</span></span>
+<span id="cb12-138"><a href="#cb12-138" aria-hidden="true"></a><span class="co">   Formatter — all extensions are unit.</span></span>
+<span id="cb12-139"><a href="#cb12-139" aria-hidden="true"></a><span class="co">   -------------------------------------------------------- *)</span></span>
+<span id="cb12-140"><a href="#cb12-140" aria-hidden="true"></a><span class="kw">module</span> FmtAst = MakeAst (<span class="kw">struct</span></span>
+<span id="cb12-141"><a href="#cb12-141" aria-hidden="true"></a>  <span class="kw">type</span> var_ext = <span class="dt">unit</span></span>
+<span id="cb12-142"><a href="#cb12-142" aria-hidden="true"></a>  <span class="kw">type</span> app_ext = <span class="dt">unit</span></span>
+<span id="cb12-143"><a href="#cb12-143" aria-hidden="true"></a>  <span class="kw">type</span> abs_ext = <span class="dt">unit</span></span>
+<span id="cb12-144"><a href="#cb12-144" aria-hidden="true"></a>  <span class="kw">type</span> let_ext = <span class="dt">unit</span></span>
+<span id="cb12-145"><a href="#cb12-145" aria-hidden="true"></a></span>
+<span id="cb12-146"><a href="#cb12-146" aria-hidden="true"></a>  <span class="kw">let</span> default_var_ext = ()</span>
+<span id="cb12-147"><a href="#cb12-147" aria-hidden="true"></a>  <span class="kw">let</span> default_app_ext = ()</span>
+<span id="cb12-148"><a href="#cb12-148" aria-hidden="true"></a>  <span class="kw">let</span> default_abs_ext = ()</span>
+<span id="cb12-149"><a href="#cb12-149" aria-hidden="true"></a>  <span class="kw">let</span> default_let_ext = ()</span>
+<span id="cb12-150"><a href="#cb12-150" aria-hidden="true"></a><span class="kw">end</span>)</span>
+<span id="cb12-151"><a href="#cb12-151" aria-hidden="true"></a></span>
+<span id="cb12-152"><a href="#cb12-152" aria-hidden="true"></a><span class="kw">module</span> FmtParse = Parse (FmtAst)</span>
+<span id="cb12-153"><a href="#cb12-153" aria-hidden="true"></a></span>
+<span id="cb12-154"><a href="#cb12-154" aria-hidden="true"></a><span class="kw">let</span> <span class="kw">rec</span> format_expr (e : FmtAst.expr) : <span class="dt">string</span> =</span>
+<span id="cb12-155"><a href="#cb12-155" aria-hidden="true"></a>  <span class="kw">match</span> e <span class="kw">with</span></span>
+<span id="cb12-156"><a href="#cb12-156" aria-hidden="true"></a>  | Var { name; _ } -&gt; name</span>
+<span id="cb12-157"><a href="#cb12-157" aria-hidden="true"></a>  | App { fn; arg; _ } -&gt;</span>
+<span id="cb12-158"><a href="#cb12-158" aria-hidden="true"></a>      <span class="dt">Printf</span>.sprintf <span class="st">&quot;(%s %s)&quot;</span> (format_expr fn) (format_arg arg)</span>
+<span id="cb12-159"><a href="#cb12-159" aria-hidden="true"></a>  | Abs { param; body; _ } -&gt;</span>
+<span id="cb12-160"><a href="#cb12-160" aria-hidden="true"></a>      <span class="dt">Printf</span>.sprintf <span class="st">&quot;(</span><span class="ch">\\</span><span class="st">%s. %s)&quot;</span> param (format_expr body)</span>
+<span id="cb12-161"><a href="#cb12-161" aria-hidden="true"></a>  | Let { bound; rhs; body; _ } -&gt;</span>
+<span id="cb12-162"><a href="#cb12-162" aria-hidden="true"></a>      <span class="dt">Printf</span>.sprintf <span class="st">&quot;(let %s = %s in %s)&quot;</span> bound (format_expr rhs)</span>
+<span id="cb12-163"><a href="#cb12-163" aria-hidden="true"></a>        (format_expr body)</span>
+<span id="cb12-164"><a href="#cb12-164" aria-hidden="true"></a></span>
+<span id="cb12-165"><a href="#cb12-165" aria-hidden="true"></a><span class="kw">and</span> format_arg (e : FmtAst.expr) : <span class="dt">string</span> =</span>
+<span id="cb12-166"><a href="#cb12-166" aria-hidden="true"></a>  <span class="kw">match</span> e <span class="kw">with</span></span>
+<span id="cb12-167"><a href="#cb12-167" aria-hidden="true"></a>  | Var { name; _ } -&gt; name</span>
+<span id="cb12-168"><a href="#cb12-168" aria-hidden="true"></a>  | _ -&gt; <span class="dt">Printf</span>.sprintf <span class="st">&quot;(%s)&quot;</span> (format_expr e)</span>
+<span id="cb12-169"><a href="#cb12-169" aria-hidden="true"></a></span>
+<span id="cb12-170"><a href="#cb12-170" aria-hidden="true"></a><span class="co">(* --------------------------------------------------------</span></span>
+<span id="cb12-171"><a href="#cb12-171" aria-hidden="true"></a><span class="co">   Type checker — extensions carry inferred types.</span></span>
+<span id="cb12-172"><a href="#cb12-172" aria-hidden="true"></a><span class="co">   -------------------------------------------------------- *)</span></span>
+<span id="cb12-173"><a href="#cb12-173" aria-hidden="true"></a><span class="kw">type</span> ty = TyVar <span class="kw">of</span> <span class="dt">string</span> | TyArrow <span class="kw">of</span> ty * ty</span>
+<span id="cb12-174"><a href="#cb12-174" aria-hidden="true"></a><span class="kw">type</span> tc_var_ext = { inferred_type : ty <span class="dt">option</span> }</span>
+<span id="cb12-175"><a href="#cb12-175" aria-hidden="true"></a><span class="kw">type</span> tc_app_ext = { result_type : ty <span class="dt">option</span> }</span>
+<span id="cb12-176"><a href="#cb12-176" aria-hidden="true"></a><span class="kw">type</span> tc_abs_ext = { param_type : ty <span class="dt">option</span> }</span>
+<span id="cb12-177"><a href="#cb12-177" aria-hidden="true"></a><span class="kw">type</span> tc_let_ext = { bound_type : ty <span class="dt">option</span> }</span>
+<span id="cb12-178"><a href="#cb12-178" aria-hidden="true"></a></span>
+<span id="cb12-179"><a href="#cb12-179" aria-hidden="true"></a><span class="kw">module</span> TcAst = MakeAst (<span class="kw">struct</span></span>
+<span id="cb12-180"><a href="#cb12-180" aria-hidden="true"></a>  <span class="kw">type</span> var_ext = tc_var_ext</span>
+<span id="cb12-181"><a href="#cb12-181" aria-hidden="true"></a>  <span class="kw">type</span> app_ext = tc_app_ext</span>
+<span id="cb12-182"><a href="#cb12-182" aria-hidden="true"></a>  <span class="kw">type</span> abs_ext = tc_abs_ext</span>
+<span id="cb12-183"><a href="#cb12-183" aria-hidden="true"></a>  <span class="kw">type</span> let_ext = tc_let_ext</span>
+<span id="cb12-184"><a href="#cb12-184" aria-hidden="true"></a></span>
+<span id="cb12-185"><a href="#cb12-185" aria-hidden="true"></a>  <span class="kw">let</span> default_var_ext = { inferred_type = <span class="dt">None</span> }</span>
+<span id="cb12-186"><a href="#cb12-186" aria-hidden="true"></a>  <span class="kw">let</span> default_app_ext = { result_type = <span class="dt">None</span> }</span>
+<span id="cb12-187"><a href="#cb12-187" aria-hidden="true"></a>  <span class="kw">let</span> default_abs_ext = { param_type = <span class="dt">None</span> }</span>
+<span id="cb12-188"><a href="#cb12-188" aria-hidden="true"></a>  <span class="kw">let</span> default_let_ext = { bound_type = <span class="dt">None</span> }</span>
+<span id="cb12-189"><a href="#cb12-189" aria-hidden="true"></a><span class="kw">end</span>)</span>
+<span id="cb12-190"><a href="#cb12-190" aria-hidden="true"></a></span>
+<span id="cb12-191"><a href="#cb12-191" aria-hidden="true"></a><span class="kw">module</span> TcParse = Parse (TcAst)</span>
+<span id="cb12-192"><a href="#cb12-192" aria-hidden="true"></a></span>
+<span id="cb12-193"><a href="#cb12-193" aria-hidden="true"></a><span class="kw">let</span> <span class="kw">rec</span> format_ty (t : ty) : <span class="dt">string</span> =</span>
+<span id="cb12-194"><a href="#cb12-194" aria-hidden="true"></a>  <span class="kw">match</span> t <span class="kw">with</span></span>
+<span id="cb12-195"><a href="#cb12-195" aria-hidden="true"></a>  | TyVar s -&gt; s</span>
+<span id="cb12-196"><a href="#cb12-196" aria-hidden="true"></a>  | TyArrow ((TyArrow _ <span class="kw">as</span> a), b) -&gt;</span>
+<span id="cb12-197"><a href="#cb12-197" aria-hidden="true"></a>      <span class="dt">Printf</span>.sprintf <span class="st">&quot;(%s) -&gt; %s&quot;</span> (format_ty a) (format_ty b)</span>
+<span id="cb12-198"><a href="#cb12-198" aria-hidden="true"></a>  | TyArrow (a, b) -&gt; <span class="dt">Printf</span>.sprintf <span class="st">&quot;%s -&gt; %s&quot;</span> (format_ty a) (format_ty b)</span>
+<span id="cb12-199"><a href="#cb12-199" aria-hidden="true"></a></span>
+<span id="cb12-200"><a href="#cb12-200" aria-hidden="true"></a><span class="co">(* Placeholder: just read off the extension annotation if present. *)</span></span>
+<span id="cb12-201"><a href="#cb12-201" aria-hidden="true"></a><span class="kw">let</span> <span class="kw">rec</span> check_expr (e : TcAst.expr) : ty =</span>
+<span id="cb12-202"><a href="#cb12-202" aria-hidden="true"></a>  <span class="kw">match</span> e <span class="kw">with</span></span>
+<span id="cb12-203"><a href="#cb12-203" aria-hidden="true"></a>  | Var { var_ext = { inferred_type = <span class="dt">Some</span> t }; _ } -&gt; t</span>
+<span id="cb12-204"><a href="#cb12-204" aria-hidden="true"></a>  | Var { name; _ } -&gt; TyVar name</span>
+<span id="cb12-205"><a href="#cb12-205" aria-hidden="true"></a>  | App { app_ext = { result_type = <span class="dt">Some</span> t }; _ } -&gt; t</span>
+<span id="cb12-206"><a href="#cb12-206" aria-hidden="true"></a>  | App { fn; _ } -&gt; (</span>
+<span id="cb12-207"><a href="#cb12-207" aria-hidden="true"></a>      <span class="kw">match</span> check_expr fn <span class="kw">with</span> TyArrow (_, ret) -&gt; ret | t -&gt; t)</span>
+<span id="cb12-208"><a href="#cb12-208" aria-hidden="true"></a>  | Abs { param; body; abs_ext = { param_type }; _ } -&gt;</span>
+<span id="cb12-209"><a href="#cb12-209" aria-hidden="true"></a>      <span class="kw">let</span> p = <span class="kw">match</span> param_type <span class="kw">with</span> <span class="dt">Some</span> t -&gt; t | <span class="dt">None</span> -&gt; TyVar param <span class="kw">in</span></span>
+<span id="cb12-210"><a href="#cb12-210" aria-hidden="true"></a>      TyArrow (p, check_expr body)</span>
+<span id="cb12-211"><a href="#cb12-211" aria-hidden="true"></a>  | Let { body; _ } -&gt; check_expr body</span>
+<span id="cb12-212"><a href="#cb12-212" aria-hidden="true"></a></span>
+<span id="cb12-213"><a href="#cb12-213" aria-hidden="true"></a><span class="co">(* --------------------------------------------------------</span></span>
+<span id="cb12-214"><a href="#cb12-214" aria-hidden="true"></a><span class="co">   Generic node counter — works on any AST.</span></span>
+<span id="cb12-215"><a href="#cb12-215" aria-hidden="true"></a><span class="co">   -------------------------------------------------------- *)</span></span>
+<span id="cb12-216"><a href="#cb12-216" aria-hidden="true"></a><span class="kw">module</span> CountNodes (A : AST) = <span class="kw">struct</span></span>
+<span id="cb12-217"><a href="#cb12-217" aria-hidden="true"></a>  <span class="kw">let</span> <span class="kw">rec</span> count (e : A.expr) : <span class="dt">int</span> =</span>
+<span id="cb12-218"><a href="#cb12-218" aria-hidden="true"></a>    <span class="kw">match</span> e <span class="kw">with</span></span>
+<span id="cb12-219"><a href="#cb12-219" aria-hidden="true"></a>    | Var _ -&gt; <span class="dv">1</span></span>
+<span id="cb12-220"><a href="#cb12-220" aria-hidden="true"></a>    | App { fn; arg; _ } -&gt; <span class="dv">1</span> + count fn + count arg</span>
+<span id="cb12-221"><a href="#cb12-221" aria-hidden="true"></a>    | Abs { body; _ } -&gt; <span class="dv">1</span> + count body</span>
+<span id="cb12-222"><a href="#cb12-222" aria-hidden="true"></a>    | Let { rhs; body; _ } -&gt; <span class="dv">1</span> + count rhs + count body</span>
+<span id="cb12-223"><a href="#cb12-223" aria-hidden="true"></a><span class="kw">end</span></span>
+<span id="cb12-224"><a href="#cb12-224" aria-hidden="true"></a></span>
+<span id="cb12-225"><a href="#cb12-225" aria-hidden="true"></a><span class="kw">module</span> CountFmt = CountNodes (FmtAst)</span>
+<span id="cb12-226"><a href="#cb12-226" aria-hidden="true"></a><span class="kw">module</span> CountTc = CountNodes (TcAst)</span>
+<span id="cb12-227"><a href="#cb12-227" aria-hidden="true"></a></span>
+<span id="cb12-228"><a href="#cb12-228" aria-hidden="true"></a><span class="co">(* --------------------------------------------------------</span></span>
+<span id="cb12-229"><a href="#cb12-229" aria-hidden="true"></a><span class="co">   Demo: parse the same source in both worlds.</span></span>
+<span id="cb12-230"><a href="#cb12-230" aria-hidden="true"></a><span class="co">   -------------------------------------------------------- *)</span></span>
+<span id="cb12-231"><a href="#cb12-231" aria-hidden="true"></a><span class="kw">let</span> source = {|<span class="kw">let</span> id = \x. x <span class="kw">in</span> id <span class="dv">42</span>|}</span>
+<span id="cb12-232"><a href="#cb12-232" aria-hidden="true"></a></span>
+<span id="cb12-233"><a href="#cb12-233" aria-hidden="true"></a><span class="kw">let</span> () =</span>
+<span id="cb12-234"><a href="#cb12-234" aria-hidden="true"></a>  <span class="co">(* Formatter world — parse and pretty-print *)</span></span>
+<span id="cb12-235"><a href="#cb12-235" aria-hidden="true"></a>  <span class="kw">let</span> prog = FmtParse.parse source <span class="kw">in</span></span>
+<span id="cb12-236"><a href="#cb12-236" aria-hidden="true"></a>  <span class="dt">Printf</span>.printf <span class="st">&quot;formatted: %s</span><span class="ch">\n</span><span class="st">&quot;</span> (format_expr prog);</span>
+<span id="cb12-237"><a href="#cb12-237" aria-hidden="true"></a>  <span class="dt">Printf</span>.printf <span class="st">&quot;node count: %d</span><span class="ch">\n</span><span class="st">&quot;</span> (CountFmt.count prog);</span>
+<span id="cb12-238"><a href="#cb12-238" aria-hidden="true"></a></span>
+<span id="cb12-239"><a href="#cb12-239" aria-hidden="true"></a>  <span class="co">(* Type checker world — parse (extensions default to None),</span></span>
+<span id="cb12-240"><a href="#cb12-240" aria-hidden="true"></a><span class="co">     then check with the placeholder checker *)</span></span>
+<span id="cb12-241"><a href="#cb12-241" aria-hidden="true"></a>  <span class="kw">let</span> tc_prog = TcParse.parse source <span class="kw">in</span></span>
+<span id="cb12-242"><a href="#cb12-242" aria-hidden="true"></a>  <span class="dt">Printf</span>.printf <span class="st">&quot;inferred type: %s</span><span class="ch">\n</span><span class="st">&quot;</span> (format_ty (check_expr tc_prog));</span>
+<span id="cb12-243"><a href="#cb12-243" aria-hidden="true"></a>  <span class="dt">Printf</span>.printf <span class="st">&quot;node count: %d</span><span class="ch">\n</span><span class="st">&quot;</span> (CountTc.count tc_prog)</span></code></pre></div>
+</details>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>Actually, any kind of polymorphism. Fir currently doesn’t have trait objects and the only way to have polymorphism is by using type parameters, potentially with qualifications.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>This is a little bit simplified, see <a href="https://osa1.net/posts/2025-01-18-fir-error-handling.html">this post</a> for more details and examples.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>]]></summary>
+</entry>
+<entry>
     <title>Why I'm excited about effect systems</title>
     <link href="http://osa1.net/posts/2025-06-28-why-effects.html" />
     <id>http://osa1.net/posts/2025-06-28-why-effects.html</id>
@@ -1308,272 +1745,6 @@ print_string &quot;bye&quot;</code></pre>
 <p>Also keep in mind that when you mix imperative and functional styles tail calls become less important. For example, I don’t have to implement a stream <code>map</code> function in Dart with a tail call to map the rest of the stream, I can just use a <code>while</code> or <code>for</code> loop.</p>
 <h1 id="when-should-i-use-it">When should I use it?</h1>
 <p>In my opinion there is no reason to use OCaml in a new project in 2023. If you have a reason to think that OCaml is the best choice for a new project please let me know your use case, I’m genuinely curious.</p>]]></summary>
-</entry>
-<entry>
-    <title>Fast polymorphic record access</title>
-    <link href="http://osa1.net/posts/2023-01-23-fast-polymorphic-record-access.html" />
-    <id>http://osa1.net/posts/2023-01-23-fast-polymorphic-record-access.html</id>
-    <published>2023-01-23T00:00:00Z</published>
-    <updated>2023-01-23T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I like <a href="https://osa1.net/posts/2021-04-10-sums-and-products.html">anonymous records</a> and row polymorphism, but until recently I didn’t know how to generate efficient code for polymorphic record access. In this blog post I will summarize the different compilations of polymorphic record accesses that I’m aware of.</p>
-<p>All of the ideas shown in this post can be used to access a record field when the record’s concrete type is not known, but the type system guarantees that it has the accessed field. This includes row polymorphism and record subtyping.</p>
-<p>Most of the ideas also work when the record’s type is completely unknown and it may not have the accessed field, but some of the optimizations assume accesses cannot fail. Those optimizations can only be used on statically-typed but polymorphic records.</p>
-<p>In some of the examples below I will use row polymorphism.</p>
-<hr />
-<h1 id="row-polymorphism-and-record-subtyping-briefly">Row polymorphism and record subtyping, briefly</h1>
-<p>In this blog post we are interested in a specific application of row polymorphism to records. In short, row polymorphism allows type variables denoting sets of record fields, with their types. For example:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>f <span class="op">:</span> <span class="ot">∀</span> r <span class="op">.</span> { x <span class="op">:</span> <span class="dt">Int</span>, y <span class="op">:</span> <span class="dt">Int</span> <span class="op">|</span> r } <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>f a <span class="ot">=</span> a<span class="op">.</span>x <span class="op">+</span> a<span class="op">.</span>y</span></code></pre></div>
-<p>Here the type variable <code>r</code> ranges over set of rows (or records). This function accepts any record as argument as long as the record has at least <code>x : Int</code> and <code>y : Int</code> fields.</p>
-<p>The main difference between row polymorphism and record subtyping is that the type variable <code>r</code> can be used in the right-hand side of an arrow as well, allowing passing the record around without losing its concrete type. For example:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>mapAB <span class="op">:</span> <span class="ot">∀</span> r <span class="op">.</span> { a <span class="op">:</span> <span class="dt">Int</span>, b <span class="op">:</span> <span class="dt">Int</span> <span class="op">|</span> r } <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>) <span class="ot">-&gt;</span> { a <span class="op">:</span> <span class="dt">Int</span>, b <span class="op">:</span> <span class="dt">Int</span> <span class="op">|</span> r }</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>mapAB r f <span class="ot">=</span> { a <span class="ot">=</span> f r<span class="op">.</span>a, b <span class="ot">=</span> f r<span class="op">.</span>b, <span class="op">..</span> r }</span></code></pre></div>
-<p>This function takes any record that has <code>a : Int</code> and <code>b : Int</code> fields, and returns a new record with updated <code>a</code> and <code>b</code> fields and the rest of the fields. If I pass it a record with type <code>{ a : Int, b : Int, name : String }</code> I get the same type back.</p>
-<p>With subtyping, type of this function would look like:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>mapAB <span class="op">:</span> { a <span class="op">:</span> <span class="dt">Int</span>, b <span class="op">:</span> <span class="dt">Int</span> } <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>) <span class="ot">-&gt;</span> { a <span class="op">:</span> <span class="dt">Int</span>, b <span class="op">:</span> <span class="dt">Int</span> }</span></code></pre></div>
-<p>In this version the return type just has <code>a</code> and <code>b</code> fields. Rest of the fields are lost. If I pass this a <code>{ a : Int, b : Int, name : String }</code> I get <code>{ a : Int, b : Int }</code> back. The <code>name</code> field is lost.</p>
-<hr />
-<p>Without subtyping, when the record type in a field access expression is known, it’s easy to generate efficient code: we use the same offsets used when compiling a record literal with the type.</p>
-<p>With subtyping, and with row-polymorphism when the record type is not a concrete record type but is a record type with a row variable, type of <code>r</code> in <code>r.a</code> does not immediately give us where in the record’s payload the field <code>a</code> is.</p>
-<p>Let’s look at how we might go about implementing record field access in these cases.</p>
-<h1 id="records-as-maps">(0) Records as maps</h1>
-<p>I don’t think this idea is used in statically-typed languages, but I wanted to include it for completeness.</p>
-<p>We can implement records as maps with string keys. Field access then becomes a map lookup.</p>
-<p>This is easy to implement because our language probably already has a map implementation in the standard library.</p>
-<p>The disadvantages are:</p>
-<ul>
-<li><p>Depending on the map implementation, every field access require a <code>O(N)</code> or <code>O(log(N))</code> map lookup.</p></li>
-<li><p>Map entries will be stored in a separate memory location (instead of in the record object’s payload), which will require pointer chasing to read the field value.</p></li>
-<li><p>Unnecessary memory overhead caused by map fields that are not really necessary for records: such as the <code>capacity</code> and <code>size</code> fields.</p></li>
-</ul>
-<p>With whole-program compilation, we can improve the constant factors a bit by mapping labels (field names) in the program to unique integers. This way lookups don’t require string hashing or comparison, but this is still slow and memory-inefficient compared to other techniques we will discuss below.</p>
-<h1 id="passing-accessors-as-parameters">(1) Passing accessors as parameters</h1>
-<p>If you’re familiar with Haskell, this is the Haskell way of implementing row polymorphic records.</p>
-<p>The idea is that when we pass a record to a row-polymorphic function, we also pass, implicitly, and as functions, the accessors that the function needs.</p>
-<p>In Haskell, type of <code>mapAB</code> we’ve seen above would look like this:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>mapAB <span class="op">:</span> <span class="ot">∀</span> r <span class="op">.</span> (<span class="dt">HasField</span> r <span class="dt">&#39;A</span> <span class="dt">Int</span>, <span class="dt">HasField</span> r <span class="dt">&#39;B</span> <span class="dt">Int</span>) <span class="ot">=&gt;</span> <span class="dt">Record</span> r <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Record</span> r</span></code></pre></div>
-<p>The runtime values for <code>HasField ...</code> constraints are the accessors. When calling this function we don’t explicitly pass these accessors, the compiler generates them. In a well-typed program, we either have these values in the call site, or we know how to generate them (e.g. the record type is concrete in the call site), so it’s possible for the compiler to generate and pass these arguments.</p>
-<p>The main advantage of this approach is that it doesn’t require any language support specifically for records.</p>
-<p>The main disadvantages are:</p>
-<ul>
-<li><p>Every field access is a function call.</p></li>
-<li><p>Parameter passing per field per record does not scale well and causes messy and slow generated code. For example, suppose we want to take two records with fields <code>x : Int</code> and <code>y : Int</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a>f <span class="op">:</span> <span class="ot">∀</span> r <span class="op">.</span> (<span class="dt">HasField</span> r <span class="dt">&#39;X</span> <span class="dt">Int</span>, <span class="dt">HasField</span> r <span class="dt">&#39;Y</span> <span class="dt">Int</span>) <span class="ot">=&gt;</span> <span class="dt">Record</span> r <span class="ot">-&gt;</span> <span class="dt">Record</span> r <span class="ot">-&gt;</span> <span class="op">...</span></span></code></pre></div>
-<p>This function takes two implicit arguments, but it has a limitation that the record arguments need to have the same record types. I can’t call this function with two different records:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>f { x <span class="ot">=</span> <span class="dv">123</span>, y <span class="ot">=</span> <span class="dv">456</span>, a <span class="ot">=</span> <span class="st">&quot;hi&quot;</span> } { x <span class="ot">=</span> <span class="dv">0</span>, y <span class="ot">=</span> <span class="op">-</span><span class="dv">1</span>, b <span class="ot">=</span> false }</span></code></pre></div>
-<p>For this to work I need two row variables:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>f <span class="op">:</span> <span class="ot">∀</span> r1 r2 <span class="op">.</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>    (<span class="dt">HasField</span> r1 <span class="dt">&#39;X</span> <span class="dt">Int</span>, <span class="dt">HasField</span> r1 <span class="dt">&#39;Y</span> <span class="dt">Int</span>,</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>     <span class="dt">HasField</span> r2 <span class="dt">&#39;X</span> <span class="dt">Int</span>, <span class="dt">HasField</span> r2 <span class="dt">&#39;Y</span> <span class="dt">Int</span>) <span class="ot">=&gt;</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>    <span class="dt">Record</span> r1 <span class="ot">-&gt;</span> <span class="dt">Record</span> r2 <span class="ot">-&gt;</span> <span class="op">...</span></span></code></pre></div>
-<p>This version works, but it also takes 4 implicit arguments.</p></li>
-</ul>
-<h1 id="prerequisite-integers-for-labels">Prerequisite: integers for labels</h1>
-<p>Starting with the next approach, we will require mapping labels (field names) to integers in compile-time, to be used as indices.</p>
-<p>Because these integers for labels will be used in record allocation and field accesses, it is possible that a label we see later in a program will cause different code generation for a record field access that we’ve already seen.</p>
-<p>We have two options:</p>
-<ul>
-<li><p>We can avoid this problem with a whole-program pass to collect all labels in the program.</p>
-<p>This is trivial with a whole-program compiler as a front-end pass can store all labels seen in a component (library, module) somewhere and we can map those labels to integers before code generation.</p></li>
-<li><p>We can have a link-time step to update record allocation and field access code with the integers for the labels.</p></li>
-</ul>
-<p>In the rest of the post, labels will always get integers based on their lexicographical order and we will call these integers for labels just “labels”.</p>
-<p>For example, if I have labels <code>a</code>, <code>c</code>, <code>b</code>, <code>d</code> in my program, their numbers will be 1, 3, 2, 4, respectively.</p>
-<h1 id="per-record-label-to-field-offset-tables">(2) Per-record label-to-field-offset tables</h1>
-<p>With integers as labels we can add a table to every record (records with the same set of keys sharing the same table) mapping labels in the program to offsets in the record’s payload. For example, the table for a record with fields <code>a</code> and <code>c</code> when the program has labels <code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, looks like this:</p>
-<pre><code>[ 0, _, 1, _ ]</code></pre>
-<p>This table is indexed by the label and the value gives the offset in the record’s payload for the field. <code>_</code> means the record does not have the field. In a well-typed program we won’t ever see a <code>_</code> value being read from a table.</p>
-<p>This approach is quite wasteful as every table will have as many entries as number of labels in the program, but we will compress these tables below to reasonable sizes.</p>
-<p>We will call these tables “record offset tables” or “offset tables” in short. When compiling a record access we need to get the record’s offset table. For this we add an extra word (pointer) to record objects pointing to their offset tables. We then generate this code for a record field access:</p>
-<pre><code>record[record[OFFSET_TABLE_INDEX][label]]</code></pre>
-<p><code>OFFSET_TABLE_INDEX</code> is the constant for where the offset table pointer is in record objects.</p>
-<p>Offset tables are generated per record shape (set of labels), so the total number of tables shouldn’t be too large.</p>
-<p>Since the <code>_</code> entries won’t ever be used, we can shrink the tables with trailing <code>_</code> entries. In our example above with a record with <code>a</code> and <code>c</code> fields, the last <code>_</code> entry can be omitted:</p>
-<pre><code>[ 0, _, 1 ]</code></pre>
-<h1 id="making-the-tables-global">(2.1) Making the tables global</h1>
-<p>Because offset tables are per-shape, and the total number of record shapes in a program should be small, if we allocate a few bits in record object headers for the “shape index” of the record, this index can be used to index a global table mapping record shapes to their offset tables.</p>
-<p>Generated code for record access expressions will look like:</p>
-<pre><code>record[RECORD_OFFSET_TABLES[getRecordShapeId(record)][label]]</code></pre>
-<p><code>getRecordShapeId</code> will read the bits in the object header for the record shape id. Depending on the actual header layout, it will look something like:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="dt">int</span> getRecordShapeId(Object* object) {</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>  <span class="cf">return</span> (object-&gt;header &amp; RECORD_ID_MASK) &gt;&gt; HEADER_BITS;</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>}</span></code></pre></div>
-<p>With record shape IDs in headers and a global table mapping shape IDs to offset tables, we no longer need an extra word in record objects for the offset table pointer.</p>
-<p>Here’s an example of offset tables when we have labels <code>a</code>, <code>b</code>, <code>x</code>, <code>y</code>, and two records <code>0: {a, b}</code> and <code>1: {x, y}</code>:</p>
-<pre><code>RECORD_0_OFFSET_TABLE = [
-  0, // label a
-  1, // label b
-  _, // label x
-  _, // label y
-];
-
-RECORD_1_OFFSET_TABLE = [
-  _, // label a
-  _, // label b
-  0, // label x
-  1, // label y
-];
-
-RECORD_OFFSET_TABLES = [
-  RECORD_0_OFFSET_TABLE, // record 0
-  RECORD_1_OFFSET_TABLE, // record 1
-];</code></pre>
-<p>As before, the offset table for record 0 can be shrunk as:</p>
-<pre><code>RECORD_0_OFFSET_TABLE = [
-  0, // label a
-  1, // label b
-];</code></pre>
-<h1 id="sharing-label-ids-and-record-shapes">(2.2) Sharing label IDs and record shapes</h1>
-<p>Labels that are not used in the same record program can be given the same ID.</p>
-<p>In the example above, this allows us to have a single table for both records:</p>
-<pre><code>RECORD_0_1_OFFSET_TABLE = [
-  0, // label a or x
-  1, // label b or y
-];
-
-RECORD_OFFSET_TABLES = [
-  RECORD_0_1_OFFSET_TABLE, // record 0
-  RECORD_0_1_OFFSET_TABLE, // record 1
-];</code></pre>
-<p>The problem of assigning IDs to labels is very similar to stack allocation when spilling during register allocation. We have practically infinite amount of IDs (stack space), but we want to reuse the same ID for labels as long as they’re never used in the same record (live at the same time).</p>
-<p>After sharing label IDs, some of the shapes may be identical, as in our example. We can give those shapes the same ID and avoid redundant entries in the offset tables.</p>
-<p>With this, our example with two records <code>{a, b}</code> and <code>{x, y}</code> compiles to just one offset table:</p>
-<pre><code>RECORD_0_1_OFFSET_TABLE = [
-  0, // label a or x
-  1, // label b or y
-];
-
-RECORD_OFFSET_TABLES = [
-  RECORD_0_1_OFFSET_TABLE, // record 0 and 1
-];</code></pre>
-<h1 id="flattening-the-table">(2.3) Flattening the table</h1>
-<p>Suppose we have these record shapes in a program:</p>
-<ul>
-<li><code>{a, b, q}</code></li>
-<li><code>{x, y, q}</code></li>
-</ul>
-<p>The <code>RECORD_OFFSET_TABLES</code> table is currently an array of pointers, and indexing the offset table still requires pointer chasing.</p>
-<p>To avoid pointer chasing we can flatten the table.</p>
-<p>For our current program, the tables, without flattening, look like this:</p>
-<pre><code>RECORD_0_OFFSET_TABLE = [
-  0, // label a
-  1, // label b
-  _, // label x
-  _, // label y
-  2, // label q
-];
-
-RECORD_1_OFFSET_TABLE = [
-  _, // label a
-  _, // label b
-  0, // label x
-  1, // label y
-  2, // label q
-];
-
-RECORD_OFFSET_TABLES = [
-  RECORD_0_OFFSET_TABLE,
-  RECORD_1_OFFSET_TABLE,
-];</code></pre>
-<p>We can flatten this as:</p>
-<pre><code>RECORD_0_OFFSET_TABLE = [
-  0, // label a
-  1, // label b
-  _, // label x
-  _, // label y
-  2, // label q
-];
-
-RECORD_1_OFFSET_TABLE = [
-  _, // label a
-  _, // label b
-  0, // label x
-  1, // label y
-  2, // label q
-];
-
-RECORD_LABEL_OFFSETS = [
-  0, // record 0, label a
-  1, // record 0, label b
-  _, // record 0, label x
-  _, // record 0, label y
-  2, // record 0, label z
-
-  _, // record 1, label a
-  _, // record 1, label b
-  0, // record 1, label x
-  1, // record 1, label y
-  2, // record 1, label z
-];</code></pre>
-<p>Field indexing then becomes:</p>
-<pre><code>record[RECORD_LABEL_OFFSETS[(getRecordShapeId(record) * NUM_LABELS) + label]]</code></pre>
-<p>With this version we eliminate one layer of indirection.</p>
-<h1 id="removing-the-constant-factor">(2.4) Removing the constant factor</h1>
-<p>The idea here is not too important on its own, but it will enable further improvements.</p>
-<p>The <code>NUM_LABELS</code> factor in field access code above can be eliminated by incrementing record shape IDs by <code>NUM_LABELS</code> instead of 1. In our example, instead of having record IDs 0 and 1, we will have 0 and 5 (incremented by the number of labels in the program).</p>
-<p>Since there may be large number of labels in a program and we may have only a few bits to store the record IDs, an alternative would be to convert the table to label-major order like this:</p>
-<pre><code>RECORD_LABEL_OFFSETS = [
-  0, // label a, record 0
-  _, // label a, record 1
-
-  1, // label b, record 0
-  _, // label b, record 1
-
-  _, // label x, record 0
-  1, // label x, record 1
-
-  _, // label y, record 0
-  2, // label y, record 1
-
-  3, // label z, record 0
-  3, // label z, record 1
-];</code></pre>
-<p>With this table, indexing code becomes:</p>
-<pre><code>record[RECORD_LABEL_OFFSETS[(label * NUM_RECORDS) + getRecordShapeId(record)]]</code></pre>
-<p>We can then eliminate the <code>NUM_RECORDS</code> factor the same way, by incrementing label IDs by <code>NUM_RECORDS</code> instead of 1, and index with:</p>
-<pre><code>record[RECORD_LABEL_OFFSETS[label + getRecordShapeId(record)]]</code></pre>
-<h1 id="compacting-the-table-further">(2.5) Compacting the table further</h1>
-<p>Now that the table index of a label is <code>label + shape_id</code> and we have a single table, we can shift the entries in the table by decrementing label IDs.</p>
-<p>For this it doesn’t matter whether we store in label-major or record-major order. Which one of these will generate a smaller table will probably depend on the program. As an example, suppose we store the table in label-major order, and we have these records in the program:</p>
-<ul>
-<li><code>0: {x, y, z, t}</code></li>
-<li><code>1: {x, y}</code></li>
-<li><code>2: {z, t}</code></li>
-</ul>
-<p>The table will look like:</p>
-<pre><code>[ 0, 0, _,   // label x
-  1, 1, _,   // label y
-  2, _, 0,   // label z
-  3, _, 1 ]  // label t</code></pre>
-<p>Record IDs will be 0, 1, 2, and label IDs will be 0, 3, 6, 9.</p>
-<p>We can use the unused slot for label x, record 2, by decrementing the label index for <code>y</code> by one. If we then do the same for <code>z</code>, the label IDs become 0, 2, 4, 7, and the table becomes:</p>
-<pre><code>[ 0, 0,      // label x
-  1, 1,      // label y
-  2, _, 0,   // label z
-  3, _, 1 ]  // label t</code></pre>
-<p>This idea can be used to fill any gaps in previous label rows, as long as the used slots in a row fits into the gaps. For example, if we have a table like:</p>
-<pre><code>[ 0, _, _, 1,  // label x
-  _, 0, 1, _,  // label y
-  ... ]</code></pre>
-<p>We can decrement <code>y</code>’s ID to fit it into the row for label <code>x</code>:</p>
-<pre><code>[ 0, 0, 1, 1,  // label x and y, interleaved
-  ... ]</code></pre>
-<h1 id="conclusions">Conclusions</h1>
-<p>Collecting and numbering all labels in the program allows using a global table for mapping labels to offsets.</p>
-<p>These offset tables can be made smaller by</p>
-<ul>
-<li>Giving same number to labels that don’t occur in the same record</li>
-<li>Giving same ID to records that become identical after the previous step</li>
-<li>Tweaking label numbers so that rows without overlapping entries can be merged into a single row</li>
-</ul>
-<p>The result is a very compact representation of record objects (no extra words in the header or unused space in the payload needed) and a fast polymorphic field access.</p>
-<p>The offset table should also be small in practice, because different parts of the program will probably use disjoint set of names, and different labels and records will have the same IDs. In the remaining cases, tweaking label IDs to compact the table should help.</p>
-<h1 id="references">References</h1>
-<p>I’ve learned about the global table approach and some of the optimizations from the Dart compiler, which implements virtual calls using a “global dispatch table” (GDT), indexed by <code>classID + methodID</code> in call sites. See <a href="https://mrale.ph/dartvm/#global-dispatch-table-gdt">“Introduction to Dart VM”</a> for a description of how Dart AOT and JIT generate GDTs.</p>
-<p>If you are interested in seeing some code, <a href="https://github.com/dart-lang/sdk/blob/ba8f0bd947c613013ed4659ea44da851bf35a99f/pkg/dart2wasm/lib/dispatch_table.dart#L411-L442">here</a> is where we generate the GDT in dart2wasm (Dart’s Wasm backend). The outer loop finds a selector ID (label ID in our examples) for a row (list of records in our examples, list of classes in dart2wasm). The inner loop <code>do { ... } while (!fits)</code> starts from the first row with gaps, and tries to fit the current row into the gaps. In the worst case it skips all of the rows, in which case rest of the code appends the table with the new row.</p>
-<p><a href="https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md">Dart will soon have records</a>, and for the <a href="https://github.com/dart-lang/sdk/issues/50014">dart2wasm implementation of records</a> I’m thinking of using some of the ideas described in this post. Dart records do not support width subtyping (you can’t pass <code>{x, y, z}</code> where <code>{x, y}</code> is expected), but because of the <code>dynamic</code> type, we can have a dynamically typed record that we index.</p>
-<hr />
-<p>Thanks to <a href="https://twitter.com/josecalderon">José Manuel Calderón Trilla</a> for his feedback on a draft of this blog post.</p>]]></summary>
 </entry>
 
 </feed>
