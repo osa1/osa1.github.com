@@ -8,157 +8,8 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2026-03-14T00:00:00Z</updated>
+    <updated>2026-03-13T00:00:00Z</updated>
     <entry>
-    <title>Some more notes on OCaml modules</title>
-    <link href="http://osa1.net/posts/2026-03-14-more-ocaml-modules.html" />
-    <id>http://osa1.net/posts/2026-03-14-more-ocaml-modules.html</id>
-    <published>2026-03-14T00:00:00Z</published>
-    <updated>2026-03-14T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>In a <a href="https://osa1.net/posts/2026-03-10-containing-contagious-types.html">previous post</a> we’ve tried to solve a real problem (described in <a href="https://osa1.net/posts/2026-03-07-extensible-named-types-fir.html">another post</a>) with OCaml modules.</p>
-<p>This post is basically my notes while studying OCaml modules, by using them (rather than e.g. reading a formal description of them or implementing them<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>).</p>
-<p>My goal with this series of blog posts is to figure out whether we can have a similar mechanism in Fir. This feature should (1) solve the original problem (linked above) (2) optimize away modules in compile time (they should not exist in runtime and using them should not come with runtime costs).</p>
-<hr />
-<p>The main syntax for defining modules:</p>
-<ul>
-<li><p>Signatures are defined with <code>sig ... end</code> syntax and given name with <code>module   type Foo = ...</code> syntax.</p></li>
-<li><p>Module definitions are given with <code>struct ... end</code> syntax and given name with <code>module Foo = ...</code> syntax.</p></li>
-</ul>
-<p>When not given a signature explicitly, signature of a module is inferred from the module definition. An <code>.mli</code> file defines the signature of its corresponding <code>.ml</code> file. Syntax of an <code>.mli</code> file is the body part of <code>sig ... end</code>, and the syntax of an <code>.ml</code> file is the body part of <code>struct ... end</code>.</p>
-<p>Some interesting properties of modules:</p>
-<ol type="1">
-<li>Their types can always be inferred.</li>
-<li>They’re structurally matched.</li>
-<li>They’re not first-class by themselves, but they can be “packed” as values, allowing them to be used as first-class values.</li>
-</ol>
-<p>Example:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">module</span> <span class="kw">type</span> Foo = <span class="kw">sig</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>  <span class="kw">type</span> t</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>  <span class="kw">val</span> make_t : <span class="dt">unit</span> -&gt; t</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>  <span class="kw">val</span> f : t -&gt; <span class="dt">unit</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="kw">end</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="kw">module</span> Foo1 = <span class="kw">struct</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>  <span class="kw">type</span> t = A | B</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>  <span class="kw">let</span> make_t () = A</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>  <span class="kw">let</span> f _ = ()</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>  <span class="kw">let</span> g _ = <span class="dt">print_string</span> <span class="st">&quot;hi&quot;</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a><span class="kw">end</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a><span class="kw">module</span> Foo2 = <span class="kw">struct</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a>  <span class="kw">type</span> t = <span class="dt">string</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>  <span class="kw">let</span> make_t () = <span class="st">&quot;hi&quot;</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a>  <span class="kw">let</span> f _ = ()</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
-<p>Note that types of <code>Foo1</code> and <code>Foo2</code> are inferred. They have the members of <code>Foo</code>, but <code>Foo1</code> has an extra member.</p>
-<p>I can use both <code>Foo1</code> and <code>Foo2</code> as <code>Foo</code>, but I need to declare a new module for this with an explicit signature. Modules can be declared at the top-level but also in nested scopes:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">module</span> FooTest1 : Foo = Foo1</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="kw">module</span> FooTest2 : Foo = Foo2</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="kw">let</span> test1 x =</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>  <span class="co">(* LocalFoo1 here is `Foo`, so I can&#39;t use `g`. (the extra member) *)</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>  <span class="kw">let</span> <span class="kw">module</span> LocalFoo1 : Foo = Foo1 <span class="kw">in</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>  LocalFoo1.f (LocalFoo1.make_t ());</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>  <span class="co">(* This doesn&#39;t change `Foo1`&#39;s type, so `g` can be used. *)</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>  <span class="kw">let</span> <span class="kw">module</span> LocalFoo2 = Foo1 <span class="kw">in</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>  LocalFoo2.g ()</span></code></pre></div>
-<p>Modules by themselves are not first-class values, but they can be packed as first-class values:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="co">(* Inferred type: `unit -&gt; (module Foo)` *)</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">let</span> select_foo () =</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>  <span class="co">(* The parens are necessary here for this to parse. *)</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>  <span class="kw">if</span> <span class="dt">Random</span>.<span class="dt">bool</span> () <span class="kw">then</span> (<span class="kw">module</span> Foo1 : Foo) <span class="kw">else</span> (<span class="kw">module</span> Foo2 : Foo)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="co">(* Inferred type: `(module Foo) -&gt; unit` *)</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a><span class="kw">let</span> use_foo foo =</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>  <span class="co">(* Special syntax for unpacking modules. *)</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>  <span class="kw">let</span> <span class="kw">module</span> F = (<span class="kw">val</span> foo : Foo) <span class="kw">in</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>  <span class="co">(* Inferred type: `F.t` *)</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>  <span class="kw">let</span> t = F.make_t () <span class="kw">in</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>  F.f t</span></code></pre></div>
-<p>Packing comes with a runtime cost: first-class modules are similar to records with existentials, both in how they’re used, and in runtime.</p>
-<p>As far as I understand, packing and unpacking of modules is the only feature that makes them first-class. Without them the code using modules can’t be polymorphic, so modules could completely disappear during compilation.</p>
-<p><strong>Reuse between signatures and modules:</strong> the problem we’ve discovered in the previous post was that there’s absolutely no reuse between a module signature and a module definition. Here’s another signature, this time with a concrete type definition:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">module</span> <span class="kw">type</span> Bar = <span class="kw">sig</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>  <span class="kw">type</span> t = A | B</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>  <span class="kw">val</span> print_t : t -&gt; <span class="dt">unit</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
-<p>Even though <code>t</code> is concrete this time, any module that implements this signature needs to duplicate the definition of it.</p>
-<p>We also can’t give <code>print_t</code> a default implementation as it would be useless, since there’s no way to reuse anything from a signature in a module.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">module</span> Bar1 : Bar = <span class="kw">struct</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>  <span class="kw">type</span> t = A | B</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>  <span class="kw">let</span> print_t = <span class="kw">function</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>    | A -&gt; <span class="dt">print_string</span> <span class="st">&quot;A</span><span class="ch">\n</span><span class="st">&quot;</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>    | B -&gt; <span class="dt">print_string</span> <span class="st">&quot;B</span><span class="ch">\n</span><span class="st">&quot;</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
-<p>Here we can’t omit the full definition of <code>t</code>. This is the main problem with OCaml modules that I’d like to solve.</p>
-<p><strong><code>include</code> helps, but doesn’t solve the problem entirely:</strong> we can “include” a module in another, and a signature in another. As an example, let’s say we’ll reuse the same <code>t</code> above in a few modules and signatures. In signatures:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">module</span> <span class="kw">type</span> SigT = <span class="kw">sig</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>  <span class="kw">type</span> t = A | B</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a><span class="kw">end</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a><span class="kw">module</span> <span class="kw">type</span> SigInclude1 = <span class="kw">sig</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>  <span class="kw">include</span> SigT</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>  <span class="kw">val</span> f : t -&gt; <span class="dt">unit</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a><span class="kw">end</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a><span class="kw">module</span> <span class="kw">type</span> SigInclude2 = <span class="kw">sig</span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>  <span class="kw">include</span> SigT</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>  <span class="kw">val</span> g : t -&gt; <span class="dt">unit</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
-<p>In modules:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">module</span> StructT = <span class="kw">struct</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>  <span class="kw">type</span> t = A | B</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="kw">end</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="kw">module</span> StructInclude1 = <span class="kw">struct</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>  <span class="kw">include</span> StructT</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>  <span class="kw">let</span> f = <span class="kw">function</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>    | A -&gt; ()</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>    | B -&gt; ()</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a><span class="kw">end</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a><span class="kw">module</span> StructInclude2 = <span class="kw">struct</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a>  <span class="kw">include</span> StructT</span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true"></a>  <span class="kw">let</span> g = <span class="kw">function</span></span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true"></a>    | A -&gt; ()</span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true"></a>    | B -&gt; ()</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
-<p>This helps reducing code duplication in modules and in signatures, but since there’s no mixing between these two, there still needs to be at least two definitions of the type, one in a <code>sig</code> and one in a <code>struct</code>.</p>
-<p><strong>Functors are for modules, not signatures:</strong> A functor is a function from a module to a module. There’s no equivalent for signatures.</p>
-<p>Here’s a functor that adds a type and a function to a module:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">module</span> AddStuff (M : SigInclude1) = <span class="kw">struct</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>  <span class="kw">include</span> M</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>  <span class="kw">type</span> t2 = C | D</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>  <span class="kw">let</span> g = <span class="kw">function</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>    | A -&gt; ()</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>    | B -&gt; ()</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a><span class="kw">end</span></span></code></pre></div>
-<p>Functors can’t be passed packed modules, we have to unpack and apply:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">let</span> use_add_stuff (packed : (<span class="kw">module</span> SigInclude1)) =</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>  <span class="kw">let</span> <span class="kw">module</span> M = (<span class="kw">val</span> packed : SigInclude1) <span class="kw">in</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a>  <span class="kw">let</span> <span class="kw">module</span> R = AddStuff(M) <span class="kw">in</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a>  R.f A;</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a>  R.g B</span></code></pre></div>
-<p>They also can’t be packed themselves. So they can’t be made first class.</p>
-<p>If I omit the <code>include</code> part in <code>AddStuff</code>, that effectively drops the argument module’s members from the result, as the returned module signature won’t include the members in the argument module.</p>
-<p>(Another way to do the same would be to give a signature to the returned module, with some of the members in <code>SigInclude1</code> missing.)</p>
-<p><strong>Structural type checking of modules</strong> is not important for me, at least for the problem I’m trying to solve. So I’m not looking into this in this blog post.</p>
-<hr />
-<p>In a future post we’ll have a more formal treatment of OCaml modules.</p>
-<p>If we remove packing modules, they become second class, and they can be completely optimized away in compile time.</p>
-<p>The main question I still have is whether we really need the <code>sig</code>/<code>struct</code> distinction, and if we need, whether we could “inherit” (or “include”) type and term definitions from signatures to <code>struct</code>s. I’m hoping to figure these out in a future post.</p>
-<section class="footnotes" role="doc-endnotes">
-<hr />
-<ol>
-<li id="fn1" role="doc-endnote"><p>Which I’m also doing, but that will be the subject of another post.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-</ol>
-</section>]]></summary>
-</entry>
-<entry>
     <title>Exceptions as shared secrets, demonstrated</title>
     <link href="http://osa1.net/posts/2026-03-13-exceptions-as-shared-secrets.html" />
     <id>http://osa1.net/posts/2026-03-13-exceptions-as-shared-secrets.html</id>
@@ -1725,6 +1576,330 @@ parseU32UsingResultVersion(s: Str) U32 / [InvalidDigit, Overflow, EmptyInput, ..
 <p>I’m quite excited about these results. There’s still so much to do, but I think it’s clear that this way of error handling has a lot of potential.</p>
 <p>I’ll be working on some of the improvements I mentioned above (and I have others planned as well), and the usual stuff that every language needs (standard library, tools etc.). Depending on interest, I may also write more about variants, error handling, or anything else related to Fir.</p>
 <p>You can try Fir online <a href="https://fir-lang.github.io/?file=ErrorHandling.fir">here</a>.</p>]]></summary>
+</entry>
+<entry>
+    <title>When is inlining useful?</title>
+    <link href="http://osa1.net/posts/2024-12-07-inlining.html" />
+    <id>http://osa1.net/posts/2024-12-07-inlining.html</id>
+    <published>2024-12-07T00:00:00Z</published>
+    <updated>2024-12-07T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Especially in high-level languages, inlining is most useful when it leads to:</p>
+<ul>
+<li>Optimizing the callee’s body based on the arguments passed.</li>
+<li>Optimizing the call site based on the callee’s return value.</li>
+</ul>
+<p>Let’s look at some examples.</p>
+<h1 id="example-avoiding-redundant-bounds-checks">Example: avoiding redundant bounds checks</h1>
+<p>Suppose we have a library for decoding some format of binary files with length-prefixed vectors of 32-bit integers, with all integers encoded as little-endian.</p>
+<p>A simple implementation would be:</p>
+<pre><code>/// Decode a length-prefixed 32-bit unsigned integer vector.
+///
+/// # Panics
+///
+/// Panics if the buffer does not have enough bytes.
+pub fn decode_u32_vec(buffer: &amp;[u8]) -&gt; Vec&lt;u32&gt; {
+    let len = decode_32_le(buffer, 0) as usize;
+    let mut vec = vec![0; len];
+    for i in 0..len {
+        vec[i] = decode_32_le(buffer, (i + 1) * 4);
+    }
+    vec
+}
+
+/// Decode a single 32-bit unsigned integer, encoded as little-endian.
+///
+/// # Panics
+///
+/// Panics if the buffer does not have 4 bytes starting at `offset`.
+#[inline(never)]  // this version isn&#39;t inlined
+pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
+    let b1 = buffer[offset];
+    let b2 = buffer[offset + 1];
+    let b3 = buffer[offset + 2];
+    let b4 = buffer[offset + 3];
+    u32::from_le_bytes([b1, b2, b3, b4])
+}</code></pre>
+<p>This version is not ideal, because <code>decode_32_le</code> checks bounds on each byte access. (<a href="https://godbolt.org/z/eTMa38nqT">compiler explorer</a>)</p>
+<p>We can improve it by checking the bounds for all of the reads once:</p>
+<pre><code>#[inline(never)]  // this version isn&#39;t inlined
+pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
+    if buffer.len() &lt; 4 || buffer.len() - 4 &lt; offset {
+        panic!();
+    }
+    let b1 = buffer[offset];
+    let b2 = buffer[offset + 1];
+    let b3 = buffer[offset + 2];
+    let b4 = buffer[offset + 3];
+    u32::from_le_bytes([b1, b2, b3, b4])
+}</code></pre>
+<p>The conditional makes sure that in the rest of the function the slice indices are all within bounds, so the compiler doesn’t generate bounds checks for the accesses. The compiler is also able to optimize further now to load just one 32-bit word from the memory, instead of reading one byte at a time. (<a href="https://godbolt.org/z/MG9EaE5G3">compiler explorer</a>)</p>
+<p><code>decode_32_le</code> is quite good now, but it still has to do one bounds check, and since <code>decode_u32_vec</code> calls it in each iteration, it does a bounds check in each iteration.</p>
+<p>Ideally we want to be able to do one bounds check before the loop, just like we did in <code>decode_32_le</code>, and then omit bounds checks within the loop:</p>
+<pre><code>pub fn decode_u32_vec(buffer: &amp;[u8]) -&gt; Vec&lt;u32&gt; {
+    let len = decode_32_le(buffer, 0) as usize;
+    if buffer.len() &lt; (len + 1) * 4 {
+        panic!();
+    }
+    let mut vec = vec![0; len];
+    for i in 0..len {
+        vec[i] = decode_32_le(buffer, (i + 1) * 4);
+    }
+    vec
+}</code></pre>
+<p>But this cannot make the bounds checks in <code>decode_32_le</code> disappear, as it may have other call sites that may not always check the bounds before calling it.</p>
+<p>Inlining <code>decode_32_le</code> in the use effectively lets us propagate the information in the call site to the callee’s code, and optimize it based on this information. If we change the <code>inline(never)</code> to <code>inline</code> in <code>decode_32_le</code>, with the extra bounds check in <code>decode_u32_vec</code>, we now check bounds once before the loop and don’t check it again in the loop. (<a href="https://godbolt.org/z/EeGbYrfP7">compiler explorer</a>)</p>
+<h1 id="example-avoiding-redundant-error-checks">Example: avoiding redundant error checks</h1>
+<p>Dart doesn’t have unsigned integers, and many standard library functions throw an <code>ArgumentError</code> when they are passed negative numbers.</p>
+<p>One example of these functions is the <a href="https://api.dart.dev/dart-core/int/operator_triple_shift.html">unsigned right shift operator</a>. In many call sites, the shift amount is a <a href="https://github.com/dart-lang/sdk/blob/abb17bc59d8163273451b3ffb2aba784d20001b4/sdk/lib/_internal/wasm/lib/internal_patch.dart#L88-L97">constant positive number</a>. If we call the standard library function in these cases, the library function will check the sign of the arguments that we already know in the call site to be positive.</p>
+<p>When we inline <a href="https://github.com/dart-lang/sdk/blob/abb17bc59d8163273451b3ffb2aba784d20001b4/sdk/lib/_internal/wasm/lib/boxed_int.dart#L94-L107">the operator</a> in a call site where the shift argument is constant, the conditional becomes <code>if (constant &lt; 0) throw ...</code>. The compiler can then simplify the condition as <code>true</code> or <code>false</code>, and then simplify this code to just <code>throw ...</code> or eliminate the conditional.</p>
+<p>The <code>mix64</code> function linked above when compiled to Wasm, without inlining the right shift operator:</p>
+<pre><code>(func $mix64 (param $var0 i64) (result i64)
+  ...
+  local.tee $var0
+  i64.const 24
+  call $BoxedInt.&gt;&gt;&gt;
+  ...)
+
+(func $BoxedInt.&gt;&gt;&gt; (param $var0 i64) (param $var1 i64) (result i64)
+  local.get $var1
+  i64.const 64
+  i64.lt_u
+  if
+    local.get $var0
+    local.get $var1
+    i64.shr_u
+    return
+  end
+  local.get $var1
+  i64.const 0
+  i64.lt_s
+  if
+    i32.const 64
+    local.get $var1
+    struct.new $BoxedInt
+    call $ArgumentError
+    call $Error._throwWithCurrentStackTrace
+    unreachable
+  end
+  i64.const 0)</code></pre>
+<p>With the shift operator inlined:</p>
+<pre><code>(func $mix64 (param $var0 i64) (result i64)
+  ...
+  local.get $var0
+  i64.const 24
+  i64.shr_u
+  ...)</code></pre>
+<p>The call to <code>BoxedInt.&gt;&gt;&gt;</code> with error checking is optimized to a single <code>shr_u</code> (shift right, unsigned) instruction.</p>
+<h1 id="example-avoiding-boxing">Example: avoiding boxing</h1>
+<p>In languages where most values are passed around as boxed, inlining can eliminate boxing.</p>
+<p>A common use case where this happens is FFI: pointers/references obtained from FFI calls need to be wrapped in a struct/class/etc. to make them the same “shape” as the language’s native values.</p>
+<p>When you have a function that gets a reference from an FFI call, and pass it around to more FFI calls, inlining these FFI calls can avoid boxing the pointer/reference value.</p>
+<p>Somewhat silly example, in Dart:</p>
+<pre><code>import &#39;dart:ffi&#39;;
+
+@Native&lt;Pointer&lt;Int64&gt; Function()&gt;()
+external Pointer&lt;Int64&gt; intPtr();
+
+@Native&lt;Int64 Function(Pointer&lt;Int64&gt;)&gt;()
+external int derefIntPtr(Pointer&lt;Int64&gt; ptr);
+
+void main() {
+  Pointer&lt;Int64&gt; ptr = intPtr();
+  ptr += 1;
+  int i = derefIntPtr(ptr);
+  print(i);
+}</code></pre>
+<p>Relevant parts of the generated code when compiled to Wasm:</p>
+<pre><code>(func $main
+  ...
+  call $intPtr
+  struct.get $Pointer $field2
+  i32.const 8
+  i32.add
+  call $ffi.derefIntPtr (import)
+  ...)
+
+(func $intPtr (result (ref $Pointer))
+  i32.const 71
+  i32.const 0
+  call $ffi.intPtr (import)
+  struct.new $Pointer)</code></pre>
+<p><code>intPtr</code> allocates a struct, which the call site directly unpacks (reads the field). Inlining <code>intPtr</code> eliminates this allocation:</p>
+<pre><code>(func $main
+  ...
+  call $ffi.intPtr (import)
+  i32.const 8
+  i32.add
+  call $ffi.derefIntPtr (import)
+  ...)</code></pre>
+<h1 id="example-avoiding-polymorphism">Example: avoiding polymorphism</h1>
+<p>When a monomorphic type is passed to a polymorphic function, the polymorphic function can often be inlined to avoid polymorphic access to the monomorphic type.</p>
+<p>An example, again in Dart, is <code>Int64List</code>, which is a monomorphic <code>List&lt;int&gt;</code>. It stores the integers unboxed, and when used directly, the integer arguments and return values do not need to be boxed.</p>
+<p>When used in a polymorphic site though, the integer elements need to be boxed. Example:</p>
+<pre><code>import &#39;dart:typed_data&#39;;
+
+int sum(List&lt;int&gt; list) {
+  int ret = 0;
+  for (int i = 0; i &lt; list.length; i += 1) {
+    ret += list[i];
+  }
+  return ret;
+}
+
+void main() {
+  Int64List intList = Int64List.fromList([1, 2, 3, 4]);
+  sum(intList);
+  sum([1, 2, 3, 4]);
+}</code></pre>
+<p>Relevant parts of the output when compiled to Wasm:</p>
+<pre><code>(func $main
+  ;; Allocate `Int64List`, call `sum`:
+  ...
+  call $sum
+
+  ;; Allocate the other `List&lt;int&gt;`, call `sum`:
+  ...
+  call $sum)
+
+(func $sum (param $var0 (ref $Object))
+  (local $var1 i64)
+  (local $var2 i64)
+  loop $label0
+    ...
+    if
+      ...
+      ;; Virtual call to `operator []`:
+      struct.get $Object $field0
+      i32.const 747
+      i32.add
+      call_indirect (param (ref $Object) i64) (result (ref null $#Top))
+
+      ;; The virtual call returns a boxed integer, which we directly unbox:
+      ref.cast $BoxedInt
+      struct.get $BoxedInt $field1
+      i64.add
+      ...
+    end
+  end $label0)</code></pre>
+<p>If we inline <code>sum</code>, the loop that iterates the <code>Int64List</code> accesses the unboxed integers directly:</p>
+<pre><code>(func $main
+  ...
+  loop $label1
+      ...
+      local.get $var3
+      local.get $var4
+      local.get $var1
+      i32.wrap_i64
+      ;; Array access is now direct, no boxing.
+      array.get $Array&lt;WasmI64&gt;
+      i64.add
+      local.set $var3
+      local.get $var1
+      i64.const 1
+      i64.add
+      local.set $var1
+      br $label1
+    end
+  end $label1)</code></pre>
+<p>A similar case is when a monomorphic type is used directly, but via a polymorphic interface. In the <code>Int64List</code> type above, <code>List64List.[]</code> is an override of <a href="https://api.dart.dev/dart-core/List/operator_get.html"><code>List&lt;E&gt;.[]</code></a>, and all overrides of a method need to have the same type.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>So when not inlined, it needs to return a boxed integer:</p>
+<pre><code>(func $Int64List.[] (param $var0 (ref $Object)) (param $var1 i64) (result (ref null $#Top))
+  ...
+  array.get $Array&lt;WasmI64&gt;
+  struct.new $BoxedInt)</code></pre>
+<p>Similar to the previous example, inlining it eliminates the boxing in monomorphic use sites, as the allocated struct is immediately unboxed.</p>
+<h1 id="example-eliminating-closures-and-indirect-calls">Example: eliminating closures and indirect calls</h1>
+<p>In languages without monomorphisation, higher-order function arguments need to be allocated as closures.</p>
+<p>When calling a closure, the caller needs to get the function pointer from the closure and call the function via the pointer.</p>
+<p>These closure allocations and indirect function calls can be too slow in hot loops.</p>
+<p>An example of this is in <a href="https://github.com/google/protobuf.dart">Dart protobuf library</a>. In protobufs, packed fields are encoded as a length prefix followed by the elements. In the Dart library, we decode these fields using <a href="https://github.com/google/protobuf.dart/blob/610943a3bed70c1c2079af5fca02462df10d223f/protobuf/lib/src/protobuf/coded_buffer.dart#L271-L277">this helper</a>:</p>
+<pre><code>void _readPacked(CodedBufferReader input, void Function() readFunc) {
+  input._withLimit(input.readInt32(), () {
+    while (!input.isAtEnd()) {
+      readFunc();
+    }
+  });
+}</code></pre>
+<p>Here the caller of <code>_readPacked</code> passes <code>readFunc</code> as a closure (allocation). <code>_readPacked</code> then allocates another closure, to be passed to <code>_withLimit</code>.</p>
+<p>That’s two closure allocations for every packed field in the input. Calling these closures are slow too, because they’re indirect.</p>
+<p>Inlining <code>_withLimit</code> in <code>_readPacked</code>, and <code>_readPacked</code> in its call sites (in <code>_mergeFromCodedBufferReader</code>) eliminates closure allocations, and calls to the closures become direct function calls. This <a href="https://github.com/google/protobuf.dart/pull/959">improves packed field decoding</a> significantly.</p>
+<h1 id="a-trick-for-effective-inlining-outlining">A trick for effective inlining: outlining</h1>
+<p>Consider <code>Int64List.[]</code> again. The implementation needs to check that the index is in bounds of the array, and throw an exception if not: (slightly simplified)</p>
+<pre><code>class Int64List ... {
+  ...
+
+  @override
+  int operator [](int index) {
+    if (length.leU(index)) { // shorthand for `index &lt; 0 || index &gt;= length`
+      ... // throw exception
+    }
+    return _data.read(index);
+  }
+}</code></pre>
+<p>To avoid boxing when calling this function we want to always inline it, but if we’re not careful with the error throwing code path (the <code>if</code> body above), the function can get quite large, and when inlined the binary can bloat up significantly.</p>
+<p>Ideally we want to inline the happy path that can lead to improvements when inlined, and leave the error path separate in a function, so that we can have the benefits of inlining without adding to the binary size too much.</p>
+<p>This can be done by moving the error handling code to a separate function, and making sure that separate function is never inlined (ideally with an annotation to the compiler). In the example above, this may look like:</p>
+<pre><code>class Int64List ... {
+  @override
+  @pragma(&#39;inline&#39;)
+  int operator [](int index) {
+    if (length.leU(index)) { // shorthand for `index &lt; 0 || index &gt;= length`
+      fail(index, length);
+    }
+    return _data.read(index);
+  }
+}
+
+@pragma(&#39;never-inline&#39;)
+void fail(int index, int length) { ... }</code></pre>
+<p>With this it doesn’t matter how large the error handling code is, because we never inline it.</p>
+<p>This way of separating inlineable parts of a function from the parts we don’t want to inline is sometimes called “outlining” or “partial inlining”. We can do it manually (as in the example above), but it can also be done by a compiler based on heuristics.</p>
+<p>An example transformation to this is <a href="https://www.cambridge.org/core/services/aop-cambridge-core/content/view/75629BBEDB11D8463553A09BF5DEA235/S0956796809007175a.pdf/div-class-title-the-worker-wrapper-transformation-div.pdf">GHC’s worker/wrapper transformation</a>, which splits a function into parts that (1) handle unboxing and boxing before calling the function’s body, and (2) the function’s body that work on the unboxed representations of the arguments. (1) is then inlined to avoid redundant boxing of the arguments and return values.</p>
+<p>Another example is <a href="https://github.com/WebAssembly/binaryen">wasm-opt</a> which does <a href="https://github.com/WebAssembly/binaryen/blob/6fe5103ab58a4eb751998d13768a0f25795a0de6/src/passes/Inlining.cpp#L684-L754">partial inlining</a>.</p>
+<h1 id="a-tip-for-effective-inlining-avoid-inlining-in-slow-paths">A tip for effective inlining: avoid inlining in slow paths</h1>
+<p>In the <a href="https://github.com/google/protobuf.dart/blob/610943a3bed70c1c2079af5fca02462df10d223f/protobuf/lib/src/protobuf/coded_buffer.dart#L54-L267">protobuf decoding loop</a> that we mentioned above, we have a big type switch to determine how to decode a field. It looks like this:</p>
+<pre><code>switch (fieldType) {
+  case PbFieldType._OPTIONAL_BOOL:
+    fs._setFieldUnchecked(meta, fi, input.readBool());
+    break;
+  ...
+  case PbFieldType._REPEATED_UINT64:
+    final list = fs._ensureRepeatedField(meta, fi);
+    if (wireType == WIRETYPE_LENGTH_DELIMITED) {
+      _readPacked(input, () =&gt; list.add(input.readUint64()));
+    } else {
+      list.add(input.readUint64());
+    }
+    break;
+  ...
+  // 37 cases in total. 
+}</code></pre>
+<p>Assume that there’s a function that throws an exception (e.g. <code>_ensureRepeatedField</code> above), and it’s used in only once, in one of the <code>case</code>s of the <code>switch</code>.</p>
+<p>Because the function is only used once, it may look like inlining it makes sense, as that would eliminate function call overhead, shave at least a few bytes off the binary, and potentially allow optimizations in the call site.</p>
+<p>However since this switch is in a hot loop, and the inlined code branch is taken very rarely (unless the application is receiving a lot of malformed input), inlining this slow path can make the instruction cache usage much worse and slow down the decoder.</p>
+<p>This kind of inlining can commonly happen when optimizing for size, e.g. with <code>wasm-opt -Os</code>. Because inlining single-use functions reduce binary sizes, optimization modes that aim to make the final binaries smaller can inline slow-path error throwing functions.</p>
+<p>If we really want to inline a slow-path function, a way to avoid making instruction cache usage worse is to move the slow-path code to the end of the function, away from the common code paths.</p>
+<p>This is often done with branch prediction hints, such as clang’s <a href="https://llvm.org/docs/BranchWeightMetadata.html#builtin-expect"><code>__builtin_expect</code></a>. When a branch is annotated as “not likely to be taken”, the compiler can move the branch target (the basic blocks) to the end of the current function, away from the hot code. This gives us the binary size benefits of inlining single-use functions, without filling the instruction cache with instructions that will never be executed.</p>
+<h1 id="remarks">Remarks</h1>
+<p>The main reason why the examples above are mostly in Dart is because I’ve been spending most of my time this year optimizing Dart’s Wasm backend’s standard library implementation, so the examples are still fresh in my memory.</p>
+<p>The principles apply to most languages: inlining a function makes any information about the arguments available to the function’s body, and any information on its return value to the call site.</p>
+<p>A big part of optimizing high-level statically-typed languages is about avoiding polymorphism, boxing, and redundant error checks. I’m not aware of any cases where inlining a function in a high-level language, when it doesn’t result in improving one of these, is worthwhile.</p>
+<p>In a lower-level language with monomorphisation and control over allocations (e.g. Rust, C++), monomorphisation eliminates polymorphism in compile time, boxing is explicit, and redundant checks can be avoided by using unchecked (unsafe) functions.</p>
+<p>In these cases where programs are often much faster by default, inlining to avoid stack/register shuffling and simplify control flow can make a difference.</p>
+<p>One example of simplified control flow making a big difference can be seen in <a href="https://osa1.net/posts/2024-11-29-how-to-parse-3.html">the previous post</a>, where implementing a recursive parsing function in a non-recursive way improved performance by 22%.</p>
+<h1 id="updates">Updates</h1>
+<ul>
+<li><strong>2024-12-07:</strong> Added link to wasm-opt in partial inlining section.</li>
+<li><strong>2025-02-12:</strong> Added a higher-order function example.</li>
+<li><strong>2025-02-14:</strong> Added a section about inlining in slow paths.</li>
+</ul>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>More accurately, a method that can be called in a polymorphic call site needs to have a type that is a subtype of the least-upper-bound of the types of all functions that can be called in the polymorphic call sites.</p>
+<p>Or more briefly, all methods in an override group need to have the same type.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>]]></summary>
 </entry>
 
 </feed>
