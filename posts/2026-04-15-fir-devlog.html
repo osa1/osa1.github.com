@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Fir now compiles to C (+ extensible named types, associated types, modules, and more)</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Fir now compiles to C (+ extensible named types, associated types, modules, and more)</h1>
+
+<p><strong>April 15, 2026</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'fir'." href="../tags/fir.html">fir</a>.</p>
+
+<p>One of my original goals with Fir was to bootstrap it as early as possible. I was so determined, I committed the first code for the self-hosted compiler in the <a href="https://github.com/fir-lang/fir/commit/a69e3cefcb42c1ad63e303e70dbd9e66d5aa512f">322nd commit</a>, on 11 April 2025, after less than a year of development in the open source<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, when it was barely usable. To understand how early this is, we’re currently on commit 1,052, and in my opinion it only recently became somewhat usable.</p>
+<p>Unsurprisingly, this turned out to be a challenge, and I had to accept the fact that a compiler for a non-trivial language is a lot of work. You really need a lot of language features + a good implementation (generating fast code) for it. It’s not that it cannot be done otherwise, but the process becomes extremely slow, tedious, and boring.</p>
+<p>Something else that became evident as I worked on the self-hosted compiler was that, even if I finish it with just the features we have, I’ll have to refactor it quite significantly as we implement the planned features, to the point where it could feel more like a rewrite than a refactoring.</p>
+<p>Finally, I thought (perhaps mistakenly), with some of the recent developments in programming tooling and software development methods (you know what I’m talking about), with a working reference implementation + tests, bootstrapping effort could be largely automated.</p>
+<p>So I started implementing features that I consider essential for Fir 1.0, in the reference implementation. In this post we’ll look at some of these features that were recently implemented.</p>
+<h3 id="fir-now-compiles-to-c">Fir now compiles to C</h3>
+<p>The Fir reference implementation now compiles to C. The motivation for this development was that running the self-hosted compiler with the interpreter to compile itself was taking 8.8s, despite just parsing + name resolving. That’s already too long, and it was going to get much worse as we implement type checking, monomorphisation, and code generation.</p>
+<p>I made a few attempts at optimizing the interpreter, but it became clear that with very little effort, compared to designing and implementing a bytecode interpreter, I could compile it to C<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. Because we already had a monomorphiser, compilation to C was mostly very straightforward, and we immediately got 12x speedup: the self-hosted compiler started checking itself in 0.7s instead of 8.8s.</p>
+<p>When working on the compiler, compiling the compiler to C, then compiling that C to native with clang, then running the executable on the compiler itself is currently at 1.7s.</p>
+<p>This also improved the workflow in other areas: formatting the whole code base and compiling PEG files take an instant now, instead of many seconds.</p>
+<p>This also allowed other things that made this even better in terms of return-on-investment: we got free garbage collection with the <a href="https://github.com/bdwgc/bdwgc">Boehm-Demers-Weiser conservative GC</a>, and value types became trivial to implement. This will also make it easier to add C FFI in the future. (more on this below)</p>
+<p>The interpreter still exists, mainly to keep <a href="https://fir-lang.github.io/">the online interpreter</a> running.</p>
+<h3 id="value-types">Value types</h3>
+<p>Fir literally started as a “high-level language with value types”, but it wasn’t entirely trivial to implement them until we had the C backend.</p>
+<p>With the C backend, it became a matter of making it generate typed code (instead of treating all values as <code>uint64_t*</code> or similar), and then not <code>malloc</code>ing value types.</p>
+<p>Here’s an example value type, from the standard library:</p>
+<pre><code># Immutable, UTF-8 encoded strings.
+value type Str(
+    # UTF-8 encoding of the string.
+    _bytes: Array[U8],
+)</code></pre>
+<p>Relevant struct definitions in generated C:</p>
+<pre><code>typedef struct Array_U8 {
+    U8* data_ptr;
+    uint64_t len;
+} Array_U8;
+
+typedef struct Str {
+    Array_U8 _0;
+} Str;</code></pre>
+<p>This type is then used directly (instead of as a pointer). Here’s a forward-declaration of a function from the self-hosted compiler:</p>
+<pre><code>// Compiler/ParseUtils.fir:32:1 parseCharLit[U32]
+static Char _fun_8(Str _p0);</code></pre>
+<p>(The comment line here is generated by the compiler to make it easier to read the generated code.)</p>
+<h3 id="associated-types">Associated types</h3>
+<p>This was a feature that I delayed implementing for way too longer than I should’ve, mostly because I didn’t know how to implement them and it took a while to figure it out.</p>
+<p>Associated types in Fir are the same feature as associated types in Rust. The most common use case for them is the <code>Iterator</code> trait. Before associated types, <code>Iterator</code> in Fir looked like this: (omitting extra methods with default implementations)</p>
+<pre><code>trait Iterator[iter, item, exn]:
+    next(self: iter) Option[item] / exn</code></pre>
+<p>Here’s how the <code>CharIter</code>’s (iterates characters of a string) <code>Iterator</code> implementation looked like:</p>
+<pre><code>impl Iterator[CharIter, Char, exn]:
+    next(self: CharIter) Option[Char] / exn:</code></pre>
+<p>This trait definition has a problem. The type of <code>Iterator.next</code> is this:</p>
+<pre><code>[Iterator[iter, item, exn]] Fn(self: iter) Option[item] / exn</code></pre>
+<p>Based on this type, in a call site like <code>charIter.next()</code> (where <code>charIter : CharIter</code>), we generate the predicate <code>Iterator[CharIter, item, exn]</code> and the type of the call expression becomes <code>Option[item]</code>. (where <code>item</code> and <code>exn</code> are fresh unification variables)</p>
+<p>If the expected type of the call expressions is not precise enough to unify that <code>item</code> type with a concrete type, the predicate never becomes <code>Iterator[CharIter, Char, exn]</code>, and we can’t solve it, because there isn’t an <code>impl</code> for <code>Iterator[CharIter, item, exn]</code> (note: with generic <code>item</code>). We only have <code>Iterator[CharIter, Char, exn]</code>.</p>
+<p>This resulted in lots of type annotations in the code that uses the <code>Iterator</code> trait. Most importantly, it required type annotations in <code>for</code> loops as <code>for</code> loops used <code>Iterator</code> under the hood. For example:</p>
+<pre><code>for char: Char in charIter:
+    print(char)</code></pre>
+<p>Here <code>print</code> is a generic function that works on any <code>ToStr</code> type, so without the type annotation the predicate became too generic and couldn’t be solved.</p>
+<p>With associated types, the trait now looks like this:</p>
+<pre><code>trait Iterator[iter, exn]:
+    type Item
+    next(self: iter) Option[Item] / exn
+
+impl Iterator[CharIter, exn]:
+    type Item = Char
+    next(self: CharIter) Option[Char] / exn:</code></pre>
+<p>With this definition, the predicate for the same call becomes <code>Iterator[CharIter, exn]</code> (where <code>exn</code> is a fresh unification variable), and that’s immediately resolved using this <code>impl</code>. The <code>for</code> loop example above now works without a type annotation.</p>
+<p>Associated types also allowed the next feature.</p>
+<h3 id="its-now-possible-to-implement-traits-for-record-types">It’s now possible to implement traits for record types</h3>
+<p>This was a small development in terms of code, but an important one for the language. Until this feature, we could pass records around and access fields in polymorphic contexts, but if we want to take a polymorphic record (with a row extension) and e.g. print it, there was no way.</p>
+<p>This wasn’t too important until recently, as the main use case for records was returning multiple values. You’d then destruct/pattern match on the return values directly and use them individually. For example:</p>
+<pre><code>divRem(x: U32, y: U32) (div: U32, rem: U32): ...
+
+# Users just match on the fields instead of passing the return value around
+# as a record.
+let (div, rem) = divRem(a, b)</code></pre>
+<p>However with the other developments listed below, records became much more useful, and not being able to implement traits on them became a problem.</p>
+<p>The solution was porting PureScript’s <a href="https://pursuit.purescript.org/builtins/docs/Prim.RowList"><code>RowToList</code></a> typeclass to Fir. The idea is that we define a “magic” trait that converts record rows into heterogeneous lists:</p>
+<pre><code>trait RecRowToList[recRow]:
+    type List
+    rowToList(rec: (..recRow)) Option[List]</code></pre>
+<p>Here <code>recRow</code> is a record-row-kinded type parameter. This trait is resolved by the compiler for any valid (with right kind) type argument, and depending on the type argument the <code>List</code> type is also generated as an heterogeneous list. The heterogeneous list type is defined as this, in the standard library:</p>
+<pre><code>value type List[head, tail](
+    head: head,
+    tail: Option[tail],
+)</code></pre>
+<p>In the generated <code>List</code> types for record rows, the <code>head</code> type is always a <code>RecordField</code>:</p>
+<pre><code>value type RecordField[t](
+    label: Str,
+    value_: t,
+)</code></pre>
+<p>So for example, <code>RecRowToList[row(x: U32, msg: Str)]</code> is resolved by the type checker, and the <code>List</code> type is also resolved as <code>List[RecordField[Str], List[RecordField[U32], []]]</code><a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> <a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>.</p>
+<p>Here’s how to implement <code>ToStr</code> on records using this machinery:</p>
+<pre><code>impl[ToStr[RecRowToList[r].List]] ToStr[(..r)]:
+    toStr(self: (..r)) Str:
+        match RecRowToList[r].rowToList(self):
+            Option.None: &quot;()&quot;
+            Option.Some(list): &quot;(`list`)&quot;
+
+
+impl[ToStr[t]] ToStr[RecordField[t]]:
+    toStr(self: RecordField[t]) Str:
+        &quot;`self.label` = `self.value_`&quot;
+
+
+impl[ToStr[head], ToStr[tail]] ToStr[List[head, tail]]:
+    toStr(self: List[head, tail]) Str:
+        match self.tail:
+            Option.None: &quot;`self.head`&quot;
+            Option.Some(t): &quot;`self.head`, `t`&quot;
+
+impl ToStr[[]]:
+    toStr(self: []) Str:
+        panic(&quot;unreachable&quot;)</code></pre>
+<p>Note that the <code>List</code> and <code>RecordField</code> types are value types, so <code>rowToList</code> does not allocate. It just generates a different representation of the record on stack that we can recurse on.</p>
+<h3 id="matching-a-bunch-of-fields-at-once-as-a-record">Matching a bunch of fields at once, as a record</h3>
+<p>This was one of the very simple features that made records so much more useful.</p>
+<p>When pattern matching fields, we can now use <code>..var</code> syntax to assign unmatched fields to a variable, as a record. Here’s a simple example:</p>
+<pre><code>type Test(
+    x: U32,
+    y: U32,
+    z: U32,
+    msg: Str
+)
+
+
+main():
+    let x = Test(x = 1, y = 2, z = 3, msg = &quot;hi&quot;)
+    let Test(y, ..rest) = x
+    print(rest)</code></pre>
+<p>In the pattern, <code>y</code> matches the field <code>y</code>, <code>rest</code> matches the rest of the fields, as <code>(x: U32, z: U32, msg: Str)</code>. Then, using the <code>ToStr</code> implementation of records as shows above, this prints <code>(msg = "hi", x = 1, z = 3)</code>.</p>
+<p>This is not the main use case for this feature, but just as a note, when combined with traits on records, this allows easily implementing traits by reusing records’ implementations of the traits. For example, <code>ToStr</code> for <code>Test</code> here can be implemented as:</p>
+<pre><code>impl ToStr[Test]:
+    toStr(self: Test) Str:
+        let Test(..fields) = self
+        &quot;Test`fields`&quot;</code></pre>
+<p>With this implementation, the value <code>x</code> above now prints as <code>Test(msg = "hi", x = 1, y = 2, z = 3)</code>. This is the same output as the derived <code>ToStr</code> for this type, just with the different field order. (derived <code>impl</code> would print fields in the source code order, so: <code>x</code>, <code>y</code>, <code>z</code>, <code>msg</code>)</p>
+<h3 id="splicing-records-and-named-arguments">Splicing records and named arguments</h3>
+<p>We can now pass records as named arguments. The feature above copies field values to records, this one copies records to named arguments for fields.</p>
+<p>This is also straightforward and I think a simple example should suffice, using the same types as above:</p>
+<pre><code>main():
+    let x = Test(x = 1, y = 2, z = 3, msg = &quot;hi&quot;)
+    print(x)
+
+    let Test(y, ..rest) = x     # rest: (x: U32, z: U32, msg: Str)
+    let y = Test(y = 0, ..rest)
+    print(y)
+
+# output:
+# Test(msg = hi, x = 1, y = 2, z = 3)
+# Test(msg = hi, x = 1, y = 0, z = 3)</code></pre>
+<p>Reminder: records (and variants) are value types. They’re not heap allocated. So the code above does not allocate for the <code>rest</code> record.</p>
+<p>We can also make larger records from smaller ones with this feature:</p>
+<pre><code>main():
+    let x = (x = u32(123), y = u32(456))
+    let y = (msg = &quot;hi&quot;, ..x)
+    print(y)
+
+# output: (msg = &quot;hi&quot;, x = 123, y = 456)</code></pre>
+<p>Splicing two records together is currently not possible: there can be at most one <code>..expr</code> in a record expression.</p>
+<h3 id="extensible-named-types">Extensible named types</h3>
+<p>This is a big one that I talked about <a href="https://osa1.net/posts/2026-03-07-extensible-named-types-fir.html">in a previous post</a>. It only became usable after the record features above, associated types, and type synonyms.</p>
+<p>For a running example, I added <a href="https://fir-lang.github.io/?file=NamedTypeExtensions.fir">a full program</a> to the online interpreter, showing a solution to the extensible AST types problem described in the blog post. It’s extensively documented, explaining all the interesting bits, so I recommend just checking it out.</p>
+<p>In short, we allow extending named types using record rows. Pattern matching, allocation, and everything else works the same way as records. Here’s an example:</p>
+<pre><code>type Foo[r](
+    x: U32,
+    y: U32,
+    ..r
+)
+
+
+impl[r: Row[Rec], ToStr[RecRowToList[r].List]] ToStr[Foo[r]]:
+    toStr(self: Foo[r]) Str:
+        let Foo(..fields) = self
+        &quot;Foo`fields`&quot;
+
+
+main():
+    let x = Foo(x = 1, y = 2, msg = &quot;hi&quot;)
+    let y = Foo(b = Bool.True, y = 10, blah = Option.Some(u32(0)), x = 11)
+    print(x)
+    print(y)
+
+
+# output:
+# Foo(msg = hi, x = 1, y = 2)
+# Foo(b = Bool.True, blah = Option.Some(0), x = 11, y = 10)</code></pre>
+<p><code>Foo</code> here is an extensible type. In the allocation sites, we allocate it with different extra fields. The inferred types here are:</p>
+<ul>
+<li><code>x : Foo[row(msg: Str)]</code></li>
+<li><code>y : Foo[row(b: Bool, blah: Option[U32])]</code></li>
+</ul>
+<p><code>ToStr</code> implementation is implemented using the record field matching features explained above, but it can also be derived.</p>
+<p>This feature is used in the self-hosted compiler and the tools. The code is a bit long, but we basically use the same idea demonstrated in the online demo linked above, to add different fields to the AST nodes used by different tools. For example, here’s the AST node type for variant expressions, when compiled to C, as a part of the self-hosted compiler:</p>
+<pre><code>typedef struct VariantExpr_CompilerAstExts {
+    Expr_CompilerAstExts* _0;
+    Option_Ty _1;
+} VariantExpr_CompilerAstExts;</code></pre>
+<p>And here’s the exact same type, but in the formatter’s compiled C code:</p>
+<pre><code>typedef struct VariantExpr_DefaultAstExts {
+    Expr_DefaultAstExts* _0;
+} VariantExpr_DefaultAstExts;</code></pre>
+<p>This is smaller because the formatter doesn’t have the extra field the compiler adds to the type.</p>
+<p>Both are generated from this Fir type:</p>
+<pre><code>type VariantExpr[exts](
+    expr: Expr[exts],
+    ..AstExts[exts].InferredTyExts
+)</code></pre>
+<p>You can see the full generic AST definitions used by the compiler and other tools <a href="https://github.com/fir-lang/fir/blob/96429adb83b2242ff806fe624dfe65be45e42b82/Compiler/Ast.fir">here</a>.</p>
+<p>Because we can implement traits on records and record rows now, deriving traits also work on extensible types. In the example above, I can just add <code>#[derive(ToDoc)]</code> to <code>Foo</code> and then print it like this:</p>
+<pre><code>#[derive(ToDoc)]
+type Foo[r](
+    x: U32,
+    y: U32,
+    ..r
+)
+
+
+main():
+    let x = Foo(x = 1, y = 2, msg = &quot;hi&quot;)
+    let y = Foo(b = Bool.True, y = 10, blah = Option.Some(u32(0)), x = 11)
+    print(x.toDoc().render(80))
+    print(y.toDoc().render(80))
+
+
+# output:
+# Foo(x = 1, y = 2, (msg = &quot;hi&quot;))
+# Foo(x = 11, y = 10, (b = Bool.True, blah = Option.Some(0)))</code></pre>
+<p>The AST types in the compiler all derive traits this way.</p>
+<h3 id="modules">Modules</h3>
+<p>Until recently, importing a module in Fir just parsed the module and copied the parsed code to the current module.</p>
+<p>In other words, there was just one module. There were no name spaces, private definitions, selective imports, or importing with renaming.</p>
+<p>It took quite a while to design and implement a proper module system and I actually found it quite difficult to design this, even though in the end the design was quite simple. There were two problems that made this difficult for me:</p>
+<p>First, I wasn’t sure whether we want just namespacing (plus the usual features for selective imports, renaming, etc.) or something fancier, like first-class modules.</p>
+<p>To figure this out I <a href="https://github.com/osa1/a-modular-module-system">studied OCaml’s module system</a> (and also <a href="https://osa1.net/posts/2026-03-10-containing-contagious-types.html">blogged about it</a>) and <a href="https://github.com/osa1/oneml">1ML</a> in a bit more detail, and decided that I want the modules to be type checking units (to be checked in parallel) and namespaces, instead of first-class values.</p>
+<p>This significantly simplified the design, but the design space was still huge and there were just two constraints:</p>
+<ul>
+<li>They shouldn’t require separate files for interfaces and implementations.</li>
+<li>Recursive imports should be allowed.</li>
+</ul>
+<p>So the second problem was that these requirements did not constrain the design space enough to give me a small number of options, with obvious and significant tradeoffs between them. I could probably come up with a dozen designs that would all be good enough.</p>
+<p>In the end I had to make somewhat arbitrary decisions, based on what I needed in the past, from the other module systems that I used, and what I didn’t, and preference and taste. I updated one thing as I implemented it, and settled on this:</p>
+<ul>
+<li><p>Recursive imports are allowed, and there are no interface files. Each module is implemented as one file.</p></li>
+<li><p>Module paths follow directory structure on the file system. E.g. an import to <code>Foo/Bar/Baz</code> requires the module to be in <code>Foo/Bar/Baz.fir</code> in the package root.</p></li>
+<li><p>A module exports every non-underscored symbol that it has direct access to. This includes names that it imports. There’s no explicit exporting.</p></li>
+<li><p>Underscored symbols are only accessible with explicit module paths. There’s nothing that’s truly private. If you really want you can access all private names. This keeps the design simple by avoiding fine-grained access control with things like <code>pub(crate)</code> or <code>pub(foo::bar::baz)</code> in Rust, and conditional compilation for exposing things for testing.</p></li>
+<li><p>The usual renaming features are possible: modules can be imported with different names, individual definitions can be imported with different names.</p></li>
+<li><p>Module path syntax is different than associated member access syntax: module paths use <code>/</code> as separator, associated members use <code>.</code>. For example:</p>
+<ul>
+<li><code>A/B</code> in expression context means “constructor B in module A”</li>
+<li><code>B.C</code> in expression context means “constructor C of type B”</li>
+<li><code>A/B.C</code> in expression context means “constructor C in type B in module A”</li>
+</ul></li>
+<li><p>This is currently not implemented: when a module exports something (type with constructors, function, …), everything referenced by the signature of the exported thing should also be exported.</p>
+<p>This is to avoid the common issues in some languages where you export a function, but not the types that it uses, and the user either has to get it from another package or can’t use your function. Or even if the function is usable (for example, the private type is in the return type position and you just call the function but don’t use the return value), users can’t add type annotations to your function.</p>
+<p>The principle here is that I should be able to take any expression in the program and give it a type annotation in a <code>let</code> statement. For trait methods, I should be able to explicitly call the methods with the type arguments. E.g. instead of <code>foo.toStr()</code> I should be able to do <code>ToStr.toStr[&lt;type of foo&gt;](foo)</code> so that means the trait type and all of the type arguments of the trait should be in scope and accessible.</p></li>
+</ul>
+<p>Here’s how relevant syntax looks currently:</p>
+<pre><code># Each module can have at most one `import`. Documentation comments added to
+# `import` lines become documentation comment of the module. When a module
+# doesn't import anything an empty `import []` can be added to document the
+# module.
+
+## This is the module documentation.
+
+import [
+    # Import everything from `Fir/Prelude`, to use directly (without module
+    # prefix).
+    # This is implicitly added to every module already, so not needed. On here
+    # for demonstration purposes.
+    Fir/Prelude,
+
+    # This allows using symbols imported from the module with the given prefix.
+    # E.g. instead of `Option.Some(123)` we do `P/Option.Some(123)`.
+    Fir/Prelude as P,
+
+    # Only imports listed things.
+    Fir/Prelude/[Option, Result, min, max],
+
+    # Only imports listed things, but with renaming.
+    Fir/Prelude/[Option, Result, min as _min, max as _max],
+]
+
+
+main():
+    # Some random combination of imported things, used in different ways.
+    print(Option.Some(_min(P/max(P/u32(0), u32(1)), u32(2))))
+
+
+# output: Option.Some(1)</code></pre>
+<p>Some other notes and clarifications on this design:</p>
+<ul>
+<li><p>Re-exporting imported things can be avoided by adding underscore to the imported names. E.g. in the code examples above, <code>_min</code> and <code>_max</code> are not exported from this module, but other non-underscored imports are.</p>
+<p>This is not a special case for imports: underscored things are never exported. If you import something with an underscored name, it’s also not exported just like defined things.</p></li>
+<li><p>Modules are only imported explicitly. There’s no re-exporting a module. So if the module above is <code>Foo/Bar</code>, you don’t get <code>Foo/Bar/P</code> when you import it.</p></li>
+</ul>
+<p>So far I’m happy with how it looks (syntax) and how it works, but as with most things in this language, it’s open to improvements, refinements, and even backwards incompatible changes.</p>
+<h3 id="smaller-features-kind-annotations-and-type-synonyms">Smaller features: kind annotations and type synonyms</h3>
+<p>These don’t need much introduction, but I want to document why they were needed and implemented.</p>
+<p>Type synonyms came in handy in two places:</p>
+<ul>
+<li><p>With associated types, we want to refer to the associated types directly in the <code>trait</code> and <code>impl</code> bodies. For example, in the <code>Iterator</code> trait:</p>
+<pre><code>trait Iterator[iter, exn]:
+    type Item
+    next(self: iter) Option[Item] / exn</code></pre>
+<p>Normally the way you refer to <code>Item</code> here is with <code>Iterator[iter, exn].Item</code>. But within the <code>trait</code> body (and also in <code>impl</code>s), we want to refer to them as <code>Item</code> directly.</p></li>
+<li><p>With extensible named types, we want to be able to define generic (extensible) types in a shared library, and the in the using libraries we want to override them (shadow the original definitions) with instantiated types. For example, the AST library defines <code>type VarExpr[exts](...)</code>. The formatter overrides it with the extension type it needs: <code>type VarExpr =   Ast/VarExpr[FormatterExts]</code>.</p></li>
+</ul>
+<p>The second one is obviously a type synonym, but the first one also uses the same underlying code. We just make type synonyms scoped, and create new synonyms in <code>trait</code> and <code>impl</code> bodies, for the associated types.</p>
+<p>Kind annotations became necessary as we started using row-kinded type parameters more, for the extensible named types. Currently kind inference is very simple, it only looks at the current definition. If a type parameter is used in a row extension position (i.e. <code>..var</code>), its kind is inferred as <code>Row[Rec]</code> or <code>Row[Var]</code> depending on whether the extension is in a record (or fields) or variant (or constructors).</p>
+<p>That means that in the extensible named type example above:</p>
+<pre><code>type Foo[r](
+    x: U32,
+    y: U32,
+    ..r
+)</code></pre>
+<p>Here <code>r</code>’s kind is inferred as <code>Row[Rec]</code>. But if we had another type that passed a generic <code>r</code> to it:</p>
+<pre><code>type Bar[r](foo: Foo[r])</code></pre>
+<p>This <code>r</code>’s kind was inferred as <code>*</code>, which is incorrect.</p>
+<p>I don’t want to introduce module-level kind inference for various reasons, so I had to add kind annotations here. The correct definition with kind annotations is:</p>
+<pre><code>type Bar[r: Row[Rec]](foo: Foo[r])</code></pre>
+<p>Kinds follow the same syntax as types. <code>*</code>-kinded type parameters are just listed, without any annotations. This is useful to avoid reordering type parameters just to specify kinds of some of the types. E.g. if I have</p>
+<pre><code>foo(x: t, y: Bar[r]): ...</code></pre>
+<p>Here the inferred type parameters are <code>[t: *, r: *]</code>, generated from the signature by left-to-right scan. When calling we can explicitly pass them as <code>foo[type1, type2](...)</code>.</p>
+<p>This passes wrong kinded type to <code>Bar</code>. To fix, we have to specify the kind of <code>r</code>:</p>
+<pre><code>foo[r: Row[Rec]](x: t, y: Bar[r]): ...</code></pre>
+<p>But this also reorders type parameters as <code>[r: Row[Rec], t: *]</code> now, as the type parameter lists are generated by a left-to-right scan of the signature.</p>
+<p>To fix, we have to also list the type parameter <code>t</code> explicitly, just without a kind:</p>
+<pre><code>foo[t, r: Row[Rec]](x: t, y: Bar[r]): ...</code></pre>
+<p>This gives us the original order of the type parameters, but with the correct kinds: <code>[t: *, r: Row[Rec]]</code>.</p>
+<h3 id="next-up-c-header-imports-c-ffi">Next up: C header imports (C FFI)</h3>
+<p>This post is already too long so I want to keep this part short for now. With the (1) resources that I have (2) things I have to do with this language (3) what we have currently (current implementation), the shortest path to success (some kind of adoption) that I can see is by making C interop absolutely effortless.</p>
+<p>By “effortless” I really mean it: I should be able to import a C header file in directly in Fir and just use the definitions and link the generated C with object files implementing the prototypes, and provide implementations for symbols used by other compiled C code.</p>
+<p>Similar to the module system, this is an area I don’t have a lot of experience about. Depending on things that are our out of my control (i.e. life, responsibilities), and whether I’ll encounter fundamental issues, I suspect this will take 6-12 months to fully implement. Once done, Fir will be useful for many use cases.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>I started working on it earlier in 2024. Open sourced in June 2024.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>This was partly thanks to the GCC extension <a href="https://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html">statement expressions</a>, which allowed me to compile nested expressions directly to C without having to flatten them in an A-normal form IR or similar. The extension is also supported by clang so it didn’t make the generated C less portable.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p><code>[]</code> is the empty variant type, which doesn’t have any values.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>The generated list fields are sorted on field names, so <code>msg</code> comes before <code>x</code> here.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+            </div>
+        </div>
+    </body>
+</html>

@@ -8,8 +8,351 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2026-03-13T00:00:00Z</updated>
+    <updated>2026-04-15T00:00:00Z</updated>
     <entry>
+    <title>Fir now compiles to C (+ extensible named types, associated types, modules, and more)</title>
+    <link href="http://osa1.net/posts/2026-04-15-fir-devlog.html" />
+    <id>http://osa1.net/posts/2026-04-15-fir-devlog.html</id>
+    <published>2026-04-15T00:00:00Z</published>
+    <updated>2026-04-15T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>One of my original goals with Fir was to bootstrap it as early as possible. I was so determined, I committed the first code for the self-hosted compiler in the <a href="https://github.com/fir-lang/fir/commit/a69e3cefcb42c1ad63e303e70dbd9e66d5aa512f">322nd commit</a>, on 11 April 2025, after less than a year of development in the open source<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, when it was barely usable. To understand how early this is, we’re currently on commit 1,052, and in my opinion it only recently became somewhat usable.</p>
+<p>Unsurprisingly, this turned out to be a challenge, and I had to accept the fact that a compiler for a non-trivial language is a lot of work. You really need a lot of language features + a good implementation (generating fast code) for it. It’s not that it cannot be done otherwise, but the process becomes extremely slow, tedious, and boring.</p>
+<p>Something else that became evident as I worked on the self-hosted compiler was that, even if I finish it with just the features we have, I’ll have to refactor it quite significantly as we implement the planned features, to the point where it could feel more like a rewrite than a refactoring.</p>
+<p>Finally, I thought (perhaps mistakenly), with some of the recent developments in programming tooling and software development methods (you know what I’m talking about), with a working reference implementation + tests, bootstrapping effort could be largely automated.</p>
+<p>So I started implementing features that I consider essential for Fir 1.0, in the reference implementation. In this post we’ll look at some of these features that were recently implemented.</p>
+<h2 id="fir-now-compiles-to-c">Fir now compiles to C</h2>
+<p>The Fir reference implementation now compiles to C. The motivation for this development was that running the self-hosted compiler with the interpreter to compile itself was taking 8.8s, despite just parsing + name resolving. That’s already too long, and it was going to get much worse as we implement type checking, monomorphisation, and code generation.</p>
+<p>I made a few attempts at optimizing the interpreter, but it became clear that with very little effort, compared to designing and implementing a bytecode interpreter, I could compile it to C<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. Because we already had a monomorphiser, compilation to C was mostly very straightforward, and we immediately got 12x speedup: the self-hosted compiler started checking itself in 0.7s instead of 8.8s.</p>
+<p>When working on the compiler, compiling the compiler to C, then compiling that C to native with clang, then running the executable on the compiler itself is currently at 1.7s.</p>
+<p>This also improved the workflow in other areas: formatting the whole code base and compiling PEG files take an instant now, instead of many seconds.</p>
+<p>This also allowed other things that made this even better in terms of return-on-investment: we got free garbage collection with the <a href="https://github.com/bdwgc/bdwgc">Boehm-Demers-Weiser conservative GC</a>, and value types became trivial to implement. This will also make it easier to add C FFI in the future. (more on this below)</p>
+<p>The interpreter still exists, mainly to keep <a href="https://fir-lang.github.io/">the online interpreter</a> running.</p>
+<h2 id="value-types">Value types</h2>
+<p>Fir literally started as a “high-level language with value types”, but it wasn’t entirely trivial to implement them until we had the C backend.</p>
+<p>With the C backend, it became a matter of making it generate typed code (instead of treating all values as <code>uint64_t*</code> or similar), and then not <code>malloc</code>ing value types.</p>
+<p>Here’s an example value type, from the standard library:</p>
+<pre><code># Immutable, UTF-8 encoded strings.
+value type Str(
+    # UTF-8 encoding of the string.
+    _bytes: Array[U8],
+)</code></pre>
+<p>Relevant struct definitions in generated C:</p>
+<pre><code>typedef struct Array_U8 {
+    U8* data_ptr;
+    uint64_t len;
+} Array_U8;
+
+typedef struct Str {
+    Array_U8 _0;
+} Str;</code></pre>
+<p>This type is then used directly (instead of as a pointer). Here’s a forward-declaration of a function from the self-hosted compiler:</p>
+<pre><code>// Compiler/ParseUtils.fir:32:1 parseCharLit[U32]
+static Char _fun_8(Str _p0);</code></pre>
+<p>(The comment line here is generated by the compiler to make it easier to read the generated code.)</p>
+<h2 id="associated-types">Associated types</h2>
+<p>This was a feature that I delayed implementing for way too longer than I should’ve, mostly because I didn’t know how to implement them and it took a while to figure it out.</p>
+<p>Associated types in Fir are the same feature as associated types in Rust. The most common use case for them is the <code>Iterator</code> trait. Before associated types, <code>Iterator</code> in Fir looked like this: (omitting extra methods with default implementations)</p>
+<pre><code>trait Iterator[iter, item, exn]:
+    next(self: iter) Option[item] / exn</code></pre>
+<p>Here’s how the <code>CharIter</code>’s (iterates characters of a string) <code>Iterator</code> implementation looked like:</p>
+<pre><code>impl Iterator[CharIter, Char, exn]:
+    next(self: CharIter) Option[Char] / exn:</code></pre>
+<p>This trait definition has a problem. The type of <code>Iterator.next</code> is this:</p>
+<pre><code>[Iterator[iter, item, exn]] Fn(self: iter) Option[item] / exn</code></pre>
+<p>Based on this type, in a call site like <code>charIter.next()</code> (where <code>charIter : CharIter</code>), we generate the predicate <code>Iterator[CharIter, item, exn]</code> and the type of the call expression becomes <code>Option[item]</code>. (where <code>item</code> and <code>exn</code> are fresh unification variables)</p>
+<p>If the expected type of the call expressions is not precise enough to unify that <code>item</code> type with a concrete type, the predicate never becomes <code>Iterator[CharIter, Char, exn]</code>, and we can’t solve it, because there isn’t an <code>impl</code> for <code>Iterator[CharIter, item, exn]</code> (note: with generic <code>item</code>). We only have <code>Iterator[CharIter, Char, exn]</code>.</p>
+<p>This resulted in lots of type annotations in the code that uses the <code>Iterator</code> trait. Most importantly, it required type annotations in <code>for</code> loops as <code>for</code> loops used <code>Iterator</code> under the hood. For example:</p>
+<pre><code>for char: Char in charIter:
+    print(char)</code></pre>
+<p>Here <code>print</code> is a generic function that works on any <code>ToStr</code> type, so without the type annotation the predicate became too generic and couldn’t be solved.</p>
+<p>With associated types, the trait now looks like this:</p>
+<pre><code>trait Iterator[iter, exn]:
+    type Item
+    next(self: iter) Option[Item] / exn
+
+impl Iterator[CharIter, exn]:
+    type Item = Char
+    next(self: CharIter) Option[Char] / exn:</code></pre>
+<p>With this definition, the predicate for the same call becomes <code>Iterator[CharIter, exn]</code> (where <code>exn</code> is a fresh unification variable), and that’s immediately resolved using this <code>impl</code>. The <code>for</code> loop example above now works without a type annotation.</p>
+<p>Associated types also allowed the next feature.</p>
+<h2 id="its-now-possible-to-implement-traits-for-record-types">It’s now possible to implement traits for record types</h2>
+<p>This was a small development in terms of code, but an important one for the language. Until this feature, we could pass records around and access fields in polymorphic contexts, but if we want to take a polymorphic record (with a row extension) and e.g. print it, there was no way.</p>
+<p>This wasn’t too important until recently, as the main use case for records was returning multiple values. You’d then destruct/pattern match on the return values directly and use them individually. For example:</p>
+<pre><code>divRem(x: U32, y: U32) (div: U32, rem: U32): ...
+
+# Users just match on the fields instead of passing the return value around
+# as a record.
+let (div, rem) = divRem(a, b)</code></pre>
+<p>However with the other developments listed below, records became much more useful, and not being able to implement traits on them became a problem.</p>
+<p>The solution was porting PureScript’s <a href="https://pursuit.purescript.org/builtins/docs/Prim.RowList"><code>RowToList</code></a> typeclass to Fir. The idea is that we define a “magic” trait that converts record rows into heterogeneous lists:</p>
+<pre><code>trait RecRowToList[recRow]:
+    type List
+    rowToList(rec: (..recRow)) Option[List]</code></pre>
+<p>Here <code>recRow</code> is a record-row-kinded type parameter. This trait is resolved by the compiler for any valid (with right kind) type argument, and depending on the type argument the <code>List</code> type is also generated as an heterogeneous list. The heterogeneous list type is defined as this, in the standard library:</p>
+<pre><code>value type List[head, tail](
+    head: head,
+    tail: Option[tail],
+)</code></pre>
+<p>In the generated <code>List</code> types for record rows, the <code>head</code> type is always a <code>RecordField</code>:</p>
+<pre><code>value type RecordField[t](
+    label: Str,
+    value_: t,
+)</code></pre>
+<p>So for example, <code>RecRowToList[row(x: U32, msg: Str)]</code> is resolved by the type checker, and the <code>List</code> type is also resolved as <code>List[RecordField[Str], List[RecordField[U32], []]]</code><a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> <a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>.</p>
+<p>Here’s how to implement <code>ToStr</code> on records using this machinery:</p>
+<pre><code>impl[ToStr[RecRowToList[r].List]] ToStr[(..r)]:
+    toStr(self: (..r)) Str:
+        match RecRowToList[r].rowToList(self):
+            Option.None: &quot;()&quot;
+            Option.Some(list): &quot;(`list`)&quot;
+
+
+impl[ToStr[t]] ToStr[RecordField[t]]:
+    toStr(self: RecordField[t]) Str:
+        &quot;`self.label` = `self.value_`&quot;
+
+
+impl[ToStr[head], ToStr[tail]] ToStr[List[head, tail]]:
+    toStr(self: List[head, tail]) Str:
+        match self.tail:
+            Option.None: &quot;`self.head`&quot;
+            Option.Some(t): &quot;`self.head`, `t`&quot;
+
+impl ToStr[[]]:
+    toStr(self: []) Str:
+        panic(&quot;unreachable&quot;)</code></pre>
+<p>Note that the <code>List</code> and <code>RecordField</code> types are value types, so <code>rowToList</code> does not allocate. It just generates a different representation of the record on stack that we can recurse on.</p>
+<h2 id="matching-a-bunch-of-fields-at-once-as-a-record">Matching a bunch of fields at once, as a record</h2>
+<p>This was one of the very simple features that made records so much more useful.</p>
+<p>When pattern matching fields, we can now use <code>..var</code> syntax to assign unmatched fields to a variable, as a record. Here’s a simple example:</p>
+<pre><code>type Test(
+    x: U32,
+    y: U32,
+    z: U32,
+    msg: Str
+)
+
+
+main():
+    let x = Test(x = 1, y = 2, z = 3, msg = &quot;hi&quot;)
+    let Test(y, ..rest) = x
+    print(rest)</code></pre>
+<p>In the pattern, <code>y</code> matches the field <code>y</code>, <code>rest</code> matches the rest of the fields, as <code>(x: U32, z: U32, msg: Str)</code>. Then, using the <code>ToStr</code> implementation of records as shows above, this prints <code>(msg = "hi", x = 1, z = 3)</code>.</p>
+<p>This is not the main use case for this feature, but just as a note, when combined with traits on records, this allows easily implementing traits by reusing records’ implementations of the traits. For example, <code>ToStr</code> for <code>Test</code> here can be implemented as:</p>
+<pre><code>impl ToStr[Test]:
+    toStr(self: Test) Str:
+        let Test(..fields) = self
+        &quot;Test`fields`&quot;</code></pre>
+<p>With this implementation, the value <code>x</code> above now prints as <code>Test(msg = "hi", x = 1, y = 2, z = 3)</code>. This is the same output as the derived <code>ToStr</code> for this type, just with the different field order. (derived <code>impl</code> would print fields in the source code order, so: <code>x</code>, <code>y</code>, <code>z</code>, <code>msg</code>)</p>
+<h2 id="splicing-records-and-named-arguments">Splicing records and named arguments</h2>
+<p>We can now pass records as named arguments. The feature above copies field values to records, this one copies records to named arguments for fields.</p>
+<p>This is also straightforward and I think a simple example should suffice, using the same types as above:</p>
+<pre><code>main():
+    let x = Test(x = 1, y = 2, z = 3, msg = &quot;hi&quot;)
+    print(x)
+
+    let Test(y, ..rest) = x     # rest: (x: U32, z: U32, msg: Str)
+    let y = Test(y = 0, ..rest)
+    print(y)
+
+# output:
+# Test(msg = hi, x = 1, y = 2, z = 3)
+# Test(msg = hi, x = 1, y = 0, z = 3)</code></pre>
+<p>Reminder: records (and variants) are value types. They’re not heap allocated. So the code above does not allocate for the <code>rest</code> record.</p>
+<p>We can also make larger records from smaller ones with this feature:</p>
+<pre><code>main():
+    let x = (x = u32(123), y = u32(456))
+    let y = (msg = &quot;hi&quot;, ..x)
+    print(y)
+
+# output: (msg = &quot;hi&quot;, x = 123, y = 456)</code></pre>
+<p>Splicing two records together is currently not possible: there can be at most one <code>..expr</code> in a record expression.</p>
+<h2 id="extensible-named-types">Extensible named types</h2>
+<p>This is a big one that I talked about <a href="https://osa1.net/posts/2026-03-07-extensible-named-types-fir.html">in a previous post</a>. It only became usable after the record features above, associated types, and type synonyms.</p>
+<p>For a running example, I added <a href="https://fir-lang.github.io/?file=NamedTypeExtensions.fir">a full program</a> to the online interpreter, showing a solution to the extensible AST types problem described in the blog post. It’s extensively documented, explaining all the interesting bits, so I recommend just checking it out.</p>
+<p>In short, we allow extending named types using record rows. Pattern matching, allocation, and everything else works the same way as records. Here’s an example:</p>
+<pre><code>type Foo[r](
+    x: U32,
+    y: U32,
+    ..r
+)
+
+
+impl[r: Row[Rec], ToStr[RecRowToList[r].List]] ToStr[Foo[r]]:
+    toStr(self: Foo[r]) Str:
+        let Foo(..fields) = self
+        &quot;Foo`fields`&quot;
+
+
+main():
+    let x = Foo(x = 1, y = 2, msg = &quot;hi&quot;)
+    let y = Foo(b = Bool.True, y = 10, blah = Option.Some(u32(0)), x = 11)
+    print(x)
+    print(y)
+
+
+# output:
+# Foo(msg = hi, x = 1, y = 2)
+# Foo(b = Bool.True, blah = Option.Some(0), x = 11, y = 10)</code></pre>
+<p><code>Foo</code> here is an extensible type. In the allocation sites, we allocate it with different extra fields. The inferred types here are:</p>
+<ul>
+<li><code>x : Foo[row(msg: Str)]</code></li>
+<li><code>y : Foo[row(b: Bool, blah: Option[U32])]</code></li>
+</ul>
+<p><code>ToStr</code> implementation is implemented using the record field matching features explained above, but it can also be derived.</p>
+<p>This feature is used in the self-hosted compiler and the tools. The code is a bit long, but we basically use the same idea demonstrated in the online demo linked above, to add different fields to the AST nodes used by different tools. For example, here’s the AST node type for variant expressions, when compiled to C, as a part of the self-hosted compiler:</p>
+<pre><code>typedef struct VariantExpr_CompilerAstExts {
+    Expr_CompilerAstExts* _0;
+    Option_Ty _1;
+} VariantExpr_CompilerAstExts;</code></pre>
+<p>And here’s the exact same type, but in the formatter’s compiled C code:</p>
+<pre><code>typedef struct VariantExpr_DefaultAstExts {
+    Expr_DefaultAstExts* _0;
+} VariantExpr_DefaultAstExts;</code></pre>
+<p>This is smaller because the formatter doesn’t have the extra field the compiler adds to the type.</p>
+<p>Both are generated from this Fir type:</p>
+<pre><code>type VariantExpr[exts](
+    expr: Expr[exts],
+    ..AstExts[exts].InferredTyExts
+)</code></pre>
+<p>You can see the full generic AST definitions used by the compiler and other tools <a href="https://github.com/fir-lang/fir/blob/96429adb83b2242ff806fe624dfe65be45e42b82/Compiler/Ast.fir">here</a>.</p>
+<p>Because we can implement traits on records and record rows now, deriving traits also work on extensible types. In the example above, I can just add <code>#[derive(ToDoc)]</code> to <code>Foo</code> and then print it like this:</p>
+<pre><code>#[derive(ToDoc)]
+type Foo[r](
+    x: U32,
+    y: U32,
+    ..r
+)
+
+
+main():
+    let x = Foo(x = 1, y = 2, msg = &quot;hi&quot;)
+    let y = Foo(b = Bool.True, y = 10, blah = Option.Some(u32(0)), x = 11)
+    print(x.toDoc().render(80))
+    print(y.toDoc().render(80))
+
+
+# output:
+# Foo(x = 1, y = 2, (msg = &quot;hi&quot;))
+# Foo(x = 11, y = 10, (b = Bool.True, blah = Option.Some(0)))</code></pre>
+<p>The AST types in the compiler all derive traits this way.</p>
+<h2 id="modules">Modules</h2>
+<p>Until recently, importing a module in Fir just parsed the module and copied the parsed code to the current module.</p>
+<p>In other words, there was just one module. There were no name spaces, private definitions, selective imports, or importing with renaming.</p>
+<p>It took quite a while to design and implement a proper module system and I actually found it quite difficult to design this, even though in the end the design was quite simple. There were two problems that made this difficult for me:</p>
+<p>First, I wasn’t sure whether we want just namespacing (plus the usual features for selective imports, renaming, etc.) or something fancier, like first-class modules.</p>
+<p>To figure this out I <a href="https://github.com/osa1/a-modular-module-system">studied OCaml’s module system</a> (and also <a href="https://osa1.net/posts/2026-03-10-containing-contagious-types.html">blogged about it</a>) and <a href="https://github.com/osa1/oneml">1ML</a> in a bit more detail, and decided that I want the modules to be type checking units (to be checked in parallel) and namespaces, instead of first-class values.</p>
+<p>This significantly simplified the design, but the design space was still huge and there were just two constraints:</p>
+<ul>
+<li>They shouldn’t require separate files for interfaces and implementations.</li>
+<li>Recursive imports should be allowed.</li>
+</ul>
+<p>So the second problem was that these requirements did not constrain the design space enough to give me a small number of options, with obvious and significant tradeoffs between them. I could probably come up with a dozen designs that would all be good enough.</p>
+<p>In the end I had to make somewhat arbitrary decisions, based on what I needed in the past, from the other module systems that I used, and what I didn’t, and preference and taste. I updated one thing as I implemented it, and settled on this:</p>
+<ul>
+<li><p>Recursive imports are allowed, and there are no interface files. Each module is implemented as one file.</p></li>
+<li><p>Module paths follow directory structure on the file system. E.g. an import to <code>Foo/Bar/Baz</code> requires the module to be in <code>Foo/Bar/Baz.fir</code> in the package root.</p></li>
+<li><p>A module exports every non-underscored symbol that it has direct access to. This includes names that it imports. There’s no explicit exporting.</p></li>
+<li><p>Underscored symbols are only accessible with explicit module paths. There’s nothing that’s truly private. If you really want you can access all private names. This keeps the design simple by avoiding fine-grained access control with things like <code>pub(crate)</code> or <code>pub(foo::bar::baz)</code> in Rust, and conditional compilation for exposing things for testing.</p></li>
+<li><p>The usual renaming features are possible: modules can be imported with different names, individual definitions can be imported with different names.</p></li>
+<li><p>Module path syntax is different than associated member access syntax: module paths use <code>/</code> as separator, associated members use <code>.</code>. For example:</p>
+<ul>
+<li><code>A/B</code> in expression context means “constructor B in module A”</li>
+<li><code>B.C</code> in expression context means “constructor C of type B”</li>
+<li><code>A/B.C</code> in expression context means “constructor C in type B in module A”</li>
+</ul></li>
+<li><p>This is currently not implemented: when a module exports something (type with constructors, function, …), everything referenced by the signature of the exported thing should also be exported.</p>
+<p>This is to avoid the common issues in some languages where you export a function, but not the types that it uses, and the user either has to get it from another package or can’t use your function. Or even if the function is usable (for example, the private type is in the return type position and you just call the function but don’t use the return value), users can’t add type annotations to your function.</p>
+<p>The principle here is that I should be able to take any expression in the program and give it a type annotation in a <code>let</code> statement. For trait methods, I should be able to explicitly call the methods with the type arguments. E.g. instead of <code>foo.toStr()</code> I should be able to do <code>ToStr.toStr[&lt;type of foo&gt;](foo)</code> so that means the trait type and all of the type arguments of the trait should be in scope and accessible.</p></li>
+</ul>
+<p>Here’s how relevant syntax looks currently:</p>
+<pre><code># Each module can have at most one `import`. Documentation comments added to
+# `import` lines become documentation comment of the module. When a module
+# doesn&#39;t import anything an empty `import []` can be added to document the
+# module.
+
+## This is the module documentation.
+
+import [
+    # Import everything from `Fir/Prelude`, to use directly (without module
+    # prefix).
+    # This is implicitly added to every module already, so not needed. On here
+    # for demonstration purposes.
+    Fir/Prelude,
+
+    # This allows using symbols imported from the module with the given prefix.
+    # E.g. instead of `Option.Some(123)` we do `P/Option.Some(123)`.
+    Fir/Prelude as P,
+
+    # Only imports listed things.
+    Fir/Prelude/[Option, Result, min, max],
+
+    # Only imports listed things, but with renaming.
+    Fir/Prelude/[Option, Result, min as _min, max as _max],
+]
+
+
+main():
+    # Some random combination of imported things, used in different ways.
+    print(Option.Some(_min(P/max(P/u32(0), u32(1)), u32(2))))
+
+
+# output: Option.Some(1)</code></pre>
+<p>Some other notes and clarifications on this design:</p>
+<ul>
+<li><p>Re-exporting imported things can be avoided by adding underscore to the imported names. E.g. in the code examples above, <code>_min</code> and <code>_max</code> are not exported from this module, but other non-underscored imports are.</p>
+<p>This is not a special case for imports: underscored things are never exported. If you import something with an underscored name, it’s also not exported just like defined things.</p></li>
+<li><p>Modules are only imported explicitly. There’s no re-exporting a module. So if the module above is <code>Foo/Bar</code>, you don’t get <code>Foo/Bar/P</code> when you import it.</p></li>
+</ul>
+<p>So far I’m happy with how it looks (syntax) and how it works, but as with most things in this language, it’s open to improvements, refinements, and even backwards incompatible changes.</p>
+<h2 id="smaller-features-kind-annotations-and-type-synonyms">Smaller features: kind annotations and type synonyms</h2>
+<p>These don’t need much introduction, but I want to document why they were needed and implemented.</p>
+<p>Type synonyms came in handy in two places:</p>
+<ul>
+<li><p>With associated types, we want to refer to the associated types directly in the <code>trait</code> and <code>impl</code> bodies. For example, in the <code>Iterator</code> trait:</p>
+<pre><code>trait Iterator[iter, exn]:
+    type Item
+    next(self: iter) Option[Item] / exn</code></pre>
+<p>Normally the way you refer to <code>Item</code> here is with <code>Iterator[iter, exn].Item</code>. But within the <code>trait</code> body (and also in <code>impl</code>s), we want to refer to them as <code>Item</code> directly.</p></li>
+<li><p>With extensible named types, we want to be able to define generic (extensible) types in a shared library, and the in the using libraries we want to override them (shadow the original definitions) with instantiated types. For example, the AST library defines <code>type VarExpr[exts](...)</code>. The formatter overrides it with the extension type it needs: <code>type VarExpr =   Ast/VarExpr[FormatterExts]</code>.</p></li>
+</ul>
+<p>The second one is obviously a type synonym, but the first one also uses the same underlying code. We just make type synonyms scoped, and create new synonyms in <code>trait</code> and <code>impl</code> bodies, for the associated types.</p>
+<p>Kind annotations became necessary as we started using row-kinded type parameters more, for the extensible named types. Currently kind inference is very simple, it only looks at the current definition. If a type parameter is used in a row extension position (i.e. <code>..var</code>), its kind is inferred as <code>Row[Rec]</code> or <code>Row[Var]</code> depending on whether the extension is in a record (or fields) or variant (or constructors).</p>
+<p>That means that in the extensible named type example above:</p>
+<pre><code>type Foo[r](
+    x: U32,
+    y: U32,
+    ..r
+)</code></pre>
+<p>Here <code>r</code>’s kind is inferred as <code>Row[Rec]</code>. But if we had another type that passed a generic <code>r</code> to it:</p>
+<pre><code>type Bar[r](foo: Foo[r])</code></pre>
+<p>This <code>r</code>’s kind was inferred as <code>*</code>, which is incorrect.</p>
+<p>I don’t want to introduce module-level kind inference for various reasons, so I had to add kind annotations here. The correct definition with kind annotations is:</p>
+<pre><code>type Bar[r: Row[Rec]](foo: Foo[r])</code></pre>
+<p>Kinds follow the same syntax as types. <code>*</code>-kinded type parameters are just listed, without any annotations. This is useful to avoid reordering type parameters just to specify kinds of some of the types. E.g. if I have</p>
+<pre><code>foo(x: t, y: Bar[r]): ...</code></pre>
+<p>Here the inferred type parameters are <code>[t: *, r: *]</code>, generated from the signature by left-to-right scan. When calling we can explicitly pass them as <code>foo[type1, type2](...)</code>.</p>
+<p>This passes wrong kinded type to <code>Bar</code>. To fix, we have to specify the kind of <code>r</code>:</p>
+<pre><code>foo[r: Row[Rec]](x: t, y: Bar[r]): ...</code></pre>
+<p>But this also reorders type parameters as <code>[r: Row[Rec], t: *]</code> now, as the type parameter lists are generated by a left-to-right scan of the signature.</p>
+<p>To fix, we have to also list the type parameter <code>t</code> explicitly, just without a kind:</p>
+<pre><code>foo[t, r: Row[Rec]](x: t, y: Bar[r]): ...</code></pre>
+<p>This gives us the original order of the type parameters, but with the correct kinds: <code>[t: *, r: Row[Rec]]</code>.</p>
+<h2 id="next-up-c-header-imports-c-ffi">Next up: C header imports (C FFI)</h2>
+<p>This post is already too long so I want to keep this part short for now. With the (1) resources that I have (2) things I have to do with this language (3) what we have currently (current implementation), the shortest path to success (some kind of adoption) that I can see is by making C interop absolutely effortless.</p>
+<p>By “effortless” I really mean it: I should be able to import a C header file in directly in Fir and just use the definitions and link the generated C with object files implementing the prototypes, and provide implementations for symbols used by other compiled C code.</p>
+<p>Similar to the module system, this is an area I don’t have a lot of experience about. Depending on things that are our out of my control (i.e. life, responsibilities), and whether I’ll encounter fundamental issues, I suspect this will take 6-12 months to fully implement. Once done, Fir will be useful for many use cases.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>I started working on it earlier in 2024. Open sourced in June 2024.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>This was partly thanks to the GCC extension <a href="https://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html">statement expressions</a>, which allowed me to compile nested expressions directly to C without having to flatten them in an A-normal form IR or similar. The extension is also supported by clang so it didn’t make the generated C less portable.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p><code>[]</code> is the empty variant type, which doesn’t have any values.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p>The generated list fields are sorted on field names, so <code>msg</code> comes before <code>x</code> here.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>]]></summary>
+</entry>
+<entry>
     <title>Exceptions as shared secrets, demonstrated</title>
     <link href="http://osa1.net/posts/2026-03-13-exceptions-as-shared-secrets.html" />
     <id>http://osa1.net/posts/2026-03-13-exceptions-as-shared-secrets.html</id>
@@ -1576,330 +1919,6 @@ parseU32UsingResultVersion(s: Str) U32 / [InvalidDigit, Overflow, EmptyInput, ..
 <p>I’m quite excited about these results. There’s still so much to do, but I think it’s clear that this way of error handling has a lot of potential.</p>
 <p>I’ll be working on some of the improvements I mentioned above (and I have others planned as well), and the usual stuff that every language needs (standard library, tools etc.). Depending on interest, I may also write more about variants, error handling, or anything else related to Fir.</p>
 <p>You can try Fir online <a href="https://fir-lang.github.io/?file=ErrorHandling.fir">here</a>.</p>]]></summary>
-</entry>
-<entry>
-    <title>When is inlining useful?</title>
-    <link href="http://osa1.net/posts/2024-12-07-inlining.html" />
-    <id>http://osa1.net/posts/2024-12-07-inlining.html</id>
-    <published>2024-12-07T00:00:00Z</published>
-    <updated>2024-12-07T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Especially in high-level languages, inlining is most useful when it leads to:</p>
-<ul>
-<li>Optimizing the callee’s body based on the arguments passed.</li>
-<li>Optimizing the call site based on the callee’s return value.</li>
-</ul>
-<p>Let’s look at some examples.</p>
-<h1 id="example-avoiding-redundant-bounds-checks">Example: avoiding redundant bounds checks</h1>
-<p>Suppose we have a library for decoding some format of binary files with length-prefixed vectors of 32-bit integers, with all integers encoded as little-endian.</p>
-<p>A simple implementation would be:</p>
-<pre><code>/// Decode a length-prefixed 32-bit unsigned integer vector.
-///
-/// # Panics
-///
-/// Panics if the buffer does not have enough bytes.
-pub fn decode_u32_vec(buffer: &amp;[u8]) -&gt; Vec&lt;u32&gt; {
-    let len = decode_32_le(buffer, 0) as usize;
-    let mut vec = vec![0; len];
-    for i in 0..len {
-        vec[i] = decode_32_le(buffer, (i + 1) * 4);
-    }
-    vec
-}
-
-/// Decode a single 32-bit unsigned integer, encoded as little-endian.
-///
-/// # Panics
-///
-/// Panics if the buffer does not have 4 bytes starting at `offset`.
-#[inline(never)]  // this version isn&#39;t inlined
-pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
-    let b1 = buffer[offset];
-    let b2 = buffer[offset + 1];
-    let b3 = buffer[offset + 2];
-    let b4 = buffer[offset + 3];
-    u32::from_le_bytes([b1, b2, b3, b4])
-}</code></pre>
-<p>This version is not ideal, because <code>decode_32_le</code> checks bounds on each byte access. (<a href="https://godbolt.org/z/eTMa38nqT">compiler explorer</a>)</p>
-<p>We can improve it by checking the bounds for all of the reads once:</p>
-<pre><code>#[inline(never)]  // this version isn&#39;t inlined
-pub fn decode_32_le(buffer: &amp;[u8], offset: usize) -&gt; u32 {
-    if buffer.len() &lt; 4 || buffer.len() - 4 &lt; offset {
-        panic!();
-    }
-    let b1 = buffer[offset];
-    let b2 = buffer[offset + 1];
-    let b3 = buffer[offset + 2];
-    let b4 = buffer[offset + 3];
-    u32::from_le_bytes([b1, b2, b3, b4])
-}</code></pre>
-<p>The conditional makes sure that in the rest of the function the slice indices are all within bounds, so the compiler doesn’t generate bounds checks for the accesses. The compiler is also able to optimize further now to load just one 32-bit word from the memory, instead of reading one byte at a time. (<a href="https://godbolt.org/z/MG9EaE5G3">compiler explorer</a>)</p>
-<p><code>decode_32_le</code> is quite good now, but it still has to do one bounds check, and since <code>decode_u32_vec</code> calls it in each iteration, it does a bounds check in each iteration.</p>
-<p>Ideally we want to be able to do one bounds check before the loop, just like we did in <code>decode_32_le</code>, and then omit bounds checks within the loop:</p>
-<pre><code>pub fn decode_u32_vec(buffer: &amp;[u8]) -&gt; Vec&lt;u32&gt; {
-    let len = decode_32_le(buffer, 0) as usize;
-    if buffer.len() &lt; (len + 1) * 4 {
-        panic!();
-    }
-    let mut vec = vec![0; len];
-    for i in 0..len {
-        vec[i] = decode_32_le(buffer, (i + 1) * 4);
-    }
-    vec
-}</code></pre>
-<p>But this cannot make the bounds checks in <code>decode_32_le</code> disappear, as it may have other call sites that may not always check the bounds before calling it.</p>
-<p>Inlining <code>decode_32_le</code> in the use effectively lets us propagate the information in the call site to the callee’s code, and optimize it based on this information. If we change the <code>inline(never)</code> to <code>inline</code> in <code>decode_32_le</code>, with the extra bounds check in <code>decode_u32_vec</code>, we now check bounds once before the loop and don’t check it again in the loop. (<a href="https://godbolt.org/z/EeGbYrfP7">compiler explorer</a>)</p>
-<h1 id="example-avoiding-redundant-error-checks">Example: avoiding redundant error checks</h1>
-<p>Dart doesn’t have unsigned integers, and many standard library functions throw an <code>ArgumentError</code> when they are passed negative numbers.</p>
-<p>One example of these functions is the <a href="https://api.dart.dev/dart-core/int/operator_triple_shift.html">unsigned right shift operator</a>. In many call sites, the shift amount is a <a href="https://github.com/dart-lang/sdk/blob/abb17bc59d8163273451b3ffb2aba784d20001b4/sdk/lib/_internal/wasm/lib/internal_patch.dart#L88-L97">constant positive number</a>. If we call the standard library function in these cases, the library function will check the sign of the arguments that we already know in the call site to be positive.</p>
-<p>When we inline <a href="https://github.com/dart-lang/sdk/blob/abb17bc59d8163273451b3ffb2aba784d20001b4/sdk/lib/_internal/wasm/lib/boxed_int.dart#L94-L107">the operator</a> in a call site where the shift argument is constant, the conditional becomes <code>if (constant &lt; 0) throw ...</code>. The compiler can then simplify the condition as <code>true</code> or <code>false</code>, and then simplify this code to just <code>throw ...</code> or eliminate the conditional.</p>
-<p>The <code>mix64</code> function linked above when compiled to Wasm, without inlining the right shift operator:</p>
-<pre><code>(func $mix64 (param $var0 i64) (result i64)
-  ...
-  local.tee $var0
-  i64.const 24
-  call $BoxedInt.&gt;&gt;&gt;
-  ...)
-
-(func $BoxedInt.&gt;&gt;&gt; (param $var0 i64) (param $var1 i64) (result i64)
-  local.get $var1
-  i64.const 64
-  i64.lt_u
-  if
-    local.get $var0
-    local.get $var1
-    i64.shr_u
-    return
-  end
-  local.get $var1
-  i64.const 0
-  i64.lt_s
-  if
-    i32.const 64
-    local.get $var1
-    struct.new $BoxedInt
-    call $ArgumentError
-    call $Error._throwWithCurrentStackTrace
-    unreachable
-  end
-  i64.const 0)</code></pre>
-<p>With the shift operator inlined:</p>
-<pre><code>(func $mix64 (param $var0 i64) (result i64)
-  ...
-  local.get $var0
-  i64.const 24
-  i64.shr_u
-  ...)</code></pre>
-<p>The call to <code>BoxedInt.&gt;&gt;&gt;</code> with error checking is optimized to a single <code>shr_u</code> (shift right, unsigned) instruction.</p>
-<h1 id="example-avoiding-boxing">Example: avoiding boxing</h1>
-<p>In languages where most values are passed around as boxed, inlining can eliminate boxing.</p>
-<p>A common use case where this happens is FFI: pointers/references obtained from FFI calls need to be wrapped in a struct/class/etc. to make them the same “shape” as the language’s native values.</p>
-<p>When you have a function that gets a reference from an FFI call, and pass it around to more FFI calls, inlining these FFI calls can avoid boxing the pointer/reference value.</p>
-<p>Somewhat silly example, in Dart:</p>
-<pre><code>import &#39;dart:ffi&#39;;
-
-@Native&lt;Pointer&lt;Int64&gt; Function()&gt;()
-external Pointer&lt;Int64&gt; intPtr();
-
-@Native&lt;Int64 Function(Pointer&lt;Int64&gt;)&gt;()
-external int derefIntPtr(Pointer&lt;Int64&gt; ptr);
-
-void main() {
-  Pointer&lt;Int64&gt; ptr = intPtr();
-  ptr += 1;
-  int i = derefIntPtr(ptr);
-  print(i);
-}</code></pre>
-<p>Relevant parts of the generated code when compiled to Wasm:</p>
-<pre><code>(func $main
-  ...
-  call $intPtr
-  struct.get $Pointer $field2
-  i32.const 8
-  i32.add
-  call $ffi.derefIntPtr (import)
-  ...)
-
-(func $intPtr (result (ref $Pointer))
-  i32.const 71
-  i32.const 0
-  call $ffi.intPtr (import)
-  struct.new $Pointer)</code></pre>
-<p><code>intPtr</code> allocates a struct, which the call site directly unpacks (reads the field). Inlining <code>intPtr</code> eliminates this allocation:</p>
-<pre><code>(func $main
-  ...
-  call $ffi.intPtr (import)
-  i32.const 8
-  i32.add
-  call $ffi.derefIntPtr (import)
-  ...)</code></pre>
-<h1 id="example-avoiding-polymorphism">Example: avoiding polymorphism</h1>
-<p>When a monomorphic type is passed to a polymorphic function, the polymorphic function can often be inlined to avoid polymorphic access to the monomorphic type.</p>
-<p>An example, again in Dart, is <code>Int64List</code>, which is a monomorphic <code>List&lt;int&gt;</code>. It stores the integers unboxed, and when used directly, the integer arguments and return values do not need to be boxed.</p>
-<p>When used in a polymorphic site though, the integer elements need to be boxed. Example:</p>
-<pre><code>import &#39;dart:typed_data&#39;;
-
-int sum(List&lt;int&gt; list) {
-  int ret = 0;
-  for (int i = 0; i &lt; list.length; i += 1) {
-    ret += list[i];
-  }
-  return ret;
-}
-
-void main() {
-  Int64List intList = Int64List.fromList([1, 2, 3, 4]);
-  sum(intList);
-  sum([1, 2, 3, 4]);
-}</code></pre>
-<p>Relevant parts of the output when compiled to Wasm:</p>
-<pre><code>(func $main
-  ;; Allocate `Int64List`, call `sum`:
-  ...
-  call $sum
-
-  ;; Allocate the other `List&lt;int&gt;`, call `sum`:
-  ...
-  call $sum)
-
-(func $sum (param $var0 (ref $Object))
-  (local $var1 i64)
-  (local $var2 i64)
-  loop $label0
-    ...
-    if
-      ...
-      ;; Virtual call to `operator []`:
-      struct.get $Object $field0
-      i32.const 747
-      i32.add
-      call_indirect (param (ref $Object) i64) (result (ref null $#Top))
-
-      ;; The virtual call returns a boxed integer, which we directly unbox:
-      ref.cast $BoxedInt
-      struct.get $BoxedInt $field1
-      i64.add
-      ...
-    end
-  end $label0)</code></pre>
-<p>If we inline <code>sum</code>, the loop that iterates the <code>Int64List</code> accesses the unboxed integers directly:</p>
-<pre><code>(func $main
-  ...
-  loop $label1
-      ...
-      local.get $var3
-      local.get $var4
-      local.get $var1
-      i32.wrap_i64
-      ;; Array access is now direct, no boxing.
-      array.get $Array&lt;WasmI64&gt;
-      i64.add
-      local.set $var3
-      local.get $var1
-      i64.const 1
-      i64.add
-      local.set $var1
-      br $label1
-    end
-  end $label1)</code></pre>
-<p>A similar case is when a monomorphic type is used directly, but via a polymorphic interface. In the <code>Int64List</code> type above, <code>List64List.[]</code> is an override of <a href="https://api.dart.dev/dart-core/List/operator_get.html"><code>List&lt;E&gt;.[]</code></a>, and all overrides of a method need to have the same type.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
-<p>So when not inlined, it needs to return a boxed integer:</p>
-<pre><code>(func $Int64List.[] (param $var0 (ref $Object)) (param $var1 i64) (result (ref null $#Top))
-  ...
-  array.get $Array&lt;WasmI64&gt;
-  struct.new $BoxedInt)</code></pre>
-<p>Similar to the previous example, inlining it eliminates the boxing in monomorphic use sites, as the allocated struct is immediately unboxed.</p>
-<h1 id="example-eliminating-closures-and-indirect-calls">Example: eliminating closures and indirect calls</h1>
-<p>In languages without monomorphisation, higher-order function arguments need to be allocated as closures.</p>
-<p>When calling a closure, the caller needs to get the function pointer from the closure and call the function via the pointer.</p>
-<p>These closure allocations and indirect function calls can be too slow in hot loops.</p>
-<p>An example of this is in <a href="https://github.com/google/protobuf.dart">Dart protobuf library</a>. In protobufs, packed fields are encoded as a length prefix followed by the elements. In the Dart library, we decode these fields using <a href="https://github.com/google/protobuf.dart/blob/610943a3bed70c1c2079af5fca02462df10d223f/protobuf/lib/src/protobuf/coded_buffer.dart#L271-L277">this helper</a>:</p>
-<pre><code>void _readPacked(CodedBufferReader input, void Function() readFunc) {
-  input._withLimit(input.readInt32(), () {
-    while (!input.isAtEnd()) {
-      readFunc();
-    }
-  });
-}</code></pre>
-<p>Here the caller of <code>_readPacked</code> passes <code>readFunc</code> as a closure (allocation). <code>_readPacked</code> then allocates another closure, to be passed to <code>_withLimit</code>.</p>
-<p>That’s two closure allocations for every packed field in the input. Calling these closures are slow too, because they’re indirect.</p>
-<p>Inlining <code>_withLimit</code> in <code>_readPacked</code>, and <code>_readPacked</code> in its call sites (in <code>_mergeFromCodedBufferReader</code>) eliminates closure allocations, and calls to the closures become direct function calls. This <a href="https://github.com/google/protobuf.dart/pull/959">improves packed field decoding</a> significantly.</p>
-<h1 id="a-trick-for-effective-inlining-outlining">A trick for effective inlining: outlining</h1>
-<p>Consider <code>Int64List.[]</code> again. The implementation needs to check that the index is in bounds of the array, and throw an exception if not: (slightly simplified)</p>
-<pre><code>class Int64List ... {
-  ...
-
-  @override
-  int operator [](int index) {
-    if (length.leU(index)) { // shorthand for `index &lt; 0 || index &gt;= length`
-      ... // throw exception
-    }
-    return _data.read(index);
-  }
-}</code></pre>
-<p>To avoid boxing when calling this function we want to always inline it, but if we’re not careful with the error throwing code path (the <code>if</code> body above), the function can get quite large, and when inlined the binary can bloat up significantly.</p>
-<p>Ideally we want to inline the happy path that can lead to improvements when inlined, and leave the error path separate in a function, so that we can have the benefits of inlining without adding to the binary size too much.</p>
-<p>This can be done by moving the error handling code to a separate function, and making sure that separate function is never inlined (ideally with an annotation to the compiler). In the example above, this may look like:</p>
-<pre><code>class Int64List ... {
-  @override
-  @pragma(&#39;inline&#39;)
-  int operator [](int index) {
-    if (length.leU(index)) { // shorthand for `index &lt; 0 || index &gt;= length`
-      fail(index, length);
-    }
-    return _data.read(index);
-  }
-}
-
-@pragma(&#39;never-inline&#39;)
-void fail(int index, int length) { ... }</code></pre>
-<p>With this it doesn’t matter how large the error handling code is, because we never inline it.</p>
-<p>This way of separating inlineable parts of a function from the parts we don’t want to inline is sometimes called “outlining” or “partial inlining”. We can do it manually (as in the example above), but it can also be done by a compiler based on heuristics.</p>
-<p>An example transformation to this is <a href="https://www.cambridge.org/core/services/aop-cambridge-core/content/view/75629BBEDB11D8463553A09BF5DEA235/S0956796809007175a.pdf/div-class-title-the-worker-wrapper-transformation-div.pdf">GHC’s worker/wrapper transformation</a>, which splits a function into parts that (1) handle unboxing and boxing before calling the function’s body, and (2) the function’s body that work on the unboxed representations of the arguments. (1) is then inlined to avoid redundant boxing of the arguments and return values.</p>
-<p>Another example is <a href="https://github.com/WebAssembly/binaryen">wasm-opt</a> which does <a href="https://github.com/WebAssembly/binaryen/blob/6fe5103ab58a4eb751998d13768a0f25795a0de6/src/passes/Inlining.cpp#L684-L754">partial inlining</a>.</p>
-<h1 id="a-tip-for-effective-inlining-avoid-inlining-in-slow-paths">A tip for effective inlining: avoid inlining in slow paths</h1>
-<p>In the <a href="https://github.com/google/protobuf.dart/blob/610943a3bed70c1c2079af5fca02462df10d223f/protobuf/lib/src/protobuf/coded_buffer.dart#L54-L267">protobuf decoding loop</a> that we mentioned above, we have a big type switch to determine how to decode a field. It looks like this:</p>
-<pre><code>switch (fieldType) {
-  case PbFieldType._OPTIONAL_BOOL:
-    fs._setFieldUnchecked(meta, fi, input.readBool());
-    break;
-  ...
-  case PbFieldType._REPEATED_UINT64:
-    final list = fs._ensureRepeatedField(meta, fi);
-    if (wireType == WIRETYPE_LENGTH_DELIMITED) {
-      _readPacked(input, () =&gt; list.add(input.readUint64()));
-    } else {
-      list.add(input.readUint64());
-    }
-    break;
-  ...
-  // 37 cases in total. 
-}</code></pre>
-<p>Assume that there’s a function that throws an exception (e.g. <code>_ensureRepeatedField</code> above), and it’s used in only once, in one of the <code>case</code>s of the <code>switch</code>.</p>
-<p>Because the function is only used once, it may look like inlining it makes sense, as that would eliminate function call overhead, shave at least a few bytes off the binary, and potentially allow optimizations in the call site.</p>
-<p>However since this switch is in a hot loop, and the inlined code branch is taken very rarely (unless the application is receiving a lot of malformed input), inlining this slow path can make the instruction cache usage much worse and slow down the decoder.</p>
-<p>This kind of inlining can commonly happen when optimizing for size, e.g. with <code>wasm-opt -Os</code>. Because inlining single-use functions reduce binary sizes, optimization modes that aim to make the final binaries smaller can inline slow-path error throwing functions.</p>
-<p>If we really want to inline a slow-path function, a way to avoid making instruction cache usage worse is to move the slow-path code to the end of the function, away from the common code paths.</p>
-<p>This is often done with branch prediction hints, such as clang’s <a href="https://llvm.org/docs/BranchWeightMetadata.html#builtin-expect"><code>__builtin_expect</code></a>. When a branch is annotated as “not likely to be taken”, the compiler can move the branch target (the basic blocks) to the end of the current function, away from the hot code. This gives us the binary size benefits of inlining single-use functions, without filling the instruction cache with instructions that will never be executed.</p>
-<h1 id="remarks">Remarks</h1>
-<p>The main reason why the examples above are mostly in Dart is because I’ve been spending most of my time this year optimizing Dart’s Wasm backend’s standard library implementation, so the examples are still fresh in my memory.</p>
-<p>The principles apply to most languages: inlining a function makes any information about the arguments available to the function’s body, and any information on its return value to the call site.</p>
-<p>A big part of optimizing high-level statically-typed languages is about avoiding polymorphism, boxing, and redundant error checks. I’m not aware of any cases where inlining a function in a high-level language, when it doesn’t result in improving one of these, is worthwhile.</p>
-<p>In a lower-level language with monomorphisation and control over allocations (e.g. Rust, C++), monomorphisation eliminates polymorphism in compile time, boxing is explicit, and redundant checks can be avoided by using unchecked (unsafe) functions.</p>
-<p>In these cases where programs are often much faster by default, inlining to avoid stack/register shuffling and simplify control flow can make a difference.</p>
-<p>One example of simplified control flow making a big difference can be seen in <a href="https://osa1.net/posts/2024-11-29-how-to-parse-3.html">the previous post</a>, where implementing a recursive parsing function in a non-recursive way improved performance by 22%.</p>
-<h1 id="updates">Updates</h1>
-<ul>
-<li><strong>2024-12-07:</strong> Added link to wasm-opt in partial inlining section.</li>
-<li><strong>2025-02-12:</strong> Added a higher-order function example.</li>
-<li><strong>2025-02-14:</strong> Added a section about inlining in slow paths.</li>
-</ul>
-<section class="footnotes" role="doc-endnotes">
-<hr />
-<ol>
-<li id="fn1" role="doc-endnote"><p>More accurately, a method that can be called in a polymorphic call site needs to have a type that is a subtype of the least-upper-bound of the types of all functions that can be called in the polymorphic call sites.</p>
-<p>Or more briefly, all methods in an override group need to have the same type.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-</ol>
-</section>]]></summary>
 </entry>
 
 </feed>
