@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - A text editor I worked on in 2021-2023</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">A text editor I worked on in 2021-2023</h1>
+
+<p><strong>May  7, 2026</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>.</p>
+
+<p>I was just going through old files and saw a cool video of an old project that I thought I should share.</p>
+<p>In January 2021 I started working on a new text editor. Zed didn’t exist publicly at the time (it must’ve been under development) and two projects were getting a lot of hype:</p>
+<ul>
+<li>Alacritty because of its renderer</li>
+<li>Tree-sitter because IIRC Neovim was about to ship built-in support for tree-sitter grammars for syntax highlighting</li>
+</ul>
+<p>Inspired by these two developments, I started implementing my own text editor. The renderer was similar to Alacritty: IIRC I even copied and modified its texture atlas generator that lazily generated glyphs. The renderer must’ve been similar too, though I’d written it myself. It only used OpenGL.</p>
+<p>For language support I had different ideas. I used compiled lexers (instead of runtime-interpreted regexes like most editors and IDEs) for syntax highlighting. The editor didn’t care about the actual lexer generator used, but for Rust I used my own <a href="https://github.com/osa1/lexgen">lexgen</a>-based <a href="https://github.com/osa1/lexgen_rust/blob/ac9df1a6fbad94447beba1045ca1a7a08b74748b/crates/lexgen_rust/src/lib.rs">Rust lexer</a>.</p>
+<p>I had a few use cases for these lexers, but one of the cool ones was limiting search scope to lexical elements. In the video below I search for a term, then choose whether to match uses in string literals and comments:</p>
+<video controls muted playsinline preload="metadata" width="798" style="display: block; margin: 0 auto;">
+<source src="../files/editor.mp4" type="video/mp4">
+</video>
+<p>I must’ve hated the existing regex-based language-agnostic search tools so much, a year before this I started another project for syntax-aware search: <a href="https://github.com/osa1/sg">sg</a>. <code>sg</code> uses tree-sitter grammars so adding new language support is trivial, and in principle we could even make it load tree-sitter grammars at runtime.</p>
+
+            </div>
+        </div>
+    </body>
+</html>
