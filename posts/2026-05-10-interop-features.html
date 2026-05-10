@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Languages should have opinionated interop features</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../cv.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Languages should have opinionated interop features</h1>
+
+<p><strong>May 10, 2026</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'plt'." href="../tags/plt.html">plt</a>, <a title="All pages tagged 'fir'." href="../tags/fir.html">fir</a>.</p>
+
+<p>A lesson we can derive from Rust’s error handling and async libraries, and Haskell’s effect system libraries, is that languages need to have opinionated (and efficient, flexible) interop features. If not and the language is flexible enough (with an expressive type system, and maybe also with metaprogramming features), users create their own solutions and the ecosystem gets fragmented.</p>
+<p>Consider error reporting. Without a convenient way of error handling built into the language, a library for SQLite access, another one for HTTP requests, and another one for TCP connections will potentially use different error reporting libraries and cause friction. A similar thing commonly happens today with Rust async libraries and Haskell effect system libraries, which create a whole ecosystem of libraries that just do same things (e.g. SQLite access) but using different async, error handling, or effect system libraries.</p>
+<p>The worst outcome here is entire sets of libraries that can’t be used together. The best case is you need N<sup>2</sup> adapters to convert one to the other. None of these are ideal.</p>
+<p>So one of the goals with Fir is to have built-in high-level features, like <a href="https://osa1.net/posts/2025-01-18-fir-error-handling.html">checked exceptions</a> and an effect system (work in progress). Here by “high-level” I mean features that make libraries that can be composed easily and work well together. If a library returns some types of error values, and another returns another types of error values, I should be able to call them in a third library with no effort (no adapters) and without losing safety or testability.</p>
+<p>Interestingly, a simple/limited solution in a simple language seems to create a better outcome here compared to a flexible language + unsatisfying solution, as it doesn’t create a fragmented ecosystem. To my knowledge, there aren’t any error handling libraries in Dart and Go that fragment the ecosystem, despite the fact that their error handling features are not perfect. On the other hand, Rust programmers can’t stop inventing async executors and Haskell programmers can’t stop inventing effect systems.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>Success here looks like: a large ecosystem with composable and testable libraries that all use the built-in high-level features.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>Note that I’m not claiming that all those libraries do the same things and do them the same way. I understand that Rust async executor design space is large and there are different use cases where different designs make sense. I’m only saying that (1) these libraries create fragmented ecosystem (2) the fragmentation can be avoided by having a built-in way of doing it. Different use cases can sometimes be accommodated with different compiler backends, CLI flags, or even entire language implementations. E.g. Rust has different async executor libraries for embedded use, Go has TinyGo.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+            </div>
+        </div>
+    </body>
+</html>

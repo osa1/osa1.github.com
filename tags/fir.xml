@@ -8,8 +8,27 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2026-04-15T00:00:00Z</updated>
+    <updated>2026-05-10T00:00:00Z</updated>
     <entry>
+    <title>Languages should have opinionated interop features</title>
+    <link href="http://osa1.net/posts/2026-05-10-interop-features.html" />
+    <id>http://osa1.net/posts/2026-05-10-interop-features.html</id>
+    <published>2026-05-10T00:00:00Z</published>
+    <updated>2026-05-10T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>A lesson we can derive from Rust’s error handling and async libraries, and Haskell’s effect system libraries, is that languages need to have opinionated (and efficient, flexible) interop features. If not and the language is flexible enough (with an expressive type system, and maybe also with metaprogramming features), users create their own solutions and the ecosystem gets fragmented.</p>
+<p>Consider error reporting. Without a convenient way of error handling built into the language, a library for SQLite access, another one for HTTP requests, and another one for TCP connections will potentially use different error reporting libraries and cause friction. A similar thing commonly happens today with Rust async libraries and Haskell effect system libraries, which create a whole ecosystem of libraries that just do same things (e.g. SQLite access) but using different async, error handling, or effect system libraries.</p>
+<p>The worst outcome here is entire sets of libraries that can’t be used together. The best case is you need N<sup>2</sup> adapters to convert one to the other. None of these are ideal.</p>
+<p>So one of the goals with Fir is to have built-in high-level features, like <a href="https://osa1.net/posts/2025-01-18-fir-error-handling.html">checked exceptions</a> and an effect system (work in progress). Here by “high-level” I mean features that make libraries that can be composed easily and work well together. If a library returns some types of error values, and another returns another types of error values, I should be able to call them in a third library with no effort (no adapters) and without losing safety or testability.</p>
+<p>Interestingly, a simple/limited solution in a simple language seems to create a better outcome here compared to a flexible language + unsatisfying solution, as it doesn’t create a fragmented ecosystem. To my knowledge, there aren’t any error handling libraries in Dart and Go that fragment the ecosystem, despite the fact that their error handling features are not perfect. On the other hand, Rust programmers can’t stop inventing async executors and Haskell programmers can’t stop inventing effect systems.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>Success here looks like: a large ecosystem with composable and testable libraries that all use the built-in high-level features.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>Note that I’m not claiming that all those libraries do the same things and do them the same way. I understand that Rust async executor design space is large and there are different use cases where different designs make sense. I’m only saying that (1) these libraries create fragmented ecosystem (2) the fragmentation can be avoided by having a built-in way of doing it. Different use cases can sometimes be accommodated with different compiler backends, CLI flags, or even entire language implementations. E.g. Rust has different async executor libraries for embedded use, Go has TinyGo.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>]]></summary>
+</entry>
+<entry>
     <title>Fir now compiles to C (+ extensible named types, associated types, modules, and more)</title>
     <link href="http://osa1.net/posts/2026-04-15-fir-devlog.html" />
     <id>http://osa1.net/posts/2026-04-15-fir-devlog.html</id>
