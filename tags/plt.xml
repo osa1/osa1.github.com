@@ -8,8 +8,147 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2026-05-10T00:00:00Z</updated>
+    <updated>2026-05-12T00:00:00Z</updated>
     <entry>
+    <title>Macros in Fir</title>
+    <link href="http://osa1.net/posts/2026-05-12-fir-macros.html" />
+    <id>http://osa1.net/posts/2026-05-12-fir-macros.html</id>
+    <published>2026-05-12T00:00:00Z</published>
+    <updated>2026-05-12T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Fir macros are fully deterministic programs that are distributed separately and that can introspect into the using program’s type-checked AST definitions.</p>
+<p><strong>Deterministic execution</strong> of macros is necessary to be able to</p>
+<ul>
+<li>Cache macro results in the language server and between compilation of a package during development.</li>
+<li>Avoid the issues with build scripts in many languages that can run arbitrary code when compiling a package, causing all kinds of security nightmares.</li>
+<li>Potentially distribute packages with macros fully expanded. This makes dependency trees smaller as importing a package doesn’t bring in its macro dependencies.</li>
+<li>Avoid leaking compiling platform details into generated code, which makes cross-compilation difficult.</li>
+</ul>
+<p><strong>Separate distribution</strong> is not a requirement but it simplifies the implementation quite significantly, and it’s also a good idea from a software design point of view:</p>
+<ul>
+<li><p>With macros in the same package with the use sites, you have to compile some parts of the package with the macros to be able to run the macros or have an AST interpreter (or something in between: compile some parts to a bytecode), then run the macros, then compile the whole package again with the macro-generated code.</p>
+<p>This is technically challenging for a few reasons:</p>
+<ul>
+<li>You have to partition the package into smaller parts that can be executed on their own.</li>
+<li>The execution will be slow (AST interpretation), or complicated (package will be compiled several times, with different entry points)</li>
+</ul>
+<p>It also makes it easier to invalidate macro inputs (as they’ll depend on code in the same library that they’re used in), which will cause macros to run repeatedly during development.</p></li>
+<li><p>Because of the determinism requirements, compilation of metaprograms won’t be the same as the compilation of executables. With metaprograms distributed separately this is easier to deal with.</p></li>
+<li><p>From software design point of view, having metaprograms separate from the libraries using them is a good idea. Even without this restriction, I think most packages would have a separate <code>Macros</code> module with the metaprograms as it’d make it easier to navigate within the code base.</p></li>
+</ul>
+<p>It should be rare for a macro and a library to recursively depend on each other. In these rare cases, the library can be split into two smaller libraries: one that the macro uses, another one that uses the macro (and maybe also the first library).</p>
+<p><strong>Introspection</strong> makes macros much more flexible and useful for many use cases. Without introspection macros take ASTs (or token trees, or any code as a string) as arguments and need to be passed the ASTs directly. E.g. in Rust, derive macros need to be added as an attribute to the definitions as they can’t otherwise go look up definition of a type that you pass to it as an identifier.</p>
+<pre><code>#[derive(MyDeriveMacro)]
+type Foo { ... }</code></pre>
+<p>Here <code>MyDeriveMacro</code> is passed the token trees of the next item (the type definition). This has annoying limitations:</p>
+<ul>
+<li><p>Calling the macro in another module, or even in another place in the same module is not possible.</p>
+<p>If I generate e.g. an <code>Hash</code> trait implementation and some serialization code for the same type, all those need to be added as attributes to the type. This causes large number of attributes in types instead of core trait implementations (<code>Hash</code>) and others (serialization, debugging helpers, …) defined in separate modules.</p></li>
+<li><p>This is not an essential limitation of this approach but: because of how limited the <code>derive</code> syntax is, passing other arguments to the macro (other than the following item’s token tree) is not possible. Users then work around this by littering the fields of the type with more attributes as the macro will be able to see those attributes, so they can be used to customize macro expansion.</p></li>
+<li><p>Because there’s no type information passed to these macros, code generation based on types is not possible.</p></li>
+<li><p>You can’t generate multiple <code>impl</code>s for multiple types in one call as each call takes one type definition as input.</p></li>
+</ul>
+<p>In Fir macros, you can pass <em>explicitly</em> (this part is important) as many type and function identifiers as you want and the macro gets the full type-checked ASTs of the definitions of those types and functions. These type-checked ASTs also allow looking up definitions used by those types and functions, so you also get the dependencies of those types and functions.</p>
+<p>Short intro to the syntax before moving on to examples: <code>$</code> indicates a macro call, <code>@</code> is the syntax for passing a definition (rather than token tree) to a macro. E.g. <code>@foo(@MyType, @myFunction, some [other, random = ("tokens")])</code> passes the full type-checked ASTs of <code>MyType</code> and <code>myFunction</code> to the macro, and an untyped token tree for the third argument.</p>
+<p>A few examples of what introspection allows:</p>
+<ul>
+<li><p>I want my ASTs to be serializable. The AST type is large and uses many types, and some of the dependencies may not even be in the current package. When I pass the AST type to a Fir macro like <code>$deriveSerialize(@MyAstType)</code>, the macro sees all of the definitions of <code>MyAstType</code>, with their type-checked ASTs. So it can traverse all of the types used, and generate as many functions (or <code>impl</code>s) as it needs.</p>
+<p>Compare this with Rust where we’d need to add <code>#[derive(Serialize)]</code> or similar above each of the types used. If a type is not defined in our package, we have to work around it somehow (e.g. maybe introduce a newtype and use it in the AST).</p>
+<p>Once we added those attributes to each and every type that’s used by the AST (directly and transitively), if a type becomes unused as we refactor our AST, we’ll get no warnings about the redundant attribute and we’ll have <a href="https://users.rust-lang.org/t/tooling-to-find-and-remove-unused-derives/137013">no way of finding it</a>.</p></li>
+<li><p>With introspection I can derive a trait for my type without having to derive the same trait for all of its dependencies. Imagine deriving <code>Eq</code> for a type like:</p>
+<pre><code>type Foo(
+    x: Type1,
+    y: Type2,
+)</code></pre>
+<p>If all I have is the AST for <code>Foo</code>, all I can do in the <code>==</code> function is to compare <code>x</code> and <code>y</code> fields with <code>==</code>, which requires <code>x</code> and <code>y</code> to implement <code>Eq</code> as well.</p>
+<p>When I have access to <code>Type1</code> and <code>Type2</code> definitions, I can do the same, or I can just compare <code>Type1</code> and <code>Type2</code> fields directly, or generate comparison functions for those types and call them.</p>
+<p>A real use case for this is when I have <code>Eq</code> that’s structural equality as usual, and then I want another comparison function that ignores certain fields. In language frontends, this commonly happens when you compare two ASTs ignoring source locations. In Fir, I can do</p>
+<pre><code>$deriveEq(@Foo, name = eqWithoutLocs, skip = [@Loc])</code></pre>
+<p>Here <code>@Foo</code> passes the full type-checked AST of <code>Foo</code>. The second argument is just a token tree that the macro parses for customization options. In this example, it passes the name of the function being generated. The third argument is similarly a token tree, but it has the <code>Loc</code> type definition in the AST. This allows the macro to generate structural equality code that skips all <code>Loc</code>-typed fields.</p>
+<p>I can then have another one that generates the same code as a Rust derive macro would generate:</p>
+<pre><code>$deriveEq(@Foo)</code></pre>
+<p>This one doesn’t have any customization options, and the macro by default generates the usual trait impls.</p></li>
+</ul>
+<p>Introspection opens up so many possibilities and solves many of the problems with purely syntactic macros (that take just a string, list of tokens, or ASTs as arguments).</p>
+<h2 id="interaction-with-type-checking">Interaction with type checking</h2>
+<p>Fir has been designed from day 1 for parallel type checking and compilation.</p>
+<p>With macros that can be passed type-checked ASTs, type checking gets interleaved with macro expansion, but module-level parallelism is not affected. This is because macros can’t generate imports and generated code (same as hand-written code) can’t access definitions that are not imported. (e.g. Fir doesn’t have paths like Rust’s <code>crate::...</code> or <code>package::...</code>, you can use names with qualified paths, but the paths still need to be imported explicitly first)</p>
+<p>So we process the modules the same way as before: starting from the main module (or public modules in a library) we create a dependency DAG of modules<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. This DAG can then be processed in parallel as before. Macros have no influence over the DAGs of modules.</p>
+<p>Within a module though, things get a bit tricky. A macro call can only be expanded after the definitions it introspects into are fully type checked, but it also needs to be expanded as soon as possible as it may generate definitions that other definitions use.</p>
+<p>To deal with the first part of the problem (determining macro dependencies), we require that definitions are passed to macros explicitly (with the <code>@&lt;identifier&gt;</code> syntax we used above). If a definition is not explicitly passed to a macro and its not a dependency of a definition that’s explicitly passed to it, the macro won’t have access to it.</p>
+<p>However, determining macro outputs ahead of time is not possible. So to deal with the second part of the problem, we expand macros as soon as their dependencies are type checked. This creates a schedule of type checking and macro expansion operations in each module. Name resolving pass creates a dependency DAG of module-level items. Macros are also a part of these DAGs and their dependencies are determined by the <code>@...</code>s in their arguments. When there’s an unbound name in a definition, that name is potentially generated by the macros in the module that don’t depend on the definition, so that creates dependencies from the item with unbound names to those macros (that don’t depend on the definition) in the module. Macros can’t be in a recursive dependency group (SCC) with other macros or definitions, so in the DAG we require that each macro is in its own group.</p>
+<p>When we process this DAG of type checking and macro expansion operations in topological order we type check macro definitions before macro expansion, and expand macros before any potential dependencies on their expansions.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
+<p>Macro call locations are not important for this algorithm, as the definitions are not processed in source code order. You can put a macro call anywhere in a module and it works the same way.</p>
+<h2 id="interaction-with-the-trait-environment">Interaction with the trait environment</h2>
+<p>Macros can generate traits and impls, but they don’t have access to the trait environment and can’t introspect into traits and impls:</p>
+<ul>
+<li><p>The trait environment is per-module and it depends on the imports. For example, if I have a two-parameter trait <code>MyTrait</code> and implementation of <code>MyTrait[Foo, Bar]</code>, the trait environment changes when I import the trait and the two types, even if I don’t use the trait (or its methods) explicitly. If we give macros access to the trait environment they could potentially generate different code based on imports, which goes against the principle we’ve been following with the explicit macro dependencies and deterministic outputs.</p></li>
+<li><p>Impls are not named, so they can’t be explicitly passed.</p></li>
+<li><p>Traits are named, so they can be explicitly passed, but it’s a bit unclear to me how useful that would be. I couldn’t come up with a use case where a macro would want to look into a trait definition and generate code based on that.</p></li>
+</ul>
+<h2 id="deterministic-execution-of-macros">Deterministic execution of macros</h2>
+<p>This is not enforced in the current prototype, but it will be in the final version.</p>
+<p>Once the effect system is ready, we can require that a function needs to have no effects to be usable as a macro.</p>
+<p>However in any kind of statically checked system there will always be escape hatches (for the system to be practically useful), so just compile-time/type-level enforcement won’t be enough, and we’ll need to sandbox the macro programs regardless of how/what we check in compile time.</p>
+<p>One easy way here would be compiling them to Wasm and then making host calls for IO (and other things we don’t allow in macros) fail. This is easy to implement but it requires a Wasm engine to be embedded within the language front-end, and execution will be slower than a native executable as (1) Wasm will need to be interpreted or JIT compiled (2) a native library could be loaded dynamically and it can share the same address space, so we can share immutable references to type-checked ASTs with the macros instead of serialization and deserialization for ASTs as they’re passed to macros and the generated ASTs are returned to the language front-end.</p>
+<p>The details here are to be determined.</p>
+<h2 id="the-macro-api">The macro API</h2>
+<p>In the prototype, macros are a part of the implementation and they use the internal data structures of the compiler.</p>
+<p>One of the other goals with Fir <a href="https://osa1.net/posts/2025-09-04-fir-getting-useful.html">since the early days</a> is to have the language front-end available to users as libraries. To avoid creating yet another library/API when we already have the language front-end available, the macros will probably use the language’s official AST library.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></p>
+<p>To avoid passing large ASTs to macros when a macro only needs the main type being passed (without the dependencies), we allow back-and-forth between a macro and the language front-end. A macro will be able to request ASTs of dependencies of the main AST being passed, it won’t get the whole thing in one call.</p>
+<p>Macros will only have access to the definitions they’re explicitly passed (with the <code>@&lt;identifier&gt;</code> syntax) and won’t be provided anything else other than the passed definition and its dependencies, even if it so happens that at the time of expansion we type checked more. This is a part of the determinism requirements: given same inputs macros should always generate same outputs. Location of the macro call or type checker internals (or order) should not matter and should not change macro expansion.</p>
+<p>Quotation in macros will be implemented using macros, e.g. when generating an expression instead of generating the ASTs manually:</p>
+<pre><code>Expr.BinOp(
+    left = Expr.Var(...),
+    op = Binop.Add,
+    right = Expr.Call(...),
+)</code></pre>
+<p>We implement (and distribute as a part of the language) quotation macros and instead have:</p>
+<pre><code>$expr(var + f(...))</code></pre>
+<p><code>$expr</code> here is macro that parses its arguments (token trees) and converts them to Fir AST expressions.</p>
+<p>(This is the same idea as Rust’s <a href="https://crates.io/crates/quote"><code>quote</code></a> package.)</p>
+<p>We can pass typed-checked ASTs and token trees, but not parsed ASTs (not type checked). I’m not sure how useful this would be, but if it becomes useful we can easily extend the system to allow passing parsed ASTs to macros. E.g. maybe we use <code>@@expr[...]</code> parsing an inlined expression and passing it to the macro as an expression AST.</p>
+<p>In the meantime, macros can just parse the token trees as whatever they want using the language’s libraries. (instead of expecting parsed inputs)</p>
+<p>Macro functions are ordinary Fir functions with a particular signature, but their signature allows passing different number of arguments with different types (token trees, type identifiers, function identifiers). The idea is that the same macro function can handle multiple call patterns, as in the <code>deriveEq</code> example above:</p>
+<ul>
+<li><code>$deriveEq(@Foo)</code> generates a top-level <code>Eq</code> trait implementation for the type <code>Foo</code>.</li>
+<li><code>$deriveEq(@Foo, name = eqWithoutLocs, skip = [@Loc])</code> generates a function with name <code>eqWithoutLocs</code> and also comparison functions for the fields of <code>Foo</code>. The generated functions all skip the fields with type <code>Loc</code>.</li>
+</ul>
+<p>The function signature for this macro looks something like:</p>
+<pre><code>deriveEq(inputs: Vec[TokenTree]) Ast: ...</code></pre>
+<p>Where <code>TokenTree</code> is a sum type with actual token trees but also type and function identifiers, and <code>Ast</code> is a sum type that has constructors for top-level items, expressions, statements, and anything else that we allow macros to generate.</p>
+<p>The reasons for this design are:</p>
+<ul>
+<li>Some of the macros (like <code>deriveEq</code>) will take a lot of customization parameters, and Fir doesn’t support optional arguments.</li>
+<li>If we let the macro function specify the number of arguments passed, some of the macros will need bracketed arguments just to be able to pass variable number of things. E.g. if we have a regex macro that takes a number of regexes and generates a matcher function, it’d need to be called as <code>$regex([re1, re2, ...])</code> instead of <code>$regex(re1, re2, ...)</code>.</li>
+</ul>
+<p>By allowing arbitrary sequence of (potentially comma separated) token tree in the argument lists we allow this flexibility and let the macro do sanity checking for the arguments.</p>
+<h2 id="conditional-compilation">Conditional compilation</h2>
+<p>As mentioned in the intro, it’s a deliberate design goal with macros that they’re fully deterministic and they generate the same code for the same inputs regardless of the compilation settings (host or target platforms, optimization parameters, etc.).</p>
+<p>Conditional compilation in Fir will be done by dedicated language features (that don’t exist today). Macros will be able to generate code that use those conditional compilation features, but they won’t be doing conditional compilation themselves.</p>
+<p>For example, if we have a syntax for checking target architecture pointer size, macros won’t be able to use it but they will be able to generate code that use the syntax for checking the target architecture pointer size.</p>
+<p>This doesn’t complicate the macro system implementation any more than it already is: as mentioned, we need to sandbox macros anyway (or somehow make sure in compile time that they don’t have access to certain APIs). We just prevent access to conditional compilation features in similar ways.</p>
+<h2 id="hygiene">Hygiene</h2>
+<p>Macro-generated code is name resolved and type checked in the using module’s environment, and so it can refer to names available at the macro call site.</p>
+<p>To avoid issues when a call site imports e.g. the standard library with a prefix and the macro generates references to the standard library types, macros should generate fully qualified names. E.g. <code>Fir/Vec/Vec[U32]</code> instead of just <code>Vec[U32]</code>. However this is not enforced.</p>
+<p>For the cases when a macro generates type or term ids that shouldn’t shadow definitions at the call site (either in the macro-generated code, or the code around the macro expansion), we provide a <code>gensym</code> function in the standard library. This function is only accessible by macros.</p>
+<p>ASTs of types and terms passed to the macros (with the <code>@&lt;identifier&gt;</code> syntax) already have name-resolved ASTs, and using parts of those ASTs in the outputs generate qualified names that can’t be shadowed at the call sites. This is not done via a magic AST node that can only be created by the language front-end: identifiers in the ASTs can have qualifications or prefixes and that’s how macros should generate qualified names whenever possible. When we pass a <code>@MyType</code> to a macro and <code>MyType</code> uses <code>Vec</code>, the <code>Vec</code> references in the AST of <code>MyType</code> will have fully qualified path to the <code>Vec</code>. So copying that into the output also gives us a fully qualified <code>Vec</code> reference that we could also hand write.</p>
+<p>Being able to write the fully qualified path <code>Foo/Bar/Baz</code> or macro-generate it doesn’t mean we can avoid importing <code>Foo/Bar</code>. It’s an explicit goal of Fir modules that the dependencies are always fully specified in the imports, and while we can access a definition in more than one way (with fully qualified paths, directly using the imported name, we can also import the same definition under different prefixes or with different names), there’s no way to access a definition without importing a module that exports it.</p>
+<p>Macros don’t change this fact. They should always generate fully qualified paths to avoid shadowing and depending on modules being imported in a particular way, but the references in the generated code should still be explicitly imported by the calling module. This may mean that in some cases a call site of a macro may need to add imports that look unused, because the imported things are used in macro expansions.</p>
+<p>The principle here is that macros can’t generate code that you can’t write by hand.</p>
+<h2 id="final-thoughts-and-current-status">Final thoughts and current status</h2>
+<p>Unlike the other blog posts about Fir, features here are not fully implemented. The parts until the deterministic execution section above are currently implemented in a prototype and working.</p>
+<p>The type checker requires quite a lot of refactoring for the proper implementation, which I’m slowly working on.</p>
+<p>I think this is the final feature Fir needs to be considered a proper language, ready to tackle real problems. Once done, we’ll focus on bootstrapping the language.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>Fir allows recursive module imports, so it’d actually be more accurate to say “dependency DAG of SCCs of modules”. To keep things simple in this discussion we can assume modules can’t be recursive.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>There’s an edge case here that we don’t deal with and let things fail to type check: when a macro generates e.g. <code>foo</code> but there’s also an imported <code>foo</code>, definitions in the module that use <code>foo</code> can use either the imported <code>foo</code> (if they’re scheduled before the macro expansion) or the macro-generated <code>foo</code> (if they’re scheduled after the macro expansion, because local definitions shadow imported ones). This case should be extremely rare and it’s not worth complicating the design or implementation more to deal with this.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3" role="doc-endnote"><p>The library will probably provide different ASTs for parsed and type checked programs, which is easy to do in Fir thanks to <a href="https://osa1.net/posts/2026-04-15-fir-devlog.html">extensible named types</a>.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>]]></summary>
+</entry>
+<entry>
     <title>Languages should have opinionated interop features</title>
     <link href="http://osa1.net/posts/2026-05-10-interop-features.html" />
     <id>http://osa1.net/posts/2026-05-10-interop-features.html</id>
@@ -1702,40 +1841,6 @@ trait ResumableException&lt;Resume&gt; {
 <p>For example, it doesn’t make sense to resume from an <a href="https://api.dart.dev/stable/3.5.4/dart-core/ArgumentError-class.html"><code>ArgumentError</code></a>, so we don’t implement <code>ResumableException</code> for it.</p>
 <p>To be able to meaningfully resume from an exception, the exception type should document when exactly it is thrown, or have a resumption value type that is specific enough to give an idea on when it is thrown.</p>
 <p>For example, an exception that can be resumed with an <code>int</code> cannot be resumed without knowing what that <code>int</code> is going to be used for, so this should be documented. But an exception <code>FooDecodingError implements ResumableException&lt;Foo&gt;</code> makes it clear that it’s thrown when there’s an error during decoding a <code>Foo</code>, and the resumption value is the value to be used as the <code>Foo</code> being decoded.</p>]]></summary>
-</entry>
-<entry>
-    <title>Subtyping and subsumption</title>
-    <link href="http://osa1.net/posts/2024-10-21-subtyping-subsumption.html" />
-    <id>http://osa1.net/posts/2024-10-21-subtyping-subsumption.html</id>
-    <published>2024-10-21T00:00:00Z</published>
-    <updated>2024-10-21T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>Subtyping is a relation between two types. It often comes with a typing rule called “subsumption”, which says that if type B is a subtype of type A (usually shown as <code>B &lt;: A</code>), then a value of type B can be assumed to have type A.</p>
-<p>The crucial part is that subsumption is <em>implicit</em>, the programmer doesn’t explicitly cast the value with type <code>B</code> to type <code>A</code>.</p>
-<p>When we make an operation implicit in a language, we need to make sure that it is (1) safe (2) performant. Users will be doing it without realizing, and we don’t want to accidentally break things or make them slow.</p>
-<p>Let’s consider how we can make subsumption safe and performant.</p>
-<h1 id="safety-of-subsumption">Safety of subsumption</h1>
-<p>Different languages give different safety guarantees. High-level languages often guarantee:</p>
-<ol type="1">
-<li><p>Memory safety: a memory read or write shouldn’t cause undefined behavior.</p>
-<p>Examples: out-of-bounds array accesses should be caught, dangling pointers shouldn’t be allowed or dereferencing them should be caught in runtime.</p></li>
-<li><p>Type safety: static guarantees of the language’s type system should be uphold.</p>
-<p>Example: if I have a function <code>f : A -&gt; B</code> and a value <code>x : A</code> after subsumption, <code>f(x)</code> shouldn’t fail in compile time or runtime.</p></li>
-</ol>
-<p>There could be different safeties that the language guarantees. Some of those safeties may also be checked in runtime instead of compile time.</p>
-<p>Whatever safeties the language guarantees, they must be preserved with subsumption.</p>
-<p>From a programmer’s perspective however, these are not enough to make sure that the program will work as before when subsumption is used. If I can pass a value of type <code>B</code> where <code>A</code> is expected, I need to make sure <code>B</code>, when used as <code>A</code>, acts like <code>A</code>.</p>
-<p>This is called “behavioral subtyping” (or “substitutability”), and it depends on not the types of <code>A</code>’s operations but the observable behaviors of <code>A</code> and its subtypes.</p>
-<p>I don’t have a good real-world example of this, but you can imagine two types with the same public APIs that work differently. Since the public APIs are the same one can be made subtype of the other and (1) and (2) would still be satisfied, but doing that would cause bugs when one is accidentally passed as the other.</p>
-<h1 id="performance-of-subsumption">Performance of subsumption</h1>
-<p>Definition of “fast” or “performant” also depends on the language. A C++ programmer’s fast and Python programmer’s fast are often not the same.</p>
-<p>However in general, heap allocation should be avoided.</p>
-<p>Object-oriented languages (as defined in my <a href="https://osa1.net/posts/2024-10-09-oop-good.html">previous post</a>) without multiple inheritance can often implement subsumption of reference values as no-op, i.e. values of type <code>B</code> work as <code>A</code> in runtime without any changes or copying.</p>
-<p>Multiple inheritance makes things more complicated, but a reference to an object can still be converted to a reference of one of its supertypes by just <a href="https://people.montefiore.uliege.be/declercq/INFO0004/documents/vtable.html">adjusting the pointer value</a>.</p>
-<p>With unboxed/value types, conceptually, the value needs to be copied as its supertype, but that operation is often no-op. Consider an unboxed record <code>(x: Int, y: Int, z: Int)</code> that we store in a variable <code>a</code>. In runtime, <code>a</code> actually holds multiple stack locations or registers. When we copy it as <code>let b: (x: Int, y: Int) = a</code>, we don’t have to allocate new stack locations for <code>b.x</code> and <code>b.y</code>, we just map those locations to the same locations as <code>a.x</code> and <code>a.y</code>. When we pass <code>b</code> to a function, we pass <code>a.x</code> and <code>a.y</code>.</p>
-<p>Where copying becomes a requirement and prohibitive is when you have something like <code>ReadOnlyList&lt;(x: Int, y: Int, z: Int)&gt;</code> and want to upcast it to <code>ReadOnlyList&lt;(x: Int, y: Int)&gt;</code> (the records are unboxed). From the safety perspective this operation is fine, but you have to allocate a new list and copy all the values.</p>
-<p>I think this is rarely a problem in practice though, because most generic types, like <code>List&lt;T&gt;</code>, end up being invariant in <code>T</code> anyway, because their API often uses <code>T</code> in both covariant and contravariant positions. So <code>List&lt;(x: Int, y: Int)&gt;</code> is not a supertype of <code>List&lt;(x: Int, y: Int, z: Int)&gt;</code> and subsumption does not apply.</p>
-<h1 id="no-conclusions-this-time">No conclusions this time</h1>
-<p>In this short post I just wanted to give some definitions that I’m hoping to refer to in future posts.</p>]]></summary>
 </entry>
 
 </feed>
