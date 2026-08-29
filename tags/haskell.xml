@@ -8,8 +8,120 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2026-07-31T00:00:00Z</updated>
+    <updated>2026-08-29T00:00:00Z</updated>
     <entry>
+    <title>Coherence and orphan instance rules</title>
+    <link href="http://osa1.net/posts/2026-08-29-coherence-and-orphans.html" />
+    <id>http://osa1.net/posts/2026-08-29-coherence-and-orphans.html</id>
+    <published>2026-08-29T00:00:00Z</published>
+    <updated>2026-08-29T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Typeclasses are an overloading mechanism that allows compile time or runtime polymorphism. A typeclass method call like <code>m a b ...</code> (or <code>a.m(b, ...)</code> in Rust) resolves to a concrete method based on the type arguments passed to the method.</p>
+<pre><code>class ToString t where
+    toString :: t -&gt; String
+
+instance ToString Bool where
+    toString = undefined
+
+instance ToString Int where
+    toString = undefined
+
+f = toString (123 :: Int)
+
+g = toString True</code></pre>
+<p><code>toString</code> here is overloaded: the two calls to the same method actually call different concrete methods.</p>
+<p>These type arguments are commonly based on the arguments or the return value (which is inferred from the call site context).</p>
+<pre><code>class Convertible a b where
+  convert :: a -&gt; b
+
+instance Convertible Int String where
+  convert = show
+
+instance Convertible Int Bool where
+  convert = (/= 0)
+
+f :: Bool
+f = convert (123 :: Int) -- actual method called depends on the return type</code></pre>
+<p>When a typeclass type parameter is not used in a method signature, the compiler has no way of choosing the instance, so we have to specify the type arguments explicitly:</p>
+<pre><code>{-# LANGUAGE AllowAmbiguousTypes #-}
+
+class Ambiguous a b where
+  weird :: a -&gt; IO ()
+
+instance Ambiguous Int Bool where
+  weird _ = putStrLn &quot;First instance&quot;
+
+instance Ambiguous Int String where
+  weird _ = putStrLn &quot;Second instance&quot;
+
+f :: IO ()
+f = weird @Int @Bool (123 :: Int)</code></pre>
+<p>Here <code>f</code> calls <code>Ambiguous Int Bool</code>’s <code>weird</code>, based on the explicit type arguments. Without the type arguments the compiler has no way of knowing which <code>weird</code> to call.</p>
+<p>Crucially, instances are not first-class values and they’re not named. This allows maintaining a useful property that we want to have when working with typeclasses: if we call the same method with the same type parameters in different parts of a program, they should all call the same method. This is absolutely essential, and if you’ve programmed with Rust’s traits or Haskell’s typeclasses even for a short while, you inevitably wrote code that assumes this property.</p>
+<p>Some of the common cases where we rely on this property is:</p>
+<ul>
+<li>If we log/print a value with an overloaded function, the printed format for the same argument is the same, regardless of where it was printed.</li>
+<li>If we serialize a value in one part of the program (e.g. in library A) and deserialize it in another part (e.g. in library B), the serialization and deserialization call sites use the same instance and therefore be compatible in the format they expect.</li>
+<li>For <code>Hash</code> and <code>Ord</code> based data structures (e.g. hash or ordered maps and sets), the insertion and lookup sites always use the same hash code function and therefore maintain the data structure invariants and e.g. never add duplicate keys etc.</li>
+</ul>
+<p>This property is called <strong>coherence</strong>.</p>
+<p>(If you’re familiar with OOP with subtyping, coherence exists in OOP languages as <code>x.m()</code> calling the same method <code>m</code> for the same type of <code>x</code>, everywhere in the program.)</p>
+<p>More formally, coherence says that for any constraint <code>C type1 ... typeN</code>, there can be at most one instance that matches the constraint. So if a method call generates the constraint, we know that there’ll be at most one instance that matches the constraint, and it’s the method of that instance that will be called.</p>
+<p>When there are multiple instances that can potentially match the same constraint, they’re called <strong>overlapping</strong> instances. Overlapping instances are how we get an incoherent system.</p>
+<p>An important fact about coherence is that it’s a global (or whole-program) property. Without globally saying that a constraint can resolve to at most one instance, there can be different parts of the program (maybe different libraries, modules) where e.g. <code>Hash String</code> resolves to different instances, and invalidate our data structure invariants.</p>
+<p>(In OOP terms, you can think of this as <code>x.hashCode()</code> returning different values in different parts of the program, for the identical <code>x</code>, and with no mutation on <code>x</code> in between.)</p>
+<p>Here’s an example where the modules are coherent, but the main module importing the others is not:</p>
+<pre><code>-- C.hs
+class C a b
+
+-- A.hs
+import C
+data A = A
+instance C A b
+
+-- B.hs
+import C
+data B = B
+instance C a B
+
+-- Main.hs
+import C
+import A
+import B
+
+test :: C p q =&gt; p -&gt; q -&gt; IO ()
+test _ _ = pure ()
+
+main = test A B</code></pre>
+<p>Here <code>A</code> and <code>B</code> are both individually coherent, but <code>Main</code> is not, despite the fact that it’s not defining any instances. In <code>Main</code>, <code>C A B</code> is matched by both of the instances imported.</p>
+<p>Coherence being a global property poses a challenge. We want libraries that compose. If we accept two libraries (like A and B above) as type-safe and coherent, then we should be able to import them in a third one and the system should still be coherent. Otherwise, if we also consider transitive dependencies, it creates a fragmented ecosystem of libraries where many libraries can’t be used in the same program (directly or transitively).</p>
+<p>This is ensured with <strong>orphan instance rules</strong>. These rules limit where we can define an instance, with the goal of making sure coherent libraries can be composed.</p>
+<p>For the purposes of this blog post, the exact rules are not important (and they also depend on the language). However just as an example, if we had a single-parameter version of our <code>C</code> above and a type in another library:</p>
+<pre><code>-- C.hs
+class C a
+
+-- A.hs
+data A = A</code></pre>
+<p>Orphan instance rules dictate that the only place where <code>instance C A</code> can go is in <code>A.hs</code>. So there can’t be two modules that define <code>instance C A</code> that can be imported in a third one, the instance can only come from <code>A</code>.</p>
+<p>What about the two-parameter version <code>class C a b</code>? What would be the rules of where to allow instances like:</p>
+<ul>
+<li><code>instance C A b</code></li>
+<li><code>instance C a B</code></li>
+<li><code>instance C A B</code></li>
+<li><code>instance C [a] b</code></li>
+<li><code>instance C a (Maybe b)</code></li>
+<li>…</li>
+</ul>
+<p>Or, what if we also have higher-kinded type parameters in the class, like <code>Foldable</code>? What if we also had extra type parameters?</p>
+<p>Having modular rules to enforce program-wide coherence while also not being too strict (allowing common and useful use cases) is a non-trivial problem. As an example, in Rust, the incoherent Haskell example above is not allowed: the instance <code>instance C a B</code> is disallowed by the orphan instance rules. The details of the rule that disallows this is described in an RFC called <a href="https://github.com/rust-lang/rfcs/pull/2451">“Re-rebalancing coherence”</a>. But note that:</p>
+<ol type="1">
+<li>This is a follow-up to an earlier orphan instance rule change <a href="https://github.com/rust-lang/rfcs/pull/1023">“Rebalancing coherence”</a>, which turned out to be too strict.</li>
+<li>It’s not entirely obvious (at least to me) that the new rules are sound. I.e. if they allow two instances in two libraries, a third one importing the two won’t be incoherent.</li>
+</ol>
+<p>By definition, orphan instance rules need to follow instance resolution (or constraint solving) rules: we want a constraint to resolve to one instance (if it ever does) everywhere in the program. With different instance resolution rules, the orphan rules would have to change too.</p>
+<p>However, interestingly, I couldn’t find any formal treatment of orphan instance rules, with proofs that the rules only allow a coherent system and examples of common use cases that they support. I think there’s a language design research opportunity here where we formalize instance resolution rules and orphan instance rules, and prove that the rules only allow a globally coherent system.</p>
+<p>There’s a lot more to say about instance resolution and orphan rules, so hopefully more on this topic later. In this post I just wanted to give some definitions that I’ll refer to later.</p>]]></summary>
+</entry>
+<entry>
     <title>Unification and impl search</title>
     <link href="http://osa1.net/posts/2026-07-31-impl-search-unification.html" />
     <id>http://osa1.net/posts/2026-07-31-impl-search-unification.html</id>
@@ -1572,593 +1684,6 @@ atomically do
     <published>2018-05-19T00:00:00Z</published>
     <updated>2018-05-19T00:00:00Z</updated>
     <summary type="html"><![CDATA[<p>A new blog post that I’ve authored has been published on <a href="http://www.well-typed.com/blog/2018/05/ghc-special-gc-objects/">Well-Typed’s blog</a>. If you’re interested in garbage collection or liked my <a href="/posts/2018-03-16-gc-optimizations.html">previous post</a> you should check it out.</p>]]></summary>
-</entry>
-<entry>
-    <title>Debugging #15038</title>
-    <link href="http://osa1.net/posts/2018-04-28-debugging-15038.html" />
-    <id>http://osa1.net/posts/2018-04-28-debugging-15038.html</id>
-    <published>2018-04-28T00:00:00Z</published>
-    <updated>2018-04-28T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>I recently spent some time debugging GHC bug <a href="https://ghc.haskell.org/trac/ghc/ticket/15038">#15038</a> and to help with context switching between debugging and other tasks I took notes during debugging. After successfully debugging it and reading my notes from the beginning I thought it may be an interesting read, so I’m publishing it. It may not make much sense to anyone other than me, and it’s very lightly edited, so keep your expectations low :)</p>
-<hr />
-<p>Crashes at this point:</p>
-<pre><code>&gt;&gt;&gt; bt
-#11 0x00000000008d6650 in
-    barf (s=0x94fe90 &quot;evacuate(static): strange closure type %d&quot;) at rts/RtsMessages.c:47
-#12 0x00000000008e7e83 in
-    evacuate (p=0x981640) at rts/sm/Evac.c:574
-#13 0x0000000000911069 in
-    scavenge_static () at rts/sm/Scav.c:1831
-#14 0x0000000000911638 in
-    scavenge_loop () at rts/sm/Scav.c:2185
-#15 0x00000000008e38fb in
-    scavenge_until_all_done () at rts/sm/GC.c:1092
-#16 0x00000000008e2558 in
-    GarbageCollect (collect_gen=1, do_heap_census=false, gc_type=0,
-                    cap=0xad40c0 &lt;MainCapability&gt;, idle_cap=0x0) at rts/sm/GC.c:418
-#17 0x00000000008d523b in
-    scheduleDoGC (pcap=0x7ffeced3a4a0, task=0x2620cc0, force_major=false) at rts/Schedule.c:1799
-#18 0x00000000008d4787 in
-    schedule (initialCapability=0xad40c0 &lt;MainCapability&gt;, task=0x2620cc0) at rts/Schedule.c:545
-#19 0x00000000008d5be1 in
-    scheduleWaitThread (tso=0x4200105388, ret=0x0, pcap=0x7ffeced3a590) at rts/Schedule.c:2533
-#20 0x00000000008d7dd7 in
-    rts_evalLazyIO (cap=0x7ffeced3a590, p=0x981730, ret=0x0) at rts/RtsAPI.c:530
-#21 0x00000000008d84ca in
-    hs_main (argc=1, argv=0x7ffeced3a788, main_closure=0x981730, rts_config=...) at rts/RtsMain.c:72
-#22 0x000000000040d7da in
-    main ()</code></pre>
-<p>While evacuating object at location</p>
-<pre><code>p = (StgClosure **) 0x981640</code></pre>
-<p>Info table of the object:</p>
-<pre><code>&gt;&gt;&gt; print *get_itbl(q)
-$5 = {
-  layout = {
-    payload = {
-      ptrs = 0,
-      nptrs = 134217728
-    },
-    bitmap = 576460752303423488,
-    large_bitmap_offset = 0,
-    __pad_large_bitmap_offset = 0,
-    selector_offset = 576460752303423488
-  },
-  type = 16585,
-  srt_bitmap = 419430400,
-  code = 0x981619 &quot;\026\230&quot;
-}</code></pre>
-<p>Untagged object:</p>
-<pre><code>q = (StgClosure *) 0x981618</code></pre>
-<p>Tagged:</p>
-<pre><code>*p = (StgClosure *) 0x981619</code></pre>
-<p>Where does this object appear? Tagged:</p>
-<pre><code>&gt;&gt;&gt; find 0x4200000000, 0x14200000000, (void*)0x981619
-(nothing)</code></pre>
-<p>Untagged:</p>
-<pre><code>&gt;&gt;&gt; find 0x4200000000, 0x14200000000, (void*)0x981618
-(nothing)</code></pre>
-<p>Not in the heap!</p>
-<pre><code>&gt;&gt;&gt; info symbol 0x981618
-rctv_closure in section .data of /home/omer/.local/share/rr/Main-31/mmap_hardlink_3_Main</code></pre>
-<p>According to STG output references should be</p>
-<pre><code>lvl4_rctv referenced by
-lvl5_rctw referenced by
-lvl6_rctx referenced by
-$wbyteParserBadOnce</code></pre>
-<p>Looking at each closure:</p>
-<pre><code>rctv :: ([Char], Packed.Bytes.Parser.Parser Word)
-
-&gt;&gt;&gt; print (StgClosure)rctv_closure (0x981618)
-{
-  header = {
-    info = 0x8c2960 &lt;ghczmprim_GHCziTuple_Z2T_con_info&gt;
-  },
-  payload = [0x0, 0x0] -- not evaluated yet?
-}
-&gt;&gt;&gt; print *get_itbl(&amp;rctv_closure)
-{
-  layout = {
-    payload = {
-      ptrs = 2,
-      nptrs = 0
-    },
-    bitmap = 2,
-    large_bitmap_offset = 2,
-    __pad_large_bitmap_offset = 2,
-    selector_offset = 2
-  },
-  type = 4, -- CONSTR_2_0
-  srt_bitmap = 0,
-  code = 0x8c2960 &lt;ghczmprim_GHCziTuple_Z2T_con_info&gt; &quot;H\377\303\377e&quot;
-}
-
-
-rctw :: [([Char], Packed.Bytes.Parser.Parser Word)]
-
-&gt;&gt;&gt; print (StgClosure)rctw_closure (0x981638)
-{
-  header = {
-    info = 0x8c3b80 &lt;ghczmprim_GHCziTypes_ZC_con_info&gt;
-  },
-  payload = [0x0, 0x0] -- not evaluated yet?
-}
-&gt;&gt;&gt; print *get_itbl(&amp;rctw_closure)
-{
-  layout = {
-    payload = {
-      ptrs = 2,
-      nptrs = 0
-    },
-    bitmap = 2,
-    large_bitmap_offset = 2,
-    __pad_large_bitmap_offset = 2,
-    selector_offset = 2
-  },
-  type = 4, -- CONSTR_2_0
-  srt_bitmap = 1,
-  code = 0x8c3b80 &lt;ghczmprim_GHCziTypes_ZC_con_info&gt; &quot;H\203\303\002\377e&quot;
-}
-
-
-rctx :: Packed.Bytes.Parser.Parser Word
-
-&gt;&gt;&gt; print (StgClosure)rctx_closure (0x981658)
-{
-  header = {
-    info = 0x40ca10 &lt;rctx_info&gt;
-        -- Packed.Bytes.Parser.Parser GHC.Types.Word
-  },
-  payload = []
-}
-&gt;&gt;&gt; print *get_itbl(&amp;rctx_closure)
-{
-  layout = {
-    payload = {
-      ptrs = 0,
-      nptrs = 0
-    },
-    bitmap = 0,
-    large_bitmap_offset = 0,
-    __pad_large_bitmap_offset = 0,
-    selector_offset = 0
-  },
-  type = 21, -- THUNK_STATIC
-  srt_bitmap = 3,
-  code = 0x40ca10 &lt;rctx_info&gt; &quot;H\215E\350L9\370r@H\203\354\bL\211\350H\211\336H\211\307\061\300\350S\314M&quot;
-}
-
-$wbyteParserBadOnce :: Int -&gt; Int#
-
-&gt;&gt;&gt; print (StgClosure)Parser_zdwbyteParserBadOnce_closure (0x981680)
-{
-  header = {
-    info = 0x40d0b0 &lt;Parser_zdwbyteParserBadOnce_info&gt;
-  },
-  payload = 0x8
-}
-&gt;&gt;&gt; print *get_itbl(&amp;Parser_zdwbyteParserBadOnce_closure)
-{
-  layout = {
-    payload = {
-      ptrs = 0,
-      nptrs = 0
-    },
-    bitmap = 0,
-    large_bitmap_offset = 0,
-    __pad_large_bitmap_offset = 0,
-    selector_offset = 0
-  },
-  type = 14, -- FUN_STATIC
-  srt_bitmap = 113,
-  code = 0x40d0b0 &lt;Parser_zdwbyteParserBadOnce_info&gt; &quot;H\215E\320L9\370\017\202\342\001&quot;
-}</code></pre>
-<p>Back to the backtrace. Adding watchpoints makes it run too slow, so first figure out when this happens:</p>
-<pre><code>&gt;&gt;&gt; break GarbageCollect
-Breakpoint 2 at 0x8e2144: file rts/sm/GC.c, line 226.
-&gt;&gt;&gt; ignore 2 10000000
-Will ignore next 10000000 crossings of breakpoint 2.
-&gt;&gt;&gt; c
-&gt;&gt;&gt; info breakpoints
-Num     Type           Disp Enb Address            What
-2       breakpoint     keep y   0x00000000008e2144 in GarbageCollect at rts/sm/GC.c:226
-        breakpoint already hit 6 times
-        ignore next 9999994 hits</code></pre>
-<p>So 6th time we run GC we see this error. Let’s see if 0x981640 is a valid closure by the beginning of 6th GC:</p>
-<pre><code>&gt;&gt;&gt; call LOOKS_LIKE_CLOSURE_PTR(0x981640)
-$5 = true</code></pre>
-<p>However at this point it already has wrong type:</p>
-<pre><code>&gt;&gt;&gt; print *get_itbl((StgClosure*)0x981640)
-$4 = {
-  layout = {
-    payload = {
-      ptrs = 0,
-      nptrs = 134217728
-    },
-    bitmap = 576460752303423488,
-    large_bitmap_offset = 0,
-    __pad_large_bitmap_offset = 0,
-    selector_offset = 576460752303423488
-  },
-  type = 16585,
-  srt_bitmap = 419430400,
-  code = 0x981619 &quot;\026\230&quot;
-}</code></pre>
-<p>In fact, this object has this type since the beginning.</p>
-<pre><code>&gt;&gt;&gt; info symbol 0x981640
-rctw_closure + 8 in section .data of /home/omer/.local/share/rr/Main-31/mmap_hardlink_3_Main</code></pre>
-<p>This object is in <code>payload[0]</code> of <code>rctw</code>?</p>
-<pre><code>lvl5_rctw
-  :: [(GHC.Base.String, Packed.Bytes.Parser.Parser GHC.Types.Word)]
-[GblId, Str=m2, Unf=OtherCon []] =
-    CCS_DONT_CARE :! [lvl4_rctv GHC.Types.[]];</code></pre>
-<p>So it should be <code>rctv</code>. Something is wrong with first payload of <code>rctw</code>. We should focus on evacuation/scavenging of <code>rctw</code>.</p>
-<pre><code>&gt;&gt;&gt; break evacuate_static_object if q == 0x981638
-&gt;&gt;&gt; c
-** hits breakpoint **
-&gt;&gt;&gt; call printClosure(q)
-ghc-prim:GHC.Types.:(0x981619, 0xace111)
-&gt;&gt;&gt; info symbol 0x981619
-rctv_closure + 1 in section .data of /home/omer/.local/share/rr/Main-31/mmap_hardlink_3_Main</code></pre>
-<p>So indeed we have <code>rctv_closure</code> in first payload (but tagged).</p>
-<pre><code>&gt;&gt;&gt; call printClosure(0x981619)
-ghc-prim:GHC.Tuple.(,)(0x9815f0, 0x981616)
-&gt;&gt;&gt; call printClosure(0xace111)
-ghc-prim:GHC.Types.[](0x8c3450#)</code></pre>
-<p>It looks OK. Let’s see if it breaks after this GC.</p>
-<pre><code>&gt;&gt;&gt; call printClosure(0x981638)
-ghc-prim:GHC.Types.:(0x981619, 0xace111)</code></pre>
-<p>Nope. Continue until first payload of 0x981638 (<code>rctw</code>) changes.</p>
-<p>It turns out the payload doesn’t change. So <code>rctv</code> itself changes!</p>
-<p>On 4th <code>GarbageCollect()</code> this fails:</p>
-<pre><code>&gt;&gt;&gt; call printClosure(0x981619)
-*** printClosure: unknown type 16585 ****
-Main: internal error: printClosure 16585
-    (GHC version 8.5.20180425 for x86_64_unknown_linux)
-    Please report this as a GHC bug:  http://www.haskell.org/ghc/reportabug</code></pre>
-<p>So break at 3rd:</p>
-<pre><code>&gt;&gt;&gt; break GarbageCollect
-Breakpoint 1 at 0x8e2144: file rts/sm/GC.c, line 226.
-&gt;&gt;&gt; ignore 1 2
-Will ignore next 2 crossings of breakpoint 1.
-&gt;&gt;&gt; c
-&gt;&gt;&gt; call printClosure(0x981619)
-ghc-prim:GHC.Tuple.(,)(0x9815f0, 0x981616)</code></pre>
-<p>(Remember that 0x981619 is tagged 0x981618 which is <code>rctv</code>)</p>
-<p>Now watch the closure:</p>
-<pre><code>&gt;&gt;&gt; watch (StgClosure)rctv_closure
-Watchpoint 2: (StgClosure)rctv_closure
-&gt;&gt;&gt; disable breakpoint 1
-&gt;&gt;&gt; c</code></pre>
-<p>This takes forever, gdb starts leaking memory, fills 16G and swaps.</p>
-<p>Let’s take a look at static objects again. <code>rctv</code>’s info table pointer somehow gets overwritten. What could cause this? Perhaps an object before <code>rctv</code> has an overlapping field.</p>
-<pre><code>&gt;&gt;&gt; info symbol 0x981617
-rctu_closure + 7 in section .data of /home/omer/.local/share/rr/Main-31/mmap_hardlink_3_Main</code></pre>
-<p>It seems like we have <code>rctu</code> before <code>rctv</code>.</p>
-<pre><code>lvl3_rctu
-  :: forall s.
-     Packed.Bytes.Parser.Maybe# (Packed.Bytes.Parser.Leftovers# s)
-     -&gt; GHC.Prim.State# s
-     -&gt; (# GHC.Prim.State# s,
-           Packed.Bytes.Parser.Result# s GHC.Types.Word #)
-
-&gt;&gt;&gt; print (StgClosure)rctu_closure
-{
-  header = {
-    info = 0x40c908 &lt;rctu_info&gt;
-  },
-  payload = 0x8
-}
-&gt;&gt;&gt; print *get_itbl(&amp;rctu_closure)
-{
-  layout = {
-    payload = {
-      ptrs = 0,
-      nptrs = 0
-    },
-    bitmap = 0,
-    large_bitmap_offset = 0,
-    __pad_large_bitmap_offset = 0,
-    selector_offset = 0
-  },
-  type = 14, -- FUN_STATIC
-  srt_bitmap = 1,
-  code = 0x40c908 &lt;rctu_info&gt; &quot;H\215E\370L9\370\017\202\277&quot;
-}</code></pre>
-<p>So locations of <code>rctu</code> and <code>rctv</code></p>
-<pre><code>rctu: 0x981610
-rctv: 0x981618</code></pre>
-<p>There’s only 8 bytes in between. This doesn’t look right. Because <code>rctu</code> is a static object with no payload, so it needs at least two words: info table pointer and static link field. Static link field is missing in the layout, so info table pointer of <code>rctv</code> is used as static link.</p>
-<p>At this point I remember different types of objects have link fields in different places so let’s check:</p>
-<pre><code>#define FUN_STATIC_LINK(p)   (&amp;(p)-&gt;payload[0])</code></pre>
-<p>Because I can’t add watchpoint to this location so I do this:</p>
-<pre><code>&gt;&gt;&gt; break evacuate_static_object if q == 0x981610</code></pre>
-<p>Just to count which GC we’re at</p>
-<pre><code>&gt;&gt;&gt; break GarbageCollect
-&gt;&gt;&gt; ignore 2 10000</code></pre>
-<p>First hit</p>
-<pre><code>&gt;&gt;&gt; print (StgClosure)rctv_closure
-$1 = {
-  header = {
-    info = 0x8c2960 &lt;ghczmprim_GHCziTuple_Z2T_con_info&gt;
-  },
-  payload = 0x8
-}
-&gt;&gt;&gt; info breakpoints
-Num     Type           Disp Enb Address            What
-1       breakpoint     keep y   0x00000000008e7a73 in evacuate_static_object at rts/sm/Evac.c:340
-        stop only if q == 0x981610 (target evals)
-        breakpoint already hit 1 time
-2       breakpoint     keep y   0x00000000008e2144 in GarbageCollect at rts/sm/GC.c:226
-        breakpoint already hit 3 times
-        ignore next 9997 hits</code></pre>
-<p>Let’s see if this breaks it:</p>
-<pre><code>&gt;&gt;&gt; fin
-&gt;&gt;&gt; print (StgClosure)rctv_closure
-$2 = {
-  header = {
-    info = 0x981561
-  },
-  payload = 0x8
-}</code></pre>
-<p>Yep! So this function call breaks rctv:</p>
-<pre><code>&gt;&gt;&gt; bt
-#0  evacuate_static_object (link_field=0x981618, q=0x981610 (rctu)) at rts/sm/Evac.c:340
-#1  0x00000000008e7e20 in
-    evacuate (p=0x981628) at rts/sm/Evac.c:546
-#2  0x0000000000911069 in
-    scavenge_static () at rts/sm/Scav.c:1831
-#3  0x0000000000911638 in
-    scavenge_loop () at rts/sm/Scav.c:2185
-#4  0x00000000008e38fb in
-    scavenge_until_all_done () at rts/sm/GC.c:1092
-#5  0x00000000008e2558 in
-    GarbageCollect (collect_gen=1, do_heap_census=false, gc_type=0,
-                    cap=0xad40c0 &lt;MainCapability&gt;, idle_cap=0x0) at rts/sm/GC.c:418
-#6  0x00000000008d523b in
-    scheduleDoGC (pcap=0x7ffeced3a4a0, task=0x2620cc0, force_major=false) at rts/Schedule.c:1799
-#7  0x00000000008d4787 in
-    schedule (initialCapability=0xad40c0 &lt;MainCapability&gt;, task=0x2620cc0) at rts/Schedule.c:545
-#8  0x00000000008d5be1 in
-    scheduleWaitThread (tso=0x4200105388, ret=0x0, pcap=0x7ffeced3a590) at rts/Schedule.c:2533
-#9  0x00000000008d7dd7 in
-    rts_evalLazyIO (cap=0x7ffeced3a590, p=0x981730, ret=0x0) at rts/RtsAPI.c:530
-#10 0x00000000008d84ca in
-    hs_main (argc=1, argv=0x7ffeced3a788, main_closure=0x981730, rts_config=...) at rts/RtsMain.c:72
-#11 0x000000000040d7da in
-    main ()</code></pre>
-<p>I’m convinced that layout of <code>rctu</code> is wrong. I’ll add some debug prints to GHC to see why the layout is generated this way, but before that I’m saving all the binaries and dump files of this session.</p>
-<p>The bug should be in <code>cgTopRhsClosure</code>, the Cmm code generator for top-level closures.</p>
-<p>Good thing GHC is deterministic enough these days so I get the same symbols when I recompile (later I realized that top-level symbols are deterministic enough but local ids usually change).</p>
-<pre><code>gen_code
-  closure_label: lvl3_rctu_closure
-  descr: &lt;Parser.lvl3_rctu&gt;
-  info_tbl: label: lvl3_rctu_info
-            rep:HeapRep static {
-                  Fun {arity: 6 fun_type: ArgGen [True, False, False, True, True]} }
-  fv_details: []</code></pre>
-<p>This looks fine. Let’s check <code>mkStaticClosureFields</code>:</p>
-<pre><code>mkStaticClosureFields
-  caf_refs: NoCafRefs
-  info_lbl: lvl3_rctu_info
-  is_caf: False
-  padding: []
-  static_link_field: []
-  saved_info_field: []
-  static_link_value: 3</code></pre>
-<p>So this object doesn’t get a static link field. This is because the condition</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a>staticClosureNeedsLink (mayHaveCafRefs caf_refs) info_tbl</span></code></pre></div>
-<p>doesn’t hold.</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="ot">staticClosureNeedsLink ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">CmmInfoTable</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true"></a><span class="co">-- A static closure needs a link field to aid the GC when traversing</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true"></a><span class="co">-- the static closure graph.  But it only needs such a field if either</span></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true"></a><span class="co">--        a) it has an SRT</span></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true"></a><span class="co">--        b) it&#39;s a constructor with one or more pointer fields</span></span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true"></a><span class="co">-- In case (b), the constructor&#39;s fields themselves play the role</span></span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true"></a><span class="co">-- of the SRT.</span></span>
-<span id="cb34-8"><a href="#cb34-8" aria-hidden="true"></a>staticClosureNeedsLink has_srt <span class="dt">CmmInfoTable</span>{ cit_rep <span class="ot">=</span> smrep }</span>
-<span id="cb34-9"><a href="#cb34-9" aria-hidden="true"></a>  <span class="op">|</span> isConRep smrep         <span class="ot">=</span> <span class="fu">not</span> (isStaticNoCafCon smrep)</span>
-<span id="cb34-10"><a href="#cb34-10" aria-hidden="true"></a>  <span class="op">|</span> <span class="fu">otherwise</span>              <span class="ot">=</span> has_srt <span class="co">-- needsSRT (cit_srt info_tbl)</span></span></code></pre></div>
-<p>So <code>has_srt</code> is <code>False</code> for this object and <code>idCafInfo</code> of this closure says it’s not caffy.</p>
-<p>Just to make sure this is the problem, I modify the code to treat all top-level closures as caffy. Indeed that fixes the bug.</p>
-<p>CAFness of bindings are decided in <code>hasCafRefs</code> in <code>TidyPgm</code>. Two conditions for CAFness are</p>
-<ul>
-<li>Top level and no arguments</li>
-<li>Mentions CAFs</li>
-</ul>
-<p>First one obviously doesn’t hold becasue <code>rctu</code> is a function. I don’t know why the second condition doesn’t hold yet.</p>
-<p><code>TidyPgm</code> operates on Core so let’s look at Core of <code>rctu</code>:</p>
-<pre><code>-- RHS size: {terms: 80, types: 1,207, coercions: 0, joins: 0/0}
-lvl3_rctu
-  :: forall s.
-     Packed.Bytes.Parser.Maybe# (Packed.Bytes.Parser.Leftovers# s)
-     -&gt; GHC.Prim.State# s
-     -&gt; (# GHC.Prim.State# s, Packed.Bytes.Parser.Result# s Word #)
-[GblId, Arity=2, Caf=NoCafRefs, Str=&lt;S,1*U&gt;&lt;S,U&gt;, Unf=OtherCon []]
-lvl3_rctu
-  = \ (@ s_a6Ca)
-      (leftovers0_a691
-         :: Packed.Bytes.Parser.Maybe#
-              (Packed.Bytes.Parser.Leftovers# s_a6Ca))
-      (s0_a692 :: GHC.Prim.State# s_a6Ca) -&gt;
-      case leftovers0_a691 of {
-        (#_|#) ds_d6Km -&gt;
-          (# s0_a692,
-             (# GHC.Prim.(#_|#)
-                  @ (&#39;GHC.Types.TupleRep &#39;[])
-                  @ (&#39;GHC.Types.TupleRep
-                       &#39;[&#39;GHC.Types.TupleRep
-                           &#39;[&#39;GHC.Types.UnliftedRep, &#39;GHC.Types.IntRep, &#39;GHC.Types.IntRep],
-                         &#39;GHC.Types.LiftedRep])
-                  @ (# #)
-                  @ (Packed.Bytes.Parser.Leftovers# s_a6Ca)
-                  GHC.Prim.(##),
-                GHC.Prim.(#_|#)
-                  @ (&#39;GHC.Types.TupleRep &#39;[])
-                  @ &#39;GHC.Types.LiftedRep
-                  @ (# #)
-                  @ Word
-                  GHC.Prim.(##) #) #);
-        (#|_#) ds_d6Kn -&gt;
-          case ds_d6Kn of { (# bytes0_scqD, stream0_scqE #) -&gt;
-          case bytes0_scqD of { (# arr0_scqH, off0_scqI, len0_scqJ #) -&gt;
-          case GHC.Prim.&gt;# len0_scqJ 0# of {
-            __DEFAULT -&gt;
-              case Packed.Bytes.Parser.nextNonEmpty @ s_a6Ca stream0_scqE s0_a692
-              of
-              { (# ipv_s6NZ, ipv1_s6O0 #) -&gt;
-              case ipv1_s6O0 of {
-                (#_|#) ds3_d6JW -&gt;
-                  (# ipv_s6NZ,
-                     (# GHC.Prim.(#_|#)
-                          @ (&#39;GHC.Types.TupleRep &#39;[])
-                          @ (&#39;GHC.Types.TupleRep
-                               &#39;[&#39;GHC.Types.TupleRep
-                                   &#39;[&#39;GHC.Types.UnliftedRep, &#39;GHC.Types.IntRep, &#39;GHC.Types.IntRep],
-                                 &#39;GHC.Types.LiftedRep])
-                          @ (# #)
-                          @ (Packed.Bytes.Parser.Leftovers# s_a6Ca)
-                          GHC.Prim.(##),
-                        GHC.Prim.(#_|#)
-                          @ (&#39;GHC.Types.TupleRep &#39;[])
-                          @ &#39;GHC.Types.LiftedRep
-                          @ (# #)
-                          @ Word
-                          GHC.Prim.(##) #) #);
-                (#|_#) ds3_d6JX -&gt;
-                  case ds3_d6JX of { (# bytes1_scqM, stream1_scqN #) -&gt;
-                  case bytes1_scqM of { (# arr1_scqQ, off1_scqR, ds4_scqS #) -&gt;
-                  (# ipv_s6NZ,
-                     (# GHC.Prim.(#|_#)
-                          @ (&#39;GHC.Types.TupleRep &#39;[])
-                          @ (&#39;GHC.Types.TupleRep
-                               &#39;[&#39;GHC.Types.TupleRep
-                                   &#39;[&#39;GHC.Types.UnliftedRep, &#39;GHC.Types.IntRep, &#39;GHC.Types.IntRep],
-                                 &#39;GHC.Types.LiftedRep])
-                          @ (# #)
-                          @ (Packed.Bytes.Parser.Leftovers# s_a6Ca)
-                          (# (# arr1_scqQ, GHC.Prim.+# off1_scqR 1#,
-                                GHC.Prim.-# ds4_scqS 1# #),
-                             stream1_scqN #),
-                        GHC.Prim.(#|_#)
-                          @ (&#39;GHC.Types.TupleRep &#39;[])
-                          @ &#39;GHC.Types.LiftedRep
-                          @ (# #)
-                          @ Word
-                          a1_rcbR #) #)
-                  }
-                  }
-              }
-              };
-            1# -&gt;
-              (# s0_a692,
-                 (# GHC.Prim.(#|_#)
-                      @ (&#39;GHC.Types.TupleRep &#39;[])
-                      @ (&#39;GHC.Types.TupleRep
-                           &#39;[&#39;GHC.Types.TupleRep
-                               &#39;[&#39;GHC.Types.UnliftedRep, &#39;GHC.Types.IntRep, &#39;GHC.Types.IntRep],
-                             &#39;GHC.Types.LiftedRep])
-                      @ (# #)
-                      @ (Packed.Bytes.Parser.Leftovers# s_a6Ca)
-                      (# (# arr0_scqH, GHC.Prim.+# off0_scqI 1#,
-                            GHC.Prim.-# len0_scqJ 1# #),
-                         stream0_scqE #),
-                    GHC.Prim.(#|_#)
-                      @ (&#39;GHC.Types.TupleRep &#39;[])
-                      @ &#39;GHC.Types.LiftedRep
-                      @ (# #)
-                      @ Word
-                      a1_rcbR #) #)
-          }
-          }
-          }
-      }</code></pre>
-<p>This is huge and I’m not going to check this by hand. However at this point I realize that the condition for evacuating a <code>FUN_STATIC</code> is</p>
-<pre><code>case FUN_STATIC:
-    if (info-&gt;srt_bitmap != 0) {
-        evacuate_static_object(FUN_STATIC_LINK((StgClosure *)q), q);
-    }
-    return;</code></pre>
-<p>So this is not marked as CAF, but its SRT bitmap is not empty. Perhaps the bug is in the SRT bitmap.</p>
-<p>I also try this in gdb:</p>
-<pre><code>&gt;&gt;&gt; set get_itbl(&amp;rctu_closure)-&gt;srt_bitmap = 0</code></pre>
-<p>This also fixes it. Now let’s figure out why SRT bitmap of <code>rctu</code> (which is supposed to be a non-CAF) is 1.</p>
-<p>I look again at the definition of <code>rctu</code> and it seems like <code>a1_rcbR</code> is a free variable.</p>
-<pre><code>a1_rcbR :: GHC.Types.Word
-[GblId, Caf=NoCafRefs, Str=m, Unf=OtherCon []] =
-    CCS_DONT_CARE GHC.Types.W#! [5##];</code></pre>
-<p>However because this is not a CAF it shouldn’t make <code>rctu</code> CAF.</p>
-<p>I stare at the code aimlessly for a while until I realize something interesting. This is the STG for <code>rctu</code> after unarisation:</p>
-<pre><code>lvl3_rctu
-  :: forall s.
-     Packed.Bytes.Parser.Maybe# (Packed.Bytes.Parser.Leftovers# s)
-     -&gt; GHC.Prim.State# s
-     -&gt; (# GHC.Prim.State# s,
-           Packed.Bytes.Parser.Result# s GHC.Types.Word #)
-[GblId,
- Arity=2,
- Caf=NoCafRefs,
- Str=&lt;S,1*U&gt;&lt;S,U&gt;,
- Unf=OtherCon []] =
-    [] \r [us_gcwc us_gcwd us_gcwe us_gcwf us_gcwg void_0E]
-        case us_gcwc of tag_gcwh {
-          __DEFAULT -&gt;
-              (#,,,,,,#) [1#
-                          Control.Exception.Base.absentError
-                          Control.Exception.Base.absentError
-                          0##
-                          0##
-                          1#
-                          Control.Exception.Base.absentError];
-          2# -&gt;
-              case &gt;# [us_gcwg 0#] of {
-                __DEFAULT -&gt;
-                    case Packed.Bytes.Parser.nextNonEmpty us_gcwe GHC.Prim.void# of {
-                      (#,,,,#) us_gcwi us_gcwj us_gcwk us_gcwl us_gcwm -&gt;
-                          case us_gcwi of tag_gcwn {
-                            __DEFAULT -&gt;
-                                (#,,,,,,#) [1#
-                                            Control.Exception.Base.absentError
-                                            Control.Exception.Base.absentError
-                                            0##
-                                            0##
-                                            1#
-                                            Control.Exception.Base.absentError];
-                            2# -&gt;
-                                case -# [us_gcwm 1#] of sat_scuk {
-                                  __DEFAULT -&gt;
-                                      case +# [us_gcwl 1#] of sat_scuj {
-                                        __DEFAULT -&gt;
-                                            (#,,,,,,#) [2#
-                                                        us_gcwj
-                                                        us_gcwk
-                                                        sat_scuj
-                                                        sat_scuk
-                                                        2#
-                                                        a1_rcbR];
-                                      };
-                                };
-                          };
-                    };
-                1# -&gt;
-                    case -# [us_gcwg 1#] of sat_scur {
-                      __DEFAULT -&gt;
-                          case +# [us_gcwf 1#] of sat_scuq {
-                            __DEFAULT -&gt;
-                                (#,,,,,,#) [2# us_gcwd us_gcwe sat_scuq sat_scur 2# a1_rcbR];
-                          };
-                    };
-              };
-        };</code></pre>
-<p>This has two free variables: <code>a1_rcbR</code> and <code>Control.Exception.Base.absentError</code>. <code>a1_rcbR</code> is clearly not a CAF, but maybe <code>absentError</code> is? Because <code>absentError</code> references are generated in unarise, which happens much later than <code>TidyPgm</code> (right before generating Cmm), <code>TidyPgm</code> can’t take those into account.</p>
-<p><code>Id</code> for <code>absentError</code> is generated using <code>vanillaIdInfo</code> which sets the CAF-ness field as <code>MayHaveCafRefs</code>. So clearly <code>absentError</code> is a CAFFY.</p>
-<p>So in summary, we introduce references to CAFs in <code>UnariseStg</code> which happens later than <code>TidyPgm</code>. The code generator is somehow handles this correctly by generating a SRT for this function and setting the info table bitmap correctly. However object layout generator (in <code>cgTopRhsClosure</code>) only uses the information generated in <code>TidyPgm</code>, so we get this mismatch of SRT information of this function.</p>
-<p>Some ways to fix this:</p>
-<ul>
-<li>Update binder ids in unarise if we introduced an <code>absentError</code></li>
-<li>Conservatively treat unboxed sums as CAFFY in <code>TidyPgm</code></li>
-<li>Mark <code>absentError</code> as non-CAF (I don’t know if it has to be a CAF, I think error ids are conservatively marked as CAFs)</li>
-</ul>
-<p>The whole thing took 4:47 hours.</p>]]></summary>
 </entry>
 
 </feed>

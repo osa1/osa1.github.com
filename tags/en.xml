@@ -8,8 +8,120 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2026-07-31T00:00:00Z</updated>
+    <updated>2026-08-29T00:00:00Z</updated>
     <entry>
+    <title>Coherence and orphan instance rules</title>
+    <link href="http://osa1.net/posts/2026-08-29-coherence-and-orphans.html" />
+    <id>http://osa1.net/posts/2026-08-29-coherence-and-orphans.html</id>
+    <published>2026-08-29T00:00:00Z</published>
+    <updated>2026-08-29T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Typeclasses are an overloading mechanism that allows compile time or runtime polymorphism. A typeclass method call like <code>m a b ...</code> (or <code>a.m(b, ...)</code> in Rust) resolves to a concrete method based on the type arguments passed to the method.</p>
+<pre><code>class ToString t where
+    toString :: t -&gt; String
+
+instance ToString Bool where
+    toString = undefined
+
+instance ToString Int where
+    toString = undefined
+
+f = toString (123 :: Int)
+
+g = toString True</code></pre>
+<p><code>toString</code> here is overloaded: the two calls to the same method actually call different concrete methods.</p>
+<p>These type arguments are commonly based on the arguments or the return value (which is inferred from the call site context).</p>
+<pre><code>class Convertible a b where
+  convert :: a -&gt; b
+
+instance Convertible Int String where
+  convert = show
+
+instance Convertible Int Bool where
+  convert = (/= 0)
+
+f :: Bool
+f = convert (123 :: Int) -- actual method called depends on the return type</code></pre>
+<p>When a typeclass type parameter is not used in a method signature, the compiler has no way of choosing the instance, so we have to specify the type arguments explicitly:</p>
+<pre><code>{-# LANGUAGE AllowAmbiguousTypes #-}
+
+class Ambiguous a b where
+  weird :: a -&gt; IO ()
+
+instance Ambiguous Int Bool where
+  weird _ = putStrLn &quot;First instance&quot;
+
+instance Ambiguous Int String where
+  weird _ = putStrLn &quot;Second instance&quot;
+
+f :: IO ()
+f = weird @Int @Bool (123 :: Int)</code></pre>
+<p>Here <code>f</code> calls <code>Ambiguous Int Bool</code>’s <code>weird</code>, based on the explicit type arguments. Without the type arguments the compiler has no way of knowing which <code>weird</code> to call.</p>
+<p>Crucially, instances are not first-class values and they’re not named. This allows maintaining a useful property that we want to have when working with typeclasses: if we call the same method with the same type parameters in different parts of a program, they should all call the same method. This is absolutely essential, and if you’ve programmed with Rust’s traits or Haskell’s typeclasses even for a short while, you inevitably wrote code that assumes this property.</p>
+<p>Some of the common cases where we rely on this property is:</p>
+<ul>
+<li>If we log/print a value with an overloaded function, the printed format for the same argument is the same, regardless of where it was printed.</li>
+<li>If we serialize a value in one part of the program (e.g. in library A) and deserialize it in another part (e.g. in library B), the serialization and deserialization call sites use the same instance and therefore be compatible in the format they expect.</li>
+<li>For <code>Hash</code> and <code>Ord</code> based data structures (e.g. hash or ordered maps and sets), the insertion and lookup sites always use the same hash code function and therefore maintain the data structure invariants and e.g. never add duplicate keys etc.</li>
+</ul>
+<p>This property is called <strong>coherence</strong>.</p>
+<p>(If you’re familiar with OOP with subtyping, coherence exists in OOP languages as <code>x.m()</code> calling the same method <code>m</code> for the same type of <code>x</code>, everywhere in the program.)</p>
+<p>More formally, coherence says that for any constraint <code>C type1 ... typeN</code>, there can be at most one instance that matches the constraint. So if a method call generates the constraint, we know that there’ll be at most one instance that matches the constraint, and it’s the method of that instance that will be called.</p>
+<p>When there are multiple instances that can potentially match the same constraint, they’re called <strong>overlapping</strong> instances. Overlapping instances are how we get an incoherent system.</p>
+<p>An important fact about coherence is that it’s a global (or whole-program) property. Without globally saying that a constraint can resolve to at most one instance, there can be different parts of the program (maybe different libraries, modules) where e.g. <code>Hash String</code> resolves to different instances, and invalidate our data structure invariants.</p>
+<p>(In OOP terms, you can think of this as <code>x.hashCode()</code> returning different values in different parts of the program, for the identical <code>x</code>, and with no mutation on <code>x</code> in between.)</p>
+<p>Here’s an example where the modules are coherent, but the main module importing the others is not:</p>
+<pre><code>-- C.hs
+class C a b
+
+-- A.hs
+import C
+data A = A
+instance C A b
+
+-- B.hs
+import C
+data B = B
+instance C a B
+
+-- Main.hs
+import C
+import A
+import B
+
+test :: C p q =&gt; p -&gt; q -&gt; IO ()
+test _ _ = pure ()
+
+main = test A B</code></pre>
+<p>Here <code>A</code> and <code>B</code> are both individually coherent, but <code>Main</code> is not, despite the fact that it’s not defining any instances. In <code>Main</code>, <code>C A B</code> is matched by both of the instances imported.</p>
+<p>Coherence being a global property poses a challenge. We want libraries that compose. If we accept two libraries (like A and B above) as type-safe and coherent, then we should be able to import them in a third one and the system should still be coherent. Otherwise, if we also consider transitive dependencies, it creates a fragmented ecosystem of libraries where many libraries can’t be used in the same program (directly or transitively).</p>
+<p>This is ensured with <strong>orphan instance rules</strong>. These rules limit where we can define an instance, with the goal of making sure coherent libraries can be composed.</p>
+<p>For the purposes of this blog post, the exact rules are not important (and they also depend on the language). However just as an example, if we had a single-parameter version of our <code>C</code> above and a type in another library:</p>
+<pre><code>-- C.hs
+class C a
+
+-- A.hs
+data A = A</code></pre>
+<p>Orphan instance rules dictate that the only place where <code>instance C A</code> can go is in <code>A.hs</code>. So there can’t be two modules that define <code>instance C A</code> that can be imported in a third one, the instance can only come from <code>A</code>.</p>
+<p>What about the two-parameter version <code>class C a b</code>? What would be the rules of where to allow instances like:</p>
+<ul>
+<li><code>instance C A b</code></li>
+<li><code>instance C a B</code></li>
+<li><code>instance C A B</code></li>
+<li><code>instance C [a] b</code></li>
+<li><code>instance C a (Maybe b)</code></li>
+<li>…</li>
+</ul>
+<p>Or, what if we also have higher-kinded type parameters in the class, like <code>Foldable</code>? What if we also had extra type parameters?</p>
+<p>Having modular rules to enforce program-wide coherence while also not being too strict (allowing common and useful use cases) is a non-trivial problem. As an example, in Rust, the incoherent Haskell example above is not allowed: the instance <code>instance C a B</code> is disallowed by the orphan instance rules. The details of the rule that disallows this is described in an RFC called <a href="https://github.com/rust-lang/rfcs/pull/2451">“Re-rebalancing coherence”</a>. But note that:</p>
+<ol type="1">
+<li>This is a follow-up to an earlier orphan instance rule change <a href="https://github.com/rust-lang/rfcs/pull/1023">“Rebalancing coherence”</a>, which turned out to be too strict.</li>
+<li>It’s not entirely obvious (at least to me) that the new rules are sound. I.e. if they allow two instances in two libraries, a third one importing the two won’t be incoherent.</li>
+</ol>
+<p>By definition, orphan instance rules need to follow instance resolution (or constraint solving) rules: we want a constraint to resolve to one instance (if it ever does) everywhere in the program. With different instance resolution rules, the orphan rules would have to change too.</p>
+<p>However, interestingly, I couldn’t find any formal treatment of orphan instance rules, with proofs that the rules only allow a coherent system and examples of common use cases that they support. I think there’s a language design research opportunity here where we formalize instance resolution rules and orphan instance rules, and prove that the rules only allow a globally coherent system.</p>
+<p>There’s a lot more to say about instance resolution and orphan rules, so hopefully more on this topic later. In this post I just wanted to give some definitions that I’ll refer to later.</p>]]></summary>
+</entry>
+<entry>
     <title>Unification and impl search</title>
     <link href="http://osa1.net/posts/2026-07-31-impl-search-unification.html" />
     <id>http://osa1.net/posts/2026-07-31-impl-search-unification.html</id>
@@ -1731,32 +1843,6 @@ type TypeDecl(
 </ul>
 <p>Not adding tokens to the AST nodes keeps the AST nodes small (cheaper to allocate), and parser and user code simple. Use sites that don’t care about comment nodes pay no price for larger AST nodes or extra parsing code handling comments.</p>
 <p>(There are a few open issues about Fir’s formatter, but none that are caused by the ideas explained in this post.)</p>]]></summary>
-</entry>
-<entry>
-    <title>Fir is getting useful</title>
-    <link href="http://osa1.net/posts/2025-09-04-fir-getting-useful.html" />
-    <id>http://osa1.net/posts/2025-09-04-fir-getting-useful.html</id>
-    <published>2025-09-04T00:00:00Z</published>
-    <updated>2025-09-04T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>A few months ago I implemented a <a href="https://github.com/fir-lang/fir/blob/55bf6bacf31d04f5a6b623aedbede5a02bcd31a8/tools/peg/Peg.fir">PEG parser generator</a> in Fir. It <a href="https://github.com/fir-lang/fir/blob/55bf6bacf31d04f5a6b623aedbede5a02bcd31a8/tools/peg/PegGrammar.peg">parses its own grammar</a> and it’s also used to <a href="https://github.com/fir-lang/fir/blob/55bf6bacf31d04f5a6b623aedbede5a02bcd31a8/compiler/Grammar.peg">parse Fir</a>.</p>
-<p>This week I finished another sizable<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> Fir project: a <a href="https://github.com/fir-lang/fir/blob/55bf6bacf31d04f5a6b623aedbede5a02bcd31a8/tools/format/Format.fir">code formatter for Fir</a>. It now <a href="https://github.com/fir-lang/fir/commit/222940029c1cc71da2cd35d4f3c90eab885c918e">formats most of the Fir code</a> in the repo<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
-<p>Fir is being designed and implemented from day one with tooling, libraries, and backwards compatibility in mind. The compiler’s front-end is currently being reused by the formatter. Soon it’ll be reused by a syntax-aware search-and-replace tool (similar to <a href="https://github.com/osa1/sg">sg</a>), and by a tool that combines Fir packages into a single .fir file (for sharing repros and automated repro reduction), and much later, by the language server and other tools. You can see the list of tools I want to implement <a href="https://github.com/fir-lang/fir/issues/28">here</a>.</p>
-<p>By implementing the tooling along with the first version of the compiler (all in Fir), I want to make sure we have the right SDK design to support all these tools, and more. I want to publish the Fir front-end as a reusable package. This front-end should support the last N<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> releases of Fir, so that you can parse (and analyze, modify, refactor, migrate, …) the last N versions of Fir with the latest version of Fir.</p>
-<p>I still haven’t written a post explaining what kind of language I want Fir to be, because that’s still largely an open question. However there are a few things that are decided: a compiled, typed language with ADTs, with typeclasses (called traits) for compile-time polymorphism (monomorphised, with value types), and <a href="https://osa1.net/posts/2025-06-28-why-effects.html">effects</a>. I want Fir to be a high-level, but still efficient, language.</p>
-<p>Even implementing just a compiler is a big task, and designing and implementing a whole language with all these tools can’t be done by one person. If this vision sounds interesting to you, and you clicked on a few links above and like what you see, please don’t hesitate to reach out. Each of these tools comes with their own issues and tasks, so it’s now a good time to start contributing to Fir. I already have a list of <a href="https://github.com/fir-lang/fir/issues?q=is%3Aissue%20state%3Aopen%20label%3Apeg">issues for the PEG generator</a> and the <a href="https://github.com/fir-lang/fir/issues?q=is%3Aissue%20state%3Aopen%20label%3Aformatter">formatter</a>. There’s also all kinds of other things in the issue tracker. Depending on your experience, you can also keep yourself entertained in other ways: the interpreter is slow (a simple AST walker), the interpreter’s type checker is not in good shape etc. If you have the experience and opinions, you can also influence the language design.</p>
-<p>My next task is, I’ll be implementing the search-and-replace tool mentioned above (I do this now mainly because I need it when working on Fir), and in parallel, <a href="https://github.com/fir-lang/fir/issues/195">designing and implementing the module system</a>. The module system will need to be implemented in the interpreter too, because I’ll be using modules in the compiler and other tools. Depending on how much free time I’ll have, it should be at least a month of work.</p>
-<p>I’m happy with how it’s coming along and I’m excited about Fir’s future.</p>
-<section class="footnotes" role="doc-endnotes">
-<hr />
-<ol>
-<li id="fn1" role="doc-endnote"><p>Formatter is currently 1,086 loc. PEG is 850 loc without the parser for parsing itself. Generated Fir for the parsing PEGs is 2,364 loc, generated from 178 loc PEG.</p>
-<p>It’s a bit more difficult to precisely measure the compiler’s grammar size, because it includes semantic actions, but the grammar is 888 loc and generated parser for the grammar is 5,147 loc.</p>
-<p>In total (including tests), we have 21,012 loc Fir today in the repo.</p>
-<p>All numbers excluding comments and whitespace.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2" role="doc-endnote"><p>We don’t format tests to avoid accidentally parsing only formatted code.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn3" role="doc-endnote"><p>I’m not sure what the exact number here should be yet.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-</ol>
-</section>]]></summary>
 </entry>
 
 </feed>

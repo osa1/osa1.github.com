@@ -8,8 +8,120 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2026-05-12T00:00:00Z</updated>
+    <updated>2026-08-29T00:00:00Z</updated>
     <entry>
+    <title>Coherence and orphan instance rules</title>
+    <link href="http://osa1.net/posts/2026-08-29-coherence-and-orphans.html" />
+    <id>http://osa1.net/posts/2026-08-29-coherence-and-orphans.html</id>
+    <published>2026-08-29T00:00:00Z</published>
+    <updated>2026-08-29T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Typeclasses are an overloading mechanism that allows compile time or runtime polymorphism. A typeclass method call like <code>m a b ...</code> (or <code>a.m(b, ...)</code> in Rust) resolves to a concrete method based on the type arguments passed to the method.</p>
+<pre><code>class ToString t where
+    toString :: t -&gt; String
+
+instance ToString Bool where
+    toString = undefined
+
+instance ToString Int where
+    toString = undefined
+
+f = toString (123 :: Int)
+
+g = toString True</code></pre>
+<p><code>toString</code> here is overloaded: the two calls to the same method actually call different concrete methods.</p>
+<p>These type arguments are commonly based on the arguments or the return value (which is inferred from the call site context).</p>
+<pre><code>class Convertible a b where
+  convert :: a -&gt; b
+
+instance Convertible Int String where
+  convert = show
+
+instance Convertible Int Bool where
+  convert = (/= 0)
+
+f :: Bool
+f = convert (123 :: Int) -- actual method called depends on the return type</code></pre>
+<p>When a typeclass type parameter is not used in a method signature, the compiler has no way of choosing the instance, so we have to specify the type arguments explicitly:</p>
+<pre><code>{-# LANGUAGE AllowAmbiguousTypes #-}
+
+class Ambiguous a b where
+  weird :: a -&gt; IO ()
+
+instance Ambiguous Int Bool where
+  weird _ = putStrLn &quot;First instance&quot;
+
+instance Ambiguous Int String where
+  weird _ = putStrLn &quot;Second instance&quot;
+
+f :: IO ()
+f = weird @Int @Bool (123 :: Int)</code></pre>
+<p>Here <code>f</code> calls <code>Ambiguous Int Bool</code>’s <code>weird</code>, based on the explicit type arguments. Without the type arguments the compiler has no way of knowing which <code>weird</code> to call.</p>
+<p>Crucially, instances are not first-class values and they’re not named. This allows maintaining a useful property that we want to have when working with typeclasses: if we call the same method with the same type parameters in different parts of a program, they should all call the same method. This is absolutely essential, and if you’ve programmed with Rust’s traits or Haskell’s typeclasses even for a short while, you inevitably wrote code that assumes this property.</p>
+<p>Some of the common cases where we rely on this property is:</p>
+<ul>
+<li>If we log/print a value with an overloaded function, the printed format for the same argument is the same, regardless of where it was printed.</li>
+<li>If we serialize a value in one part of the program (e.g. in library A) and deserialize it in another part (e.g. in library B), the serialization and deserialization call sites use the same instance and therefore be compatible in the format they expect.</li>
+<li>For <code>Hash</code> and <code>Ord</code> based data structures (e.g. hash or ordered maps and sets), the insertion and lookup sites always use the same hash code function and therefore maintain the data structure invariants and e.g. never add duplicate keys etc.</li>
+</ul>
+<p>This property is called <strong>coherence</strong>.</p>
+<p>(If you’re familiar with OOP with subtyping, coherence exists in OOP languages as <code>x.m()</code> calling the same method <code>m</code> for the same type of <code>x</code>, everywhere in the program.)</p>
+<p>More formally, coherence says that for any constraint <code>C type1 ... typeN</code>, there can be at most one instance that matches the constraint. So if a method call generates the constraint, we know that there’ll be at most one instance that matches the constraint, and it’s the method of that instance that will be called.</p>
+<p>When there are multiple instances that can potentially match the same constraint, they’re called <strong>overlapping</strong> instances. Overlapping instances are how we get an incoherent system.</p>
+<p>An important fact about coherence is that it’s a global (or whole-program) property. Without globally saying that a constraint can resolve to at most one instance, there can be different parts of the program (maybe different libraries, modules) where e.g. <code>Hash String</code> resolves to different instances, and invalidate our data structure invariants.</p>
+<p>(In OOP terms, you can think of this as <code>x.hashCode()</code> returning different values in different parts of the program, for the identical <code>x</code>, and with no mutation on <code>x</code> in between.)</p>
+<p>Here’s an example where the modules are coherent, but the main module importing the others is not:</p>
+<pre><code>-- C.hs
+class C a b
+
+-- A.hs
+import C
+data A = A
+instance C A b
+
+-- B.hs
+import C
+data B = B
+instance C a B
+
+-- Main.hs
+import C
+import A
+import B
+
+test :: C p q =&gt; p -&gt; q -&gt; IO ()
+test _ _ = pure ()
+
+main = test A B</code></pre>
+<p>Here <code>A</code> and <code>B</code> are both individually coherent, but <code>Main</code> is not, despite the fact that it’s not defining any instances. In <code>Main</code>, <code>C A B</code> is matched by both of the instances imported.</p>
+<p>Coherence being a global property poses a challenge. We want libraries that compose. If we accept two libraries (like A and B above) as type-safe and coherent, then we should be able to import them in a third one and the system should still be coherent. Otherwise, if we also consider transitive dependencies, it creates a fragmented ecosystem of libraries where many libraries can’t be used in the same program (directly or transitively).</p>
+<p>This is ensured with <strong>orphan instance rules</strong>. These rules limit where we can define an instance, with the goal of making sure coherent libraries can be composed.</p>
+<p>For the purposes of this blog post, the exact rules are not important (and they also depend on the language). However just as an example, if we had a single-parameter version of our <code>C</code> above and a type in another library:</p>
+<pre><code>-- C.hs
+class C a
+
+-- A.hs
+data A = A</code></pre>
+<p>Orphan instance rules dictate that the only place where <code>instance C A</code> can go is in <code>A.hs</code>. So there can’t be two modules that define <code>instance C A</code> that can be imported in a third one, the instance can only come from <code>A</code>.</p>
+<p>What about the two-parameter version <code>class C a b</code>? What would be the rules of where to allow instances like:</p>
+<ul>
+<li><code>instance C A b</code></li>
+<li><code>instance C a B</code></li>
+<li><code>instance C A B</code></li>
+<li><code>instance C [a] b</code></li>
+<li><code>instance C a (Maybe b)</code></li>
+<li>…</li>
+</ul>
+<p>Or, what if we also have higher-kinded type parameters in the class, like <code>Foldable</code>? What if we also had extra type parameters?</p>
+<p>Having modular rules to enforce program-wide coherence while also not being too strict (allowing common and useful use cases) is a non-trivial problem. As an example, in Rust, the incoherent Haskell example above is not allowed: the instance <code>instance C a B</code> is disallowed by the orphan instance rules. The details of the rule that disallows this is described in an RFC called <a href="https://github.com/rust-lang/rfcs/pull/2451">“Re-rebalancing coherence”</a>. But note that:</p>
+<ol type="1">
+<li>This is a follow-up to an earlier orphan instance rule change <a href="https://github.com/rust-lang/rfcs/pull/1023">“Rebalancing coherence”</a>, which turned out to be too strict.</li>
+<li>It’s not entirely obvious (at least to me) that the new rules are sound. I.e. if they allow two instances in two libraries, a third one importing the two won’t be incoherent.</li>
+</ol>
+<p>By definition, orphan instance rules need to follow instance resolution (or constraint solving) rules: we want a constraint to resolve to one instance (if it ever does) everywhere in the program. With different instance resolution rules, the orphan rules would have to change too.</p>
+<p>However, interestingly, I couldn’t find any formal treatment of orphan instance rules, with proofs that the rules only allow a coherent system and examples of common use cases that they support. I think there’s a language design research opportunity here where we formalize instance resolution rules and orphan instance rules, and prove that the rules only allow a globally coherent system.</p>
+<p>There’s a lot more to say about instance resolution and orphan rules, so hopefully more on this topic later. In this post I just wanted to give some definitions that I’ll refer to later.</p>]]></summary>
+</entry>
+<entry>
     <title>Macros in Fir</title>
     <link href="http://osa1.net/posts/2026-05-12-fir-macros.html" />
     <id>http://osa1.net/posts/2026-05-12-fir-macros.html</id>
@@ -1832,51 +1944,6 @@ void fail(int index, int length) { ... }</code></pre>
 <p>Or more briefly, all methods in an override group need to have the same type.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>]]></summary>
-</entry>
-<entry>
-    <title>Resumable exceptions</title>
-    <link href="http://osa1.net/posts/2024-11-04-resumable-exceptions.html" />
-    <id>http://osa1.net/posts/2024-11-04-resumable-exceptions.html</id>
-    <published>2024-11-04T00:00:00Z</published>
-    <updated>2024-11-04T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>The main use case of resumable exceptions would be collecting a bunch of errors (instead of bailing out after the first one) to log or show to the user, or actually recovering and continuing from the point of error detection, rather than in a call site.</p>
-<p><em>Why not design the code to allow error recovery, instead of using a language feature?</em> There are a few problems with this:</p>
-<ul>
-<li><p>Without a language feature to do this, libraries will have to implement their own ways to recover from errors, causing inconsistencies and fragmented ecosystem of error handling libraries.</p></li>
-<li><p>With resumable exceptions, any code can be trivially made to transfer control to a exception handler, and back. Manually refactoring code to do the same can be a big task. This may even be infeasible.</p></li>
-<li><p>With resumable exceptions as a part of the language, libraries will be designed with resumption in mind. Libraries that would normally not allow error recovery will allow error recovery, as it will be easy to do, and it will be a common thing to resume from errors.</p></li>
-</ul>
-<h1 id="example-use-case-parser-shared-by-a-compiler-and-a-language-server">Example use case: parser shared by a compiler and a language server</h1>
-<p>Modern programming languages have complex syntax. Parsers for these languages are often thousands of lines of code.</p>
-<p>Ideally, all tooling for a language would share the parser, as it’s a significant amount of work to implement, debug, maintain parsers for such large languages.</p>
-<p>However not all of these tools will have the same error handling behavior. A compiler <em>cannot</em> continue in the presence of a parse error, but a language server <em>has to</em> continue.</p>
-<p>With resumable exceptions, the compiler can abort after a parse error, the language server can provide placeholder AST nodes for failing parse operations and resume. This flexibility does not make the parser API any more complicated than a parser that throws an exception in any other language. A one-off refactoring script that uses the parser library doesn’t have to deal with error recovery just because the language server, which uses the same parser, needs to recover from parse errors and continue parsing.</p>
-<h1 id="types-of-resumable-exceptions">Types of resumable exceptions</h1>
-<p>With resumable exceptions <code>throw</code> expressions generate a value. The value depends on the exception type thrown. For example, a <code>FooDecodingException</code> can be resumed with a value of <code>Foo</code> provided by the handler.</p>
-<p>This can be implemented with an abstract base class or typeclass/trait with a type parameter:</p>
-<pre><code>// in a system with classes:
-abstract class ResumableException&lt;Resume&gt; { 
-    prim Resume throw();
-    prim Never resume(Resume resumptionValue);
-}
-
-// or in a system with typeclasses/traits:
-trait ResumableException&lt;Resume&gt; {
-    prim fn throw(self) -&gt; Resume;
-    prim fn resume(resumptionValue: Resume) -&gt; !;
-}</code></pre>
-<p>Here the <code>prim</code> keyword indicates that the <code>throw</code> and <code>resume</code> methods are provided by the compiler.</p>
-<p><code>throw e</code> can then be type checked as <code>e.throw()</code>, and <code>resume e with value</code> can be type checked as <code>e.resume(value)</code>. Or we can use the function call syntax instead of special syntax for throwing and resuming.</p>
-<p>Whether to make exceptions thrown by a function a part of its type signature or not is an orthogonal concern.</p>
-<h1 id="exception-type-design-considerations">Exception type design considerations</h1>
-<p>The same considerations when designing non-resumable exceptions apply to resumable exceptions:</p>
-<ul>
-<li>The more general an exception type gets, the less you can do with it.</li>
-<li>We still want to distinguish “log and stop” kind of exceptions from recoverable ones.</li>
-</ul>
-<p>For example, it doesn’t make sense to resume from an <a href="https://api.dart.dev/stable/3.5.4/dart-core/ArgumentError-class.html"><code>ArgumentError</code></a>, so we don’t implement <code>ResumableException</code> for it.</p>
-<p>To be able to meaningfully resume from an exception, the exception type should document when exactly it is thrown, or have a resumption value type that is specific enough to give an idea on when it is thrown.</p>
-<p>For example, an exception that can be resumed with an <code>int</code> cannot be resumed without knowing what that <code>int</code> is going to be used for, so this should be documented. But an exception <code>FooDecodingError implements ResumableException&lt;Foo&gt;</code> makes it clear that it’s thrown when there’s an error during decoding a <code>Foo</code>, and the resumption value is the value to be used as the <code>Foo</code> being decoded.</p>]]></summary>
 </entry>
 
 </feed>
