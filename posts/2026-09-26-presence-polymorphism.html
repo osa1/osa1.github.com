@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>osa1 - Presence polymorphism</title>
+        <link rel="icon" href="data:,">
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <link rel="alternate" type="application/rss+xml" title="osa1.net blog" href="../rss.xml" />
+    </head>
+    <body>
+        <div id="column">
+            <div id="header-inner">
+    <span id="blog-title"><a href="../">osa1</a></span>
+    <span class="menu-item"><a href="https://github.com/osa1">github</a></span>
+    <span class="menu-item"><a href="../about.html">about</a></span>
+    <span class="menu-item"><a href="../rss.xml">atom</a></span>
+</div>
+
+            <div class="inner">
+                <h1 id="post-title">Presence polymorphism</h1>
+
+<p><strong>September 26, 2026</strong> - Tagged as: <a title="All pages tagged 'en'." href="../tags/en.html">en</a>, <a title="All pages tagged 'plt'." href="../tags/plt.html">plt</a>.</p>
+
+<p>I’ve been blogging about row polymorphism since <a href="https://osa1.net/posts/2013-04-15-internship.report.html">2013</a> (a life wasted?) but I only learned about presence polymorphism, which is a very related concept, recently.</p>
+<p>For types with labels like records and variants, row polymorphism allows adding more labels, presence polymorphism allows removing labels.</p>
+<p>Similar to row type variables, presence type variables have their own kinds. In this post we’ll use <code>p</code> prefixed type variables for presence variables, <code>r</code> prefixed types variables for row variables.</p>
+<p>There are only two concrete presence types: <code>Present</code> and <code>Absent</code>. As the names suggest, <code>Present</code> makes a label present in the value, and <code>Absent</code> makes it absent.</p>
+<p>With presence polymorphism, type of a record literal like</p>
+<pre><code>rec1 = (x = 123, msg = &quot;hi&quot;, y = 456)
+rec1 : (x : Int, msg : String, y : Int)</code></pre>
+<p>gets generalized as</p>
+<pre><code>rec1 : ∀ p1 p2 p3 . ((x : Int)^p1, (msg : String)^p2, (y : Int)^p3)</code></pre>
+<p>Instantiations of this type then give us subsets of the original record’s labels:</p>
+<pre><code>rec1 @Present @Present @Present : (x : Int, msg : String, y : Int)
+rec1 @Present @Present @Absent  : (x : Int, msg : String)
+rec1 @Present @Absent  @Absent  : (x : Int)
+...</code></pre>
+<p>This is useful for the same reason that variant literals having row polymorphic type is useful:</p>
+<pre><code>var1 = ~Option.Some(123)
+var1 : ∀ r1 . [Option[Int], ..r1]</code></pre>
+<p>Similar to how a variant value with the label for the named type <code>Option[Int]</code> can be passed as a variant with type <code>[Option[Int], String]</code>, a record with labels <code>(x : Int, msg : String)</code> can be used as a single-label record <code>(a : Int)</code> or <code>(msg : String)</code>, or an empty record <code>()</code>.</p>
+<p>In other words, a simple and limited version of subtyping of variants can be implemented using row polymorphism, and subtyping of records can be implemented using presence polymorphism.</p>
+<p>In contravariant (i.e. function argument) positions, the polymorphisms used for variants and records get swapped: records become row polymorphic and variants become presence polymorphic:</p>
+<pre><code>f1 = \(r) -&gt; r.x + r.y
+f2 = \(v) -&gt; match v with
+               ~Option.Some(x) -&gt; x
+               ~Option.None    -&gt; 0
+               ~msg as String  -&gt; panic(&quot;Unexpected argument: `msg`&quot;)
+
+f1 : ∀ r1    . (x : Int, y : Int, ..r1)    -&gt; Int
+f2 : ∀ p1 p2 . [Option[Int]^p1, String^p2] -&gt; Int</code></pre>
+<p>In practice though, presence polymorphism is a bit difficult to deal with, because of type parameters growing proportionally with the labels in the types.</p>
+<p>So instead, we make variants in covariant position and records in contravariant position row polymorphic, and that often works well enough. Consider the types of functions, and the record and variant above, with just row polymorphism, just presence polymorphism, and both:</p>
+<pre><code>-- With just row polymorphism
+var1 : ∀ r1 . [Option[Int], ..r1]
+rec1 :        (x : Int, msg : String, y : Int)
+
+f1 : ∀ r1 . (x : Int, y : Int, ..r1) -&gt; Int
+f2 :        [Option[Int], String]    -&gt; Int
+
+-- With just presence polymorphism
+var1 :              [Option[Int]]
+rec1 : ∀ p1 p2 p3 . ((x : Int)^p1, (msg : String)^p2, (y : Int)^p3)
+
+f1 :           (x : Int, y : Int)          -&gt; Int
+f2 : ∀ p1 p2 . [Option[Int]^p1, String^p2] -&gt; Int
+
+-- With presence and row polymorphism
+var1 : ∀ r1       . [Option[Int], ..r1]
+rec1 : ∀ p1 p2 p3 . ((x : Int)^p1, (msg : String)^p2, (y : Int)^p3)
+
+f1 : ∀ r1    . (x : Int, y : Int, ..r1)    -&gt; Int
+f2 : ∀ p1 p2 . [Option[Int]^p1, String^p2] -&gt; Int</code></pre>
+<p>In all of these cases, <code>f1 rec1</code> and <code>f2 var1</code> are well typed, giving us a limited subtyping-like type checking where a larger record can be passed as a smaller one, and a smaller variant can be passed as a larger one. (aka. width subtyping)</p>
+<p>A function having a row or presence polymorphic parameter and a value being row or presence polymorphic are not the same things: in the function, the polymorphic argument will have a rigid type<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, just with type variables, but the polymorphic value can be used as different concrete types. So there’s still value in making records in covariant position polymorphic.</p>
+<p>However my guess is, because of how unwieldy the type parameters get with larger records, presence polymorphism didn’t get as much attention as row polymorphism, and I hadn’t heard of it until recently.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>Unless we support higher-ranked types, which come with their own set of problems.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+            </div>
+        </div>
+    </body>
+</html>

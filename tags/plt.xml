@@ -8,8 +8,74 @@
         <name>Ömer Sinan Ağacan</name>
         <email>omeragacan@gmail.com</email>
     </author>
-    <updated>2026-08-29T00:00:00Z</updated>
+    <updated>2026-09-26T00:00:00Z</updated>
     <entry>
+    <title>Presence polymorphism</title>
+    <link href="http://osa1.net/posts/2026-09-26-presence-polymorphism.html" />
+    <id>http://osa1.net/posts/2026-09-26-presence-polymorphism.html</id>
+    <published>2026-09-26T00:00:00Z</published>
+    <updated>2026-09-26T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>I’ve been blogging about row polymorphism since <a href="https://osa1.net/posts/2013-04-15-internship.report.html">2013</a> (a life wasted?) but I only learned about presence polymorphism, which is a very related concept, recently.</p>
+<p>For types with labels like records and variants, row polymorphism allows adding more labels, presence polymorphism allows removing labels.</p>
+<p>Similar to row type variables, presence type variables have their own kinds. In this post we’ll use <code>p</code> prefixed type variables for presence variables, <code>r</code> prefixed types variables for row variables.</p>
+<p>There are only two concrete presence types: <code>Present</code> and <code>Absent</code>. As the names suggest, <code>Present</code> makes a label present in the value, and <code>Absent</code> makes it absent.</p>
+<p>With presence polymorphism, type of a record literal like</p>
+<pre><code>rec1 = (x = 123, msg = &quot;hi&quot;, y = 456)
+rec1 : (x : Int, msg : String, y : Int)</code></pre>
+<p>gets generalized as</p>
+<pre><code>rec1 : ∀ p1 p2 p3 . ((x : Int)^p1, (msg : String)^p2, (y : Int)^p3)</code></pre>
+<p>Instantiations of this type then give us subsets of the original record’s labels:</p>
+<pre><code>rec1 @Present @Present @Present : (x : Int, msg : String, y : Int)
+rec1 @Present @Present @Absent  : (x : Int, msg : String)
+rec1 @Present @Absent  @Absent  : (x : Int)
+...</code></pre>
+<p>This is useful for the same reason that variant literals having row polymorphic type is useful:</p>
+<pre><code>var1 = ~Option.Some(123)
+var1 : ∀ r1 . [Option[Int], ..r1]</code></pre>
+<p>Similar to how a variant value with the label for the named type <code>Option[Int]</code> can be passed as a variant with type <code>[Option[Int], String]</code>, a record with labels <code>(x : Int, msg : String)</code> can be used as a single-label record <code>(a : Int)</code> or <code>(msg : String)</code>, or an empty record <code>()</code>.</p>
+<p>In other words, a simple and limited version of subtyping of variants can be implemented using row polymorphism, and subtyping of records can be implemented using presence polymorphism.</p>
+<p>In contravariant (i.e. function argument) positions, the polymorphisms used for variants and records get swapped: records become row polymorphic and variants become presence polymorphic:</p>
+<pre><code>f1 = \(r) -&gt; r.x + r.y
+f2 = \(v) -&gt; match v with
+               ~Option.Some(x) -&gt; x
+               ~Option.None    -&gt; 0
+               ~msg as String  -&gt; panic(&quot;Unexpected argument: `msg`&quot;)
+
+f1 : ∀ r1    . (x : Int, y : Int, ..r1)    -&gt; Int
+f2 : ∀ p1 p2 . [Option[Int]^p1, String^p2] -&gt; Int</code></pre>
+<p>In practice though, presence polymorphism is a bit difficult to deal with, because of type parameters growing proportionally with the labels in the types.</p>
+<p>So instead, we make variants in covariant position and records in contravariant position row polymorphic, and that often works well enough. Consider the types of functions, and the record and variant above, with just row polymorphism, just presence polymorphism, and both:</p>
+<pre><code>-- With just row polymorphism
+var1 : ∀ r1 . [Option[Int], ..r1]
+rec1 :        (x : Int, msg : String, y : Int)
+
+f1 : ∀ r1 . (x : Int, y : Int, ..r1) -&gt; Int
+f2 :        [Option[Int], String]    -&gt; Int
+
+-- With just presence polymorphism
+var1 :              [Option[Int]]
+rec1 : ∀ p1 p2 p3 . ((x : Int)^p1, (msg : String)^p2, (y : Int)^p3)
+
+f1 :           (x : Int, y : Int)          -&gt; Int
+f2 : ∀ p1 p2 . [Option[Int]^p1, String^p2] -&gt; Int
+
+-- With presence and row polymorphism
+var1 : ∀ r1       . [Option[Int], ..r1]
+rec1 : ∀ p1 p2 p3 . ((x : Int)^p1, (msg : String)^p2, (y : Int)^p3)
+
+f1 : ∀ r1    . (x : Int, y : Int, ..r1)    -&gt; Int
+f2 : ∀ p1 p2 . [Option[Int]^p1, String^p2] -&gt; Int</code></pre>
+<p>In all of these cases, <code>f1 rec1</code> and <code>f2 var1</code> are well typed, giving us a limited subtyping-like type checking where a larger record can be passed as a smaller one, and a smaller variant can be passed as a larger one. (aka. width subtyping)</p>
+<p>A function having a row or presence polymorphic parameter and a value being row or presence polymorphic are not the same things: in the function, the polymorphic argument will have a rigid type<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, just with type variables, but the polymorphic value can be used as different concrete types. So there’s still value in making records in covariant position polymorphic.</p>
+<p>However my guess is, because of how unwieldy the type parameters get with larger records, presence polymorphism didn’t get as much attention as row polymorphism, and I hadn’t heard of it until recently.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1" role="doc-endnote"><p>Unless we support higher-ranked types, which come with their own set of problems.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>]]></summary>
+</entry>
+<entry>
     <title>Coherence and orphan instance rules</title>
     <link href="http://osa1.net/posts/2026-08-29-coherence-and-orphans.html" />
     <id>http://osa1.net/posts/2026-08-29-coherence-and-orphans.html</id>
@@ -1562,162 +1628,6 @@ handleInvalidDigit(
 <li id="fn2" role="doc-endnote"><p>Implementation-wise, it’s closer to Rust than Haskell as we monomorphise.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>]]></summary>
-</entry>
-<entry>
-    <title>Error handling in Fir</title>
-    <link href="http://osa1.net/posts/2025-01-18-fir-error-handling.html" />
-    <id>http://osa1.net/posts/2025-01-18-fir-error-handling.html</id>
-    <published>2025-01-18T00:00:00Z</published>
-    <updated>2025-01-18T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<p>A while ago I came up with an <a href="https://gist.github.com/osa1/38fd51abe5247462eddb7d014f320cd2">“error handling expressiveness benchmark”</a>, some common error handling cases that I want to support in <a href="https://github.com/fir-lang/fir">Fir</a>.</p>
-<p>After 7 months of pondering and hacking, I think I designed a system that meets all of the requirements. Error handling in Fir is safe, expressive, and convenient to use.</p>
-<p>Here are some examples of what we can do in Fir today:</p>
-<p>(Don’t pay too much attention to type syntax for now. Fir is still a prototype, the syntax will be improved.)</p>
-<p>When we have multiple ways to fail, we don’t have to introduce a sum type with all the possible ways that we can fail, we can use variants:</p>
-<pre><code>parseU32(s: Str) Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]:
-    if s.len() == 0:
-        return Result.Err(~EmptyInput)
-
-    let result: U32 = 0
-
-    for c in s.chars():
-        if c &lt; &#39;0&#39; || c &gt; &#39;9&#39;:
-            return Result.Err(~InvalidDigit)
-
-        let digit = c.asU32() - &#39;0&#39;.asU32()
-
-        result = match checkedMul(result, 10):
-            Option.None: return Result.Err(~Overflow)
-            Option.Some(newResult): newResult
-
-        result = match checkedAdd(result, digit):
-            Option.None: return Result.Err(~Overflow)
-            Option.Some(newResult): newResult
-
-    Result.Ok(result)</code></pre>
-<p>An advantage of variants is, in pattern matching, we “refine” types of binders to drop handled variants from the type. This allows handling some of the errors and returning the rest to the caller:</p>
-<pre><code>defaultEmptyInput(res: Result[[EmptyInput, ..r], U32]) Result[[..r], U32]:
-    match res:
-        Result.Err(~EmptyInput): Result.Ok(0u32)
-        Result.Err(other): Result.Err(other)
-        Result.Ok(val): Result.Ok(val)</code></pre>
-<p>Here <code>EmptyInput</code> is removed from the error value type in the return type. The caller does not need to handle <code>EmptyInput</code>.</p>
-<p>(We don’t refine types of variants nested in other types for now, so the last two branches cannot be replaced with <code>other: other</code> for now.)</p>
-<p>Another advantage is that they allow composing error returning functions that return different error types:</p>
-<p>(Fir supports variant constructors with fields, but to keep things simple we don’t use them in this post.)</p>
-<pre><code>readFile(s: Str) Result[[IoError, ..r], Str]:
-    # We don&#39;t have the standard library support for file IO yet, just return
-    # an error for now.
-    Result.Err(~IoError)
-
-parseU32FromFile(filePath: Str) Result[[InvalidDigit, Overflow, EmptyInput, IoError, ..r], U32]:
-    let fileContents = match readFile(filePath):
-        Result.Err(err): return Result.Err(err)
-        Result.Ok(contents): contents
-
-    parseU32(fileContents)</code></pre>
-<p>In the early return I don’t have to manually convert <code>readFile</code>s error value to <code>parseU32</code>s error value to make the types align.</p>
-<p>Variants work nicely with higher-order functions as well. Here’s a function that parses a vector of strings, returning any errors to the caller:</p>
-<pre><code>parseWith(vec: Vec[Str], parseFn: Fn(Str) Result[errs, a]) Result[errs, Vec[a]]:
-    let ret = Vec.withCapacity(vec.len())
-
-    for s in vec.iter():
-        match parseFn(s):
-            Result.Err(err): return Result.Err(err)
-            Result.Ok(val): ret.push(val)
-
-    Result.Ok(ret)</code></pre>
-<p>If I have a function argument that returns more errors than my callback, I can still call it without any adjustments:</p>
-<pre><code>parseWith2(vec: Vec[Str], parseFn: Fn(Str) Result[[OtherError, ..r], a]) Result[[..r], Vec[a]]:
-    let ret = Vec.withCapacity(vec.len())
-
-    for s in vec.iter():
-        match parseFn(s):
-            Result.Err(~OtherError): continue
-            Result.Err(err): return Result.Err(err)
-            Result.Ok(val): ret.push(val)
-
-    Result.Ok(ret)</code></pre>
-<p><code>parseWith2(vec, parseU32)</code> type checks even though <code>parseU32</code> doesn’t return <code>OtherError</code>.</p>
-<p>Similarly, if I have a function that handles more cases, I can pass it as a function that handles less:</p>
-<pre><code>handleSomeErrs(error: [Overflow, OtherError]) U32: 0
-
-parseWithErrorHandler(
-        input: Str,
-        handler: Fn([Overflow, ..r1]) U3
-    ) Result[[InvalidDigit, EmptyInput, ..r2], U32]:
-    match parseU32(input):
-        Result.Err(~Overflow): Result.Ok(handler(~Overflow))
-        Result.Err(other): Result.Err(other)
-        Result.Ok(val): Result.Ok(val)</code></pre>
-<p>Here I’m able to pass <code>handleSomeErrs</code> to <code>parseWithErrorHandler</code>, even though it handles more errors than what <code>parseWithErrorHandler</code> argument needs.</p>
-<h1 id="variants-as-exceptions">Variants as exceptions</h1>
-<p>When we use variants as exception values, we end up with a system that is</p>
-<ul>
-<li>Safe: All exceptions need to be handled before <code>main</code> returns.</li>
-<li>Flexible: All of the flexibility of variants shown above apply to exceptions as well.</li>
-<li>Convenient:
-<ul>
-<li>Error values are implicitly propagated to the caller when not handled.</li>
-<li>When a library uses one way of error reporting (error values or exceptions) and you need the other, conversion is just a matter of calling one function.</li>
-</ul></li>
-</ul>
-<p>At the core of exceptions in Fir are these three functions:</p>
-<ul>
-<li><p><code>throw</code>, which converts a variant into an exception:</p>
-<pre><code>throw(exn: exn) a / exn</code></pre></li>
-<li><p><code>try</code>, which converts exceptions into <code>Result.Err</code> values:</p>
-<pre><code>try(cb: Fn() a / exn) Result[exn, a]</code></pre></li>
-<li><p><code>untry</code>, which converts a <code>Result.Err</code> value into an exception:</p>
-<pre><code>untry(res: Result[exn, a]) a / exn</code></pre></li>
-</ul>
-<p>Here are some of the code above, using exceptions instead of error values:</p>
-<pre><code>parseU32Exn(s: Str) U32 / [InvalidDigit, Overflow, EmptyInput, ..r]:
-    if s.len() == 0:
-        throw(~EmptyInput)
-
-    let result: U32 = 0
-
-    for c in s.chars():
-        if c &lt; &#39;0&#39; || c &gt; &#39;9&#39;:
-            throw(~InvalidDigit)
-
-        let digit = c.asU32() - &#39;0&#39;.asU32()
-
-        result = match checkedMul(result, 10):
-            Option.None: throw(~Overflow)
-            Option.Some(newResult): newResult
-
-        result = match checkedAdd(result, digit):
-            Option.None: throw(~Overflow)
-            Option.Some(newResult): newResult
-
-    result
-
-readFileExn(s: Str) Str / [IoError, ..r]:
-    # We don&#39;t have the standard library support for file IO yet, just throw
-    # an error for now.
-    throw(~IoError)
-
-parseU32FromFileExn(filePath: Str) U32 / [InvalidDigit, Overflow, EmptyInput, IoError, ..r]:
-    parseU32Exn(readFileExn(filePath))
-
-parseWithExn(vec: Vec[Str], parseFn: Fn(Str) a / exn) Vec[a] / exn:
-    let ret = Vec.withCapacity(vec.len())
-    for s in vec.iter():
-        ret.push(parseFn(s))
-    ret</code></pre>
-<p>When a library provides one of these, it’s trivial to convert to the other:</p>
-<pre><code>parseU32UsingExnVersion(s: Str) Result[[InvalidDigit, Overflow, EmptyInput, ..r], U32]:
-    try(||: parseU32Exn(s))
-
-parseU32UsingResultVersion(s: Str) U32 / [InvalidDigit, Overflow, EmptyInput, ..r]:
-    untry(parseU32(s))</code></pre>
-<p>Nice!</p>
-<hr />
-<p>I’m quite excited about these results. There’s still so much to do, but I think it’s clear that this way of error handling has a lot of potential.</p>
-<p>I’ll be working on some of the improvements I mentioned above (and I have others planned as well), and the usual stuff that every language needs (standard library, tools etc.). Depending on interest, I may also write more about variants, error handling, or anything else related to Fir.</p>
-<p>You can try Fir online <a href="https://fir-lang.github.io/?file=ErrorHandling.fir">here</a>.</p>]]></summary>
 </entry>
 
 </feed>
